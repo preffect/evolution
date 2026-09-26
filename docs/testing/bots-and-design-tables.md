@@ -108,7 +108,7 @@ ratio 0.01 mass either side of `canStart` and `canContinue`, the start edge also
 through the input → the tier I modifier changes DNA gain, the speed cap or the decay on the pick tick)
 and `leaderboard.gameplay.test.ts` (score order, the mass then join-order tie-breaks of
 `determinism/ordering-and-state-hash.md` §4, and a late-join gift that buys no rank). `traits.gameplay.test.ts` holds the trait
-rows that need no engulf (T2, T5, T7–T9, #178), each trait fixture-granted at tier I. `shared-setups.ts` holds the seeds bound to
+rows that need no engulf (T2, T5, T7–T9, #178), each trait fixture-granted at tier I. `traits-death.gameplay.test.ts` holds T12 (#401): a Nuclear Envelope II prey's kept progress through an engulf death and respawn, with a traitless control. `shared-setups.ts` holds the seeds bound to
 the DSL, `decayed()`, the steer-blend helpers (`blendedSpeed`, `blendedTravelWu`), `tierOneModifier`, the tolerances and
 the P7 world G9 reuses. A row derives its expected numbers from the shared constants and formulas
 (`CELL_BASE_SPEED`, `radiusForMass`, `gelSpeedFactor`, `cumulativeDnaForLevel`, `worldReference`) rather
