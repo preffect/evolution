@@ -73,7 +73,7 @@ packages/server/src/
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
-  game/bots/strategies/{idle,wander,grazer,hunter,flee}.ts                   the build-1 strategies (testing/bots-and-design-tables.md §8.3)
+  game/bots/strategies/{idle,wander,grazer,hunter,flee,forager}.ts           the build-1 strategies (testing/bots-and-design-tables.md §8.3)
   mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
   testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)

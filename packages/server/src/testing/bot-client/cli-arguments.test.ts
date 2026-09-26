@@ -46,7 +46,7 @@ describe('bot client arguments', () => {
     [['--game', 'g1', '--ticks', '0'], /--ticks needs a whole number of at least 1/],
     [
       ['--game', 'g1', '--strategy', 'sleep'],
-      /--strategy must be one of idle, wander, grazer, hunter, flee, not "sleep"/,
+      /--strategy must be one of idle, wander, grazer, hunter, flee, forager, not "sleep"/,
     ],
     [['--game', 'g1', '--url', 'notaurl'], /--url needs a URL such as ws:\/\/localhost:\d+\/ws, not "notaurl"/],
   ])('refuses %j with the usage text', (commandLineArguments, problem) => {
@@ -56,7 +56,7 @@ describe('bot client arguments', () => {
   });
 
   it('names every strategy and every default in the usage text', () => {
-    expect(BOT_CLI_USAGE).toContain('idle | wander | grazer | hunter | flee');
+    expect(BOT_CLI_USAGE).toContain('idle | wander | grazer | hunter | flee | forager');
     expect(BOT_CLI_USAGE).toContain(DEFAULT_BOT_CLIENT_URL);
     expect(BOT_CLI_USAGE).toContain(`default ${DEFAULT_BOT_SEED}`);
   });

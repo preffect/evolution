@@ -9,14 +9,15 @@ import type { PlayerId } from '@evolution/shared';
 import type { BotStrategyFactory } from './bot-strategy.js';
 import type { BotPerception } from './perception.js';
 import { createFleeStrategy } from './strategies/flee.js';
+import { createForagerStrategy } from './strategies/forager.js';
 import { createGrazerStrategy } from './strategies/grazer.js';
-import { createHunterStrategy } from './strategies/hunter.js';
+import { createGrazingHunterStrategy } from './strategies/hunter.js';
 import { createIdleStrategy } from './strategies/idle.js';
 import { createWanderStrategy } from './strategies/wander.js';
 import { BOT_STRATEGY_NAME, type BotStrategyName } from './strategy-constants.js';
 
 export interface CatalogOptions {
-  /** `hunter` only: hunt this player alone. */
+  /** `hunter` only: hunt this player alone (it still grazes while that player is out of reach). */
   readonly preyPlayerId?: PlayerId;
 }
 
@@ -29,8 +30,9 @@ export function createStrategyByName<Snapshot>(
     [BOT_STRATEGY_NAME.idle]: () => createIdleStrategy(),
     [BOT_STRATEGY_NAME.wander]: () => createWanderStrategy(),
     [BOT_STRATEGY_NAME.grazer]: () => createGrazerStrategy(perception),
-    [BOT_STRATEGY_NAME.hunter]: () => createHunterStrategy(perception, options),
+    [BOT_STRATEGY_NAME.hunter]: () => createGrazingHunterStrategy(perception, options),
     [BOT_STRATEGY_NAME.flee]: () => createFleeStrategy(perception),
+    [BOT_STRATEGY_NAME.forager]: () => createForagerStrategy(perception),
   };
   return factories[name]();
 }

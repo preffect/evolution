@@ -6,9 +6,18 @@
 // hunt to one player (`--prey <playerId>` on the CLI); `withinRadii` to the prey within that many own
 // radii and `preference` picks the nearest instead of the largest: the wild hunt of
 // docs/ecology/wild-cells.md §3.3 is a fresh, range-bound, nearest-first hunter. No randomness.
+// The catalogue's `hunter` is `createGrazingHunterStrategy`: the same hunt, grazing like `grazer` while nothing is
+// engulfable (#376), so a bot spawned small grows into a predator instead of waiting for a bigger respawn. The wild
+// strategy composes the bare hunter with its own rules.
 
 import { distanceBetween, type PlayerId } from '@evolution/shared';
-import type { BotStrategy, BotStrategyFactory, PlayerCommand } from '../bot-strategy.js';
+import {
+  createFirstCommandStrategy,
+  type BotStrategy,
+  type BotStrategyFactory,
+  type PlayerCommand,
+} from '../bot-strategy.js';
+import { createGrazerStrategy } from './grazer.js';
 import { nearestTo, type BotCellView, type BotPerception } from '../perception.js';
 import {
   BOT_STRATEGY_NAME,
@@ -96,4 +105,15 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
       },
     };
   };
+}
+
+/** The catalogue's `hunter`: hunts as `createHunterStrategy`, and grazes the nearest mote while it has no prey. */
+export function createGrazingHunterStrategy<Snapshot, ActorId = PlayerId>(
+  perception: BotPerception<Snapshot, ActorId>,
+  options: HunterOptions = {},
+): BotStrategyFactory<Snapshot, ActorId> {
+  return createFirstCommandStrategy(BOT_STRATEGY_NAME.hunter, [
+    createHunterStrategy(perception, options),
+    createGrazerStrategy(perception),
+  ]);
 }

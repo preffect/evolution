@@ -76,3 +76,28 @@ export function strategyScript<Snapshot, ActorId = PlayerId>(
 ): PlayerScript<Snapshot, ActorId> {
   return (context) => strategy.decide(context);
 }
+
+/**
+ * A strategy named `name` that answers the first non-null command of `factories`, in order, each built fresh per run:
+ * how the catalogue layers a rule over a fallback (the `hunter` grazing while it has no prey, the `forager`).
+ */
+export function createFirstCommandStrategy<Snapshot, ActorId = PlayerId>(
+  name: string,
+  factories: readonly BotStrategyFactory<Snapshot, ActorId>[],
+): BotStrategyFactory<Snapshot, ActorId> {
+  return () => {
+    const strategies = factories.map((factory) => factory());
+    return {
+      name,
+      decide: (context) => {
+        for (const strategy of strategies) {
+          const command = strategy.decide(context);
+          if (command !== null) {
+            return command;
+          }
+        }
+        return null;
+      },
+    };
+  };
+}
