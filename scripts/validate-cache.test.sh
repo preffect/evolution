@@ -403,7 +403,11 @@ printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' 
 echo 1 > "$FAKE_PNPM_RC_FILE"
 run_validate "$fixture" test --scope client
 check "a run whose every test passed still fails on an unhandled error, and says so" $(( rc != 0 && $(ran '^selected client: 246 test files, 2449 tests run$'; echo $?) == 0 && $(ran 'reported 1 unhandled error outside its tests'; echo $?) == 0 && $(ran 'this run is RED'; echo $?) == 0 ))
-check "an RPC timeout is named as the runner's watchdog, at the watchdog it was given, not as this branch" $(( $(ran '1 of them is a "Timeout calling" error: the runner.s 180s worker RPC watchdog'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) == 0 ))
+check "an RPC timeout is named as the runner's watchdog, at the watchdog it was given, not as this branch" $(( $(ran '1 of them is a "Timeout calling" error: the runner.s 180s worker RPC watchdog'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) == 0 && $(ran 'can be this branch'; echo $?) != 0 ))
+run_validate "$fixture" integration --scope client
+check "in the integration tier an RPC timeout is red and may be the branch's own scenario, never called infrastructure (#478)" $(( rc != 0 && $(ran 'this run is RED'; echo $?) == 0 && $(ran '1 of them is a "Timeout calling" error: the runner.s 180s worker RPC watchdog'; echo $?) == 0 && $(ran 'can be this branch — a scenario may run for 300s'; echo $?) == 0 && $(ran 'infrastructure, not this branch'; echo $?) != 0 && $(ran 'quieter box'; echo $?) != 0 ))
+opt_in_timeout_ms="$(sed -n 's/^export const OPT_IN_TEST_TIMEOUT_MS = \([0-9_]*\);$/\1/p' "$repo_root/vitest.tiers.ts")"
+check "the banner's opt-in budget is vitest.tiers.ts's OPT_IN_TEST_TIMEOUT_MS" $(( ${opt_in_timeout_ms//_/} + 0 == $(sed -n 's/^OPT_IN_TEST_TIMEOUT_SECONDS=\([0-9]*\).*/\1/p' "$repo_root/validate.sh") * 1000 ))
 printf '%s\n' ' Test Files  246 passed (246)' '      Tests  2449 passed (2449)' 'Error: [vitest-worker]: Timeout calling "onTaskUpdate"' \
   '  Timeout calling "onTaskUpdate" (repeated in a cause)' '     Errors  1 error' > "$FAKE_PNPM_OUTPUT_FILE"
 run_validate "$fixture" test --scope client
