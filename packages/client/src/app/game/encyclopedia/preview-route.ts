@@ -10,18 +10,16 @@
 // clips and registries advance, nothing is drawn) and submits only the parked frame. A 3 s loop is 180 frames:
 // submitting each would be about 27 minutes of SwiftShader in the container.
 
-import { DOCUMENT } from '@angular/common';
-import { InjectionToken, inject, isDevMode } from '@angular/core';
 import { BACTERIUM_VARIANT, CELL_KIND, DNA_TAG, FOOD_KIND, ZONE_ID } from '@evolution/shared';
 import type { ClientPerformanceReport } from '@evolution/shared';
 import type { PreviewOpenTimings } from '../render/preview/preview-timings';
 import { PREVIEW_BUDGETS, type PreviewBudgetVerdict, type PreviewFrameWork } from '../render/preview/preview-timings';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewScene, type PreviewSpec } from '../render/preview/preview-spec';
 import { positiveParameter } from '../route-query';
+import { PREVIEW_PARAMETER } from './preview-route-gate';
 import { entryById } from './registry';
 import { splitEntryReference, type EntryId } from './model/entry-id';
 
-const PREVIEW_PARAMETER = 'preview';
 const TIME_PARAMETER = 't';
 const OPENS_PARAMETER = 'opens';
 
@@ -51,20 +49,6 @@ export function parsePreviewQuery(search: string): PreviewQuery {
     opens: Math.max(1, Math.trunc(positiveParameter(parameters, OPENS_PARAMETER, PREVIEW_ROUTE_DEFAULT_OPENS))),
   };
 }
-
-export function isPreviewRoute(search: string): boolean {
-  return new URLSearchParams(search).has(PREVIEW_PARAMETER);
-}
-
-/** The gate itself: both halves, so a spec can pin the production one without a production build. */
-export function isPreviewRouteEnabled(isDevelopmentBuild: boolean, search: string | null): boolean {
-  return isDevelopmentBuild && search !== null && isPreviewRoute(search);
-}
-
-export const IS_PREVIEW_ROUTE = new InjectionToken<boolean>('IsPreviewRoute', {
-  providedIn: 'root',
-  factory: () => isPreviewRouteEnabled(isDevMode(), inject(DOCUMENT).defaultView?.location.search ?? null),
-});
 
 /**
  * A default spec per scene family, so `?preview=<scene>` reaches a family the registry has no entry for yet — the

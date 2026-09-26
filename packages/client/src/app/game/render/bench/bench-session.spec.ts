@@ -11,14 +11,7 @@ import {
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
 import { GPU_TIMER_STATUS } from './gpu-timer';
-import {
-  BENCH_SHEET,
-  BenchSession,
-  isBenchRoute,
-  parseBenchQuery,
-  type BenchQuery,
-  type RenderBenchReport,
-} from './bench-session';
+import { BENCH_SHEET, BenchSession, parseBenchQuery, type BenchQuery, type RenderBenchReport } from './bench-session';
 
 const DEFAULT_FLAGS = {
   shouldAdvanceTick: false,
@@ -65,13 +58,6 @@ describe('parseBenchQuery', () => {
   it('never lets a zoom of zero or less through to the camera', () => {
     expect(parseBenchQuery('?bench&zoom=0').zoom).toBe(RENDER_BENCH_DEFAULT_ZOOM);
     expect(parseBenchQuery('?bench&zoom=-2').zoom).toBe(RENDER_BENCH_DEFAULT_ZOOM);
-  });
-
-  it('selects the bench route only when the bench parameter is present', () => {
-    expect(isBenchRoute('?bench=42')).toBe(true);
-    expect(isBenchRoute('?bench')).toBe(true);
-    expect(isBenchRoute('?tick=3')).toBe(false);
-    expect(isBenchRoute('')).toBe(false);
   });
 });
 

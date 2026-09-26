@@ -1,5 +1,6 @@
 import { UiButtonComponent } from './ui-kit/ui-button.component';
 import { UiSurfaceDirective } from './ui-kit/ui-surface.directive';
+import { NgComponentOutlet } from '@angular/common';
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -15,21 +16,15 @@ import {
   isRoomJoinable,
 } from '@evolution/shared';
 import type { GameSessionConfig, LobbyGameInfo } from '@evolution/shared';
+import { ACTIVE_DEVELOPMENT_ROUTE } from './development-route/development-route';
+import { injectDevelopmentRouteComponent } from './development-route/development-route-loader';
 import { EncyclopediaComponent } from './game/encyclopedia/encyclopedia.component';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
-import { IS_PREVIEW_ROUTE } from './game/encyclopedia/preview-route';
-import { EncyclopediaPreviewRouteComponent } from './game/encyclopedia/preview-route.component';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
 import { GameHostComponent } from './game/game-host.component';
-import { IS_CARD_SHEET_ROUTE } from './game/hud/card-sheet/card-sheet-route';
-import { TraitCardSheetComponent } from './game/hud/card-sheet/card-sheet.component';
 import { HudComponent } from './game/hud/hud.component';
 import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
-import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
-import { RenderBenchComponent } from './game/render/bench/render-bench.component';
 import { LOBBY_NOTICE, MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
-import { IS_UI_KIT_STATES_ROUTE } from './ui-kit/kit-states/kit-states-route';
-import { UiKitStatesComponent } from './ui-kit/kit-states/kit-states.component';
 
 /** The lobby's words for why it came back on its own (docs/ui/overlays.md §3.6). */
 export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
@@ -47,7 +42,8 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
  * opened with `?bench` renders the fixed-seed bench route instead (docs/rendering/budget.md §7), one opened
  * with `?preview` the encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7), and one opened
  * with `?kit` the UI kit states page (docs/ui/components-and-constants.md §10.2), and one opened with `?cards` the
- * sheet of every catalog trait card (#428).
+ * sheet of every catalog trait card (#428). Those four pages load on demand and are absent from a production build
+ * (#423, `development-route/development-route-loader.ts`).
  */
 @Component({
   selector: 'app-root',
@@ -56,20 +52,16 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
     EncyclopediaComponent,
     UiButtonComponent,
     UiSurfaceDirective,
-    EncyclopediaPreviewRouteComponent,
     FormsModule,
     GameHostComponent,
     HudComponent,
-    RenderBenchComponent,
-    TraitCardSheetComponent,
-    UiKitStatesComponent,
+    NgComponentOutlet,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   // In play the shell fills the viewport and the lobby panels hide (#217, docs/ui/layout.md §1).
   host: {
-    '[class.in-game]':
-      'multiplayer.inGame() || isBenchRoute || isPreviewRoute || isUiKitStatesRoute || isCardSheetRoute',
+    '[class.in-game]': 'multiplayer.inGame() || developmentRoute !== null',
   },
 })
 export class AppComponent {
@@ -88,14 +80,10 @@ export class AppComponent {
   readonly lobbyNoticeText = LOBBY_NOTICE_TEXT;
   /** The same caption the in-play error line uses, so the two cannot drift. */
   readonly serverErrorCaption = SERVER_ERROR_CAPTION;
-  /** The dev-only bench route (docs/rendering/budget.md §7) replaces the shell for the page's lifetime. */
-  readonly isBenchRoute = inject(IS_BENCH_ROUTE);
-  /** The dev-only encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7), likewise. */
-  readonly isPreviewRoute = inject(IS_PREVIEW_ROUTE);
-  /** The dev-only UI kit states page, likewise for the page's lifetime. */
-  readonly isUiKitStatesRoute = inject(IS_UI_KIT_STATES_ROUTE);
-  /** The dev-only sheet of every catalog trait card (#428), likewise. */
-  readonly isCardSheetRoute = inject(IS_CARD_SHEET_ROUTE);
+  /** A dev-only page (bench, preview, kit, cards) replaces the shell for the page's lifetime; `null` in play. */
+  readonly developmentRoute = inject(ACTIVE_DEVELOPMENT_ROUTE);
+  /** That page's component, once its chunk has loaded (#423). */
+  readonly developmentRouteComponent = injectDevelopmentRouteComponent(this.developmentRoute);
 
   /**
    * The encyclopedia over the lobby (docs/ui/encyclopedia.md §11.1). The room's copy is the HUD's, over

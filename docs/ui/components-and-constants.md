@@ -257,7 +257,7 @@ table, and a modal over a scrim in a focus trap, on one `[uiSurface]`. `?kit&she
 collections sheet: the rail item and list row in every state, a horizontal rail, the chips, link chips, medallions
 and alert pills, and a live search field over a rail and a sectioned list, each in a scroll area.
 Graphics review screenshots both sheets at 1280 × 800 against `kit-states-1280x800.png`, forcing hover, pressed and focus
-through the browser rather than with classes; production builds never render it.
+through the browser rather than with classes; production builds never render it, and do not ship it (loaded on demand, architecture/client.md §6).
 
 ### 10.3 Colour and type
 
