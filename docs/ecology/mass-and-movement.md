@@ -118,19 +118,25 @@ other, so a spat-out prey is pushed clear (T4). Cells never bounce; the renderer
 
 Two such cells never pass through each other (#709), by two rules on top of the fraction:
 
-- **Depth cap.** The push is at least enough to leave the centres `CELL_MIN_CENTRE_DISTANCE_FRACTION` of
-  the sum of the radii apart (half: for an equal pair, neither centre enters the other cell), along the
-  centre line and split by inverse mass as above. Ordinary bumping stays shallower than that; without the
-  cap a pair charging each other settled about 80 % overlapped and, the slightest bit off the axis,
-  pivoted through itself within a few ticks.
+- **Depth cap.** A pair may not end the tick deeper than it started it, or deeper than the minimum centre
+  distance, `CELL_MIN_CENTRE_DISTANCE_FRACTION` of the sum of the radii (half: for an equal pair, neither
+  centre enters the other cell). The push is the fraction, or more when that would leave the centres closer
+  than the smaller of the minimum and the start-of-tick distance; along the centre line, split by inverse
+  mass as above. The cap only stops a pair getting deeper: a pair that starts the tick deeper than the
+  minimum (a spat-out or released prey, a pair that has just stopped being able to engulf) eases out at the
+  fraction's rate, with no jump. Ordinary bumping stays shallower than the minimum; without the cap a pair
+  charging each other settled about 80 % overlapped and, the slightest bit off the axis, pivoted through
+  itself within a few ticks.
 - **Crossing.** A fast pair (sprinting on speed traits) can close more than the minimum distance in one
   tick. Separation reads each pair's centres from the start of the tick: a pair whose centres crossed that
   start-of-tick centre line while in reach across it is put back where the centres meet on that line, then
-  pushed apart along it to the minimum distance, and ends the tick on its own sides.
+  pushed apart along it to the same closest allowed distance, and ends the tick on its own sides.
 
-What holds at the end of every tick: the pair is at least the minimum distance apart, and its centres
-never jump past each other within a tick. Two cells pressed together off-centre can still roll round each
-other at that distance, as the steer lags the turning centre line: they slide past, never through.
+What holds at the end of every tick, for an isolated pair: it is no closer than the smaller of the minimum
+distance and where it started the tick, and its centres never jump past each other within a tick. Pairs are
+pushed one after another (id order), so with three or more cells pressed together a later push can press an
+earlier pair below that. Two cells pressed together off-centre can still roll round each other at the
+minimum distance, as the steer lags the turning centre line: they slide past, never through.
 
 ### 5.4 Growth, cap and mitosis (reserved)
 

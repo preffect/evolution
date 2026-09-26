@@ -24,6 +24,8 @@ const PAST_MINIMUM_WU = 0.5;
 const SHORT_OF_CROSSING_WU = 0.5;
 /** B's sideways offset in the just-short-of-crossing row, so its centre line differs from the start line. */
 const SIDEWAYS_WU = 6;
+/** Where B starts the tick in the #709 rows: in contact with A, and further apart than the minimum centre distance. */
+const START_DISTANCE_WU = 30;
 const { CELL_SEPARATION_FRACTION_PER_TICK: SEPARATION_FRACTION, CELL_MIN_CENTRE_DISTANCE_FRACTION: MINIMUM_FRACTION } =
   DEFAULT_BALANCE.growth;
 
@@ -137,16 +139,18 @@ describe('separateOverlappingCells', () => {
   });
 });
 
+/** A at the broth point, B `START_DISTANCE_WU` east of it at the start of the tick (#709). */
+function startCentresOf(cellA: CellRecord, cellB: CellRecord): Map<CellRecord, { x: number; y: number }> {
+  return new Map([
+    [cellA, { x: BROTH_POINT.x, y: BROTH_POINT.y }],
+    [cellB, { x: BROTH_POINT.x + START_DISTANCE_WU, y: BROTH_POINT.y }],
+  ]);
+}
+
 describe('separateOverlappingCells: a pair whose centres crossed this tick (#709)', () => {
   /** Where a crossed pair ends: the minimum centre distance, which is past the fraction's push from coincident centres. */
   const minimumOf = (cellA: CellRecord, cellB: CellRecord): number =>
     (cellA.radius + cellB.radius) * Math.max(SEPARATION_FRACTION, MINIMUM_FRACTION);
-  /** A at the broth point, B `CENTRE_DISTANCE` east of it at the start of the tick. */
-  const startCentresOf = (cellA: CellRecord, cellB: CellRecord) =>
-    new Map([
-      [cellA, { x: BROTH_POINT.x, y: BROTH_POINT.y }],
-      [cellB, { x: BROTH_POINT.x + CENTRE_DISTANCE, y: BROTH_POINT.y }],
-    ]);
 
   it('pushes a head-on crossed pair back to its own sides, to the minimum centre distance, by inverse mass', () => {
     const { world, cellA, cellB } = twoCells(24, 20);
@@ -216,23 +220,36 @@ describe('separateOverlappingCells: a pair whose centres crossed this tick (#709
 });
 
 describe('separateOverlappingCells: the minimum centre distance (#709)', () => {
-  it('pushes a pair deeper than the cap out to exactly the minimum centre distance, by inverse mass', () => {
+  it('pushes a pair that got deeper than the cap this tick out to exactly the minimum centre distance, by inverse mass', () => {
     const { world, cellA, cellB } = twoCells(24, 20);
-    separateOverlappingCells(world, DEFAULT_BALANCE);
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentresOf(cellA, cellB));
     const shiftA = BROTH_POINT.x - cellA.x;
     const shiftB = cellB.x - (BROTH_POINT.x + CENTRE_DISTANCE);
     expect(cellB.x - cellA.x).toBeCloseTo((cellA.radius + cellB.radius) * MINIMUM_FRACTION, 9);
     expect(shiftB).toBeCloseTo(shiftA * (24 / 20), 9);
   });
 
+  it('eases a pair that started the tick deep out at the fraction of its overlap, with no jump to the minimum', () => {
+    const { world, cellA, cellB } = twoCells(24, 20);
+    const startedDeep = new Map([
+      [cellA, { x: cellA.x, y: cellA.y }],
+      [cellB, { x: cellB.x, y: cellB.y }],
+    ]);
+    const overlap = overlapOf(cellA, cellB);
+    separateOverlappingCells(world, DEFAULT_BALANCE, startedDeep);
+    expect(cellB.x - cellA.x).toBeCloseTo(CENTRE_DISTANCE + overlap * SEPARATION_FRACTION, 9);
+    expect(cellB.x - cellA.x).toBeLessThan((cellA.radius + cellB.radius) * MINIMUM_FRACTION);
+  });
+
   it('gives a pair just short of the cap the fraction of its overlap and no more', () => {
     const { world, cellA, cellB } = twoCells(20, 20);
+    const startCentres = startCentresOf(cellA, cellB);
     const radii = cellA.radius + cellB.radius;
-    // d + f × (radii − d) = minimum + PAST_MINIMUM_WU, solved for the start distance d.
-    const startDistance =
+    // d + f × (radii − d) = minimum + PAST_MINIMUM_WU, solved for the distance d after the move.
+    const movedDistance =
       ((MINIMUM_FRACTION - SEPARATION_FRACTION) * radii + PAST_MINIMUM_WU) / (1 - SEPARATION_FRACTION);
-    cellB.x = BROTH_POINT.x + startDistance;
-    separateOverlappingCells(world, DEFAULT_BALANCE);
+    cellB.x = BROTH_POINT.x + movedDistance;
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
     expect(cellB.x - cellA.x).toBeCloseTo(radii * MINIMUM_FRACTION + PAST_MINIMUM_WU, 9);
   });
 });
