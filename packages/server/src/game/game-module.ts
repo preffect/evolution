@@ -11,12 +11,13 @@ import { createInProcessBotRoster, type InProcessBotRoster } from './bots/in-pro
  *
  * The room always drives a `GameModule` over the wire types; the type parameters exist for the
  * gameplay testing framework, whose adapters run stand-in modules (the echo, a toy world) that
- * speak their own snapshot shape (docs/testing/scenario-runner.md §8). `ViewerKey` names the members `viewerState`
- * declares; the broadcast is typed without them, so the module never builds them for it (#399).
+ * speak their own snapshot shape (docs/testing/scenario-runner.md §8), each a `TickedSnapshot`: the room's flow control
+ * reads the tick of every broadcast, whatever the game (#277). `ViewerKey` names the members `viewerState` declares;
+ * the broadcast is typed without them, so the module never builds them for it (#399).
  */
 export interface GameModule<
   Input = GameInput,
-  Snapshot = GameSnapshot,
+  Snapshot extends TickedSnapshot = GameSnapshot,
   ViewerKey extends keyof Snapshot & string = never,
 > {
   /** Store/merge the latest input for a player (called from the message router). */
@@ -53,6 +54,16 @@ export interface GameModule<
    * without one answers every game-specific tool with "not supported by this game module".
    */
   getDebugHandle?(): SimulationDebugHandle;
+}
+
+/**
+ * What every module's snapshot carries, whatever the game (docs/architecture/wire-contract.md §4): the tick it was taken
+ * at, never lower than the previous snapshot's for the life of the room, since the flow control subtracts ticks and keeps
+ * the newest ack (a tick that restarted would read every later ack as stale). `snapshot_ack` echoes it and the room's flow control measures each client's queue with it
+ * (`lobby/snapshot-backlog.ts`), so that verb is generic transport because the contract says so, not by accident (#277).
+ */
+export interface TickedSnapshot {
+  readonly tick: number;
 }
 
 /** A snapshot without the members its viewers are sent apart: the whole snapshot for a module that declares none. */
@@ -113,8 +124,8 @@ export interface FullGameState<Snapshot = GameSnapshot> {
   balance: BalanceConfig;
 }
 
-/** `{ players: { [playerId]: lastInput | null } }`: what the echo module echoes instead of a world. */
-export interface EchoSnapshot {
+/** `{ tick, players: { [playerId]: lastInput | null } }`: what the echo module echoes instead of a world. */
+export interface EchoSnapshot extends TickedSnapshot {
   readonly players: Readonly<Record<string, GameInput | null>>;
 }
 
@@ -135,7 +146,7 @@ export type GameModuleFactory = (options: RoomInitOptions) => RoomGameModule;
 
 /**
  * DEFAULT PLACEHOLDER (TODO(game)): trust-client echo. Stores the latest input per player and
- * echoes `{ players: { [playerId]: lastInput } }` as the snapshot. Replace in the
+ * echoes `{ tick, players: { [playerId]: lastInput } }` as the snapshot. Replace in the
  * init step with the real game logic. Its one debug capability is the in-process bot pair
  * (`spawnBot` / `removeBot`, docs/architecture/debug-mcp.md §8): a bot is a player whose input the module
  * produces itself at the start of each tick, from the snapshot of the tick before, stamped with
@@ -149,7 +160,7 @@ export function createEchoModule(options: RoomInitOptions): GameModule<GameInput
   const serializeRoomState = (): EchoSnapshot => {
     const inputs: Record<string, GameInput | null> = {};
     for (const playerId of players) inputs[playerId] = latestInputByPlayer.get(playerId) ?? null;
-    return { players: inputs };
+    return { tick, players: inputs };
   };
   const module: GameModule<GameInput, EchoSnapshot> = {
     submitInput: (playerId, payload) => {
@@ -203,7 +214,8 @@ function echoBotHandle(
 
 /**
  * TODO(game): #98 deletes this factory with the echo. The echo has no world, so its snapshot is not
- * a `GameSnapshot` and the room broadcasts it opaquely; the double cast is this placeholder's only
+ * a `GameSnapshot` and the room broadcasts it opaquely, all but the `tick` every module's snapshot carries
+ * (`TickedSnapshot`), which the flow control reads (#277); the double cast is this placeholder's only
  * home. Do not add a second cast next to it and do not generalise `GameModuleFactory` over the
  * snapshot to make it go away: the real module returns a real `GameSnapshot` and needs neither.
  */

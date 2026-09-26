@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_PLAYERS_PER_GAME, createTestSessionConfig, type StateHash } from '@evolution/shared';
 import { NO_WORLD_PERCEPTION } from '../../game/bots/perception.js';
-import type { ScenarioAdapter } from './adapter.js';
+import type { ScenarioAdapter, TickedSnapshot } from './adapter.js';
 import { createScriptedStrategy } from './bots.js';
 import { ScenarioSetupError } from './errors.js';
 import { AT_END } from './expectations.js';
@@ -13,13 +13,13 @@ import { idle, targetPoint } from './scripts.js';
 import { toyScenario } from './toy-adapter.js';
 
 /** An adapter whose fixtures are the design's placed entities, for the placement builders. */
-const placingAdapter: ScenarioAdapter<unknown, unknown, PlacedFixture> = {
+const placingAdapter: ScenarioAdapter<unknown, TickedSnapshot, PlacedFixture> = {
   name: 'placing',
   perception: NO_WORLD_PERCEPTION,
   createModule: () => {
     throw new Error('never run');
   },
-  readSnapshot: () => null,
+  readSnapshot: () => ({ tick: 0 }),
   hashState: () => '0' as StateHash,
   toInput: (playerCommand) => playerCommand,
   locateCell: () => undefined,

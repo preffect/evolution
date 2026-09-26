@@ -87,7 +87,7 @@ export interface BudgetVerdict {
   readonly informational: readonly RenderStageName[];
   /** The clock's step the rows were read with, so the log can say why a row was left unjudged. */
   readonly timerResolutionMs: number | null;
-  /** Σ `renderStagesMs`: the CPU time the timer saw, the sum of seven independent p95s. */
+  /** Σ `renderStagesMs`: the CPU time the timer saw, the sum of eight independent p95s. */
   readonly stagesTotalMs: number;
   /** The measured per-frame `frame − Σ top-level brackets`, p95: §7's HUD row. */
   readonly residualP95Ms: number;

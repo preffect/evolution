@@ -6,9 +6,13 @@
 // between the two submits it brackets: in steady state a frame's GPU time cannot exceed its frame
 // period, or the GPU falls unboundedly behind. A sample past `RENDER_GPU_SAMPLE_MAX_FRAME_RATIO ×`
 // that period is not a measurement, so the timer drops it and reports `implausible` — and a context
-// that produced one is not trusted for the rest of the session. `gpuMs` is then `null`, the report's
+// that produced one is not trusted for the rest of the window. `gpuMs` is then `null`, the report's
 // one "unavailable" value, which it also is without the extension (SwiftShader, most mobile GPUs),
 // before the first query resolves, and after a disjoint event.
+//
+// `openWindow` starts the measurement over (ticket #264): the bench calls it when its warm-up ends, so a
+// shader-compile stall during the warm-up neither blanks `gpuMs` for the window nor lands in it. Every query
+// still in flight then belongs to the warm-up and is recycled unread when it resolves.
 
 import { NANOSECONDS_PER_MILLISECOND, type Clock } from '@evolution/shared';
 import { RENDER_GPU_SAMPLE_MAX_FRAME_RATIO, RENDER_SAMPLE_CAPACITY_FRAMES } from '../constants';
@@ -39,7 +43,7 @@ export const GPU_TIMER_STATUS = {
   unsupported: 'unsupported',
   /** The extension is there but no query has resolved into the window yet. */
   pending: 'pending',
-  /** The extension reported a time a frame cannot have taken: the context is not trusted again. */
+  /** The extension reported a time a frame cannot have taken: not trusted until the window reopens. */
   implausible: 'implausible',
 } as const;
 export type GpuTimerStatus = (typeof GPU_TIMER_STATUS)[keyof typeof GPU_TIMER_STATUS];
@@ -51,8 +55,10 @@ export interface GpuTimer {
   p95Ms(): number | null;
   /** Why the last `p95Ms` was or was not a number. */
   status(): GpuTimerStatus;
-  /** Samples the extension reported that no frame could have taken. */
+  /** Samples the extension reported that no frame could have taken, since the window opened. */
   readonly implausibleCount: number;
+  /** Starts the window over, between two frames: no sample, no implausible count, and every query in flight dropped. */
+  openWindow(): void;
   destroy(): void;
 }
 
@@ -69,6 +75,8 @@ interface PendingQuery {
   readonly query: WebGLQuery;
   /** Wall ms between this submit and the one before; `null` for the first, which has no period to check. */
   readonly framePeriodMs: number | null;
+  /** Submitted before the window opened (the warm-up): recycled unread. */
+  readonly isBeforeWindow: boolean;
 }
 
 class DisjointTimerQueryTimer implements GpuTimer {
@@ -99,7 +107,8 @@ class DisjointTimerQueryTimer implements GpuTimer {
     if (this.open === null) return;
     this.context.endQuery(this.extension.TIME_ELAPSED_EXT);
     const endedMs = this.clock.nowMilliseconds();
-    this.pending.push({ query: this.open, framePeriodMs: this.lastEndMs === null ? null : endedMs - this.lastEndMs });
+    const framePeriodMs = this.lastEndMs === null ? null : endedMs - this.lastEndMs;
+    this.pending.push({ query: this.open, framePeriodMs, isBeforeWindow: false });
     this.lastEndMs = endedMs;
     this.open = null;
   }
@@ -116,6 +125,14 @@ class DisjointTimerQueryTimer implements GpuTimer {
 
   get implausibleCount(): number {
     return this.implausible;
+  }
+
+  openWindow(): void {
+    this.samples.clear();
+    this.implausible = 0;
+    for (let index = 0; index < this.pending.length; index += 1) {
+      this.pending[index] = { ...this.pending[index]!, isBeforeWindow: true };
+    }
   }
 
   destroy(): void {
@@ -139,7 +156,9 @@ class DisjointTimerQueryTimer implements GpuTimer {
       if (this.context.getQueryParameter(entry.query, this.context.QUERY_RESULT_AVAILABLE) !== true) return;
       this.pending.shift();
       const nanoseconds = this.context.getQueryParameter(entry.query, this.context.QUERY_RESULT);
-      if (typeof nanoseconds === 'number') this.keep(entry, nanoseconds / NANOSECONDS_PER_MILLISECOND);
+      if (typeof nanoseconds === 'number' && !entry.isBeforeWindow) {
+        this.keep(entry, nanoseconds / NANOSECONDS_PER_MILLISECOND);
+      }
       this.free.push(entry.query);
     }
   }

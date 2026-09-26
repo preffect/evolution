@@ -18,7 +18,7 @@ const OPTIONS = {
 describe('echoAdapter', () => {
   it('builds the echo module with the roster and reads its snapshot', () => {
     const module = echoAdapter.createModule(OPTIONS);
-    expect(echoAdapter.readSnapshot(module)).toEqual({ players: { [FIRST]: null, [SECOND]: null } });
+    expect(echoAdapter.readSnapshot(module)).toEqual({ tick: 0, players: { [FIRST]: null, [SECOND]: null } });
   });
 
   it('stamps the command with its sequence and echoes it back', () => {
@@ -37,7 +37,7 @@ describe('echoAdapter', () => {
     expect(echoAdapter.hashState(first)).toBe(echoAdapter.hashState(second));
     second.submitInput(OPTIONS.creatorId, echoAdapter.toInput({ targetX: 1 }, 1));
     expect(echoAdapter.hashState(first)).not.toBe(echoAdapter.hashState(second));
-    const snapshot: EchoSnapshot = { players: { [FIRST]: null } };
+    const snapshot: EchoSnapshot = { tick: 0, players: { [FIRST]: null } };
     expect(hashEchoSnapshot(snapshot)).toHaveLength(16);
   });
 
