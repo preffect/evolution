@@ -1,9 +1,10 @@
 // docs/ecology/food-and-spawn.md §3 and docs/ecology/acceptance.md §8 E2/E3 on the spawners alone (no eating, the cell idle).
 import { describe, expect, it } from 'vitest';
-import { createSeededRandom, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, TICK_HZ } from '@evolution/shared';
+import { CELL_STAGE, createSeededRandom, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, TICK_HZ } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { storeStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
+import { worldReferenceAt } from './round-clock.js';
 import { drawSpawnZone, runInitialFill, runSpawners, spawnFoodEvent } from './spawner.js';
 import { foodSpawnerRates, fragmentSpawnerRates } from './spawn-rates.js';
 
@@ -12,6 +13,15 @@ const TEN_SECONDS_TICKS = 600;
 const ZONE_DRAW_SAMPLES = 20_000;
 /** About six standard errors of a 0.5 share over the sample count: never a seeded fluke, still tight. */
 const ZONE_SHARE_TOLERANCE = 0.02;
+/** The world's third level-up (32 400): from here the spawner reads the `eukaryote` kind row (W9). */
+const EUKARYOTE_TICK = 3 * DEFAULT_BALANCE.worldClock.WORLD_LEVEL_SECONDS * TICK_HZ;
+/**
+ * Enough motes that the share's spread sits well inside the tolerance: bacteria arrive five to a cluster, so 5 000
+ * motes still spread about ± 0.015 (the test world read 0.531 there). At 20 000 it reads 0.515, and 0.756 with the
+ * spawner stuck on the protocell row.
+ */
+const STAGE_SHARE_SAMPLE_MOTES = 20_000;
+const STAGE_SHARE_TOLERANCE = 0.03;
 
 /** Steps the spawners `ticks` times the way step.ts does: resume, run, write back. */
 function runSpawnersFor(world: WorldState, ticks: number): void {
@@ -82,6 +92,29 @@ describe('runSpawners', () => {
     const rate = fragmentSpawnerRates(world, DEFAULT_BALANCE).ratePerSecond;
     runSpawnersFor(world, TEN_SECONDS_TICKS);
     expect(world.dnaFragments).toHaveLength(Math.floor((rate * TEN_SECONDS_TICKS) / TICK_HZ));
+  });
+});
+
+describe('runSpawners at the world stage', () => {
+  it('W9: a eukaryote-stage world steps its spawner on the eukaryote row, about 50 % algae over 20 000 motes', () => {
+    const world = createTestWorld();
+    world.tick = EUKARYOTE_TICK;
+    world.spawners.food.isEnabled = true;
+    expect(worldReferenceAt(world, world.tick).worldStage).toBe(CELL_STAGE.eukaryote);
+    const context = createTestStepContext(world);
+    let algae = 0;
+    let motes = 0;
+    while (motes < STAGE_SHARE_SAMPLE_MOTES) {
+      // An emptied dish and a full cap's worth of accumulator: one step spawns up to the cap, as the W9 window does over time.
+      world.food = [];
+      world.spawners.food.accumulator = foodSpawnerRates(world, DEFAULT_BALANCE).cap;
+      runSpawners(world, context);
+      algae += world.food.filter((mote) => mote.kind === FOOD_KIND.algae).length;
+      motes += world.food.length;
+    }
+    const algaeShare = algae / motes;
+    const expected = ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.eukaryote.algae;
+    expect(Math.abs(algaeShare - expected)).toBeLessThanOrEqual(STAGE_SHARE_TOLERANCE);
   });
 });
 

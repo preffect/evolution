@@ -8,6 +8,7 @@ import { createTestStepContext, createTestWorld } from '../../testing/world-buil
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
+import { separateOverlappingCells } from './contact.js';
 import { moveCells } from './movement.js';
 
 const { DISH_RADIUS } = DEFAULT_BALANCE.world;
@@ -16,7 +17,11 @@ const RIM_EPSILON_WU = 1e-9;
 /** Neither can engulf the other (24 / 20 is under the engulf ratio), so separation pushes them apart. */
 const HEAVIER_MASS = 24;
 const LIGHTER_MASS = 20;
-const { CELL_MIN_CENTRE_DISTANCE_FRACTION } = DEFAULT_BALANCE.growth;
+const { CELL_MIN_CENTRE_DISTANCE_FRACTION, CELL_SEPARATION_FRACTION_PER_TICK } = DEFAULT_BALANCE.growth;
+/** The oblique row: the wall cell sits on the rim 37° round from the x axis and the pusher presses it along x. */
+const OBLIQUE_WALL_ANGLE_RAD = (37 * Math.PI) / 180;
+/** Float slack on the gap the oblique push must open along its centre line (wu). */
+const GAP_EPSILON_WU = 1e-9;
 /** How deep the pusher starts inside the wall cell, centre to centre (wu). */
 const START_CENTRE_DISTANCE_WU = 20;
 /** Where both steer: far past the east wall, so both press into it at full throttle every tick. */
@@ -34,7 +39,7 @@ interface PressedPair {
 }
 
 /** The wall cell touching the east wall, the pusher inside it on the dish side, both steering into the wall. */
-function pressedPair(wallCellMass = HEAVIER_MASS, pusherMass = LIGHTER_MASS): PressedPair {
+function pressedPair(wallCellMass = HEAVIER_MASS, pusherMass = LIGHTER_MASS, wallAngle = 0): PressedPair {
   const world = createTestWorld({
     players: [
       { playerId: playerId('wall'), playerName: 'Wall', avatarIndex: 0 },
@@ -45,12 +50,13 @@ function pressedPair(wallCellMass = HEAVIER_MASS, pusherMass = LIGHTER_MASS): Pr
   const [wallCell, pusher] = world.cells as [CellRecord, CellRecord];
   setCellMass(wallCell, wallCellMass, DEFAULT_BALANCE);
   setCellMass(pusher, pusherMass, DEFAULT_BALANCE);
-  wallCell.x = DISH_RADIUS - wallCell.radius;
+  wallCell.x = (DISH_RADIUS - wallCell.radius) * Math.cos(wallAngle);
+  wallCell.y = (DISH_RADIUS - wallCell.radius) * Math.sin(wallAngle);
   pusher.x = wallCell.x - START_CENTRE_DISTANCE_WU;
+  pusher.y = wallCell.y;
   for (const cell of [wallCell, pusher]) {
-    cell.y = 0;
     cell.targetX = PAST_THE_WALL_X;
-    cell.targetY = 0;
+    cell.targetY = cell.y;
   }
   return { world, wallCell, pusher };
 }
@@ -91,4 +97,18 @@ describe('a cell pressed into the dish wall by its neighbour (#710)', () => {
       expect(wallCell.x - pusher.x).toBeGreaterThanOrEqual(minimumDistance);
     },
   );
+
+  // Off the axis the wall's radial correction is only partly along the push, so the other cell takes just its
+  // projection: the pair still opens by the whole push along its centre line, and neither rim leaves the dish.
+  it('an oblique push against the wall: the pair opens by the whole push along its line, both rims inside', () => {
+    const { world, wallCell, pusher } = pressedPair(HEAVIER_MASS, LIGHTER_MASS, OBLIQUE_WALL_ANGLE_RAD);
+    const distance = Math.hypot(wallCell.x - pusher.x, wallCell.y - pusher.y);
+    const line = { x: (wallCell.x - pusher.x) / distance, y: (wallCell.y - pusher.y) / distance };
+    const push = (wallCell.radius + pusher.radius - distance) * CELL_SEPARATION_FRACTION_PER_TICK;
+    separateOverlappingCells(world, DEFAULT_BALANCE);
+    const gapAlongLine = (wallCell.x - pusher.x) * line.x + (wallCell.y - pusher.y) * line.y;
+    expect(Math.abs(gapAlongLine - (distance + push))).toBeLessThanOrEqual(GAP_EPSILON_WU);
+    expect(rimOverrunOf(wallCell)).toBeLessThanOrEqual(RIM_EPSILON_WU);
+    expect(rimOverrunOf(pusher)).toBeLessThanOrEqual(RIM_EPSILON_WU);
+  });
 });

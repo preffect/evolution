@@ -10,9 +10,9 @@ function isFiniteCell(cell: CellView): boolean {
 }
 
 /**
- * How far a rim may sit past the dish: float slack only. The wall clamp runs again after separation
- * (docs/architecture/server-simulation.md §3, step 3, #710), so a cell its neighbours press into the wall still ends
- * the tick at `DISH_RADIUS − radius` at most; the scenario reads exact values, not the wire's rounded ones.
+ * How far a rim may sit past the dish: float slack only. Separation stops each push at the wall and a gain pushes a
+ * cell grown against it inward (docs/architecture/server-simulation.md §3 steps 3–4, #710), so every cell ends the
+ * tick at `DISH_RADIUS − radius` at most; the scenario reads exact values, not the wire's rounded ones.
  */
 const RIM_EPSILON_WU = 1e-9;
 

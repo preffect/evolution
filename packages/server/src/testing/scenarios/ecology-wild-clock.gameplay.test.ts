@@ -61,7 +61,8 @@ const W3_ALGAE_SHARE_ON_SEED = 0.675;
  * budget is whole, 526.75 → "between 526 and 530". Across seeds 1–11 the window holds 1 to 3 deaths (513–526), each
  * count inside its own budget's bound. Algae share on the seed: 301 in 526, 0.572 (0.542 from #677, three deaths,
  * 513–517; 0.516 from #634, two deaths, 517–521; none before). The `eukaryote` row is 0.50, but the window's σ is
- * ≈ 0.07 (W3), so since #710 the share is pinned to the seed, never to a band (0.50 ± 0.06 until then).
+ * ≈ 0.07 (W3), so since #710 the share is pinned to the seed, never to a band (0.50 ± 0.06 until then). That the
+ * spawner draws the `eukaryote` row at all is held by `spawner.test.ts` (20 000 motes, 0.50 ± 0.03).
  */
 const W9_DEATHS_IN_WINDOW = 0;
 const W9_SPAWNED_LOW = 526;
