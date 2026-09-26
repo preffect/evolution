@@ -32,6 +32,12 @@ describe('markdownSectionLines', () => {
     expect(markdownSectionLines(DOCUMENT, '### 2.1')).toEqual(['### 2.1 Last', 'last body']);
   });
 
+  it('matches the heading as whole words, never a longer number it prefixes', () => {
+    const numbered = ['## 1. Top', '### 1.10 Tenth', 'tenth body', '### 1.1 First', 'first body'].join('\n');
+    expect(markdownSectionLines(numbered, '### 1.1')).toEqual(['### 1.1 First', 'first body']);
+    expect(markdownSectionLines(numbered, '### 1.10')).toEqual(['### 1.10 Tenth', 'tenth body']);
+  });
+
   it('never matches a line inside a code fence', () => {
     expect(() => markdownSectionLines(DOCUMENT, '## nor this')).toThrow('heading "## nor this" not found');
   });
@@ -59,6 +65,10 @@ describe('tableRows', () => {
       ['Name', 'Value'],
       ['`A`', '1'],
     ]);
+  });
+
+  it('drops a pipe line inside a code fence, which is code, not a table', () => {
+    expect(tableRows(['```text', '| not | a row |', '```', '| a | row |'].join('\n'))).toEqual([['a', 'row']]);
   });
 
   it('keeps a row of empty cells, which is not an alignment row', () => {
