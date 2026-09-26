@@ -23,6 +23,7 @@ import { NO_HUD_INPUTS, type RenderInputs, type RenderOutputs } from '../render-
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { benchCueFrame } from './bench-cues';
 import { BenchDriver } from './bench-driver';
+import { BENCH_PARAMETER } from './bench-route';
 import { attachIndicatorSheet } from './indicator-sheet';
 import type { BenchCounts } from './bench-scene';
 import type { GpuTimerStatus } from './gpu-timer';
@@ -56,7 +57,6 @@ export const BENCH_SHEET = { indicators: 'indicators' } as const;
 export type BenchSheet = ValueOf<typeof BENCH_SHEET>;
 
 const SHEET_PARAMETER = 'sheet';
-const BENCH_PARAMETER = 'bench';
 const TICK_PARAMETER = 'tick';
 const ZOOM_PARAMETER = 'zoom';
 const WINDOW_PARAMETER = 'window';
@@ -81,10 +81,6 @@ export function parseBenchQuery(search: string): BenchQuery {
     shouldDrawCues: parameters.get(CUES_PARAMETER) === FLAG_ON,
     sheet: parameters.get(SHEET_PARAMETER) === BENCH_SHEET.indicators ? BENCH_SHEET.indicators : null,
   };
-}
-
-export function isBenchRoute(search: string): boolean {
-  return new URLSearchParams(search).has(BENCH_PARAMETER);
 }
 
 /** The wire report plus what only the bench knows: the scene, the window and the verdict. */

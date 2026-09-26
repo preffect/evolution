@@ -5,18 +5,15 @@
   the host is the only thing on the page and fills the viewport (#217, docs/ui/layout.md §1); the lobby
   panels come back when the phase returns to the lobby.
 -->
-@if (isBenchRoute) {
-  <!-- ===== The dev-only bench route (docs/rendering/budget.md §7): the fixed-seed scene, no lobby, no room ===== -->
-  <app-render-bench />
-} @else if (isPreviewRoute) {
-  <!-- ===== The dev-only encyclopedia preview evidence route (docs/architecture/encyclopedia.md §12.7) ===== -->
-  <app-encyclopedia-preview-route />
-} @else if (isUiKitStatesRoute) {
-  <!-- ===== The dev-only UI kit states page (docs/ui/components-and-constants.md §10.2) ===== -->
-  <ui-kit-states />
-} @else if (isCardSheetRoute) {
-  <!-- ===== The dev-only sheet of every catalog trait card, for the card height guard (#428) ===== -->
-  <app-trait-card-sheet />
+@if (developmentRoute !== null) {
+  <!--
+    ===== A dev-only page in place of the shell: the bench (docs/rendering/budget.md §7), the encyclopedia preview
+    evidence route (docs/architecture/encyclopedia.md §12.7), the UI kit states page (docs/ui/components-and-constants.md
+    §10.2) or the trait card sheet (#428). Loaded on demand, so production never ships them (#423). =====
+  -->
+  @if (developmentRouteComponent(); as page) {
+    <ng-container *ngComponentOutlet="page" />
+  }
 } @else if (multiplayer.inGame()) {
   <!-- ===== In game: the canvas fills the viewport with the HUD overlay over it (docs/ui/layout.md §1) ===== -->
   <app-game-host />

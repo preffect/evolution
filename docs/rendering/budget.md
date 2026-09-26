@@ -225,7 +225,7 @@ return is a `respawn` effect, which a wild seat's is not), eats and level-ups sc
 shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
 `cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
 snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1][&cues=1]`
-(`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token, `bench-session.ts` the engine) renders it,
+(`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token and loaded on demand, absent from a production build, architecture/client.md §6; `bench-session.ts` the engine) renders it,
 parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
 `RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a
 software GPU renders a frame in seconds; the smoke passes 24) publishes the **bench report** to both sinks above —

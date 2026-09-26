@@ -46,7 +46,7 @@ effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): th
 effects/orbit-backing-arcs.ts                       the ladder orbit's backings as butt-ended arc rows over `orbitLayout`'s padded, merged spans (§10, #294)
 bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
-bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `IS_BENCH_ROUTE` gate, the component, Chrome's heap counter (§7)
+bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `?bench` key and `IS_BENCH_ROUTE` gate (kept apart so the shell ships no bench, architecture/client.md §6), the component (loaded on demand), Chrome's heap counter (§7)
 preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,preview-timings,preview-still}.ts   the encyclopedia preview seam (architecture/encyclopedia.md §12.7): the spec data, spec → scene, scene → `RenderFrame`, the third `FrameLoopSession`, the `ENCYCLOPEDIA_PREVIEW` token, the walk arithmetic and the two budgets' verdict, the cached still frames (#378)
 preview/preview-app-pool.ts                          the preview's Pixi app kept across opens (#503): a closing session hands it back, the next open with the same DPR and drawing-buffer mode re-hosts it, so the page holds one preview context and never logs a lost one per close
 preview/{preview-clock,preview-canvas}.ts           the session's two pure pieces, out of it so it is only the session: the local clock (a monotonic render tick, a scene phase a `show` restarts, a pause that re-bases) and the canvas bounds (the DPR cap, the CSS clamp, the lens's bounding square)
@@ -115,7 +115,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   destroys without touching the other, a rebuild adds no radial bake and no font install and keeps the very same
   indicator bundle, and a changed baker or device pixel ratio re-bakes it), `noise-tile.spec.ts` and
   `radial-bake.spec.ts` (FNV-1a digests of the production bakes, pinned to the pre-#442 samplers),
-  `bench-route.spec.ts` (both halves of the production gate),
+  `bench-route.spec.ts` (the `?bench` key and both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
   `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the

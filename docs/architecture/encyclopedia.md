@@ -897,7 +897,7 @@ not show the dish (which also halves the memory). None is built before a measure
   the first retune.
 
 **Evidence route.** `?preview=<EntryAnchor>&t=<seconds>` (dev builds only, behind the same production gate as
-`bench/bench-route.ts`) mounts one preview on a `ManualClock` for graphics-qa screenshots and the Playwright smoke.
+`bench/bench-route.ts`, in `encyclopedia/preview-route-gate.ts`, and loaded on demand, architecture/client.md §6) mounts one preview on a `ManualClock` for graphics-qa screenshots and the Playwright smoke.
 Clips and effect sprites start at the frame's `nowMs`, not the effect's tick, so the route **walks the clock** from
 the loop's start to `t` in `TICK_INTERVAL_S` steps before it parks, feeding every walk frame to
 `GameRenderer.render` with a no-op submit (the clips and registries advance, nothing is drawn; a 3 s loop is 180
@@ -928,6 +928,7 @@ packages/client/src/app/game/
   encyclopedia/registry.ts                                          ENCYCLOPEDIA_ENTRIES, entryById, resolveEntry, entriesIn
   encyclopedia/encyclopedia-context.ts                              factContextFor, EncyclopediaContextService (§12.2)
   encyclopedia/preview-route.ts                                     the dev evidence route (§12.7)
+  encyclopedia/preview-route-gate.ts                                its `?preview` key and production gate (§12.7)
   encyclopedia/**/*.spec.ts  encyclopedia/encyclopedia.integration.spec.ts   §12.6, §12.9
   render/preview/**                                                 the seam; its file list is rendering/files-and-tests.md §8
   render/constants/preview.ts                                       preview framing, seed and budgets
