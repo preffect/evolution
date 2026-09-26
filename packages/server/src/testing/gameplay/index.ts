@@ -15,6 +15,7 @@ export {
   ScenarioSetupError,
   formatDivergence,
   formatExpectationFailure,
+  type DivergenceSnapshots,
   type ExpectationFailure,
   type HashDivergence,
 } from './errors.js';
