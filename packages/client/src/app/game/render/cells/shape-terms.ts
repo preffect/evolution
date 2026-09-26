@@ -29,6 +29,7 @@ import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
+import { reachWithCiliaTufts } from './forms/paramecium-cilia';
 import {
   ZERO_BUMP,
   stretchAt,
@@ -75,7 +76,7 @@ export interface ShapeTerms extends RadialProfileTerms {
   readonly bumps: readonly ShapeBump[];
   /** The halo's outer radius for this cell's halo kind. */
   readonly haloOuterRadii: number;
-  /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2). */
+  /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2), or the paramecium's tuft tips. */
   readonly maxRadii: number;
   readonly isSprinting: boolean;
 }
@@ -292,5 +293,7 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     stretch: stretchTerm(input.speedRatio, isSprinting),
     bumps: assignBumpSlots(formBumps(input)),
   };
-  return { ...terms, haloOuterRadii, maxRadii: maxReachRadii(terms, haloOuterRadii), isSprinting };
+  const withHalo = maxReachRadii(terms, haloOuterRadii);
+  const maxRadii = reachWithCiliaTufts(traits.form, withHalo, withHalo / haloOuterRadii);
+  return { ...terms, haloOuterRadii, maxRadii, isSprinting };
 }

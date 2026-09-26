@@ -169,7 +169,10 @@ function surfaceFields(
 function tellFields(
   traits: CellTraitSummary,
   lod: CellLod,
-): Pick<CellInstance, 'ciliaCount' | 'wallScale' | 'speckleDensity' | 'filamentCount' | 'tintMix' | 'formId'> {
+): Pick<
+  CellInstance,
+  'ciliaCount' | 'wallScale' | 'speckleDensity' | 'filamentCount' | 'tintMix' | 'formId' | 'formTier'
+> {
   return {
     ciliaCount: lod.hasTells ? traits.ciliaCount : 0,
     wallScale: lod.hasTells ? traits.wallScale : 0,
@@ -177,6 +180,7 @@ function tellFields(
     filamentCount: traits.filamentCount,
     tintMix: traits.tintMix,
     formId: traits.form.id,
+    formTier: traits.formTier,
   };
 }
 

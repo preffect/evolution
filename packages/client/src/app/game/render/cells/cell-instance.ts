@@ -74,6 +74,8 @@ export interface CellInstance {
   readonly wither: number;
   /** The starving cell's outline crinkle (radial-profile.ts `StripTerm.wrinkleAmplitude`); 0 otherwise. */
   readonly wrinkleAmplitude: number;
+  /** The form trait's tier (1–3, `CellTraitSummary.formTier`): the slipper's aspect (`cell-shader-slipper.ts`). */
+  readonly formTier: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -93,8 +95,8 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
   // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; #538's relation ring fills it.
   ['selfRingFill', 'selfRingBrightness', 'relationRingPx', 'relationRingLines'],
-  // #635: the eleventh was full, so a starving cell's wither and wrinkle take a twelfth (two channels spare).
-  ['wither', 'wrinkleAmplitude'],
+  // #635: the eleventh was full, so a starving cell's wither and wrinkle take a twelfth; #193's form tier a third channel.
+  ['wither', 'wrinkleAmplitude', 'formTier'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */

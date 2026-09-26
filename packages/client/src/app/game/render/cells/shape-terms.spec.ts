@@ -24,6 +24,7 @@ import { degreesToRadians } from '../geometry';
 import { buildNoiseStrip } from '../noise/noise-strip';
 import { REST_DEFORMATION } from './cell-deformation';
 import { summariseCellTraits } from './cell-traits';
+import { formFor } from './forms/form-profiles';
 import { ZERO_BUMP } from './radial-profile';
 import { assignBumpSlots, buildShapeTerms, headingOf, type ShapeTermsInput } from './shape-terms';
 
@@ -72,7 +73,7 @@ describe('rest scales per trait and form', () => {
     expect(diatom.strip).toMatchObject({ lobesScale: 0, jitterAmplitude: 0 });
     const slipper = buildShapeTerms(withTraits([{ traitId: 'paramecium_cilia', tier: 1 }], CELL_STAGE.specialised));
     expect(slipper.wobble.mode).toBe(FORM_WOBBLE_MODE);
-    expect(slipper.form).toBeNull();
+    expect(slipper.form).toBe(formFor('paramecium_cilia').profileAt(1));
   });
 
   it('reaches to the trait halo with a chloroplast or a toxin bladder', () => {

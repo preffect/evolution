@@ -32,7 +32,8 @@ The fastest thing in the dish, and the most agile: as prey it twists against the
 slowdown 0.6 / 0.65 / 0.7, stacking with the Cytoskeleton Lattice up to the 0.9 cap) on top of the
 Cilia Fringe's slip it owns by prerequisite (T16). As predator: none, by design (a paramecium sweeps
 motes into its groove; it has no pseudopods). Visual: the cell elongates into a slipper (aspect 1.6 /
-1.8 / 2.0) fully covered in beating cilia, with an oral groove. Silhouette: slipper. Audio: rapid flutter.
+1.8 / 2.0) with an oral groove, fringed all round by bold cilia tufts that reach well past the rings
+(visual-style/motion-and-legibility.md §5.1), beating in a wave from nose to tail and swept back with speed. Silhouette: slipper. Audio: rapid flutter.
 
 #### 3.14 Euglena Eyespot `euglena_eyespot` — form, rare, tags `sensory photic`, requires `chloroplast`
 

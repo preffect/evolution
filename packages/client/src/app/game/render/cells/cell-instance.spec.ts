@@ -66,12 +66,14 @@ const instance: CellInstance = {
   relationRingLines: 2,
   wither: 0.6,
   wrinkleAmplitude: 0.027,
+  formTier: 3,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
 /**
  * The §2.3 row: twelve scalar texels plus the six bump texels. It grew from sixteen for the sprint ring (#295), whose
- * texel the relation ring (#538) filled, and to eighteen for a starving cell's wither and wrinkle (#635).
+ * texel the relation ring (#538) filled, and to eighteen for a starving cell's wither and wrinkle (#635), whose texel
+ * the form tier (#193) shares.
  */
 const INSTANCE_ROW_TEXELS = 18;
 const INSTANCE_ROW_BYTES_PER_CELL = INSTANCE_ROW_TEXELS * TEXEL_FLOATS * Float32Array.BYTES_PER_ELEMENT;
@@ -105,6 +107,7 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'relationRingLines')).toBe(2);
     expect(channelOf(row, 'wither')).toBeCloseTo(0.6, 6);
     expect(channelOf(row, 'wrinkleAmplitude')).toBeCloseTo(0.027, 6);
+    expect(channelOf(row, 'formTier')).toBe(3);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,

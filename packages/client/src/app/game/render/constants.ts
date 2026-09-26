@@ -8,6 +8,7 @@ export * from './constants/legibility-cues';
 export * from './constants/appendages';
 export * from './constants/indicator-bakes';
 export * from './constants/cell-shape';
+export * from './constants/paramecium';
 export * from './constants/starving-cell';
 export * from './constants/organelles';
 export * from './constants/vent';

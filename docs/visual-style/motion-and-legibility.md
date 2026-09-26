@@ -43,7 +43,9 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    past the ring radius** (`ENGULF_WARNING_RING_RADII` 1.3 r), so at least 1.9 r from the centre, measured at rest on
    the breath's inhale. An appendage that extends and retracts never pulls back to less than
    `APPENDAGE_MIN_RETRACTED_PAST_RING_RADII` 0.15 r past the ring (1.45 r). The amoeba reaches 1.95 r and pulls back
-   to 1.62 r. Swimming may squash an appendage (the speed stretch narrows the cell across its heading and tapers its
+   to 1.62 r. The paramecium's cilia tufts (#193) are measured radially from the membrane, so the slipper's narrow
+   flank is the worst place: `CILIA_TUFT_REACH_RADII` 1.3 r puts a tier-III flank tuft at 2.0 r (1.93 r with the
+   breath, the wobble and the rest lobes all pulling that flank in), and beating down to 0.66 of it, 1.49 r. Swimming may squash an appendage (the speed stretch narrows the cell across its heading and tapers its
    rear), but its tip stays past the ring at every speed, measured at the tip itself, not at the widest point of the
    outline. "The ring" here is the 1.3 r radius; on a small cell the rings' px floors can sit further out (ticket
    #736).
@@ -52,7 +54,9 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    at any extension. It is also slim enough to read as a limb rather than a bulge of the body: the amoeba's σ is
    `PSEUDOPOD_FAN_SIGMA_DEG` 30 ° over the arm count, capped at `PSEUDOPOD_MAX_SIGMA_DEG` 12 ° (12 ° / 10 ° / 7.5 °;
    the neck is 0.40–0.72 r wide). A form with fine appendages (cilia) draws them as a tuft or a band that clears
-   the rings, not as single hairs at the membrane.
+   the rings, not as single hairs at the membrane. The paramecium's
+   tufts are 0.40 r at the root tapering to a 0.26 r round tip, 0.33 r at the neck measured **square across** the tuft,
+   since a tuft bent back toward the tail is wider along the arc it crosses than across itself.
 3. **Appendages are not body.** The body `B(Δ)` alone keeps unit area (docs/rendering/cells.md §2.4), so mass ∝ area
    still reads from the body. The body is also exactly the **hit and engulf disc**: contact, the engulf check and
    the engulf reach all use the round body radius `r` (`ecology/absorption.md`), never the appendage. Appendages are
