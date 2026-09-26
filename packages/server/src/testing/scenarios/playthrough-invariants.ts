@@ -10,10 +10,16 @@ function isFiniteCell(cell: CellView): boolean {
 }
 
 /**
- * Every cell is a finite, positive body under the mass cap with its centre inside the dish (docs/ecology/mass-and-movement.md
- * §5). The centre, not the rim: separation runs after the wall clamp (docs/architecture/server-simulation.md §3, step 3),
- * so a cell a neighbour presses into the wall sits a fraction of a wu past `DISH_RADIUS − radius` (seed 42, ~0.1 wu for
- * hundreds of ticks; reported on ticket #199).
+ * How far a rim may sit past the dish: separation runs after the wall clamp (docs/architecture/server-simulation.md §3,
+ * step 3), so a cell its neighbours press into the wall ends the tick past `DISH_RADIUS − radius`. Ticket #710: on this
+ * playthrough's seed the worst is wild cell c-16 (radius 95.7) 16.5 wu past on tick 7527; the tolerance sits just above
+ * it and drops to float slack once #710 lands. A cell the wall clamp no longer holds overruns it within a few ticks.
+ */
+const WALL_OVERRUN_TOLERANCE_WU = 20;
+
+/**
+ * Every cell is a finite, positive body under the mass cap, clamped inside the dish (docs/ecology/mass-and-movement.md
+ * §5) to within `WALL_OVERRUN_TOLERANCE_WU`.
  */
 function cellBodyViolations(cells: readonly CellView[], balance: BalanceConfig): string[] {
   return cells.flatMap((cell) => {
@@ -24,11 +30,9 @@ function cellBodyViolations(cells: readonly CellView[], balance: BalanceConfig):
     if (cell.mass <= 0 || cell.mass > balance.growth.CELL_MAX_MASS) {
       violations.push(`cell ${cell.id} mass ${cell.mass} outside (0, ${balance.growth.CELL_MAX_MASS}]`);
     }
-    const centreDistance = Math.hypot(cell.x, cell.y);
-    if (centreDistance > balance.world.DISH_RADIUS) {
-      violations.push(
-        `cell ${cell.id} centre ${centreDistance} wu out, past the dish radius ${balance.world.DISH_RADIUS}`,
-      );
+    const rimOverrun = Math.hypot(cell.x, cell.y) + cell.radius - balance.world.DISH_RADIUS;
+    if (rimOverrun > WALL_OVERRUN_TOLERANCE_WU) {
+      violations.push(`cell ${cell.id} rim ${rimOverrun} wu past the dish, over ${WALL_OVERRUN_TOLERANCE_WU} wu`);
     }
     return violations;
   });

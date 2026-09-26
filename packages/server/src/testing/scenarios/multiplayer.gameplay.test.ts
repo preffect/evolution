@@ -23,7 +23,7 @@ import {
   evolutionScenario as scenario,
   type EvolutionScenarioSnapshot,
 } from '../gameplay/evolution-adapter.js';
-import { cellOf, distanceBetweenCells, massOf, progressOf, type EvolutionView } from '../gameplay/evolution-views.js';
+import { cellOf, massOf, progressOf, type EvolutionView } from '../gameplay/evolution-views.js';
 import { createScriptedStrategy, type PlayerScript } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import {
@@ -39,6 +39,7 @@ import {
   dnaOfPredator,
   engulfPair,
   lifeStateOfPrey,
+  overlapOfPair,
   progressOfPrey,
   releaseReasons,
   statesOfPredator,
@@ -108,15 +109,6 @@ function chargingPair(name: string) {
     .advance(COLLISION_TICKS);
 }
 
-function overlapOf(view: EvolutionView): number | undefined {
-  const west = cellOf(view, 0);
-  const east = cellOf(view, 1);
-  const distance = distanceBetweenCells(view, 0, 1);
-  return west === undefined || east === undefined || distance === undefined
-    ? undefined
-    : west.radius + east.radius - distance;
-}
-
 /**
  * How far the detritus on the leave tick misses the share the leaver's mass drops (docs/ecology/food-and-spawn.md §1):
  * what still lies in the dish plus what the survivor ate of it on that tick (eating is step 4 and decay step 5, so its
@@ -172,7 +164,7 @@ describe('ecology/absorption.md §6.3: a player leaves the room mid-engulf (#199
       .expect('A earned no DNA', dnaOfPredator)
       .atEnd()
       .toBe(0)
-      .expect("A is short of E9's payout by the prey's yield", (view) => massOf(view, 0))
+      .expect("A never reaches E9's payout mass", (view) => massOf(view, 0))
       .atEnd()
       .toBeLessThan(E9_PAYOUT_MASS)
       .runDeterministic();
@@ -228,7 +220,7 @@ describe('ecology/mass-and-movement.md §5.3: two bots colliding (#199)', () => 
     const run = chargingPair('two chargers');
     for (let tick = 1; tick <= COLLISION_TICKS; tick += 1) {
       run
-        .expect(`overlap on tick ${tick}`, overlapOf)
+        .expect(`overlap on tick ${tick}`, overlapOfPair)
         .atTick(tick)
         .toBeAtMost(CHARGE_OVERLAP_BOUND_WU)
         .expect(`no engulf state on tick ${tick}`, (view) => [statesOfPredator(view), statesOfPrey(view)])
@@ -236,7 +228,7 @@ describe('ecology/mass-and-movement.md §5.3: two bots colliding (#199)', () => 
         .toEqual([[], []]);
     }
     await run
-      .expect('they are in contact', overlapOf)
+      .expect('they are in contact', overlapOfPair)
       .atEnd()
       .toBeGreaterThan(0)
       .expect('the midpoint never moved', (view) => ((cellOf(view, 0)?.x ?? 0) + (cellOf(view, 1)?.x ?? 0)) / 2)
@@ -251,7 +243,7 @@ describe('ecology/mass-and-movement.md §5.3: two bots colliding (#199)', () => 
       .runDeterministic();
   });
 
-  // Known failure, reported on ticket #199 (gameplay-qa): two protocells at the starting mass charging head-on pass
+  // Known failure, ticket #709: two protocells at the starting mass charging head-on pass
   // through each other on tick 59. Separation runs once per tick after the move, so it holds the pair at
   // `CHARGE_OVERLAP_BOUND_WU` deep; the pair still closes `MAX_CLOSING_PER_TICK_WU` a tick, and once that is at least the
   // centre gap left (closing / f ≥ the sum of the radii: 36.7 ≥ 35.8 wu here) the move crosses the centres and the
@@ -287,7 +279,7 @@ describe('seeded bot playthrough (#199)', () => {
       )
       .atEnd()
       .toSatisfy((dna) => (dna as number[]).every((value) => value > 0), 'every bot above 0 DNA')
-      .expect('the hunters ate cells: the engulf invariants were exercised', (view) =>
+      .expect('at least one cell was eaten by a bot: the engulf invariants were exercised', (view) =>
         PLAYTHROUGH_INDICES.reduce((eaten, index) => {
           const progress = progressOf(view, index);
           return eaten + (progress?.absorptions ?? 0) + (progress?.wildAbsorptions ?? 0);
