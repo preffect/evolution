@@ -3,7 +3,7 @@
 // one is refused as a whole; a live balance is never left half-patched. The input is never
 // written: the patch lands on a clone, so `DEFAULT_BALANCE` (deep-frozen, shared by every room)
 // can be patched directly and the caller keeps the copy it is handed back. A declared structure path
-// is refused by name, pointing at the path its numbers are read from (#150).
+// is refused by name, saying where its numbers live (#150).
 
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch } from './simulation-debug-handle.js';
@@ -11,12 +11,16 @@ import type { BalancePatch } from './simulation-debug-handle.js';
 const PATH_SEPARATOR = '.';
 
 /**
- * Balance paths that hold structure a patch could mistake for tunables, each with the path the simulation reads
+ * Balance paths that hold structure a patch could mistake for tunables, each with where the simulation reads
  * the numbers from. `TRAIT_CATALOG[n].tiers` holds the tier numbers too, but only `TRAIT_TIERS` is read for them
  * (CODE-STANDARDS.md §2), so a write under the catalog would change nothing in play.
  */
-const STRUCTURE_PATHS: readonly { readonly path: string; readonly numbersAt: string }[] = [
-  { path: 'traits.TRAIT_CATALOG', numbersAt: 'traits.TRAIT_TIERS' },
+const STRUCTURE_PATHS: readonly { readonly path: string; readonly whereTheNumbersLive: string }[] = [
+  {
+    path: 'traits.TRAIT_CATALOG',
+    whereTheNumbersLive:
+      'trait tier numbers live in "traits.TRAIT_TIERS", which cannot be patched live yet (ticket #715)',
+  },
 ];
 
 /** Refuses `path` when it is a declared structure path; the walk reaches any path under one through it first. */
@@ -24,9 +28,7 @@ function refuseStructurePath(path: readonly string[]): void {
   const dottedPath = path.join(PATH_SEPARATOR);
   const structure = STRUCTURE_PATHS.find((entry) => dottedPath === entry.path);
   if (structure !== undefined) {
-    throw new DebugRequestError(
-      `"${structure.path}" is structure, not a tunable: its numbers are read from "${structure.numbersAt}"`,
-    );
+    throw new DebugRequestError(`"${structure.path}" is structure, not a tunable: ${structure.whereTheNumbersLive}`);
   }
 }
 

@@ -96,7 +96,7 @@ Rules that keep this honest:
   `structuredClone` of it (`applyBalancePatch` returns a fresh copy), never the default. Tier
   numbers are read from `balance.traits.TRAIT_TIERS` only; `TRAIT_CATALOG[n].tiers` is
   structure, never read for a number, so a `debug_set_balance` patch has one path: `applyBalancePatch` refuses a
-  path under `traits.TRAIT_CATALOG` by name, pointing at `traits.TRAIT_TIERS`, rather than failing it as a missing
+  path under `traits.TRAIT_CATALOG` by name, saying the tier numbers live in `traits.TRAIT_TIERS` (not patchable live yet, ticket #715), rather than failing it as a missing
   leaf (`STRUCTURE_PATHS` in `game/debug/balance-patch.ts` declares the structure paths, #150).
 - Time constants are stored in seconds (or ms with the suffix) and converted to ticks in one
   place: `secondsToTicks` in `packages/shared/src/time/units.ts`.

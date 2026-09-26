@@ -54,10 +54,12 @@ describe('applyBalancePatch', () => {
   it('refuses a structure path by name and names the path its numbers are read from', () => {
     expect(() => applyBalancePatch(DEFAULT_BALANCE, CATALOG_TIER_PATCH)).toThrow(
       new DebugRequestError(
-        '"traits.TRAIT_CATALOG" is structure, not a tunable: its numbers are read from "traits.TRAIT_TIERS"',
+        '"traits.TRAIT_CATALOG" is structure, not a tunable: trait tier numbers live in "traits.TRAIT_TIERS", which cannot be patched live yet (ticket #715)',
       ),
     );
-    expect(() => applyBalancePatch(DEFAULT_BALANCE, { traits: { [CATALOG_LEAF]: 1 } })).toThrow(/traits\.TRAIT_TIERS/);
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, { traits: { [CATALOG_LEAF]: 1 } })).toThrow(
+      /traits\.TRAIT_TIERS.*ticket #715/,
+    );
   });
 
   it('refuses a non-finite value', () => {
