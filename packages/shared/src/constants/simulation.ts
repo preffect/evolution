@@ -40,5 +40,5 @@ export const GEL_PATCH_PLACEMENT_MAX_ATTEMPTS = 100;
  */
 export const INITIAL_FILL_POINT_MAX_ATTEMPTS = 1000;
 
-/** Bumped when the module's replay record changes shape (docs/determinism/replay-tests-and-traps.md §6). */
-export const REPLAY_FORMAT_VERSION = 1;
+/** Bumped when the module's replay record changes shape (docs/determinism/replay-tests-and-traps.md §6); version 2 is the one ordered event log. */
+export const REPLAY_FORMAT_VERSION = 2;
