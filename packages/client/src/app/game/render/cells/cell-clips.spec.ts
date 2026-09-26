@@ -2,7 +2,14 @@
 // docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1: the clip tracks become bumps at the mote and the prey, a pulse and an alpha.
 
 import { describe, expect, it } from 'vitest';
-import { MOTION_CLIP, MOTION_CLIPS, type MotionClipId } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENGULF_CLIP_SEAL_AT,
+  MOTION_CLIP,
+  MOTION_CLIPS,
+  engulfSealProgress,
+  type MotionClipId,
+} from '@evolution/shared';
 import { REST_DEFORMATION } from './cell-deformation';
 import {
   EATING_CLIP_CONTEXT,
@@ -10,6 +17,7 @@ import {
   UNAIMED_CLIP_CONTEXT,
   clipDeformation,
   clipDeformationPeak,
+  engulfClipPosition,
   engulfDeformationPeak,
   sampleClipTracks,
   type ClipPeakContext,
@@ -23,6 +31,51 @@ describe('sampleClipTracks', () => {
     expect(sampleClipTracks(MOTION_CLIPS.eat, 160)).toMatchObject({ dimple: -0.12, wrap: 0.14, pulse: 1.09 });
     expect(sampleClipTracks(MOTION_CLIPS.engulf, 0.5)).toEqual({ arm: 0.62, notch: -0.1, seal: 0 });
     expect(sampleClipTracks(MOTION_CLIPS.absorbed, 400)['seal']).toBeCloseTo(0.22, 9);
+  });
+});
+
+/** Ticket #703: the clip's arm peak and seal onset follow the room's seal, and the default is untouched. */
+describe('engulfClipPosition', () => {
+  const walkSteps = 1_000;
+  const progressWalk = [...Array(walkSteps + 1).keys()].map((step) => step / walkSteps);
+  const defaultSeal = engulfSealProgress(DEFAULT_BALANCE.absorption);
+  /** `ENGULF_WRAP_SECONDS` 0.4 → 1.0 puts the seal at 2/3 (engulf-pace.test.ts). */
+  const patchedSeal = engulfSealProgress({ ...DEFAULT_BALANCE.absorption, ['ENGULF_WRAP_SECONDS']: 1.0 });
+  const armAt = (progress: number, seal: number): number =>
+    sampleClipTracks(MOTION_CLIPS.engulf, engulfClipPosition(progress, seal))['arm']!;
+
+  it('is exactly the identity at the default seal, so the default membrane is pixel-identical', () => {
+    expect(defaultSeal).toBe(ENGULF_CLIP_SEAL_AT);
+    for (const progress of [...progressWalk, 0.1 + 0.2, 1 / 3, 0.5 + Number.EPSILON]) {
+      expect(engulfClipPosition(progress, defaultSeal)).toBe(progress);
+    }
+  });
+
+  it('lands the arm peak and the seal onset on a patched seal of 2/3', () => {
+    expect(patchedSeal).toBeCloseTo(2 / 3, 12);
+    expect(engulfClipPosition(patchedSeal, patchedSeal)).toBe(ENGULF_CLIP_SEAL_AT);
+    expect(engulfClipPosition(0, patchedSeal)).toBe(0);
+    expect(engulfClipPosition(1, patchedSeal)).toBeCloseTo(MOTION_CLIPS.engulf.duration, 12);
+    const peakProgress = progressWalk.reduce((best, progress) =>
+      armAt(progress, patchedSeal) > armAt(best, patchedSeal) ? progress : best,
+    );
+    expect(peakProgress).toBeCloseTo(2 / 3, 2);
+    expect(armAt(patchedSeal, patchedSeal)).toBeCloseTo(0.62, 12);
+    // The fixed keyframes had the arms retracting by 0.6 already; the remapped clip is still reaching there.
+    expect(armAt(0.6, patchedSeal)).toBeLessThan(armAt(patchedSeal, patchedSeal));
+    const sealAt = (progress: number): number =>
+      sampleClipTracks(MOTION_CLIPS.engulf, engulfClipPosition(progress, patchedSeal))['seal']!;
+    expect(sealAt(0.6)).toBe(0);
+    expect(sealAt(patchedSeal)).toBe(0);
+    expect(sealAt(0.8)).toBeGreaterThan(0);
+  });
+
+  it('never runs backwards and holds the clip end when the seal is the payout', () => {
+    for (let index = 1; index < progressWalk.length; index += 1) {
+      const [earlier, later] = [progressWalk[index - 1]!, progressWalk[index]!];
+      expect(engulfClipPosition(later, patchedSeal)).toBeGreaterThan(engulfClipPosition(earlier, patchedSeal));
+    }
+    expect(engulfClipPosition(1, 1)).toBe(MOTION_CLIPS.engulf.duration);
   });
 });
 
@@ -48,7 +101,7 @@ describe('clipDeformation', () => {
       tracks,
       moteAngle: 2,
       preyAngle: 0,
-      engulfProgress: 0.5,
+      engulfClipPosition: 0.5,
       absorbedSeal: null,
     });
     expect(deformation.bumps.map((slot) => [slot.amplitude, slot.centre])).toEqual([
@@ -64,7 +117,7 @@ describe('clipDeformation', () => {
 
   /** The amoeba's lobes reach for the prey (#192): the angle rides only while an engulf is in progress. */
   it('carries the prey angle while engulfing and nowhere else', () => {
-    const engulfing = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 1.2, engulfProgress: 0.3 });
+    const engulfing = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 1.2, engulfClipPosition: 0.3 });
     expect(engulfing.preyAngle).toBe(1.2);
     expect(clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0.5, absorbedSeal: 0.42 }).preyAngle).toBeUndefined();
     expect(clipDeformation({ ...REST_CLIP_INPUT, moteAngle: 1 }).preyAngle).toBeUndefined();
@@ -159,7 +212,7 @@ describe('engulfDeformationPeak', () => {
     const coarse = engulfDeformationPeak();
     let fine = 0;
     for (let step = 0; step <= fineSamples; step += 1) {
-      const deformation = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0, engulfProgress: step / fineSamples });
+      const deformation = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0, engulfClipPosition: step / fineSamples });
       fine = Math.max(fine, bumpPeak(deformation.bumps));
     }
     expect(fine).toBeLessThanOrEqual(coarse.bumpRadii * (1 + samplingTolerance) + samplingTolerance);
