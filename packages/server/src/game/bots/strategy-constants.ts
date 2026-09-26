@@ -4,12 +4,21 @@
 // The wild cells' numbers come from `constants/wild-cells.ts` and travel through those same
 // options (`game/wild/wild-strategy.ts`); the defaults here stay the bot-client defaults.
 
+import { STEER_FULL_THROTTLE_RADII } from '@evolution/shared';
+
 /** How far ahead of its centre a wandering bot aims each decision, in world units. */
 export const WANDER_STEP_WU = 40;
 /** Standard deviation of the heading change per decision, in radians (a gentle drift, not a jitter). */
 export const WANDER_TURN_SIGMA_RADIANS = 0.6;
 /** A hunter sprints once its prey is within this many of its own radii. */
 export const HUNTER_SPRINT_WITHIN_RADII = 4;
+/**
+ * How far past its prey's centre the catalogue hunter aims, along its line of approach, in own radii (#698). The
+ * steer kernel gives full throttle only to a target `STEER_FULL_THROTTLE_RADII` or more own radii away
+ * (ecology/mass-and-movement.md §5.2), so a hunter aiming at the centre slows to a crawl as it makes contact; aiming
+ * that full-throttle distance past the centre keeps the target at least that far away, so it arrives at full throttle.
+ */
+export const HUNTER_AIM_PAST_PREY_RADII = STEER_FULL_THROTTLE_RADII;
 /** A fleeing bot reacts to a threat within this many of its own radii. */
 export const FLEE_WITHIN_RADII = 8;
 /** A forager flees a cell that can engulf it within this many of its own radii, and grazes otherwise. */

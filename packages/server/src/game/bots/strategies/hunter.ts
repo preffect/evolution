@@ -7,10 +7,11 @@
 // radii and `preference` picks the nearest instead of the largest: the wild hunt of
 // docs/ecology/wild-cells.md §3.3 is a fresh, range-bound, nearest-first hunter. No randomness.
 // The catalogue's `hunter` is `createGrazingHunterStrategy`: the same hunt, grazing like `grazer` while nothing is
-// engulfable (#376), so a bot spawned small grows into a predator instead of waiting for a bigger respawn. The wild
-// strategy composes the bare hunter with its own rules.
+// engulfable (#376), so a bot spawned small grows into a predator instead of waiting for a bigger respawn, and aims
+// `HUNTER_AIM_PAST_PREY_RADII` own radii past its prey so it arrives at full throttle (#698). The wild strategy
+// composes the bare hunter, which aims at the prey's centre, with its own rules.
 
-import { distanceBetween, type PlayerId } from '@evolution/shared';
+import { distanceBetween, unitVectorToward, type PlayerId, type Vec2 } from '@evolution/shared';
 import {
   createFirstCommandStrategy,
   type BotStrategy,
@@ -22,6 +23,7 @@ import { nearestTo, type BotCellView, type BotPerception } from '../perception.j
 import {
   BOT_STRATEGY_NAME,
   HUNT_PREFERENCE,
+  HUNTER_AIM_PAST_PREY_RADII,
   HUNTER_SPRINT_WITHIN_RADII,
   type HuntPreference,
 } from '../strategy-constants.js';
@@ -36,6 +38,8 @@ export interface HunterOptions {
   readonly withinRadii?: number;
   /** Which candidate to take when none is committed: the largest (the default) or the nearest. */
   readonly preference?: HuntPreference;
+  /** How far past the prey's centre it aims, along its line of approach, in own radii; 0 (the centre) by default. */
+  readonly aimPastRadii?: number;
 }
 
 /** Which cells count as prey and which of them a fresh hunter takes; shared by every instance of one factory. */
@@ -45,6 +49,14 @@ interface PreyRules {
 }
 
 const ALWAYS_WORTHWHILE = (): boolean => true;
+/** The bare hunter aims at its prey's centre. */
+const AIM_AT_CENTRE_RADII = 0;
+
+/** Where a hunter aims: `aimPastRadii` own radii past the prey's centre, along the line from its own centre through the prey's. */
+export function huntTargetFrom(self: BotCellView, prey: Vec2, aimPastRadii: number): Vec2 {
+  const approach = unitVectorToward(self, prey);
+  return { x: prey.x + approach.x * aimPastRadii * self.radius, y: prey.y + approach.y * aimPastRadii * self.radius };
+}
 
 function largestOf(cells: readonly BotCellView[]): BotCellView | undefined {
   let largest: BotCellView | undefined;
@@ -76,7 +88,11 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: HunterOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
-  const { sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII, isSprintWorthwhile = ALWAYS_WORTHWHILE } = options;
+  const {
+    sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII,
+    isSprintWorthwhile = ALWAYS_WORTHWHILE,
+    aimPastRadii = AIM_AT_CENTRE_RADII,
+  } = options;
   const rules = preyRulesOf(perception, options);
 
   return (): BotStrategy<Snapshot, ActorId> => {
@@ -101,19 +117,23 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
         }
         const isSprinting =
           distanceBetween(self, prey) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, prey);
-        return { targetX: prey.x, targetY: prey.y, ...(isSprinting ? { isSprinting } : {}) };
+        const target = huntTargetFrom(self, prey, aimPastRadii);
+        return { targetX: target.x, targetY: target.y, ...(isSprinting ? { isSprinting } : {}) };
       },
     };
   };
 }
 
-/** The catalogue's `hunter`: hunts as `createHunterStrategy`, and grazes the nearest mote while it has no prey. */
+/**
+ * The catalogue's `hunter`: hunts as `createHunterStrategy`, aiming `HUNTER_AIM_PAST_PREY_RADII` own radii past its
+ * prey unless `aimPastRadii` says otherwise, and grazes the nearest mote while it has no prey.
+ */
 export function createGrazingHunterStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: HunterOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
   return createFirstCommandStrategy(BOT_STRATEGY_NAME.hunter, [
-    createHunterStrategy(perception, options),
+    createHunterStrategy(perception, { aimPastRadii: HUNTER_AIM_PAST_PREY_RADII, ...options }),
     createGrazerStrategy(perception),
   ]);
 }
