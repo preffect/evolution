@@ -74,6 +74,12 @@ export const WORLD_FIXTURE_KIND = {
   clearFood: 'clear_food',
   /** E3: every wild seat and its cell removed, so the spawner row counts the spawner alone, not the wild grazing. */
   removeWildSeats: 'remove_wild_seats',
+  /**
+   * T4 (#402): every gel patch removed, so a placed row can run on a seed whose patch reaches the broth point
+   * (seed 42, whose `engulf` stream the row's spit-out is drawn from). Placed before the cells, it clears the
+   * broth point before the placement check runs.
+   */
+  clearGelPatches: 'clear_gel_patches',
 } as const;
 
 export interface WorldFixture {
@@ -85,6 +91,7 @@ export type EvolutionFixture = PlacedFixture | WorldFixture;
 export const resetSpawnerAccumulators: WorldFixture = { kind: WORLD_FIXTURE_KIND.resetSpawnerAccumulators };
 export const clearFood: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearFood };
 export const withoutWildSeats: WorldFixture = { kind: WORLD_FIXTURE_KIND.removeWildSeats };
+export const withoutGelPatches: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearGelPatches };
 
 const PLACED_KINDS: readonly string[] = Object.values(PLACED_KIND);
 
@@ -100,6 +107,10 @@ function applyWorldFixture(world: WorldState, fixture: WorldFixture): void {
   }
   if (fixture.kind === WORLD_FIXTURE_KIND.removeWildSeats) {
     removeWildSeats(world);
+    return;
+  }
+  if (fixture.kind === WORLD_FIXTURE_KIND.clearGelPatches) {
+    world.gelPatches = [];
     return;
   }
   world.food = [];

@@ -75,11 +75,14 @@ it('E9: A absorbs B on tick 30', async () => {
   `seatWildCell`, at its base size with no growth and settled from its first tick (ecology/wild-cells.md §3.3.1). It schedules with `.atTick(T)` like any placement
   (W6: placed after tick 21 599, seat 0 decides on 21 600). An adapter may add fixtures of its own beside the placed
   records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
-  `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures.
+  `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures, and `withoutGelPatches`
+  removes every gel patch (#402): placed with `.place(withoutGelPatches)` before the cells, it clears the broth
+  point before the clearance check runs, so a placed row whose arithmetic needs another seed's random streams
+  runs on that seed (T4 draws its spit-out from the seed-42 `engulf` stream: `engulfPairOnTableSeedOf`).
 - **Seeds and the Evolution snapshot.** `TABLE_SEED` (42) is what every row names;
   `PLACED_ROW_SEED` (48) is what the placed rows run on, because only the gel patches come from
   the seed and seed 42 puts one 73 wu from the broth point (ecology/acceptance.md §8's clearance rule refuses
-  it). The scenario snapshot is the full snapshot with **exact values** (`EXACT_SNAPSHOT_VALUES`: the tables
+  it; a row that needs seed 42's streams clears the patches with `withoutGelPatches` instead). The scenario snapshot is the full snapshot with **exact values** (`EXACT_SNAPSHOT_VALUES`: the tables
   assert ± 0.01 wu; only the wire rounds positions, velocity, mass, radius and the leaderboard's score and mass to
   their `SNAPSHOT_*_DECIMALS`, #341; the bots a scenario drives read it too, so they perceive exact values where a
   `debug_spawn_bot` or `bot-client` bot perceives the wire's, and a hunter within one 0.1-mass step of the engulf

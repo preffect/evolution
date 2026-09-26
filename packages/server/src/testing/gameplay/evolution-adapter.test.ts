@@ -10,6 +10,8 @@ import {
   clearFood,
   evolutionAdapter,
   resetSpawnerAccumulators,
+  TABLE_SEED,
+  withoutGelPatches,
   withoutWildSeats,
   createLazyScenarioSnapshot,
   type EvolutionScenarioModule,
@@ -21,13 +23,13 @@ import { ZONE } from './placement.js';
 const alice = playerId('player_0');
 const context: FixtureContext = { tick: 0, playerId: () => alice };
 
-function moduleUnderTest(): EvolutionScenarioModule {
+function moduleUnderTest(seed = PLACED_ROW_SEED): EvolutionScenarioModule {
   return evolutionAdapter.createModule({
     gameId: gameId('adapter-game'),
     creatorId: alice,
     playerIds: [alice],
     gameName: 'adapter',
-    config: createTestSessionConfig({ seed: PLACED_ROW_SEED }),
+    config: createTestSessionConfig({ seed }),
     avatarAssignments: { [alice]: 0 },
     playerNames: { [alice]: 'Alice' },
   }) as EvolutionScenarioModule;
@@ -144,5 +146,23 @@ describe('evolutionAdapter', () => {
     expect(() =>
       evolutionAdapter.applyFixture(module, placeMote({ moteKind: 'algae', at: ZONE.vent }, undefined), context),
     ).toThrow(ScenarioSetupError);
+  });
+
+  it('clears the gel patches on that seed, so a placed record runs there, and two runs hash equal (#402)', () => {
+    const ticks = 30;
+    const runOnTableSeed = () => {
+      const module = moduleUnderTest(TABLE_SEED);
+      expect(module.world.gelPatches, 'seed 42 seeds gel patches').not.toEqual([]);
+      evolutionAdapter.applyFixture(module, withoutGelPatches, context);
+      expect(module.world.gelPatches).toEqual([]);
+      evolutionAdapter.applyFixture(module, placeCell({ playerIndex: 0, mass: 100 }, undefined), context);
+      const hashes = [computeStateHash(module.world)];
+      for (let tick = 1; tick <= ticks; tick += 1) {
+        module.reduceGameState();
+        hashes.push(computeStateHash(module.world));
+      }
+      return hashes;
+    };
+    expect(runOnTableSeed()).toEqual(runOnTableSeed());
   });
 });
