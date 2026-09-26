@@ -12,6 +12,8 @@ import { BOT_STRATEGY_NAME, type BotStrategyName } from '../src/game/bots/strate
 import {
   ROUND_PHASES,
   ROUND_PHASE_ENDS_SECONDS,
+  UNSEATED_ROLE,
+  UNSEEN_ROLE,
   WILD_ROLE,
   createPredationTally,
   roundPhaseMinutes,
@@ -58,11 +60,11 @@ function runRound(seed: number): PredationTally {
   const roundTicks = secondsToTicks(ROUND_PHASE_ENDS_SECONDS.bloom);
   while (world.tick - world.roundStartTick < roundTicks) {
     for (const cell of world.cells) {
-      roleOfCell.set(cell.id, cell.playerId === null ? WILD_ROLE : (roleOfPlayer.get(cell.playerId) ?? 'other'));
+      roleOfCell.set(cell.id, cell.playerId === null ? WILD_ROLE : (roleOfPlayer.get(cell.playerId) ?? UNSEATED_ROLE));
     }
     module.reduceGameState();
     const roundSeconds = ticksToSeconds(world.tick - world.roundStartTick);
-    tallyEffects(tally, world.effects.splice(0), roundSeconds, (cellId) => roleOfCell.get(cellId) ?? 'unknown');
+    tallyEffects(tally, world.effects.splice(0), roundSeconds, (cellId) => roleOfCell.get(cellId) ?? UNSEEN_ROLE);
   }
   return tally;
 }

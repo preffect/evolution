@@ -32,6 +32,10 @@ export const ROUND_PHASES = Object.keys(ROUND_PHASE_ENDS_SECONDS) as RoundPhase[
 
 /** Who a cell belongs to: a bot strategy's name, or `wild` for a cell no player owns. */
 export const WILD_ROLE = 'wild';
+/** A player cell whose player is not one of the measured bots. */
+export const UNSEATED_ROLE = 'unseated';
+/** A cell the caller never saw before the effect named it. */
+export const UNSEEN_ROLE = 'unseen';
 
 /** The round phase a round second falls in, or `undefined` once the round is over. */
 export function roundPhaseAt(roundSeconds: number): RoundPhase | undefined {

@@ -132,11 +132,15 @@ describe('grazing hunter (the catalogue hunter)', () => {
     expect(createHunterStrategy(perception)().decide(contextWith([self, tooBig]))).toBeNull();
   });
 
-  it('hunts over grazing as soon as a prey is engulfable, keeping its commitment across a grazing gap', () => {
+  it('hunts over grazing as soon as a prey is engulfable, and picks afresh after a grazing gap', () => {
     const strategy = createGrazingHunterStrategy(perception)();
     expect(strategy.decide(contextWith([self, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: smallPrey.y });
     expect(strategy.decide(contextWith([self]))).toEqual({ targetX: nearMote.x, targetY: nearMote.y });
-    expect(strategy.decide(contextWith([self, biggerPrey]))).toEqual({ targetX: biggerPrey.x, targetY: biggerPrey.y });
+    // Without the gap it would stay on smallPrey (the commitment test above); after it, the largest wins again.
+    expect(strategy.decide(contextWith([self, smallPrey, biggerPrey]))).toEqual({
+      targetX: biggerPrey.x,
+      targetY: biggerPrey.y,
+    });
   });
 
   it('grazes while its named prey is out of reach and hunts it once it is engulfable', () => {
