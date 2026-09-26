@@ -209,7 +209,9 @@ pill rule of `ui/input-and-onboarding.md` §6), so no role is ever the only carr
 
 **Relation rings.** A cell's relation to the own cell is geometry first and colour second: each of the three rings
 has its own shape, so none is told from another by colour alone (under deuteranopia `GAIN` and `DANGER` are two
-yellows 2.0:1 apart, and taking a toxic cell for prey is the costly misread).
+yellows 2.0:1 apart, and taking a toxic cell for prey is the costly misread). Every ring keeps its gap from the
+cell's outline, appendages included, rather than cutting across an arm (visual-style/motion-and-legibility.md §5.1,
+ticket #730).
 
 - The **threat ring** is the engulf warning ring as it ships: dashed `WARNING_RING_DASH_PX` 6 5,
   `WARNING_RING_STROKE_PX` 2 px, rotating (`cell-shader-tells.ts`, visual-style/motion-and-legibility.md §5), at

@@ -1,14 +1,16 @@
 // The amoeba's silhouette and motion (docs/rendering/cells.md §2.1 pseudopods row, §2.4; docs/visual-style/
-// motion-and-legibility.md §5; sheet 04): a core shrunk to `AMOEBA_CORE_SCALE` and 2 / 3 / 4 short, fat pseudopod bumps.
-// At rest the lobes fan out irregularly about the held heading and sway; with speed they move out of the stretched
-// front to the flanks (round the engulfed prey while it engulfs), so the body never reaches past the 1.3 r rings short
-// of a sprint. Each lobe extends and retracts on its own staggered sine, so one arm reaches while its neighbour pulls
-// back. Pure over time and the cosmetic phase, like every rest term.
+// motion-and-legibility.md §5 / §5.1; sheet 04): the round core (`AMOEBA_CORE_SCALE`) and 2 / 3 / 4 long pseudopod
+// arms reaching well past the 1.3 r rings (#646). The arms are appendages, not body: cosmetic, outside the unit-area
+// rule and the hit disc. At rest the lobes fan out irregularly about the held heading and sway; with speed they move
+// out of the stretched front to the flanks (round the engulfed prey while it engulfs). Each lobe extends and retracts
+// on its own staggered sine, so one arm reaches while its neighbour pulls back. Pure over time and the cosmetic phase,
+// like every rest term.
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {
   AMOEBA_CORE_SCALE,
   PSEUDOPOD_CYCLE_HZ,
+  PSEUDOPOD_FAN_SIGMA_DEG,
   PSEUDOPOD_FLANK_DEG,
   PSEUDOPOD_FLANK_SPREAD,
   PSEUDOPOD_LEAN_GAIN,
@@ -41,30 +43,11 @@ const REST_SKEW = degreesToRadians(PSEUDOPOD_REST_SKEW_DEG);
 const FLANK = degreesToRadians(PSEUDOPOD_FLANK_DEG);
 const SWAY = degreesToRadians(PSEUDOPOD_SWAY_DEG);
 const REACHING_SHARE = 1 - PSEUDOPOD_RETRACTED_SHARE;
+const FAN_SIGMA = degreesToRadians(PSEUDOPOD_FAN_SIGMA_DEG);
 
-/** `(1 + r)² = 1 + 2r + r²`: the cross term. */
-const CROSS_TERM_FACTOR = 2;
-/** `⟨s²⟩` of the raised sine `s = ½ + ½ sin`, whose mean is ½. */
-const RAISED_SINE_MEAN_SQUARE = 0.375;
-/** The extension share's mean and mean square over a cycle: `R + (1 − R) s`. */
-const MEAN_SHARE = PSEUDOPOD_RETRACTED_SHARE + REACHING_SHARE * HALF;
-const MEAN_SQUARE_SHARE =
-  PSEUDOPOD_RETRACTED_SHARE * PSEUDOPOD_RETRACTED_SHARE +
-  CROSS_TERM_FACTOR * PSEUDOPOD_RETRACTED_SHARE * REACHING_SHARE * HALF +
-  REACHING_SHARE * REACHING_SHARE * RAISED_SINE_MEAN_SQUARE;
-
-/**
- * The width of each of `count` lobes, radians, that keeps the body at unit area (§2.4's size rule): the core's lost
- * `2π (1 / c² − 1)` is made up over a cycle by `Σ ⟨2 a σ√(2π) + a² σ√π⟩`, which is linear in σ at a fixed reach. So
- * two lobes are fat and four are slim. Neighbours at rest sit ≥ 3σ apart, so their overlap is left out (the area
- * spec pins the whole thing to 0.5 % at rest).
- */
+/** Each of `count` lobes' width, radians: `PSEUDOPOD_FAN_SIGMA_DEG / count`, so two lobes are fat and four slim. */
 export function pseudopodSigma(count: number): number {
-  const lostArea = RADIANS_PER_FULL_TURN * (1 / (AMOEBA_CORE_SCALE * AMOEBA_CORE_SCALE) - 1);
-  const perRadianOfSigma =
-    CROSS_TERM_FACTOR * MEAN_SHARE * PSEUDOPOD_REACH * Math.sqrt(RADIANS_PER_FULL_TURN) +
-    MEAN_SQUARE_SHARE * PSEUDOPOD_REACH * PSEUDOPOD_REACH * Math.sqrt(Math.PI);
-  return lostArea / (count * perRadianOfSigma);
+  return FAN_SIGMA / count;
 }
 
 /** `B ≡ AMOEBA_CORE_SCALE`: the core the lobes grow from, the same at every angle. */

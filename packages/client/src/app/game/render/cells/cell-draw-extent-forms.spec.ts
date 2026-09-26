@@ -1,5 +1,5 @@
 // The form terms the reach bounds must see (#192; docs/rendering/cells.md §2.4): every form's drawn membrane against
-// the body bound, the amoeba's lobes counted in it, and the amoeba kept inside the 1.3 r rings short of a sprint.
+// the body bound, the amoeba's lobes counted in it, and the amoeba's arms clear of the 1.3 r rings at every speed (#646).
 
 import { TICK_INTERVAL_S, type CellView, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
@@ -57,7 +57,7 @@ describe('the form profiles the bounds must see', () => {
     PROFILE_WALK_TIMEOUT_MS,
   );
 
-  /** The lobes count in the bound: without them it would be the shrunk core's, inside the blob's. */
+  /** The lobes count in the bound: without them it would be the round core's, the blob's. */
   it('widens the amoeba’s body bound past the blob’s by its lobes', () => {
     const amoeba = viewOf([{ traitId: 'amoeba_pseudopods', tier: TIER_I }], RESTING, false);
     const blob = viewOf([], RESTING, false);
@@ -66,11 +66,11 @@ describe('the form profiles the bounds must see', () => {
     expect(amoebaBody).toBeGreaterThan(blobBody);
   });
 
-  /** PR #640 B1: a lobe across the 1.3 r rings reads as reach the cell does not have (motion-and-legibility.md §5). */
+  /** #646: an arm the player cannot see past the 1.3 r rings is an arm they never learn about (motion-and-legibility.md §5.1). */
   it(
-    'keeps the amoeba inside the warning and relation rings at every speed short of a sprint',
+    'reaches past the warning and relation rings at every tier and speed',
     () => {
-      const ring = Math.min(ENGULF_WARNING_RING_RADII, RELATION_RING_RADII);
+      const ring = Math.max(ENGULF_WARNING_RING_RADII, RELATION_RING_RADII);
       const bodies = [TIER_I, TIER_II, TIER_III].flatMap((tier) =>
         [0, 0.125, 0.25, 0.3, 1 / 3, 0.375, 0.5, 0.75, 1].map((speedRatio) => {
           const view = viewOf([{ traitId: 'amoeba_pseudopods', tier }], speedRatio, false);
@@ -78,7 +78,7 @@ describe('the form profiles the bounds must see', () => {
           return `tier ${tier} at speed ${speedRatio}: ${bodyRadii.toFixed(4)}`;
         }),
       );
-      expect(bodies.filter((line) => Number(line.split(': ')[1]) > ring)).toEqual([]);
+      expect(bodies.filter((line) => Number(line.split(': ')[1]) <= ring)).toEqual([]);
     },
     PROFILE_WALK_TIMEOUT_MS,
   );

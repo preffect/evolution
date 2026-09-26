@@ -37,7 +37,7 @@ describe('the amoeba’s pseudopods (#192)', () => {
   const amoeba = (tier: 1 | 2 | 3) => withTraits([{ traitId: 'amoeba_pseudopods', tier }], CELL_STAGE.specialised);
   const bump = (centre: number) => ({ amplitude: 0.3, centre, sigma: 0.3 });
 
-  it('fills 2 / 3 / 4 slots with the frame’s lobes and shrinks the core', () => {
+  it('fills 2 / 3 / 4 slots with the frame’s lobes on the round unit core (#646)', () => {
     for (const [tier, count] of [
       [1, 2],
       [2, 3],
@@ -48,7 +48,7 @@ describe('the amoeba’s pseudopods (#192)', () => {
       const lobes = pseudopodBumps({ count, timeSeconds: 1.3, phase: 0.2, aim: 0.7, lean: 0.5 });
       expect(terms.bumps.slice(0, count)).toEqual(lobes);
       expect(activeSlots(terms.bumps)).toBe(count);
-      expect(terms.form?.peak).toBeLessThan(1);
+      expect(terms.form?.peak).toBe(1);
     }
   });
 

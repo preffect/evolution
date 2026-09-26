@@ -1,10 +1,16 @@
 // @vitest-environment node
-// The amoeba (#192, docs/rendering/cells.md §2.1 / §2.4): 2 / 3 / 4 short, fat lobes in an irregular fan about the
+// The amoeba (#192, #646, docs/rendering/cells.md §2.1 / §2.4): 2 / 3 / 4 long arms in an irregular fan about the
 // heading that move to the flanks with speed and round the prey while engulfing, each reaching and retracting out of
-// step with its neighbours; unit area with the lobes; and a reach table no frame beats.
+// step with its neighbours; well past the rings (visual-style/motion-and-legibility.md §5.1); and a reach table no
+// frame beats.
 
 import { describe, expect, it } from 'vitest';
 import {
+  AMOEBA_CORE_SCALE,
+  APPENDAGE_MIN_REACH_PAST_RING_RADII,
+  APPENDAGE_MIN_RETRACTED_PAST_RING_RADII,
+  BREATH_AMPLITUDE,
+  ENGULF_WARNING_RING_RADII,
   PSEUDOPOD_COUNT_BY_TIER,
   PSEUDOPOD_CYCLE_HZ,
   PSEUDOPOD_FLANK_DEG,
@@ -15,7 +21,6 @@ import {
 import { degreesToRadians, gaussianBump, wrapAngle } from '../../geometry';
 import type { ShapeBump } from '../radial-profile';
 import {
-  AMOEBA_CORE_PROFILE,
   pseudopodBumps,
   pseudopodReachTable,
   pseudopodSigma,
@@ -23,7 +28,6 @@ import {
   type PseudopodInput,
 } from './amoeba-pseudopods';
 import { PROFILE_WALK_TIMEOUT_MS } from '../../../../../testing/profile-walk';
-import { normalisedArea } from './form-profiles';
 
 const REST: PseudopodInput = { count: 4, timeSeconds: 0, phase: 0, aim: 0, lean: 0 };
 const CYCLE_SECONDS = 1 / PSEUDOPOD_CYCLE_HZ;
@@ -38,17 +42,6 @@ function surfaceAt(bumps: readonly ShapeBump[], theta: number): number {
     (sum, bump) => sum + gaussianBump(bump.amplitude, wrapAngle(theta - bump.centre), bump.sigma).value,
     0,
   );
-}
-
-/** The mean area over one extension cycle at `lean`. */
-function cycleArea(count: number, lean: number): number {
-  const steps = 48;
-  let area = 0;
-  for (let step = 0; step < steps; step += 1) {
-    const bumps = pseudopodBumps({ ...REST, count, lean, timeSeconds: (step / steps) * CYCLE_SECONDS });
-    area += normalisedArea(AMOEBA_CORE_PROFILE, bumps) / steps;
-  }
-  return area;
 }
 
 describe('pseudopodBumps', () => {
@@ -119,22 +112,24 @@ describe('the amoeba silhouette', () => {
     expect(sigmas[2]).toBeLessThan(sigmas[1] ?? 0);
   });
 
-  /** §2.4's size rule, with the lobes: mass ∝ area holds for the amoeba as for the blob, averaged over a cycle. */
-  it('keeps unit area with its lobes at rest at every tier, within 0.5 %', () => {
-    for (const count of PSEUDOPOD_COUNT_BY_TIER) {
-      expect(Math.abs(cycleArea(count, 0) - 1), `${count} lobes`).toBeLessThan(0.005);
-    }
-  });
-
   /**
-   * L1 on PR #640: moving to the flanks packs neighbouring lobes closer, and their overlap adds area. Swimming, the
-   * speed stretch already reshapes every cell's outline, so the amoeba is held to 1 % there (§2.4 states it).
+   * §5.1's appendage rule (#646): at rest, on the breath's inhale, every lobe's tip clears the 1.3 r rings by the
+   * rule's margin at full reach and still clears them at its shortest, so the player sees the arms at normal zoom.
    */
-  it('stays within 1 % of unit area at every speed', () => {
+  it('reaches well past the rings at full extension and never retracts inside them, at every tier', () => {
+    const tipAt = (amplitude: number): number => AMOEBA_CORE_SCALE * (1 - BREATH_AMPLITUDE + amplitude);
+    const steps = 96;
     for (const count of PSEUDOPOD_COUNT_BY_TIER) {
-      for (const lean of [0.25, 0.5, 1]) {
-        expect(Math.abs(cycleArea(count, lean) - 1), `${count} lobes at lean ${lean}`).toBeLessThan(0.01);
-      }
+      const amplitudes = Array.from({ length: steps }, (_unused, step) =>
+        pseudopodBumps({ ...REST, count, timeSeconds: (step / steps) * CYCLE_SECONDS }).map((bump) => bump.amplitude),
+      ).flat();
+      const past = (amplitude: number): number => tipAt(amplitude) - ENGULF_WARNING_RING_RADII;
+      expect(past(Math.max(...amplitudes)), `${count} lobes`).toBeGreaterThanOrEqual(
+        APPENDAGE_MIN_REACH_PAST_RING_RADII,
+      );
+      expect(past(Math.min(...amplitudes)), `${count} lobes`).toBeGreaterThanOrEqual(
+        APPENDAGE_MIN_RETRACTED_PAST_RING_RADII,
+      );
     }
   });
 });

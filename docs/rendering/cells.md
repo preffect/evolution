@@ -190,13 +190,13 @@ mouth : height 0.51, diatom valve r 26 wu → a circle. Forms: slipper (ellipse,
 ends), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
 §2.1's perpendicular distance stops being optional), diatom (rigid: wobble, jitter, lobes **and breathing** zero,
 a silica valve does not breathe; 36 striae in pass A, 8 / 12 / 16 spine rays with bright tips in pass B), amoeba
-(#192: `B ≡ AMOEBA_CORE_SCALE` 0.9 plus the pseudopod bumps of §2.1, whose width is solved so `B · (1 + Σ lobes)` keeps
-unit area over a cycle at rest, within 1 % swimming, where the lobes crowd the flanks; a `VAC_RIM` ectoplasm band 0.15 r deep at
-14 % in pass B). Every `FormProfile` carries its `peak`, which `maxReachRadii` multiplies in. For the amoeba,
+(#192, #646: `B ≡ AMOEBA_CORE_SCALE` 1, the round unit body, plus the pseudopod bumps of §2.1, long arms reaching 2.0 r
+that are **appendages**: cosmetic, outside the unit-area rule and the hit disc, visual-style/motion-and-legibility.md
+§5.1; a `VAC_RIM` ectoplasm band 0.15 r deep at 14 % in pass B). Every `FormProfile` carries its `peak`, which `maxReachRadii` multiplies in. For the amoeba,
 `peakReachRadii` and `peakRearMembraneRadii` weigh the lobes' reach table (`pseudopodReachTable`) against the stretch
 angle by angle (`amoebaBodyReach`), so the bound stays tight while the lobes sit on the flanks and the stretch
-pushes the front. Neither the quad nor the preview lens clips a form, and the amoeba's body bound stays inside the
-1.3 r rings short of a sprint (visual-style/motion-and-legibility.md §5). Values: sheet 04 and visual-style/cells-and-organelles.md §4. Forms rotate with `h`; the blob and its
+pushes the front. Neither the quad nor the preview lens clips a form, and the amoeba's arms reach past the 1.3 r
+rings at every tier and speed (visual-style/motion-and-legibility.md §5.1). Values: sheet 04 and visual-style/cells-and-organelles.md §4. Forms rotate with `h`; the blob and its
 organelles do not (seat marks are frame-fixed, visual-style/principles-and-palette.md §2). `cells/forms/form-profiles.ts` is the registry
 (`FORM_PROFILES` keyed by the form trait, `FORM_ID` per silhouette, the aspects `SLIPPER_ASPECT_BY_TIER`,
 `SPINDLE_ASPECT`, `TRUMPET_MOUTH_TO_HEIGHT`, `DIATOM_ASPECT`, `PSEUDOPOD_COUNT_BY_TIER`, the rigid flag that stills
