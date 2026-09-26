@@ -1,9 +1,9 @@
 // @vitest-environment node
 // The hardware run's gate (docs/rendering/budget.md §7, ticket #264): an unavailable row never reads as a pass.
 
-import { RENDER_STAGE } from '@evolution/shared';
+import { RENDER_STAGE, RENDER_STAGE_NAMES } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { BUDGET_ROW_NAMES, benchGate, parseExpectedUnjudged } from './bench-gate';
+import { EXPECTABLE_UNJUDGED_ROWS, benchGate, parseExpectedUnjudged } from './bench-gate';
 import { BUDGET_ROW, type BudgetVerdict } from './render-benchmark';
 
 const JUDGED_EVERYWHERE: BudgetVerdict = {
@@ -46,6 +46,33 @@ describe('benchGate', () => {
     expect(gate.isTickAdvancing).toBe(false);
   });
 
+  it('fails a window too short for a p95 even when the URL tries to excuse every row it left unjudged', () => {
+    const quantileRows = [...RENDER_STAGE_NAMES, BUDGET_ROW.frame, BUDGET_ROW.gpu, BUDGET_ROW.hud];
+    const short: BudgetVerdict = {
+      ...JUDGED_EVERYWHERE,
+      isFullyJudged: false,
+      unjudged: quantileRows,
+      sampleCount: 10,
+      isP95Estimable: false,
+    };
+    const gate = benchGate(short, IS_ADVANCING, quantileRows);
+    expect(gate.isPassed).toBe(false);
+    expect(gate.isP95Estimable).toBe(false);
+  });
+
+  it('fails a short window on its own, with no row left unjudged to blame', () => {
+    const short: BudgetVerdict = { ...JUDGED_EVERYWHERE, sampleCount: 10, isP95Estimable: false };
+    expect(benchGate(short, IS_ADVANCING, []).isPassed).toBe(false);
+  });
+
+  it('excuses only a row a real machine can fail to measure: an expected `hud` still fails the gate', () => {
+    const hudUnjudged: BudgetVerdict = { ...JUDGED_EVERYWHERE, isFullyJudged: false, unjudged: [BUDGET_ROW.hud] };
+    const gate = benchGate(hudUnjudged, IS_ADVANCING, [BUDGET_ROW.hud]);
+    expect(gate.isPassed).toBe(false);
+    expect(gate.expectedUnjudged).toEqual([]);
+    expect(gate.unexpectedUnjudged).toEqual([BUDGET_ROW.hud]);
+  });
+
   it('fails an over-budget run even with every unjudged row expected', () => {
     const overrun = { name: BUDGET_ROW.frame, measured: 13, budget: 12 };
     const over: BudgetVerdict = { ...GPU_UNJUDGED, isWithinBudget: false, overruns: [overrun] };
@@ -54,15 +81,11 @@ describe('benchGate', () => {
 });
 
 describe('parseExpectedUnjudged', () => {
-  it('reads the named rows and drops unknown names, which can only fail the gate', () => {
+  it('reads `gpu` and drops every other name, unknown or not excusable, which can only fail the gate', () => {
     expect(parseExpectedUnjudged(null)).toEqual([]);
-    expect(parseExpectedUnjudged(`${BUDGET_ROW.hud}, ${BUDGET_ROW.gpu},gpux`).sort()).toEqual(
-      [BUDGET_ROW.gpu, BUDGET_ROW.hud].sort(),
-    );
-  });
-
-  it('accepts every row a verdict can name, the stages among them', () => {
-    expect(BUDGET_ROW_NAMES).toContain(RENDER_STAGE.dish);
-    expect(parseExpectedUnjudged(BUDGET_ROW_NAMES.join(','))).toEqual(BUDGET_ROW_NAMES);
+    expect(parseExpectedUnjudged(`${BUDGET_ROW.hud}, ${BUDGET_ROW.gpu},gpux,${RENDER_STAGE.dish}`)).toEqual([
+      BUDGET_ROW.gpu,
+    ]);
+    expect(EXPECTABLE_UNJUDGED_ROWS).toEqual([BUDGET_ROW.gpu]);
   });
 });

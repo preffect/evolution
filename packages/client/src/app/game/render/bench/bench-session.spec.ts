@@ -10,8 +10,8 @@ import {
   RENDER_BENCH_SEED,
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
-import { BUDGET_ROW_NAMES } from './bench-gate';
 import { GPU_TIMER_STATUS } from './gpu-timer';
+import { BUDGET_ROW } from './render-benchmark';
 import { BENCH_SHEET, BenchSession, parseBenchQuery, type BenchQuery, type RenderBenchReport } from './bench-session';
 
 const DEFAULT_FLAGS = {
@@ -35,7 +35,9 @@ describe('parseBenchQuery', () => {
       sheet: null,
       expectedUnjudged: [],
     });
-    expect(parseBenchQuery('?bench&expectUnjudged=gpu,hud').expectedUnjudged).toEqual(['gpu', 'hud']);
+    expect(parseBenchQuery('?bench&expectUnjudged=gpu,hud').expectedUnjudged, 'only gpu may be excused').toEqual([
+      'gpu',
+    ]);
     expect(parseBenchQuery('?bench&cues=1').shouldDrawCues).toBe(true);
     expect(parseBenchQuery('?bench&cues=yes').shouldDrawCues).toBe(false);
     expect(parseBenchQuery('?bench')).toEqual({
@@ -167,14 +169,19 @@ describe('BenchSession', () => {
     expect(openWindow).toHaveBeenCalledTimes(1);
   });
 
-  it('gates a run on the rows its URL expected unjudged and on `advance=1`', async () => {
+  it('refuses the gate to a window too short for a p95, whatever the URL expects unjudged', async () => {
     const { pixi, reports } = await session({
       ...SMALL_QUERY,
       shouldAdvanceTick: true,
-      expectedUnjudged: BUDGET_ROW_NAMES,
+      expectedUnjudged: [BUDGET_ROW.gpu],
     });
     for (let frame = 0; frame < RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES; frame += 1) pixi.tick();
-    expect(reports[0]!.gate).toMatchObject({ isPassed: true, unexpectedUnjudged: [], isTickAdvancing: true });
+    expect(reports[0]!.gate).toMatchObject({
+      isPassed: false,
+      expectedUnjudged: [BUDGET_ROW.gpu],
+      isP95Estimable: false,
+      isTickAdvancing: true,
+    });
   });
 
   it('renders the production context unless `preserve=1` asks for the readable backbuffer', async () => {

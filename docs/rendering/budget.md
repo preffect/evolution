@@ -164,10 +164,12 @@ section and §6 back and pins the constants to them.
 
 The `camera` key is the camera and nothing else — follow, zoom, cull, `cameraExtent`, the world transform. The dish
 (the depth-particle walk, the light-pool placement) is **its own key**, `dish` (ticket #264): until then it ran
-unbracketed and landed in the HUD residual, and the bench route, which draws no HUD, reported a residual that was
-almost all dish and judged it against Angular's budget (2.10 and 1.92 ms on a box about 5× slow). Its **0.4** ms is
-that figure scaled to hardware, taken from the headroom (1.8 → 1.4); it is informational, so the hardware run reports
-it and says whether 0.4 holds. The HUD row is now Angular and the browser alone, and on the bench route, which has
+unbracketed and landed in the HUD residual, which the bench route, drawing no HUD, judged against Angular's budget
+(2.10 and 1.92 ms on a box about 5× slow). Its **0.4** ms is a **provisional ceiling**: that old residual scaled to
+hardware, taken from the headroom (1.8 → 1.4). It is generous. Once bracketed, the dish read **0.20** ms on the
+container's SwiftShader (ticket #264's smoke, load 7.7), so the old residual was mostly something other than the
+dish, and at the same 5× the dish is nearer 0.04 ms. The budget is informational, so it cannot fail a run; the
+hardware run (§7.3) re-derives it, and whatever it does not need goes back to the headroom. The HUD row is now Angular and the browser alone, and on the bench route, which has
 no HUD, it should read near zero. The cell views every later stage reads (`cellsById`, the
 own cell, the last-view lookup) are accrued to `cells`, the stage that consumes them, so no per-frame work sits
 outside every key.
@@ -402,18 +404,19 @@ screenshot and every pixel-determinism check already shows.
 
 The verdict's `isWithinBudget` covers only the rows it could judge, so on its own a run with no GPU timer reads as a
 pass. The bench report therefore carries a **`gate`** (`bench/bench-gate.ts`), and its row leads the console
-block. It passes only when all three hold:
+block. It passes only when all four hold:
 
-| Condition                         | Why                                                                                                |
-| --------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `verdict.isWithinBudget`          | no judged row broke its budget                                                                     |
-| every `unjudged` row was expected | `expectUnjudged=<rows>` names them up front, in the URL; an unexpected unjudged row fails the gate |
-| `advance=1`                       | a parked window measures the interpolation half of `net` only, so a parked run is never evidence   |
+| Condition                         | Why                                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `verdict.isWithinBudget`          | no judged row broke its budget                                                                    |
+| `verdict.isP95Estimable`          | the window held a p95 (at least `RENDER_P95_MIN_SAMPLE_FRAMES`); a short `window=` fails the gate |
+| every `unjudged` row was expected | only `gpu` may be, named up front in the URL (`expectUnjudged=gpu`); any other unjudged row fails |
+| `advance=1`                       | a parked window measures the interpolation half of `net` only, so a parked run is never evidence  |
 
-`expectUnjudged` takes row names separated by commas: the stage keys and `frame`, `gpu`, `hud`, `drawCalls`. An
-unknown name is dropped, which can only fail the gate, never pass it. Name a row only when the machine cannot
-measure it and the PR says why. Typically that is `gpu` on a browser without `EXT_disjoint_timer_query_webgl2`.
-Without the flag, the gate is `isFullyJudged` itself.
+`expectUnjudged` excuses only the rows in `EXPECTABLE_UNJUDGED_ROWS`, which is `gpu` alone: the one row a real
+machine can be unable to measure (a browser without `EXT_disjoint_timer_query_webgl2`). Every CPU-clock row is
+judged on Chrome, and a short window is refused outright, so excusing any other row could only hide a run that is
+not evidence. Any other name is dropped, which can only fail the gate. Without the flag, every row must be judged.
 
 **The URL.** Serve a dev build (`./run.sh`), open devtools, then load the page at 1080p, `devicePixelRatio` 1:
 

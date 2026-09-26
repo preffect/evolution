@@ -30,6 +30,7 @@ import {
   RENDER_MAX_DRAW_CALLS,
   RENDER_P95_MIN_SAMPLE_FRAMES,
 } from '../constants';
+import { EXPECTABLE_UNJUDGED_ROWS } from './bench-gate';
 import type { RenderBenchReport } from './bench-session';
 import { BUDGET_ROW, type BudgetOverrun, type BudgetRowName } from './render-benchmark';
 
@@ -55,13 +56,25 @@ export const GATE_PASSED = 'PASS — evidence a PR may quote';
 export const GATE_FAILED = 'FAIL — not evidence';
 
 /** Why the gate failed, each with what the next run's URL changes. */
+/** Which rows a URL may excuse, and how. */
+function expectableHint(): string {
+  const rows = EXPECTABLE_UNJUDGED_ROWS.join(',');
+  return `only ${rows} may be expected: &expectUnjudged=${rows}`;
+}
+
 function gateReasons(report: RenderBenchReport): string[] {
   const { gate, verdict } = report;
   return [
     ...(verdict.isWithinBudget ? [] : ['over budget (see the verdict)']),
-    ...(gate.unexpectedUnjudged.length === 0
+    // A short window leaves every quantile row unjudged: the window is the reason, not the rows.
+    ...(gate.isP95Estimable
       ? []
-      : [`unjudged and not expected: ${gate.unexpectedUnjudged.join(', ')} (&expectUnjudged= names what may be)`]),
+      : [
+          `a ${verdict.sampleCount}-frame window, under the ${RENDER_P95_MIN_SAMPLE_FRAMES} a p95 needs (drop &window=)`,
+        ]),
+    ...(!gate.isP95Estimable || gate.unexpectedUnjudged.length === 0
+      ? []
+      : [`unjudged and not expected: ${gate.unexpectedUnjudged.join(', ')} (${expectableHint()})`]),
     ...(gate.isTickAdvancing ? [] : ['parked on one tick (pass &advance=1)']),
   ];
 }

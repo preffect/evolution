@@ -118,7 +118,7 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   `bench-route.spec.ts` (the `?bench` key and both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
   `gpu-timer.spec.ts` (the plausibility rule, the four statuses, a window opened after the warm-up),
-  `bench-gate.spec.ts` (an unexpected unjudged row, a parked run and an overrun each fail the gate), `render-benchmark.spec.ts` (the verdict rows,
+  `bench-gate.spec.ts` (an unexpected or non-excusable unjudged row, a short window, a parked run and an overrun each fail the gate), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the
   constants); `motion.test.ts` in
   `shared` (one snapshot per clip; durations and keyframe times equal sheet 03's; every `pulse` ≤ 1.14; overshoot

@@ -96,10 +96,24 @@ describe('benchReportHeadlines', () => {
     const verdict: BudgetVerdict = { ...VERDICT, isFullyJudged: false, unjudged: ['gpu'] };
     const failed = reportWith({ verdict, gate: benchGate(verdict, IS_ADVANCING, []) });
     expect(rowStartingWith(failed, 'gate')).toBe(
-      `gate       ${GATE_FAILED} — unjudged and not expected: gpu (&expectUnjudged= names what may be)`,
+      `gate       ${GATE_FAILED} — unjudged and not expected: gpu (only gpu may be expected: &expectUnjudged=gpu)`,
     );
     const expected = reportWith({ verdict, gate: benchGate(verdict, IS_ADVANCING, ['gpu']) });
     expect(rowStartingWith(expected, 'gate')).toBe(`gate       ${GATE_PASSED} (expected unjudged: gpu)`);
+  });
+
+  it('fails the gate on a window too short for a p95, naming the window rather than every row it left unjudged', () => {
+    const verdict: BudgetVerdict = {
+      ...VERDICT,
+      isFullyJudged: false,
+      isP95Estimable: false,
+      sampleCount: 10,
+      unjudged: ['frame', 'gpu', 'hud'],
+    };
+    const report = reportWith({ verdict, gate: benchGate(verdict, IS_ADVANCING, ['gpu']) });
+    expect(rowStartingWith(report, 'gate')).toBe(
+      `gate       ${GATE_FAILED} — a 10-frame window, under the ${RENDER_P95_MIN_SAMPLE_FRAMES} a p95 needs (drop &window=)`,
+    );
   });
 
   it('fails the gate on a parked or over-budget run, naming each reason', () => {
