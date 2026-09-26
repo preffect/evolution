@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   TEST_NOISE_TILE_SIZE_PX,
   createFakePixiApp,
@@ -124,6 +124,36 @@ describe('RendererSlot', () => {
     // build would take the same-baker fast path and hand a new renderer textures that are already destroyed.
     const rebuilt = slot.build(pixi.stage, pixi.screen, options, UNTIMED_STAGES);
     expect(rebuilt.indicatorTextures.labelPill.texture.destroyed).toBe(false);
+  });
+
+  it('destroys a renderer before the textures its shaders bind, on a rebuild and on dispose (#468)', () => {
+    const pixi = createFakePixiApp();
+    const slot = new RendererSlot();
+    const options = buildOptions(pixi.textures, 3);
+    // The cell mesh's shaders bind the strip, the tile and the palette as `texelFetch` tables: a source destroyed
+    // while a live shader still binds it logs Pixi's `[BindGroup] … destroyed while still bound` warning.
+    const boundAtDestroy = (seed: number, teardown: () => void): boolean[] => {
+      const build = slot.beginBuild(pixi.stage, pixi.screen, { ...options, seed }, UNTIMED_STAGES);
+      while (!build.advance());
+      const { renderer, textures } = build.staged!;
+      build.commit();
+      const bound = [textures.stripTexture, textures.tileTexture, textures.paletteTexture];
+      let destroyedAtRendererDestroy: boolean[] = [];
+      const destroyRenderer = renderer.destroy.bind(renderer);
+      vi.spyOn(renderer, 'destroy').mockImplementation(() => {
+        destroyedAtRendererDestroy = bound.map((source) => source.destroyed);
+        destroyRenderer();
+      });
+      teardown();
+      return destroyedAtRendererDestroy;
+    };
+
+    const rebuild = () => slot.build(pixi.stage, pixi.screen, { ...options, seed: 4 }, UNTIMED_STAGES);
+    expect(boundAtDestroy(3, rebuild), 'a rebuild destroyed a bound texture first').toEqual([false, false, false]);
+    expect(
+      boundAtDestroy(5, () => slot.dispose()),
+      'dispose destroyed a bound texture first',
+    ).toEqual([false, false, false]);
   });
 
   it('destroys the kept half on dispose', () => {

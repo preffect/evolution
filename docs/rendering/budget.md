@@ -325,6 +325,15 @@ field's and the vent's recorded Canvas-2D strokes, argument for argument, betwee
 seeded-only one to catch exactly that, and `renderer-slot.spec.ts` pins that a rebuild adds no radial bake and
 no font install and hands the new renderer the very same indicator bundle.
 
+**Teardown order** (ticket #468). A texture destroyed while a live shader still binds it logs Pixi's
+`[BindGroup] a 'textureSource' was destroyed while still bound to a shader`. Two kinds of shader bind the bundle.
+The renderer's own (the cell mesh binds the strip, the tile and the palette) go first: `RendererSlot` destroys the
+renderer before either half, and `renderer-slot.spec.ts` pins that order for a rebuild and for `dispose`. The
+particle pipe's one shared shader lives as long as the app and keeps the last `ParticleContainer` texture (the
+glow or the mote atlas, both in the shared half), so `PixiAppHandle.unbindTextures` points it back at
+`Texture.WHITE` before the slot's `dispose` (ticket #503). A rebuild never needs that step: it destroys only the
+seeded half, and no seeded texture is drawn by a `ParticleContainer`.
+
 **Measured on the container's SwiftShader** through the bench route at 1920 × 1080, `devicePixelRatio` 1, taking
 the bake spans directly; 8 rebuilds per run through the debug hook's `setSeed`, medians. **These absolutes are a
 software rasteriser on a loaded 4-core box and are not hardware numbers** — the proportions are the durable part:
