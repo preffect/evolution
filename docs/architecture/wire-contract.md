@@ -134,8 +134,8 @@ every tick
     500 KB/s, which assumes lever 1; with lever 1 (#171) a client measured 205–435 KB/s before wild
     cells, so it holds a second or more there, and nearer two thirds of one at the widest zoom in the
     projected worst case.
-  - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
-    evidence of a backlog.
+  - A client that acknowledges nothing is never skipped: silence is not evidence of a backlog. The headless bot
+    client acknowledges through the browser's `SnapshotAcknowledger` (#721), so it is not such a client.
   - **It is observable** (#276): `debug_get_room_performance` reports each seated connection's depth
     (a disconnected player's too, through its grace; `null` until it has acknowledged a snapshot since its stream
     (re)started), who is owed a resync and how many were sent (`snapshotFlow`, architecture/debug-mcp.md §8), and its
@@ -508,11 +508,11 @@ that shows a client caught up while the room is paused (#300, `SnapshotDispatch.
 owed resync in `SnapshotBacklog`, so both are under the same bound, and the rate test runs both. In bandwidth, a
 resyncing client costs at most one `game_state` per limit **on top of** the deltas the budget already counts, and it
 is sent fewer deltas than a healthy client, since every skipped broadcast and the one the resync replaces are not
-sent. A client that **never** acknowledges (the headless bot client) has only the byte half: while its socket hovers at
-the limit it can be resynced as often as every other broadcast. It still never holds more than the limit plus one
-`game_state`, because a resync goes out only once the socket has drained under the limit, and nothing that depends on
-the rate (below) runs on such a client. It does make bot-measured bandwidth and resync counts unlike a browser's, which
-ticket #721 closes by having the bot client acknowledge snapshots as the browser does.
+sent. A client that **never** acknowledges has only the byte half: while its socket hovers at the limit it can be
+resynced as often as every other broadcast. It still never holds more than the limit plus one `game_state`, because a
+resync goes out only once the socket has drained under the limit, and nothing that depends on the rate (below) runs on
+such a client. No client of ours is one: the headless bot client acknowledges through the browser's own
+`SnapshotAcknowledger` (#721), so bot-measured bandwidth and resync counts are a browser's.
 
 **Two things depend on the rate, not only the bandwidth.** The bound is also a correctness dependency of the browser
 client: `WorldStore` bounds its pending effects by dropping those its buffer's oldest snapshot has passed, and only

@@ -204,3 +204,44 @@ the only bound (`testing/wait-for.ts`, #421).
    `expect(Math.abs(actual - expected)).toBeLessThanOrEqual(TOLERANCE)`. `eslint.config.js` rejects a fractional
    literal, a negative count or a `*TOLERANCE*` name there. The scenario DSL's `.atTick(t).toBeCloseTo(value,
 tolerance)` is tolerance-based (`scenario-runner.md`) and is not affected.
+9. A new pin reaches output, and the reviewer mutated it red rather than reading it (§7.1).
+
+### 7.1 Dead pins: does the subject reach output? (#283)
+
+**The discriminator is whether the pinned value reaches output** (the screen, the wire, a sound, a state another
+system reads), not whether it is copied or computed. A pin whose subject has no reader outside the pin is decoration,
+however true it looks. A straight copy that feeds output is worth pinning; a computed field read only by its own
+assertion is not. "Don't compare a value to itself" is the wrong compression: it deletes live pins.
+
+- **#238, netcode.** Deleting the `pendingEffects` bound left all 2146 tests green. Its spec compared `long` to
+  `brief`, two values derived from one source, so it could not fail; only an unrelated
+  `brief <= SNAPSHOT_BUFFER_SIZE` assertion noticed.
+- **#279, HUD.** `leaderboardSwatchGeometry().renderedSidePx` (`hud/format/leaderboard-swatch.ts`) is initialised to
+  `LEADERBOARD_SWATCH_DIAMETER_PX` and asserted equal to it; that assertion is its only reader. Doubling the swatch's
+  CSS `calc()` (`player-swatch.component.ts`), a 20 px disc against a 10 px constant, left 54 tests green.
+  `viewBoxSideUnits` is the same copy of the same constant and its pin is live, because it feeds the `viewBox`
+  attribute and `pxPerUserUnit`: doubling it turned 3 assertions red.
+
+**Mutate, don't read.** A reviewer of a PR that claims a new pin breaks the rule in the working tree, runs the
+targeted spec, confirms red, reverts, and names in the review each mutation and its result. How much a test looks
+like a test does not track what it holds: a read-back of a value the component just wrote (`host().style`) and a
+`.not.toBe('')` touch the DOM and still survive `'0px'`. Where a number is not cheap to get, a careful read is what
+there is; the rule is "when a number is cheap, get the number", not "reading is unreliable". A mutation result is
+only as good as its setup:
+
+- **Aim the mutation at what the pin guards.** Green under one mutation says only that the mutation was not in the
+  pin's direction: a guard against dropping too much never fires when dropping is removed. Never delete a test on a
+  single green mutation; state what it guards and break that.
+- **A mutation changes behaviour, never the build.** Deleting a declaration or orphaning an import tests the
+  compiler. Rebuild `packages/shared/dist` after reverting a shared mutation, and mutate component specs under
+  `./validate.sh test`, never raw `vitest` (it cannot initialise `TestBed`).
+- **The ordering trap.** An assertion after one that throws first never runs; the #279 pin had never run against a
+  broken subject. Only a mutation that fails the earlier line first shows it.
+- **The fixture must span the range.** A pin is only as strong as the range its fixture produces. A builder that
+  defaults a field to the quantity under test (an effect's tick set to its own snapshot's tick) makes the interesting
+  cases unreachable, and a tolerance wider than the real error (5 % slop on a quantity that moves in thirds) cannot
+  fail for the right reason.
+- **The tier limit.** jsdom returns `calc(var(--x) * var(--ui-scale))` verbatim, with zero layout width, so a value
+  whose final form is a CSS expression over custom properties has no number to assert on in the unit tier. That is a
+  constraint, not a choice: hold it with a Playwright measurement (§1, UI tier) where a wrong value would still look
+  right, or move the arithmetic into TypeScript where a unit test can reach it.

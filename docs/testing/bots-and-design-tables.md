@@ -65,10 +65,14 @@ rerun with the same seed takes the same seats), sends `join_lobby` as `Bot <inde
 the `game_state` of a late join or the `game_started` of a pending game. From then on it runs
 one client tick per fixed step through the injected `Clock` + `Ticker` (docs/architecture/client.md §5:
 one `player_input` per tick, `sequence` = tick), deciding from the latest snapshot; it holds
-until the first snapshot arrives. The CLI is the only composition root that names the system
+until the first snapshot arrives. It acknowledges what it receives through the browser's own `SnapshotAcknowledger`
+(`@evolution/shared`; a `game_state` at once, a delta every `SNAPSHOT_ACK_EVERY_SNAPSHOTS`), so the room's flow
+control (docs/architecture/wire-contract.md §4) treats a bot exactly as a browser, and bot-measured bandwidth and
+resync counts are a browser's (#721). The CLI is the only composition root that names the system
 pair; the integration test drives two bots against a real in-process server for 300 ticks on
 manual clocks, every tick strictly ordered (bots decide, inputs land, the room steps and
-broadcasts), and checks the echoed inputs against an offline pilot with the same seed. A socket
+broadcasts), and checks the echoed inputs against an offline pilot with the same seed, and that
+`debug_get_room_performance` reads a numeric `backlogTicks` for each bot. A socket
 that cannot open, or a game the server refuses (`Game not found`, `Game is full`), rejects
 `start()` with a `BotClientError` and stops every bot that did connect. A bot whose socket closes
 after it was seated stops ticking, shows `isConnected: false` and rejects whoever waits on it, so
