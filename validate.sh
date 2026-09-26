@@ -23,11 +23,12 @@
 #              under packages/<package>/src. A package scope keeps the coverage floors unless extra args filter it; a path scope
 #              runs only the tests it selects, without coverage floors, lints and scans that path, and
 #              typechecks its package (tsc checks whole projects). An empty scope is refused. A scoped
-#              lint also prettier-checks the docs (*.md outside packages/) changed against origin/main.
+#              lint also checks the files outside packages/ changed against origin/main (docs, qa/,
+#              scripts/, root files), with eslint and prettier each skipping what its full run skips.
 #   --affected With `all` only, never with --scope: the merge gate. Checks what the branch changed
 #              against origin/main (committed, uncommitted, untracked): the changed packages and their
 #              dependents (a shared change selects every package); lint alone for docs (*.md, docs/,
-#              qa/); the shell suites for scripts/ and root *.sh; the plain `all` for any other root
+#              qa/), which lints each changed file there (#733); the shell suites for scripts/ and root *.sh; the plain `all` for any other root
 #              file. After the unit tests it runs the integration tier (integration and gameplay tests)
 #              of each selected package that has any (#344). Fetches origin main first (best effort) and
 #              refuses a branch behind origin/main: merge it first. Prints each selection and why, and
@@ -207,6 +208,10 @@ VITEST_NO_COVERAGE_ARGUMENT="--coverage.enabled=false"
 # key on, so only a plain `lint` uses it and `all` (the merge gate, the timed main gate) never does.
 ESLINT_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/eslint/)
 PRETTIER_CACHE_ARGUMENTS=(--cache --cache-strategy content --cache-location node_modules/.cache/prettier/.prettier-cache)
+# A named file the tool would skip in its full run is skipped quietly here too (#733): eslint's ignores and
+# files patterns, prettier's .prettierignore and unknown extensions (a .sh, a .png) decide, not validate.sh.
+ESLINT_FILE_ARGUMENTS=(--no-warn-ignored)
+PRETTIER_FILE_ARGUMENTS=(--ignore-unknown)
 ESLINT_CACHED_LINT_KEY=lint-eslint-cached # the stamp name of a lint that used eslint's cache
 # The options that narrow a test run to some tests (vitest's test-name filter, the Angular builder's).
 NARROWING_OPTION_PATTERN='^(-t|--testNamePattern|--filter)(=.*)?$'
@@ -283,10 +288,9 @@ declare -A PACKAGE_DEPENDENTS=([shared]="server client") # the workspace depende
 PACKAGE_PATH_PATTERN='^packages/([^/]+)/'
 DOCS_PATH_PATTERN='(\.md$|^docs/|^qa/)'
 SHELL_PATH_PATTERN='(^scripts/|^[^/]+\.sh$)'
-PRETTIER_DOC_PATTERN='\.md$'
 AFFECTED_PACKAGES=()      # the selected packages, in PACKAGES order
 INTEGRATION_PACKAGES=()   # the selected packages that have integration or gameplay tests
-AFFECTED_DOC_FILES=()     # changed docs that still exist, for prettier
+AFFECTED_LINT_FILES=()    # changed files outside packages/ that still exist, for eslint and prettier
 AFFECTED_EVERYTHING_BY="" # the first changed path outside packages, docs and scripts
 IS_DOCS_AFFECTED=0
 IS_SCRIPTS_AFFECTED=0
@@ -302,28 +306,31 @@ affected_changed_paths() {
     | sort -u
 }
 
-# A changed doc outside the packages that prettier formats and that still exists.
-is_prettier_doc() { # <repo-relative path>
-  [[ ! "$1" =~ $PACKAGE_PATH_PATTERN && "$1" =~ $DOCS_PATH_PATTERN && "$1" =~ $PRETTIER_DOC_PATTERN && -e "$SCRIPT_DIR/$1" ]]
+# A changed file outside the packages that still exists. Every one goes to eslint and prettier, whose own
+# ignores decide (LINT_TOOL_ARGUMENTS): the full lint reads `.`, so a hand-kept list of folders or
+# extensions here missed qa/evidence/*.js, which landed unformatted twice (#733).
+is_changed_lint_file() { # <repo-relative path>
+  [[ ! "$1" =~ $PACKAGE_PATH_PATTERN && -f "$SCRIPT_DIR/$1" ]]
 }
 
-# A scoped lint also prettier-checks the docs the branch changed (#329): a package or path scope reads
-# no docs/, so an author's scoped lint was green over unformatted docs that only the merge gate caught.
-# A scoped format writes the same docs (#641), so it fixes what that lint would report.
+# A scoped lint also checks the files outside packages/ the branch changed (#329, #733): a package or path
+# scope reads none of them, so an author's scoped lint was green over unformatted docs that only the merge
+# gate caught. A scoped format fixes the same files (#641), so it fixes what that lint would report.
 # Without a merge base with origin/main there is nothing to compare, and the scope stays as it is.
-add_changed_docs_to_scoped_lint() {
+add_changed_files_to_scoped_lint() {
   [[ $SCOPE_GIVEN -eq 1 ]] || return 0
-  local paths path docs=()
+  local paths path files=()
   paths="$(affected_changed_paths)" || return 0
   while IFS= read -r path; do
-    [[ -z "$path" ]] || ! is_prettier_doc "$path" || docs+=("$path")
+    [[ -z "$path" ]] || ! is_changed_lint_file "$path" || files+=("$path")
   done <<< "$paths"
-  [[ ${#docs[@]} -gt 0 ]] || return 0
-  LINT_PATHS+=("${docs[@]}")
+  [[ ${#files[@]} -gt 0 ]] || return 0
+  ESLINT_PATHS+=("${files[@]}")
+  LINT_PATHS+=("${files[@]}")
   if [[ "$COMMAND" =~ ^(lint|all)$ ]]; then
-    echo "lint also prettier-checks the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+    echo "lint also checks the ${#files[@]} files changed on the branch outside packages/: ${files[*]}"
   elif [[ "$COMMAND" == format ]]; then
-    echo "format also prettier-writes the ${#docs[@]} docs changed on the branch: ${docs[*]}"
+    echo "format also fixes the ${#files[@]} files changed on the branch outside packages/: ${files[*]}"
   fi
 }
 
@@ -336,9 +343,10 @@ classify_affected_path() { # <repo-relative path>
     CHANGED_PACKAGE_EXAMPLE[$package]="${CHANGED_PACKAGE_EXAMPLE[$package]:-$path}"
   elif [[ "$path" =~ $DOCS_PATH_PATTERN ]]; then
     IS_DOCS_AFFECTED=1
-    ! is_prettier_doc "$path" || AFFECTED_DOC_FILES+=("$path")
+    ! is_changed_lint_file "$path" || AFFECTED_LINT_FILES+=("$path")
   elif [[ "$path" =~ $SHELL_PATH_PATTERN ]]; then
     IS_SCRIPTS_AFFECTED=1
+    ! is_changed_lint_file "$path" || AFFECTED_LINT_FILES+=("$path")
   else
     AFFECTED_EVERYTHING_BY="${AFFECTED_EVERYTHING_BY:-$path}"
   fi
@@ -380,8 +388,10 @@ apply_affected_selection() {
     SOURCE_PATHS+=("packages/$package/src")
   done
   [[ ${#AFFECTED_PACKAGES[@]} -ne 1 ]] || SCOPE_PACKAGE="${AFFECTED_PACKAGES[0]}"
-  LINT_PATHS+=("${AFFECTED_DOC_FILES[@]}")
-  [[ $IS_DOCS_AFFECTED -eq 0 ]] || { tokens+=(docs); report_affected "docs: lint only (prettier on ${#AFFECTED_DOC_FILES[@]} changed docs)"; }
+  ESLINT_PATHS+=("${AFFECTED_LINT_FILES[@]}")
+  LINT_PATHS+=("${AFFECTED_LINT_FILES[@]}")
+  [[ $IS_DOCS_AFFECTED -eq 0 ]] || { tokens+=(docs); report_affected "docs: lint only"; }
+  [[ ${#AFFECTED_LINT_FILES[@]} -eq 0 ]] || report_affected "lint: eslint and prettier also read the ${#AFFECTED_LINT_FILES[@]} files changed outside packages/"
   SHELL_SUITES_SELECTED=$IS_SCRIPTS_AFFECTED
   [[ $IS_SCRIPTS_AFFECTED -eq 0 ]] || { tokens+=(scripts); report_affected "scripts: the shell suites (scripts/*.test.sh)"; }
   [[ ${#tokens[@]} -gt 0 ]] || { tokens+=(nothing); report_affected "nothing: no change against $AFFECTED_BASE_REF; lint only"; }
@@ -1109,10 +1119,10 @@ run_one() {
       [[ $FRESH -ne 0 ]] || prettier_cache=("${PRETTIER_CACHE_ARGUMENTS[@]}")
       ! uses_eslint_cache || eslint_cache=("${ESLINT_CACHE_ARGUMENTS[@]}")
       if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
-        lint_out="$(pnpm eslint "${eslint_cache[@]}" "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
+        lint_out="$(pnpm eslint "${eslint_cache[@]}" "${ESLINT_FILE_ARGUMENTS[@]}" "${ESLINT_PATHS[@]}" "$@" 2>&1)" || lint_rc=$?
       fi
       if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
-        prettier_out="$(pnpm prettier --check "${prettier_cache[@]}" "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
+        prettier_out="$(pnpm prettier --check "${prettier_cache[@]}" "${PRETTIER_FILE_ARGUMENTS[@]}" "${LINT_PATHS[@]}" "$@" 2>&1)" || prettier_rc=$?
       fi
       if [[ ${#SOURCE_PATHS[@]} -gt 0 ]]; then
         directive_out="$(audit_disable_directives)" || audit_rc=1
@@ -1158,12 +1168,12 @@ format_files() {
   # eslint first: prettier formats whatever eslint's fixes leave behind. Its report goes nowhere (lint
   # prints it); a crash still reaches stderr.
   if [[ ${#ESLINT_PATHS[@]} -gt 0 ]]; then
-    pnpm eslint --fix "${eslint_cache[@]}" --output-file /dev/null "${ESLINT_PATHS[@]}" 2>&1 || eslint_rc=$?
+    pnpm eslint --fix "${eslint_cache[@]}" --output-file /dev/null "${ESLINT_FILE_ARGUMENTS[@]}" "${ESLINT_PATHS[@]}" 2>&1 || eslint_rc=$?
     [[ $eslint_rc -ne $ESLINT_UNFIXABLE_EXIT_CODE ]] \
       || echo "eslint --fix left problems it cannot fix: ./validate.sh lint lists them"
   fi
   if [[ ${#LINT_PATHS[@]} -gt 0 ]]; then
-    pnpm prettier --write --log-level warn "${prettier_cache[@]}" "${LINT_PATHS[@]}" 2>&1 || prettier_rc=$?
+    pnpm prettier --write --log-level warn "${prettier_cache[@]}" "${PRETTIER_FILE_ARGUMENTS[@]}" "${LINT_PATHS[@]}" 2>&1 || prettier_rc=$?
   fi
   after="$(cache_tree_hash)"
   if [[ -n "$before" && -n "$after" ]]; then
@@ -1278,7 +1288,7 @@ ALL PASSED"
 
 resolve_scope
 resolve_affected
-add_changed_docs_to_scoped_lint
+add_changed_files_to_scoped_lint
 refuse_mixed_runner_args
 cd "$SCRIPT_DIR" || exit 1
 if [[ "$COMMAND" == format ]]; then
