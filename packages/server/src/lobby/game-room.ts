@@ -8,7 +8,7 @@ import {
 } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
 import { broadcastMessage, sendMessage } from '../ws/connection.js';
-import { PerformanceTracker, tickRecordOf } from './performance-tracker.js';
+import { NOTHING_BROADCAST, PerformanceTracker, tickRecordOf, type SnapshotBroadcast } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, SnapshotBacklog } from './snapshot-backlog.js';
 import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 import type { RoomTiming } from './room-timing.js';
@@ -158,7 +158,9 @@ export class GameRoom {
     if (!this.isLoopPaused || connection === undefined || !this.snapshotBacklog.isResyncDue(connection)) return;
     const state = this.getFullState();
     this.snapshotBacklog.recordResyncSent(playerId, state.snapshot.tick);
-    sendMessage(connection, this.gameStateMessageFor(playerId as PlayerId, state));
+    this.performanceTracker.recordResyncBytes(
+      sendMessage(connection, this.gameStateMessageFor(playerId as PlayerId, state)),
+    );
   }
 
   /** The `game_state` payload (docs/architecture/wire-contract.md §4): the module's full snapshot and live balance. */
@@ -267,10 +269,9 @@ export class GameRoom {
     this.tickCount += 1;
     const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
     const broadcastStartMs = this.timing.clock.nowMilliseconds();
-    const snapshotBytes = isBroadcastTick ? this.broadcastSnapshot() : 0;
+    const sent = isBroadcastTick ? this.broadcastSnapshot() : NOTHING_BROADCAST;
     const readings = { tickStartMs, broadcastStartMs, tickEndMs: this.timing.clock.nowMilliseconds() };
-    const broadcast = { isBroadcastTick, snapshotBytes, broadcastClients: this.playerConnections.size };
-    this.performanceTracker.recordTick(tickRecordOf(readings, broadcast));
+    this.performanceTracker.recordTick(tickRecordOf(readings, { isBroadcastTick, ...sent }));
   }
 
   /**
@@ -281,7 +282,7 @@ export class GameRoom {
    * that has not caught up with what it was already sent is skipped rather than queued deeper, and
    * is sent one `game_state` in place of the next delta once it has.
    */
-  private broadcastSnapshot(): number {
+  private broadcastSnapshot(): SnapshotBroadcast {
     const snapshot = this.game.serializeRoomState();
     const deltaTargets: Connection[] = [];
     for (const connection of this.playerConnections.values()) {
@@ -289,9 +290,11 @@ export class GameRoom {
       if (delivery === SNAPSHOT_DELIVERY.delta) {
         deltaTargets.push(connection);
       } else if (delivery === SNAPSHOT_DELIVERY.resync) {
-        sendMessage(connection, this.gameStateMessageFor(connection.playerId as PlayerId));
+        const resync = this.gameStateMessageFor(connection.playerId as PlayerId);
+        this.performanceTracker.recordResyncBytes(sendMessage(connection, resync));
       }
     }
-    return sendSnapshotToViewers(this.game, deltaTargets, snapshot);
+    const snapshotBytes = sendSnapshotToViewers(this.game, deltaTargets, snapshot);
+    return { snapshotBytes, broadcastClients: deltaTargets.length };
   }
 }

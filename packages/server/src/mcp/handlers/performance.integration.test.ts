@@ -1,20 +1,30 @@
 // Integration (docs/testing/tiers-and-builders.md §2): a room the lobby started, stepped by its ManualClock +
 // ManualTicker (docs/determinism/contract-and-clock.md §2), read back through `debug_get_room_performance` (#340).
 import { describe, expect, it, vi } from 'vitest';
-import { SNAPSHOT_EVERY_TICKS, TICK_INTERVAL_MS } from '@evolution/shared';
+import {
+  SERVER_MESSAGE_TYPE,
+  SNAPSHOT_BACKLOG_LIMIT_TICKS,
+  SNAPSHOT_EVERY_TICKS,
+  TICK_INTERVAL_MS,
+} from '@evolution/shared';
 import { registerPerformanceTools } from './performance.js';
 import {
   createActiveRoomFixture,
   createManualRoomTiming,
   createSpyGameModule,
+  createTickingGameModule,
   parseToolJson,
 } from '../../testing/builders.js';
 import { roundToHundredths, type PerformanceStats } from '../../lobby/performance-tracker.js';
+import type { SnapshotFlowTelemetry } from '../../lobby/snapshot-backlog.js';
 
 /** What one simulation step costs on the injected clock. */
 const STEP_MS = 3;
 /** What one `serializeRoomState` costs: the slow broadcast the tick time must show. */
 const SERIALIZE_MS = 11;
+/** The player `createActiveRoomFixture` seats, and the tick of the ticking module's first broadcast. */
+const PLAYER_ID = 'alice';
+const FIRST_BROADCAST_TICK = 1;
 /** Broadcast intervals the room runs before it is read. */
 const BROADCAST_INTERVALS = 4;
 
@@ -57,6 +67,40 @@ describe('debug_get_room_performance through the room loop', () => {
         broadcastAvgMs: roundToHundredths(broadcastMsPerTick),
         broadcastP95Ms: SERIALIZE_MS,
         broadcastPeakMs: SERIALIZE_MS,
+      });
+    } finally {
+      fixture.stop();
+    }
+  });
+
+  it('#276: shows a skipped client with its backlog, then the resync it was sent', async () => {
+    const fixture = createActiveRoomFixture({ gameFactory: () => createTickingGameModule() });
+    const readFlow = async () => {
+      const rooms = parseToolJson(await fixture.call('debug_get_room_performance', { gameId: fixture.gameId }));
+      return (rooms as { snapshotFlow: SnapshotFlowTelemetry }[])[0]!.snapshotFlow;
+    };
+    try {
+      registerPerformanceTools(fixture.mcp, fixture.context);
+      fixture.room.step(SNAPSHOT_EVERY_TICKS);
+      fixture.room.recordSnapshotAck(PLAYER_ID, FIRST_BROADCAST_TICK);
+      fixture.room.step(SNAPSHOT_EVERY_TICKS * SNAPSHOT_BACKLOG_LIMIT_TICKS * 2);
+      // The ticking module numbers its broadcasts: the room stops once the depth passes the limit.
+      const lastTickSent = FIRST_BROADCAST_TICK + SNAPSHOT_BACKLOG_LIMIT_TICKS + 1;
+      expect(await readFlow()).toEqual({
+        resyncCount: 0,
+        owedResyncCount: 1,
+        players: { [PLAYER_ID]: { backlogTicks: lastTickSent - FIRST_BROADCAST_TICK, isOwedResync: true } },
+      });
+
+      // The client catches up; the paused room resyncs it on that ack (#300).
+      fixture.room.recordSnapshotAck(PLAYER_ID, lastTickSent);
+      const resync = fixture.sent[PLAYER_ID]!.at(-1) as { type: string; snapshot: { tick: number } };
+      expect(resync.type).toBe(SERVER_MESSAGE_TYPE.gameState);
+      // Until the client acknowledges it, the resync is what is in flight.
+      expect(await readFlow()).toEqual({
+        resyncCount: 1,
+        owedResyncCount: 0,
+        players: { [PLAYER_ID]: { backlogTicks: resync.snapshot.tick - lastTickSent, isOwedResync: false } },
       });
     } finally {
       fixture.stop();
