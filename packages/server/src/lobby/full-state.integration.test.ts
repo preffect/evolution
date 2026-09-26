@@ -43,7 +43,7 @@ describe('game_state carries the full state and the balance (echo module → roo
       expect.objectContaining({
         gameId: fixture.gameId,
         playerId: 'bob',
-        snapshot: { players: { alice: null, bob: null } },
+        snapshot: { tick: 0, players: { alice: null, bob: null } },
         balance: DEFAULT_BALANCE,
       }),
     ]);
@@ -60,7 +60,7 @@ describe('game_state carries the full state and the balance (echo module → roo
     const fullState = expect.objectContaining({
       gameId: fixture.gameId,
       playerId: 'alice',
-      snapshot: { players: { alice: null } },
+      snapshot: { tick: expect.any(Number), players: { alice: null } },
       balance: DEFAULT_BALANCE,
     });
     expect(gameStatesSentTo(fixture.sent, 'alice')).toEqual([fullState, fullState]);

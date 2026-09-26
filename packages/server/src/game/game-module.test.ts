@@ -21,7 +21,7 @@ const options = {
 describe('defaultGameModuleFactory (echo)', () => {
   it('echoes every roster member with null until they send input', () => {
     const game = defaultGameModuleFactory(options);
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 0, players: { p1: null, p2: null } });
   });
 
   it('echoes the latest input per player', () => {
@@ -29,7 +29,7 @@ describe('defaultGameModuleFactory (echo)', () => {
     game.submitInput('p1' as PlayerId, createTestGameInput({ sequence: 1 }));
     const latest = createTestGameInput({ sequence: 2 });
     game.submitInput('p1' as PlayerId, latest);
-    expect(game.serializeRoomState()).toEqual({ players: { p1: latest, p2: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 0, players: { p1: latest, p2: null } });
   });
 
   it('adds late players and forgets removed ones along with their input', () => {
@@ -37,14 +37,15 @@ describe('defaultGameModuleFactory (echo)', () => {
     game.addPlayer('p3' as PlayerId, 2, 'Cid');
     game.submitInput('p2' as PlayerId, createTestGameInput());
     game.removePlayer('p2' as PlayerId);
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p3: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 0, players: { p1: null, p3: null } });
   });
 
-  it('advancing a tick is a no-op for the echo game without bots', () => {
+  it('advancing a tick moves only its tick for the echo game without bots: the tick the flow control reads (#277)', () => {
     const game = defaultGameModuleFactory(options);
     const before = game.serializeRoomState();
     game.reduceGameState();
-    expect(game.serializeRoomState()).toEqual(before);
+    expect(game.serializeRoomState()).toEqual({ ...before, tick: before.tick + 1 });
+    expect(game.serializeFullState().snapshot.tick).toBe(before.tick + 1);
   });
 });
 
@@ -61,7 +62,7 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
       seatFreely,
     );
     expect(bot).toMatchObject({ playerId: 'sim_bot_42_0', playerName: 'Bot 0', behavior: 'wander' });
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null, [bot.playerId]: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 0, players: { p1: null, p2: null, [bot.playerId]: null } });
     game.reduceGameState();
     game.reduceGameState();
     expect(game.serializeRoomState()).toMatchObject({
@@ -85,7 +86,7 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
     const bot = handle.spawnBot!(createTestBotSpawnRequest({ behavior: 'wander', seed: 42 }), seatFreely);
     game.reduceGameState();
     expect(handle.removeBot!(bot.playerId)).toEqual(bot);
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 1, players: { p1: null, p2: null } });
     expect(() => handle.removeBot!('p1' as PlayerId)).toThrow(/not a bot spawned in this game/);
   });
 
@@ -101,9 +102,9 @@ describe('the echo module drives its own bots (docs/architecture/debug-mcp.md §
       DebugRequestError,
     );
     expect(seated).toEqual(['sim_bot_42_0']);
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 0, players: { p1: null, p2: null } });
     game.reduceGameState();
-    expect(game.serializeRoomState()).toEqual({ players: { p1: null, p2: null } });
+    expect(game.serializeRoomState()).toEqual({ tick: 1, players: { p1: null, p2: null } });
     expect(() => handle.removeBot!('sim_bot_42_0' as PlayerId)).toThrow(/not a bot spawned in this game/);
   });
 });
