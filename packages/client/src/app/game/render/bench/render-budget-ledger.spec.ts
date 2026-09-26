@@ -3,7 +3,7 @@
 // bench asserts is read from the doc's own tables here and pinned against the constants, so the
 // doc and the code cannot drift silently.
 import { describe, expect, it } from 'vitest';
-import { RENDER_STAGE_NAMES } from '@evolution/shared';
+import { RENDER_STAGE_NAMES, markdownSection, tableRows } from '@evolution/shared';
 import {
   RENDER_BENCH_CELL_COUNT,
   RENDER_BENCH_MOTE_COUNT,
@@ -20,12 +20,12 @@ import {
   RENDER_STAGE_BUDGET_MS,
   RENDER_TIMER_RESOLUTION_BUDGET_FRACTION,
 } from '../constants';
-import { markdownSection, readRepoDocument, tableCells } from '../../../../testing/repo-document';
+import { readRepoDocument } from '../../../../testing/repo-document';
 
 const rendering = readRepoDocument('docs/rendering/budget.md');
 
 function section(heading: string): string {
-  return markdownSection(rendering, heading);
+  return markdownSection(rendering, `## ${heading}`);
 }
 
 /** The digits of a doc number, whatever the thousands separator ("1 400"). */
@@ -88,13 +88,9 @@ describe('docs/rendering/budget.md §7 budgets', () => {
 
 /** The batching table's rows (a layer name first, its calls last); a range like `0–2` stays text, the header's `Calls` too. */
 function batchingRows(table: string): { readonly layer: string; readonly calls: string }[] {
-  return table
-    .split('\n')
-    .filter((line) => /^\| \w/.test(line))
-    .map((line) => {
-      const cells = tableCells(line);
-      return { layer: cells[0] ?? '', calls: cells.at(-1) ?? '' };
-    });
+  return tableRows(table)
+    .filter(([layer = '']) => /^\w/.test(layer))
+    .map((cells) => ({ layer: cells[0] ?? '', calls: cells.at(-1) ?? '' }));
 }
 
 describe('docs/rendering/budget.md §6 draw calls', () => {

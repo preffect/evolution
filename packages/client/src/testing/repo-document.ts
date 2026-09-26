@@ -1,6 +1,6 @@
 // The design docs as a spec reads them: the ledgers parse a doc's own tables rather than copying
 // its numbers, so the doc and the code cannot drift silently (docs/CODE-STANDARDS.md §2). Node-only,
-// for specs.
+// for specs. The section and table reader is `@evolution/shared`'s `markdownSection` / `tableRows` (#414).
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -14,21 +14,4 @@ export function readRepoDocument(relativePath: string): string {
     directory = parent;
   }
   return readFileSync(join(directory, relativePath), 'utf8');
-}
-
-/** The `## <heading>` section of a markdown document (its sub-headings included), up to the next `## `. */
-export function markdownSection(markdown: string, heading: string): string {
-  const start = markdown.indexOf(`\n## ${heading}`);
-  if (start < 0) throw new Error(`## ${heading} not found`);
-  const rest = markdown.slice(start + 1);
-  const end = rest.indexOf('\n## ');
-  return end < 0 ? rest : rest.slice(0, end);
-}
-
-/** The cells of a markdown table row, trimmed, without the empty edges outside the outer pipes. */
-export function tableCells(row: string): string[] {
-  return row
-    .split('|')
-    .slice(1, -1)
-    .map((cell) => cell.trim());
 }
