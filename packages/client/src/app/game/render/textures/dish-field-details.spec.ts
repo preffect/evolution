@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
+import { DISH_RADIUS, RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
 import { FakeBakeContext } from '../../../../testing/fake-bake-canvas';
 import {
   CAUSTIC_ALPHA,
@@ -8,11 +8,15 @@ import {
   LIGHT_ACCENT,
   MIRE_STRAND,
   MIRE_STRANDS_PER_PATCH,
+  MIRE_STRAND_ALPHA_MAX,
+  MIRE_STRAND_ALPHA_MIN,
+  STAGE_SCRATCH,
   STAGE_SCRATCHES,
+  WALL_GLASS_WU,
   ZONE_GEL,
 } from '../constants';
 import { hexWithAlpha } from '../colour';
-import { fieldStrokePx, paintCaustics, paintMireStrands, paintStageScratches } from './dish-field-details';
+import { fieldStrokePx, paintCaustics, placeMireStrands, placeStageScratches } from './dish-field-details';
 
 const FIELD_SCALE = { pxPerWu: 0.33 };
 const SPRITE_SCALE = { pxPerWu: 2 };
@@ -59,40 +63,47 @@ describe('paintCaustics', () => {
   });
 });
 
-describe('paintMireStrands', () => {
-  it('strokes the sheet count of short curves in the gel colour at the strand alphas', () => {
-    const context = new FakeBakeContext();
-    paintMireStrands(context, { x: 0, y: 0, radius: 100 }, { colour: ZONE_GEL, random: random(), scale: SPRITE_SCALE });
-    expect(context.count('stroke')).toBe(MIRE_STRANDS_PER_PATCH);
-    expect(context.count('quadraticCurveTo')).toBe(MIRE_STRANDS_PER_PATCH);
-    expect(context.strokeStyle).toMatch(/^rgba\(176, 112, 255, 0\.[12]/);
-    expect(context.lineWidth).toBeGreaterThanOrEqual(MIRE_STRAND.widthWuMin * SPRITE_SCALE.pxPerWu);
-    expect(context.lineWidth).toBeLessThanOrEqual(MIRE_STRAND.widthWuMax * SPRITE_SCALE.pxPerWu);
+const PATCH = { x: 400, y: -300, radius: 350 };
+const HALF_EXTENT_WU = 3102;
+
+describe('placeMireStrands', () => {
+  it('places the sheet count of short bent curves in the patch, in the gel colour, at the strand widths and alphas', () => {
+    const strands = placeMireStrands(PATCH, ZONE_GEL, random());
+    expect(strands).toHaveLength(MIRE_STRANDS_PER_PATCH);
+    for (const strand of strands) {
+      expect(strand.colour).toBe(ZONE_GEL);
+      expect(strand.control).not.toBeNull();
+      const rootDistance = Math.hypot(strand.start.x - PATCH.x, strand.start.y - PATCH.y);
+      expect(rootDistance).toBeLessThanOrEqual(MIRE_STRAND.rootShareMax * PATCH.radius);
+      const length = Math.hypot(strand.end.x - strand.start.x, strand.end.y - strand.start.y);
+      expect(length).toBeGreaterThanOrEqual(MIRE_STRAND.lengthShareMin * PATCH.radius - 1e-9);
+      expect(length).toBeLessThanOrEqual(MIRE_STRAND.lengthShareMax * PATCH.radius + 1e-9);
+      expect(strand.widthWu).toBeGreaterThanOrEqual(MIRE_STRAND.widthWuMin);
+      expect(strand.widthWu).toBeLessThanOrEqual(MIRE_STRAND.widthWuMax);
+      expect(strand.alpha).toBeGreaterThanOrEqual(MIRE_STRAND_ALPHA_MIN);
+      expect(strand.alpha).toBeLessThanOrEqual(MIRE_STRAND_ALPHA_MAX);
+    }
   });
 
-  it('draws the same strands for the same stream and other strands for another', () => {
-    const strokes = (seed: number) => {
-      const context = new FakeBakeContext();
-      const widths: number[] = [];
-      context.stroke = () => widths.push(context.lineWidth);
-      paintMireStrands(
-        context,
-        { x: 0, y: 0, radius: 100 },
-        { colour: ZONE_GEL, random: random(seed), scale: SPRITE_SCALE },
-      );
-      return widths;
-    };
-    expect(strokes(1)).toEqual(strokes(1));
-    expect(strokes(1)).not.toEqual(strokes(2));
+  it('places the same strands for the same stream and other strands for another', () => {
+    expect(placeMireStrands(PATCH, ZONE_GEL, random(1))).toEqual(placeMireStrands(PATCH, ZONE_GEL, random(1)));
+    expect(placeMireStrands(PATCH, ZONE_GEL, random(1))).not.toEqual(placeMireStrands(PATCH, ZONE_GEL, random(2)));
   });
 });
 
-describe('paintStageScratches', () => {
-  it('strokes the table count of straight lines in the scratch colour', () => {
-    const context = new FakeBakeContext();
-    paintStageScratches(context, { centre: 1024, halfExtentWu: 3000 }, { random: random(), scale: FIELD_SCALE });
-    expect(context.count('stroke')).toBe(STAGE_SCRATCHES.count);
-    expect(context.count('lineTo')).toBe(STAGE_SCRATCHES.count);
-    expect(context.strokeStyle).toMatch(/^rgba\(42, 61, 88, 0\.(2[5-9]|3[0-5])/);
+describe('placeStageScratches', () => {
+  it('places the table count of straight lines on the stage, past the wall, in the scratch colour', () => {
+    const scratches = placeStageScratches(HALF_EXTENT_WU, random());
+    expect(scratches).toHaveLength(STAGE_SCRATCHES.count);
+    const innerWu = DISH_RADIUS + WALL_GLASS_WU * STAGE_SCRATCHES.innerMarginGlass;
+    for (const scratch of scratches) {
+      expect(scratch.control).toBeNull();
+      expect(scratch.colour).toBe(STAGE_SCRATCH);
+      expect(scratch.widthWu).toBe(STAGE_SCRATCHES.widthWu);
+      expect(Math.hypot(scratch.start.x, scratch.start.y)).toBeGreaterThanOrEqual(innerWu - 1e-9);
+      expect(Math.hypot(scratch.start.x, scratch.start.y)).toBeLessThanOrEqual(HALF_EXTENT_WU + 1e-9);
+      expect(scratch.alpha).toBeGreaterThanOrEqual(STAGE_SCRATCHES.alphaMin);
+      expect(scratch.alpha).toBeLessThanOrEqual(STAGE_SCRATCHES.alphaMax);
+    }
   });
 });
