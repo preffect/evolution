@@ -33,10 +33,13 @@ outside the domain module the balance spreads (`constants/absorption-derived.ts`
 that needs its value derives it at read time from the room's leaves through the shared function that owns the formula
 (`engulfBaseDurationSeconds`, `engulfWrapStartProgress`, `engulfSealProgress` in `simulation/engulf-pace.ts`), so a
 patched source leaf is felt and there is no second copy to disagree with it; the named export is the defaults' value,
-for the docs and the ledger, computed by the same function over the domain module.
+for the docs and the ledger, computed by the same function over the domain module. `absorption-derived.ts` is the one
+constants module allowed to import `simulation/`, and the formula module it calls (`engulf-pace.ts`) imports leaf
+constants modules only, never the `constants/index.ts` barrel, so loading the constants can never cycle through it.
 `balance.test.ts` pins that no domain carries a listed name, and `constants-ledger.test.ts` that the `derived` rows
 of the design tables (a row whose later cell reads `(derived …`) are exactly the list, so a new derived constant cannot
-reach the balance untagged.
+reach the balance untagged. The `(derived` marker in a constants-table row is reserved for constants derived from
+balance leaves; any other derived value (`TICK_INTERVAL_MS` beside `TICK_HZ`, say) says so in prose.
 `constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
 `viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
 knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).

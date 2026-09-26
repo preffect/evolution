@@ -22,9 +22,10 @@ import {
   type GameEffect,
 } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { previewSceneFor, type PreviewScene, type PreviewSceneFrame } from '../preview-scene';
+import { previewSceneFor } from '../preview-scene';
 import { PREVIEW_SCENE, type PreviewSpec } from '../preview-spec';
 import { ACTION_SUBJECT_CELL_ID } from './action-subject';
+import { cellIn, contactTickOf, firstEffectOf, walkOneLoop } from '../../../../../testing/preview-scene-walk';
 import { ENGULF_PARTNER_CELL_ID, ENGULF_PARTNER_NAME, engulfSpanSeconds } from './engulf-pair';
 
 const BALANCE = DEFAULT_BALANCE;
@@ -32,50 +33,17 @@ const ENGULF: PreviewSpec = { scene: PREVIEW_SCENE.engulf };
 const ESCAPE: PreviewSpec = { scene: PREVIEW_SCENE.escape };
 const PLACEMENT_TOLERANCE = 1e-6;
 
-/** Every whole tick strictly inside one loop, as the session walks it, with the effects of each step. */
-function walkOneLoop(
-  scene: PreviewScene,
-  balance: BalanceConfig = BALANCE,
-): { tick: number; frame: PreviewSceneFrame }[] {
-  const period = scene.periodTicks(balance);
-  const frames = [];
-  let previousTick = 0;
-  for (let tick = 0; tick < period; tick += 1) {
-    frames.push({ tick, frame: scene.frameAt(tick, previousTick, balance) });
-    previousTick = tick;
-  }
-  return frames;
-}
-
-function cellIn(frame: PreviewSceneFrame, id: string): CellView | undefined {
-  return frame.cells.find((cell) => cell.id === id);
-}
-
 /** How far an effect landed from a cell's centre; a world-level effect has no position to measure. */
 function distanceFromEffect(effect: GameEffect, cell: CellView): number {
   if (!('x' in effect)) throw new Error(`${effect.kind} carries no position`);
   return Math.hypot(effect.x - cell.x, effect.y - cell.y);
 }
 
-function firstEffectOf(scene: PreviewScene, kind: GameEffect['kind'], balance: BalanceConfig = BALANCE) {
-  for (const { tick, frame } of walkOneLoop(scene, balance)) {
-    const effect = frame.effects.find((one) => one.kind === kind);
-    if (effect !== undefined) return { tick, effect };
-  }
-  return null;
-}
-
-/** The first tick at which the prey reads as held, and the prey's progress at every tick after it. */
-function contactTickOf(scene: PreviewScene, preyId: string, balance: BalanceConfig = BALANCE): number {
-  const first = walkOneLoop(scene, balance).find(
-    ({ frame }) => cellIn(frame, preyId)?.states.includes(CELL_STATE.beingEngulfed) === true,
-  );
-  expect(first, 'the pair never made contact').toBeDefined();
-  return first!.tick;
-}
-
 /** One absorption row retuned as `debug_set_balance` hands it over; assigned, since the naming lint reads `ENGULF_*` literal keys as misnamed. */
-function withAbsorption(key: 'ENGULF_COVER_SECONDS' | 'ENGULF_WRAP_SECONDS', value: number): BalanceConfig {
+function withAbsorption(
+  key: 'ENGULF_COVER_SECONDS' | 'ENGULF_WRAP_SECONDS' | 'ENGULF_ABSORB_SECONDS',
+  value: number,
+): BalanceConfig {
   const absorption = { ...BALANCE.absorption };
   absorption[key] = value;
   return { ...BALANCE, absorption };
@@ -118,10 +86,10 @@ describe('both two-cell scenes', () => {
 
   /**
    * The ticket's acceptance: contact to the seal takes exactly the cover and wrap spans, and a patched phase second
-   * moves those boundaries (#367: a longer wrap seals later, a longer cover wraps later) — which separates "follows the
-   * balance" from "a constant happens to agree".
+   * moves those boundaries (#367: a longer wrap seals later, a longer cover wraps later, a longer absorb pays out later)
+   * — which separates "follows the balance" from "a constant happens to agree".
    */
-  it('reaches the seal exactly the cover and wrap spans after contact, and follows a patched cover and wrap', () => {
+  it('reaches the seal and the payout on the spans after contact, and follows each patched phase second', () => {
     const longerWrap = withAbsorption('ENGULF_WRAP_SECONDS', BALANCE.absorption.ENGULF_WRAP_SECONDS * 2);
     const longerCover = withAbsorption('ENGULF_COVER_SECONDS', BALANCE.absorption.ENGULF_COVER_SECONDS * 1.5);
     const sealSecondsOf = (balance: BalanceConfig): number =>
@@ -132,7 +100,9 @@ describe('both two-cell scenes', () => {
     expect(engulfPhaseSpanSeconds(ENGULF_PHASE.cover, longerCover.absorption)).toBeGreaterThan(
       engulfPhaseSpanSeconds(ENGULF_PHASE.cover, BALANCE.absorption) + TICK_INTERVAL_S,
     );
-    const balances = [BALANCE, longerWrap, longerCover];
+    const longerAbsorb = withAbsorption('ENGULF_ABSORB_SECONDS', BALANCE.absorption.ENGULF_ABSORB_SECONDS * 1.5);
+    expect(engulfSpanSeconds(longerAbsorb)).toBeGreaterThan(engulfSpanSeconds(BALANCE) + TICK_INTERVAL_S);
+    const balances = [BALANCE, longerWrap, longerCover, longerAbsorb];
     for (const { name, spec, preyId } of scenes) {
       for (const balance of balances) {
         const scene = previewSceneFor(spec);
@@ -154,6 +124,9 @@ describe('both two-cell scenes', () => {
         if (name === PREVIEW_SCENE.engulf) {
           expect(phaseAt(sealSeconds - TICK_INTERVAL_S), `${name}: sealed early`).toBe(ENGULF_PHASE.wrap);
           expect(phaseAt(sealSeconds), `${name}: sealed late`).toBe(ENGULF_PHASE.absorb);
+          const payoutTick = firstEffectOf(scene, EFFECT_KIND.cellAbsorbed, balance)?.tick ?? Number.NaN;
+          const spanTicks = engulfSpanSeconds(balance) / TICK_INTERVAL_S;
+          expect(Math.abs(payoutTick - contactTick - spanTicks), `${name}: payout off its span`).toBeLessThanOrEqual(1);
         }
       }
     }

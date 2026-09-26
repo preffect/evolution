@@ -3,6 +3,8 @@
 // membrane read `engulfPhaseOf` on the same thresholds the server advances progress with
 // (docs/ui/hud.md §3.1, docs/visual-style/motion-and-legibility.md §5); everything that needs more than a phase is the
 // server's alone. The ratio predicates live next door in `engulf-eligibility.ts`.
+// `constants/absorption-derived.ts` calls this module while it loads (the one constants → simulation edge,
+// architecture/constants-files-tests.md §9), so it imports leaf constants modules only, never the constants barrel.
 
 import type { BalanceConfig } from '../constants/balance.js';
 import { TICK_INTERVAL_S } from '../constants/network.js';

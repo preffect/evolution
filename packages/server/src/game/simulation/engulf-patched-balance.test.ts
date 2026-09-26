@@ -30,7 +30,9 @@ describe('an engulf over a patched ENGULF_WRAP_SECONDS (#367)', () => {
   it('keeps the cover span, moves the seal and the payout later', () => {
     const fixture = patchedFixture();
     const absorption = fixture.world.balance.absorption;
-    stepEngulf(fixture, E9_COVER_TICKS);
+    stepEngulf(fixture, E9_COVER_TICKS - 1);
+    expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.cover);
+    stepEngulf(fixture);
     expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.wrap);
     // The default seal tick: still wrapping, where the unpatched engulf has sealed.
     stepEngulf(fixture, E9_SEAL_TICK - E9_COVER_TICKS);
