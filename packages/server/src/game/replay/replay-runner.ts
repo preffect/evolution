@@ -12,6 +12,7 @@ import { addPlayerToWorld, removePlayerFromWorld } from '../session/membership.j
 import { submitPlayerInput } from '../simulation/input-coalescing.js';
 import { runStep } from '../simulation/step.js';
 import { createWorld } from '../world/create-world.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { computeStateHash } from '../world/state-hash.js';
 import { createInputRejectionCounters, type InputRejectionCounters, type WorldState } from '../world/world-state.js';
 import { indexByTick } from './index-by-tick.js';
@@ -51,6 +52,11 @@ function applyEvent(world: WorldState, event: ReplayEvent, rejections: InputReje
       return;
     case REPLAY_EVENT_KIND.input:
       submitPlayerInput(world, event.playerId, event.input, rejections);
+      return;
+    default: {
+      const unknownEvent: never = event;
+      throw new SimulationInvariantError(`unknown replay event ${JSON.stringify(unknownEvent)}`);
+    }
   }
 }
 

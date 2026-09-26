@@ -3,7 +3,8 @@
 import { describe, expect, it } from 'vitest';
 import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
-import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay } from './replay-format.js';
+import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayEvent } from './replay-format.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { replay, ReplayOriginError, ReplayVersionError } from './replay-runner.js';
 
 const ROOM_TICKS = 40;
@@ -23,7 +24,7 @@ function createModule(): EvolutionModule {
   });
 }
 
-function countOf(recording: Replay, kinds: readonly string[]): number {
+function countOf(recording: Replay, kinds: readonly ReplayEvent['kind'][]): number {
   return recording.events.filter((event) => kinds.includes(event.kind)).length;
 }
 
@@ -100,6 +101,14 @@ describe('replay', () => {
   it('refuses a recording of another format version instead of guessing at its shape', () => {
     const recording = drive(createModule(), 5);
     expect(() => replay({ ...recording, version: recording.version - 1 })).toThrow(ReplayVersionError);
+  });
+
+  it('refuses an event of a kind it does not know rather than dropping it', () => {
+    const recording = drive(createModule(), 5);
+    const unknownEvent = { tick: 2, kind: 'teleport' } as unknown as ReplayEvent;
+    expect(() => replay({ ...recording, events: [...recording.events, unknownEvent] })).toThrow(
+      SimulationInvariantError,
+    );
   });
 
   it('replays a debug patch that arrived before a join in the same tick before that join, as the room applied them', () => {
