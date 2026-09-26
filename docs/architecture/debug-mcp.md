@@ -105,7 +105,7 @@ themselves, unquantised, nothing serialised per tick, #181) and never spawns a b
 (grazer, hunter, flee, wander), timed as process CPU time per step, main and the change alternately, three rounds
 each on the shared box. Two costs rode on the bots. Serialising a full snapshot for them every tick was the smaller
 one. The larger was the replay recorder copying its whole input log every tick: eight bots send an input every tick,
-so the step grew with the room's age. Now the bots read the world, and the recorder touches only the log's tail.
+so the step grew with the room's age. Now the bots read the world, and the recorder only appends to its log (#180: an export copies it and never writes it).
 
 Median CPU per step, the range over the three rounds (p95 in brackets; ms):
 

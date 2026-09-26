@@ -5,7 +5,13 @@
 
 import type { PlayerId, StateHash } from '@evolution/shared';
 import type { ScenarioAdapter } from './adapter.js';
-import { ScenarioDivergenceError, type HashDivergence, type ScenarioIdentity } from './errors.js';
+import { findFirstDifference } from '../structural-diff.js';
+import {
+  ScenarioDivergenceError,
+  type DivergenceSnapshots,
+  type HashDivergence,
+  type ScenarioIdentity,
+} from './errors.js';
 import {
   indexByTick,
   MEMBERSHIP_EVENT_KIND,
@@ -15,7 +21,7 @@ import {
   type ReplayMembershipEvent,
   type ScenarioReplay,
 } from './replay-format.js';
-import { identityOf, runScenario, type ScenarioRunner } from './runner.js';
+import { identityOf, runScenario, type ScenarioDefinition, type ScenarioRunner } from './runner.js';
 import { ScenarioSession, type ScenarioPlayer } from './session.js';
 import { driveTicks } from './tick-driver.js';
 
@@ -166,11 +172,37 @@ export async function verifyReplay<Input, Snapshot, Fixture>(
   return verdict;
 }
 
-/** Runs the scenario twice from scratch (fresh bots, fresh streams); the checkpoints must agree tick for tick. */
+/**
+ * Re-runs both sides from scratch up to `tick`, the way the diverging pair ran, and compares them.
+ * Expectations are dropped (the pair already passed them) and nothing goes to the replay sink.
+ */
+export async function snapshotBothSidesAt<Input, Snapshot, Fixture>(
+  definition: ScenarioDefinition<Snapshot, Fixture>,
+  adapter: ScenarioAdapter<Input, Snapshot, Fixture>,
+  tick: number,
+): Promise<DivergenceSnapshots> {
+  const truncated: ScenarioDefinition<Snapshot, Fixture> = { ...definition, totalTicks: tick, expectations: [] };
+  const expectedRun = await runScenario(truncated, adapter);
+  const actualRun = await runScenario(truncated, adapter);
+  return {
+    expectedSnapshot: expectedRun.finalSnapshot,
+    actualSnapshot: actualRun.finalSnapshot,
+    wasReproduced: expectedRun.finalHash !== actualRun.finalHash,
+    firstDifference: findFirstDifference(expectedRun.finalSnapshot, actualRun.finalSnapshot),
+  };
+}
+
+/**
+ * Runs the scenario twice from scratch (fresh bots, fresh streams); the checkpoints must agree tick for tick.
+ * On a divergence both sides run once more to its tick, so the error names the first differing field.
+ */
 export const assertDeterministic: ScenarioRunner = async (definition, adapter, options = {}) => {
   const firstRun = await runScenario(definition, adapter, options);
   const secondRun = await runScenario(definition, adapter, options);
   const divergence = findFirstDivergence(firstRun.checkpoints, secondRun.checkpoints);
-  throwIfDiverged(identityOf(definition), divergence);
+  if (divergence !== null) {
+    const snapshots = await snapshotBothSidesAt(definition, adapter, divergence.tick);
+    throw new ScenarioDivergenceError(identityOf(definition), divergence, snapshots);
+  }
   return firstRun;
 };

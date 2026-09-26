@@ -3,9 +3,9 @@
 import { describe, expect, it } from 'vitest';
 import { ENTITY_KIND, createTestGameInput, createTestSessionConfig, gameId, playerId } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from '../evolution-module.js';
-import type { Replay } from './replay-format.js';
-import { REPLAY_ORIGIN } from './replay-format.js';
-import { replay, ReplayOriginError } from './replay-runner.js';
+import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayEvent } from './replay-format.js';
+import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
+import { replay, ReplayOriginError, ReplayVersionError } from './replay-runner.js';
 
 const ROOM_TICKS = 40;
 const JOIN_TICK = 10;
@@ -22,6 +22,10 @@ function createModule(): EvolutionModule {
     avatarAssignments: { p1: 0, p2: 1 },
     playerNames: { p1: 'Alice', p2: 'Bob' },
   });
+}
+
+function countOf(recording: Replay, kinds: readonly ReplayEvent['kind'][]): number {
+  return recording.events.filter((event) => kinds.includes(event.kind)).length;
 }
 
 /** Drives a module through joins, inputs, a debug spawn and a late leave; returns the export. */
@@ -51,9 +55,9 @@ describe('replay', () => {
     const module = createModule();
     const recording = drive(module, ROOM_TICKS);
     expect(recording.finalTick).toBe(ROOM_TICKS);
-    expect(recording.inputs.length).toBeGreaterThan(0);
-    expect(recording.membership).toHaveLength(2);
-    expect(recording.debugPatches).toHaveLength(2);
+    expect(countOf(recording, [REPLAY_EVENT_KIND.input])).toBeGreaterThan(0);
+    expect(countOf(recording, [REPLAY_EVENT_KIND.join, REPLAY_EVENT_KIND.leave])).toBe(2);
+    expect(countOf(recording, [REPLAY_EVENT_KIND.debugPatch])).toBe(2);
     const result = replay(recording);
     expect(result.hash).toBe(recording.finalHash);
     expect(result.world.tick).toBe(ROOM_TICKS);
@@ -64,10 +68,11 @@ describe('replay', () => {
     const recording = drive(module, ROOM_TICKS);
     const altered: Replay = {
       ...recording,
-      inputs: recording.inputs.map((entry) => ({
-        ...entry,
-        input: { ...entry.input, targetY: (entry.input.targetY ?? 0) + 50 },
-      })),
+      events: recording.events.map((event) =>
+        event.kind === REPLAY_EVENT_KIND.input
+          ? { ...event, input: { ...event.input, targetY: (event.input.targetY ?? 0) + 50 } }
+          : event,
+      ),
     };
     expect(replay(altered).hash).not.toBe(recording.finalHash);
   });
@@ -86,11 +91,36 @@ describe('replay', () => {
     expect(recording.seed).toBe(7);
     expect(recording.startTick).toBe(ROOM_TICKS);
     expect(recording.finalTick).toBe(ROOM_TICKS + 12);
-    expect(recording.inputs).toEqual([]);
+    expect(recording.events).toEqual([]);
     // A reseed keeps the running world and rebuilds only the streams, so the recording after it
     // is not reproducible from seed + roster alone and replay() refuses it (docs/determinism/replay-tests-and-traps.md §6).
     expect(recording.startedBy).toBe(REPLAY_ORIGIN.reseed);
     expect(() => replay(recording)).toThrow(ReplayOriginError);
+  });
+
+  it('refuses a recording of another format version instead of guessing at its shape', () => {
+    const recording = drive(createModule(), 5);
+    expect(() => replay({ ...recording, version: recording.version - 1 })).toThrow(ReplayVersionError);
+  });
+
+  it('refuses an event of a kind it does not know rather than dropping it', () => {
+    const recording = drive(createModule(), 5);
+    const unknownEvent = { tick: 2, kind: 'teleport' } as unknown as ReplayEvent;
+    expect(() => replay({ ...recording, events: [...recording.events, unknownEvent] })).toThrow(
+      SimulationInvariantError,
+    );
+  });
+
+  it('replays a debug patch that arrived before a join in the same tick before that join, as the room applied them', () => {
+    const module = createModule();
+    drive(module, JOIN_TICK);
+    module.getDebugHandle().spawn({ kind: ENTITY_KIND.foodMote, x: 100, y: 100, params: { kind: 'algae' } });
+    module.addPlayer(playerId('p4'), 3, 'Dee');
+    module.reduceGameState();
+    const recording = module.getDebugHandle().exportReplay() as Replay;
+    const joinStepEvents = recording.events.filter((event) => event.tick === JOIN_TICK + 1);
+    expect(joinStepEvents.map((event) => event.kind)).toEqual([REPLAY_EVENT_KIND.debugPatch, REPLAY_EVENT_KIND.join]);
+    expect(replay(recording).hash).toBe(recording.finalHash);
   });
 
   it('ignores a recorded input for a player who is not in the world and a stale sequence', () => {
@@ -98,10 +128,15 @@ describe('replay', () => {
     const recording = drive(module, 5);
     const padded: Replay = {
       ...recording,
-      inputs: [
-        ...recording.inputs,
-        { tick: 2, playerId: playerId('nobody'), input: createTestGameInput() },
-        { tick: 4, playerId: playerId('p1'), input: createTestGameInput({ sequence: 0 }) },
+      events: [
+        ...recording.events,
+        { tick: 2, kind: REPLAY_EVENT_KIND.input, playerId: playerId('nobody'), input: createTestGameInput() },
+        {
+          tick: 4,
+          kind: REPLAY_EVENT_KIND.input,
+          playerId: playerId('p1'),
+          input: createTestGameInput({ sequence: 0 }),
+        },
       ],
     };
     expect(replay(padded).hash).toBe(recording.finalHash);

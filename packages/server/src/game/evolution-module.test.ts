@@ -13,7 +13,7 @@ import {
   type GameInput,
 } from '@evolution/shared';
 import { createEvolutionModule, type EvolutionModule } from './evolution-module.js';
-import type { Replay } from './replay/replay-format.js';
+import { REPLAY_EVENT_KIND, type Replay } from './replay/replay-format.js';
 import { isPlayerCell } from './world/entities.js';
 import { createTestBotSpawnRequest } from '../testing/bot-builders.js';
 
@@ -117,7 +117,7 @@ describe('createEvolutionModule', () => {
     module.removePlayer(BOB);
     expect(module.world.players.map((player) => player.playerId)).toEqual([ALICE]);
     const recording = module.getDebugHandle().exportReplay() as Replay;
-    expect(recording.membership.map((event) => event.kind)).toEqual(['join', 'leave']);
+    expect(recording.events.map((event) => event.kind)).toEqual(['join', 'leave']);
   });
 
   it('drives a spawned bot from the snapshot of the tick before, stamped with the step tick', () => {
@@ -133,7 +133,9 @@ describe('createEvolutionModule', () => {
     expect(botPlayer?.appliedInputSequence).toBe(TICKS_WITH_BOT);
     expect(botPlayer?.lifeState).toBe(PLAYER_LIFE_STATE.alive);
     const recording = module.getDebugHandle().exportReplay() as Replay;
-    expect(recording.inputs.map((entry) => entry.tick)).toEqual([1, 2, TICKS_WITH_BOT]);
+    expect(
+      recording.events.filter((event) => event.kind === REPLAY_EVENT_KIND.input).map((event) => event.tick),
+    ).toEqual([1, 2, TICKS_WITH_BOT]);
     expect(module.getDebugHandle().removeBot(bot.playerId)).toEqual(bot);
     expect(module.world.players.map((player) => player.playerId)).toEqual([ALICE]);
   });

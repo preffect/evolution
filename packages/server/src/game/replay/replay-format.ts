@@ -29,26 +29,36 @@ export type DebugPatch =
 export const REPLAY_ORIGIN = { worldBuild: 'world_build', rematch: 'rematch', reseed: 'reseed' } as const;
 export type ReplayOrigin = (typeof REPLAY_ORIGIN)[keyof typeof REPLAY_ORIGIN];
 
-export const REPLAY_MEMBERSHIP_KIND = { join: 'join', leave: 'leave' } as const;
-export type ReplayMembershipKind = (typeof REPLAY_MEMBERSHIP_KIND)[keyof typeof REPLAY_MEMBERSHIP_KIND];
+/** What one entry of the ordered log did (docs/determinism/replay-tests-and-traps.md §6). */
+export const REPLAY_EVENT_KIND = { join: 'join', leave: 'leave', debugPatch: 'debug_patch', input: 'input' } as const;
+export type ReplayEventKind = (typeof REPLAY_EVENT_KIND)[keyof typeof REPLAY_EVENT_KIND];
 
 export interface ReplayMembershipEvent extends PlayerIdentity {
   /** The tick the event applies before (a join stamped 6000 is present for step 6000). */
   readonly tick: number;
-  readonly kind: ReplayMembershipKind;
+  readonly kind: typeof REPLAY_EVENT_KIND.join | typeof REPLAY_EVENT_KIND.leave;
 }
 
-export interface ReplayInput {
+export interface ReplayDebugPatchEvent {
   readonly tick: number;
+  readonly kind: typeof REPLAY_EVENT_KIND.debugPatch;
+  readonly patch: DebugPatch;
+}
+
+export interface ReplayInputEvent {
+  readonly tick: number;
+  readonly kind: typeof REPLAY_EVENT_KIND.input;
   readonly playerId: PlayerId;
   /** The coalesced input step 1 applied at `tick`. */
   readonly input: GameInput;
 }
 
-export interface ReplayDebugPatch {
-  readonly tick: number;
-  readonly patch: DebugPatch;
-}
+/**
+ * One entry of the log. Joins, leaves and debug patches sit in the order the room applied them;
+ * a tick's inputs close its events, since an input only fills its own player's pending slot and
+ * the log records that slot as step 1 read it.
+ */
+export type ReplayEvent = ReplayMembershipEvent | ReplayDebugPatchEvent | ReplayInputEvent;
 
 export interface Replay {
   readonly version: number;
@@ -63,9 +73,8 @@ export interface Replay {
   readonly balance: BalanceConfig;
   /** The players present when the recording started, in join order. */
   readonly roster: readonly PlayerIdentity[];
-  readonly membership: readonly ReplayMembershipEvent[];
-  readonly inputs: readonly ReplayInput[];
-  readonly debugPatches: readonly ReplayDebugPatch[];
+  /** Every event in the order the simulation saw it, each stamped with the tick it applies before. */
+  readonly events: readonly ReplayEvent[];
   readonly finalTick: number;
   readonly finalHash: StateHash;
 }
