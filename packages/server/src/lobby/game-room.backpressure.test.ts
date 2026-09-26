@@ -9,16 +9,19 @@ import {
   SNAPSHOT_BACKLOG_LIMIT_BYTES,
   SNAPSHOT_BACKLOG_LIMIT_TICKS,
   SNAPSHOT_EVERY_TICKS,
+  TICK_HZ,
   createTestSessionConfig,
   gameId,
 } from '@evolution/shared';
-import type { GameSnapshot, PlayerId } from '@evolution/shared';
+import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
+import { roundToHundredths } from './performance-tracker.js';
 import type { RoomInitOptions } from '../game/game-module.js';
 import {
   createManualRoomTiming,
   createSpyGameModule,
   createTestConnection,
+  createTickingGameModule,
   setBufferedAmount,
 } from '../testing/builders.js';
 
@@ -36,32 +39,18 @@ function roomOptions(playerIds: string[]): RoomInitOptions {
   };
 }
 
-/** A module whose snapshots carry a tick, which is what the client acknowledges and the room reads. */
-function tickingGameModule() {
-  const module = createSpyGameModule();
-  let tick = 0;
-  module.serializeRoomState = vi.fn(() => {
-    tick += 1;
-    return { tick } as unknown as GameSnapshot;
-  });
-  module.serializeFullState = vi.fn(() => ({
-    snapshot: { tick } as unknown as GameSnapshot,
-    balance: DEFAULT_BALANCE,
-  }));
-  return module;
-}
-
 describe('game-room: snapshot flow control by acknowledged tick (#266, docs/architecture/wire-contract.md §4)', () => {
   /** A started room whose one player acknowledges ticks by hand. */
   function tickingRoom() {
     const sent: Record<string, unknown[]> = {};
-    const room = new GameRoom(tickingGameModule(), roomOptions(['p1']), createManualRoomTiming());
+    const room = new GameRoom(createTickingGameModule(), roomOptions(['p1']), createManualRoomTiming());
     room.addPlayer(createTestConnection({ playerId: 'p1', sent }));
     room.start();
     const typesSent = () => (sent['p1'] as { type: string }[]).map((message) => message.type);
     /** The tick of the newest message sent, as the client would acknowledge it. */
-    const lastSentTick = () => (sent['p1']!.at(-1) as { snapshot: { tick: number } }).snapshot.tick;
-    return { room, typesSent, lastSentTick };
+    const lastSentMessage = () => sent['p1']!.at(-1);
+    const lastSentTick = () => (lastSentMessage() as { snapshot: { tick: number } }).snapshot.tick;
+    return { room, typesSent, lastSentMessage, lastSentTick };
   }
 
   it('keeps sending deltas to a client that acknowledges what it is sent', () => {
@@ -76,7 +65,7 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
   });
 
   it('stops sending once more than SNAPSHOT_BACKLOG_LIMIT_TICKS is in flight, and resyncs when the client catches up', () => {
-    const { room, typesSent, lastSentTick } = tickingRoom();
+    const { room, typesSent, lastSentMessage, lastSentTick } = tickingRoom();
     const acknowledged = 1;
     room.step(SNAPSHOT_EVERY_TICKS);
     room.recordSnapshotAck('p1', acknowledged);
@@ -91,9 +80,12 @@ describe('game-room: snapshot flow control by acknowledged tick (#266, docs/arch
 
     // The client drains the queue and says so. The room is paused (a step pauses it) and will broadcast nothing, so
     // the ack itself rebuilds the whole view (#300); the next broadcast is an ordinary delta again.
+    const recordResyncBytes = vi.spyOn(room.performanceTracker, 'recordResyncBytes');
     room.recordSnapshotAck('p1', lastTickSent);
     expect(typesSent().slice(sentWhileBehind)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
     expect(room.snapshotBacklog.resyncCount()).toBe(1);
+    // Its bytes are measured like a broadcast's resync (#276).
+    expect(recordResyncBytes).toHaveBeenCalledExactlyOnceWith(JSON.stringify(lastSentMessage()).length);
     // Nothing more until the client acknowledges that game_state (#275), then ordinary deltas again.
     room.recordSnapshotAck('p1', lastSentTick());
     room.step(SNAPSHOT_EVERY_TICKS);
@@ -238,7 +230,28 @@ describe('game-room: snapshot backpressure on unsent bytes (#266, docs/architect
     // The one drain of the effects and the one step of the food delta tracker (docs/architecture/wire-contract.md §4).
     expect(gameModule.serializeRoomState).toHaveBeenCalledTimes(2);
     expect(sent['p1']).toEqual([]);
+    // Nothing was sent, so nothing is counted: a skipped client costs no bandwidth (#276).
     expect(room.performanceTracker.getStats().broadcastBytesPerSec).toBe(0);
+  });
+
+  it('#276: counts every byte sent, the resync game_state included, and no delta for a skipped client', () => {
+    const sent: Record<string, unknown[]> = {};
+    const room = new GameRoom(createSpyGameModule(), roomOptions(['p1', 'p2']), createManualRoomTiming());
+    const lagging = createTestConnection({ playerId: 'p1', sent, bufferedAmount: SATURATED_BYTES });
+    room.addPlayer(lagging);
+    room.addPlayer(createTestConnection({ playerId: 'p2', sent }));
+    room.start();
+    room.step(SNAPSHOT_EVERY_TICKS);
+    setBufferedAmount(lagging, 0);
+    room.step(SNAPSHOT_EVERY_TICKS);
+
+    expect((sent['p1'] as { type: string }[]).map((message) => message.type)).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+    const bytesSent = [...sent['p1']!, ...sent['p2']!].reduce<number>(
+      (sum, message) => sum + JSON.stringify(message).length,
+      0,
+    );
+    const stats = room.performanceTracker.getStats();
+    expect(stats.broadcastBytesPerSec).toBe(roundToHundredths((bytesSent / stats.sampleCount) * TICK_HZ));
   });
 
   it('a reconnect settles the resync the reattached player was owed', () => {

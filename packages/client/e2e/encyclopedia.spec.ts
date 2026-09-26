@@ -9,9 +9,9 @@
 //     equivalent link that does exist — the summary's `[[stage:endosymbiosis]]` — so the push-and-Back half of U9
 //     is exercised in full, on a different target. When #361 lands, this line becomes U9 as written.
 //
-// U10 is not here at all: every one of its assertions is on `encyclopedia-alert`, the strip the *host* projects into
-// the header (#448's seam, §11.1), and its steps need `debug_grant_dna` and `debug_spawn` — a debug driver this e2e
-// harness does not have. It exercises nothing the entry page owns.
+// U10 is not here: every one of its assertions is on `encyclopedia-alert`, the strip the *host* projects into the
+// header (#448's seam, §11.1), so it is the host's spec, `encyclopedia-alert.spec.ts` (#472). It exercises nothing
+// the entry page owns.
 
 import { expect, test, type Page } from '@playwright/test';
 import {

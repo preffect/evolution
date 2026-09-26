@@ -37,6 +37,18 @@ world; they need no capability):
 | `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`testing/bots-and-design-tables.md §8.3`)                                                                                                                                                                                                                             |
 | `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                                                                                                                                                                                                                                                                       |
 
+The generic tools (`debug_get_performance`, `debug_get_room_performance`, `debug_get_connections`, …) need no
+handle. `debug_get_room_performance` answers per room its `PerformanceTracker.getStats()` and, since #276,
+`snapshotFlow`, the snapshot flow control of architecture/wire-contract.md §4 (`SnapshotBacklog.telemetryFor`):
+`resyncCount` (resyncs the room has sent), `owedResyncCount` (players skipped now) and `players`, one entry per
+seated connection (a disconnected player stays until its reconnect grace ends) with its `backlogTicks` (ticks in flight
+past its ack; `null` until the client has acknowledged a snapshot since its stream (re)started, i.e. before its first
+ack and again after a reconnect, and a `null` client is never skipped: a browser whose ack path broke stays `null`
+here) and `isOwedResync`. Its `broadcastBytesPerSec` counts the loop's tick broadcasts, the delta times the clients
+sent it (a skipped client counts none), plus every resync `game_state` (`TickRecord.resyncBytes`; a paused room's
+resync on an ack lands on the next tick). It does not count the off-tick frames, a debug step's closing frame and a
+`republishSnapshot` after a debug mutation (ticket #714).
+
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
 same `{ snapshot, balance }` that `game_state` sends a joining client. The handle has no second
@@ -45,7 +57,9 @@ its numbers are at the wire precision (architecture/wire-contract.md §4); the i
 whose `bbox` tests exact positions, `debug_get_player_progress`) and the answers of the debug mutations read the
 records at full precision (`EXACT_SNAPSHOT_VALUES`, #341).
 `patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
-at paths that exist, validated as a whole before anything is written. A derived constant is no path
+at paths that exist, validated as a whole before anything is written. A declared structure path is refused by
+name, saying where its numbers live: a `traits.TRAIT_CATALOG` patch is told that trait tier numbers live in
+`traits.TRAIT_TIERS`, which cannot be patched live yet (ticket #715; #150). A derived constant is no path
 (`DERIVED_BALANCE_CONSTANTS`, architecture/constants-files-tests.md §9): patch the leaves it comes from, e.g.
 `ENGULF_WRAP_SECONDS`, which moves the engulf's wrap band and base duration in play (#367).
 
