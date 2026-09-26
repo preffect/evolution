@@ -37,6 +37,15 @@ world; they need no capability):
 | `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`testing/bots-and-design-tables.md §8.3`)                                                                                                                                                                                                                             |
 | `debug_remove_bot(gameId, playerId)`                                                        | `removeBot(playerId)`; refuses a player the module did not spawn                                                                                                                                                                                                                                                                       |
 
+The generic tools (`debug_get_performance`, `debug_get_room_performance`, `debug_get_connections`, …) need no
+handle. `debug_get_room_performance` answers per room its `PerformanceTracker.getStats()` and, since #276,
+`snapshotFlow`, the snapshot flow control of architecture/wire-contract.md §4 (`SnapshotBacklog.telemetryFor`):
+`resyncCount` (resyncs the room has sent), `owedResyncCount` (players skipped now) and `players`, one entry per
+connected player with its `backlogTicks` (ticks in flight past its ack; `null` for a client that has never
+acknowledged, which is never skipped: a browser whose ack path broke shows here) and `isOwedResync`. Its
+`broadcastBytesPerSec` counts what was sent: the delta times the clients sent it (a skipped client counts none) plus
+every resync `game_state` (`TickRecord.resyncBytes`; a paused room's resync on an ack lands on the next tick).
+
 `debug_get_game_state` returns the template's `DebugContext.getRoomGameState(gameId)` inspector when
 the init step wired one, else `GameRoom.getFullState()`: the module's own `serializeFullState()`, the
 same `{ snapshot, balance }` that `game_state` sends a joining client. The handle has no second

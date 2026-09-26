@@ -136,6 +136,9 @@ every tick
     projected worst case.
   - A client that acknowledges nothing is never skipped (the headless bot client): silence is not
     evidence of a backlog.
+  - **It is observable** (#276): `debug_get_room_performance` reports each connected player's depth
+    (`null` while it has never acknowledged), who is owed a resync and how many were sent (`snapshotFlow`,
+    architecture/debug-mcp.md §8), and its `broadcastBytesPerSec` counts the resync `game_state`s.
   - **A paused room settles the resync on the acknowledgement** (#300). It makes no broadcast, so a `debug_step_room`
     burst deeper than the limit (no ack can arrive inside it: the step is synchronous) used to leave the client on
     the last delta it was sent, frozen at that tick plus the extrapolation cap until a resume. The ack that shows it
@@ -462,7 +465,8 @@ The levers left, cheapest first:
 Sending static motes in full would add ~50 KB per snapshot, which is
 why the delta is mandatory; sending bacteria as full `FoodMoteView`s instead of positions would add
 ~18 KB, which is why `moved` is a position list. `PerformanceTracker.snapshotBytes` is the
-measurement that confirms the estimate; #103 records it. Every row above is per snapshot at the
+measurement that confirms the estimate; #103 records it, and `broadcastBytesPerSec` adds the resync `game_state`s
+to it (#276). Every row above is per snapshot at the
 `SNAPSHOT_EVERY_TICKS` = 3 cadence the room broadcasts (#214); a room that broadcast every tick
 would send three times these bytes per second for the same snapshot size, which is what it did
 before #214 landed and what made a remote client run out of memory (#238).

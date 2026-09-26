@@ -2,9 +2,8 @@
 // broadcasts is resynced; while that `game_state` still waits in its queue behind older deltas, its acks stay near the
 // frozen tick, so the room used to skip it again and arm a second and a third full state. This drives a modelled slow
 // client against the real flow control and counts the resyncs sent while an earlier one was still unacknowledged.
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_BALANCE,
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_EVERY_TICKS,
   SnapshotAcknowledger,
@@ -12,9 +11,9 @@ import {
   createTestSessionConfig,
   gameId,
 } from '@evolution/shared';
-import type { GameSnapshot, PlayerId } from '@evolution/shared';
+import type { PlayerId } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
-import { createManualRoomTiming, createSpyGameModule, createTestConnection } from '../testing/builders.js';
+import { createManualRoomTiming, createTestConnection, createTickingGameModule } from '../testing/builders.js';
 
 /** #274's measured rates: the room broadcast 60.6 messages a second, the struggling client applied 34.8. */
 const CLIENT_DRAIN_PER_BROADCAST = 34.8 / 60.6;
@@ -26,16 +25,7 @@ interface SentMessage {
 }
 
 function tickingRoom() {
-  const module = createSpyGameModule();
-  let tick = 0;
-  module.serializeRoomState = vi.fn(() => {
-    tick += 1;
-    return { tick } as unknown as GameSnapshot;
-  });
-  module.serializeFullState = vi.fn(() => ({
-    snapshot: { tick } as unknown as GameSnapshot,
-    balance: DEFAULT_BALANCE,
-  }));
+  const module = createTickingGameModule();
   const sent: Record<string, unknown[]> = {};
   const timing = createManualRoomTiming();
   const room = new GameRoom(

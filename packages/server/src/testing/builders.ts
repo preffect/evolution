@@ -102,6 +102,21 @@ export function createSpyGameModule(): RoomGameModule & { players: Set<string> }
 
 export const spyGameModuleFactory: GameModuleFactory = () => createSpyGameModule();
 
+/** A spy module whose snapshots carry a tick, one per broadcast: what a client acknowledges and flow control reads. */
+export function createTickingGameModule(): RoomGameModule & { players: Set<string> } {
+  const module = createSpyGameModule();
+  let tick = 0;
+  module.serializeRoomState = vi.fn(() => {
+    tick += 1;
+    return { tick } as unknown as GameSnapshot;
+  });
+  module.serializeFullState = vi.fn(() => ({
+    snapshot: { tick } as unknown as GameSnapshot,
+    balance: DEFAULT_BALANCE,
+  }));
+  return module;
+}
+
 /** A spy module that also offers `handle` to the debug tools (the "supported" path of every game-specific tool). */
 export function createDebugCapableGameModule(handle: SimulationDebugHandle): RoomGameModule & { players: Set<string> } {
   return { ...createSpyGameModule(), getDebugHandle: () => handle };
