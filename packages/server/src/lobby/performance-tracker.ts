@@ -22,8 +22,9 @@ export interface TickRecord {
    */
   resyncBytes: number;
   /**
-   * Every `game_snapshot` sent off the loop's tick broadcasts since the previous tick, all clients together (#714): a
-   * debug step's closing frame and a republish after a debug mutation. A paused room's lands on the next tick it runs.
+   * Everything sent off the loop's tick broadcasts since the previous tick, all clients together (#714): a debug step's
+   * closing frame, a republish after a debug mutation, and the `game_state` of a start, late join or reconnect. A
+   * paused room's lands on the next tick it runs.
    */
   offTickBytes: number;
   /** Optional free-form counts a game may report (e.g. { entities: 12 }). */
@@ -142,9 +143,9 @@ export class PerformanceTracker {
     this.resyncBytesSinceLastTick += bytes;
   }
 
-  /** A `game_snapshot` sent off the tick record (#714): counted in the bandwidth of the next tick, like a resync. */
-  recordOffTickBroadcast(sent: SnapshotBroadcast): void {
-    this.offTickBytesSinceLastTick += sent.snapshotBytes * sent.broadcastClients;
+  /** Bytes sent off the tick record (#714), all clients together: counted in the bandwidth of the next tick, like a resync. */
+  recordOffTickBytes(bytes: number): void {
+    this.offTickBytesSinceLastTick += bytes;
   }
 
   /** A capped catch-up always runs `MAX_TICKS_PER_ADVANCE` ticks too, so drops never precede the first sample. */

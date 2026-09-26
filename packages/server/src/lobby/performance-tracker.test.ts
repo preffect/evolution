@@ -128,10 +128,10 @@ describe('PerformanceTracker', () => {
     expect(tracker.getStats().worstTick?.resyncBytes).toBe(firstResyncBytes + secondResyncBytes);
   });
 
-  it('#714: counts an off-tick broadcast, its delta times the clients sent it, in the next tick bandwidth, once', () => {
+  it('#714: counts the bytes sent off the tick record in the next tick bandwidth, once', () => {
     const tracker = new PerformanceTracker();
     const offTick = { snapshotBytes: 300, broadcastClients: 3 };
-    tracker.recordOffTickBroadcast(offTick);
+    tracker.recordOffTickBytes(offTick.snapshotBytes * offTick.broadcastClients);
     tracker.recordTick(tickOf(1, 0, 0));
     tracker.recordTick(tickOf(1, 0, 0));
     const offTickBytes = offTick.snapshotBytes * offTick.broadcastClients;

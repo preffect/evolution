@@ -7,7 +7,7 @@ import {
   type FixedStepAccumulator,
 } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
-import { broadcastMessage, sendMessage } from '../ws/connection.js';
+import { broadcastMessage } from '../ws/connection.js';
 import { NOTHING_BROADCAST, PerformanceTracker, tickRecordOf } from './performance-tracker.js';
 import { SnapshotBacklog } from './snapshot-backlog.js';
 import { SnapshotDispatch } from './snapshot-dispatch.js';
@@ -167,12 +167,17 @@ export class GameRoom {
     this.playerConnections.set(playerId, connection);
     this.game.addPlayer(playerId, avatarIndex, connection.playerName);
     this.enrol({ playerId, playerName: connection.playerName, avatarIndex });
-    sendMessage(connection, this.gameStateMessageFor(playerId));
+    this.sendGameState(connection);
   }
 
   /** The `game_state` that rebuilds `playerId`'s whole view (docs/architecture/wire-contract.md §4). */
   gameStateMessageFor(playerId: PlayerId): ServerMessage {
     return this.snapshotDispatch.gameStateMessageFor(playerId);
+  }
+
+  /** Sends that `game_state` on a start, late join or reconnect, counted in the room's bandwidth (#714). */
+  sendGameState(connection: Connection): void {
+    this.snapshotDispatch.sendGameState(connection);
   }
 
   removePlayer(playerId: string): void {

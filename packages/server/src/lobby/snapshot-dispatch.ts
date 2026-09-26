@@ -30,7 +30,7 @@ export interface SnapshotDispatchRoom {
   isPaused(): boolean;
 }
 
-/** One room's snapshot sending: every message that carries the world to a client goes out through here. */
+/** One room's snapshot sending: every message that carries the world to a client goes out through here, counted. */
 export class SnapshotDispatch {
   constructor(
     private readonly game: RoomGameModule,
@@ -47,7 +47,17 @@ export class SnapshotDispatch {
    * (docs/architecture/debug-mcp.md §8). No tick record is being measured, so its bytes land on the next one (#714).
    */
   broadcastOffTick(): void {
-    this.room.performanceTracker.recordOffTickBroadcast(this.broadcast());
+    const { snapshotBytes, broadcastClients } = this.broadcast();
+    this.room.performanceTracker.recordOffTickBytes(snapshotBytes * broadcastClients);
+  }
+
+  /**
+   * The `game_state` a start, late join or reconnect sends (docs/architecture/wire-contract.md §4). Not a resync: the
+   * backlog is the caller's to settle. Counted off the tick record, since no tick record is being measured (#714).
+   */
+  sendGameState(connection: Connection): void {
+    const message = this.gameStateMessageFor(connection.playerId as PlayerId);
+    this.room.performanceTracker.recordOffTickBytes(sendMessage(connection, message));
   }
 
   /**

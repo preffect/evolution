@@ -170,7 +170,7 @@ export class LobbyManager {
         isHost: playerId === options.creatorId,
         config: options.config,
       });
-      sendMessage(playerConnection, room.gameStateMessageFor(playerId));
+      room.sendGameState(playerConnection);
     }
   }
 
