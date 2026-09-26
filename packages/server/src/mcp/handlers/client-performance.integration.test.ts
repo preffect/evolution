@@ -20,12 +20,14 @@ import {
   startTestRoom,
   type LobbySocketHarness,
 } from '../../testing/socket-builders.js';
-import { messageOfType, nextMatchingMessage, type TestClient } from '../../testing/socket-messages.js';
+import { messageOfType, sendAndAwait, type TestClient } from '../../testing/socket-messages.js';
 import { untilRoomDecides } from '../../testing/wait-for.js';
 import type { GameRoom } from '../../lobby/game-room.js';
 
 const REPORTER_ID = 'reporter';
 const QUIET_ID = 'quiet';
+/** A frame the lobby answers with a `lobby_update`: the round trip that shows every earlier reply has arrived. */
+const RENAME = { type: CLIENT_MESSAGE_TYPE.updatePlayerInfo, playerName: REPORTER_ID, avatarIndex: 0 } as const;
 
 function sendReport(client: TestClient, report: unknown): void {
   client.socket.send(JSON.stringify({ type: CLIENT_MESSAGE_TYPE.clientPerformance, report }));
@@ -81,16 +83,21 @@ describe('a client_performance report over the wire (#256)', () => {
     expect(await readClientReports()).toEqual({ [REPORTER_ID]: second });
   });
 
-  it('refuses a report missing a render stage key, the frame an older client would send, and stores nothing', async () => {
-    const { reporter, readClientReports } = await roomWithTwoClients();
+  it('drops a report missing a render stage key, the frame an older client would send, without a reply', async () => {
+    const { reporter, room, readClientReports } = await roomWithTwoClients();
     const complete = createTestClientPerformanceReport();
     const stagesBeforeDish = Object.fromEntries(
       Object.entries(complete.renderStagesMs).filter(([stage]) => stage !== RENDER_STAGE.dish),
     );
     const firstIndex = reporter.received.length;
-    sendReport(reporter, { ...complete, renderStagesMs: stagesBeforeDish });
-    const refusal = await nextMatchingMessage(reporter, messageOfType(SERVER_MESSAGE_TYPE.error), firstIndex);
-    expect(refusal).toMatchObject({ message: expect.stringMatching(/^Invalid message/) });
-    expect(await readClientReports()).toEqual({});
+    sendReport(reporter, { ...complete, frameTimeP95Ms: 30, renderStagesMs: stagesBeforeDish });
+    // Two sentinels behind it. A valid report the room stores: the stale frame was handled first and stored nothing.
+    const sentinel = createTestClientPerformanceReport({ frameTimeP95Ms: 7 });
+    sendReport(reporter, sentinel);
+    await untilStored(room, sentinel.frameTimeP95Ms);
+    // A verb the server answers: both directions are in order, so a reply to the stale frame would arrive before it.
+    await sendAndAwait(reporter, RENAME, messageOfType(SERVER_MESSAGE_TYPE.lobbyUpdate));
+    expect(reporter.received.slice(firstIndex).filter(messageOfType(SERVER_MESSAGE_TYPE.error))).toEqual([]);
+    expect(await readClientReports()).toEqual({ [REPORTER_ID]: sentinel });
   });
 });
