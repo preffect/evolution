@@ -5,11 +5,14 @@
 // snapshot yet holds; a strategy that answers `null` holds. A close after the bot is seated
 // stops the tick, marks the stats disconnected and rejects whoever is waiting on a tick or a
 // snapshot, so a server that drops a bot mid-run fails the run instead of counting silent inputs.
+// It acknowledges what it receives through the browser's own `SnapshotAcknowledger` (docs/architecture/wire-contract.md
+// §4), so a bot takes the same flow-control path, and sends the same bytes, as a browser client (#721).
 // The session never reads the wall clock: the CLI hands it the system pair, a test a manual pair.
 
 import {
   CLIENT_MESSAGE_TYPE,
   SERVER_MESSAGE_TYPE,
+  SnapshotAcknowledger,
   createSimulationStepAccumulator,
   type FixedStepAccumulator,
   type GameInput,
@@ -62,6 +65,7 @@ interface JoinOutcome {
 export class BotSession {
   readonly playerId: PlayerId;
   private readonly accumulator: FixedStepAccumulator;
+  private readonly acknowledger: SnapshotAcknowledger;
   private latestSnapshot: GameSnapshot | undefined;
   private clientTick = 0;
   private snapshotsReceived = 0;
@@ -77,6 +81,9 @@ export class BotSession {
   constructor(private readonly options: BotSessionOptions) {
     this.playerId = options.identity.playerId;
     this.accumulator = createSimulationStepAccumulator(options.timing.clock);
+    this.acknowledger = new SnapshotAcknowledger((tick) =>
+      options.transport.send({ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick }),
+    );
     options.transport.onMessage((message) => this.onServerMessage(message));
     options.transport.onClose(() => this.onTransportClosed());
   }
@@ -145,12 +152,15 @@ export class BotSession {
       case SERVER_MESSAGE_TYPE.gameState:
         this.settleJoin();
         this.acceptSnapshot(message.snapshot);
+        // A full state puts the two in step: the room is waiting to hear it before it resumes deltas.
+        this.acknowledger.acknowledgeNow(message.snapshot.tick);
         break;
       case SERVER_MESSAGE_TYPE.gameStarted:
         this.settleJoin();
         break;
       case SERVER_MESSAGE_TYPE.gameSnapshot:
         this.acceptSnapshot(message.snapshot);
+        this.acknowledger.recordApplied(message.snapshot.tick);
         break;
       case SERVER_MESSAGE_TYPE.error:
         this.onServerError(message.message);
