@@ -12,7 +12,15 @@ import {
   RENDER_MAX_DRAW_CALLS,
   RENDER_P95_MIN_SAMPLE_FRAMES,
 } from '../constants';
-import { BENCH_REPORT_HEADING, benchReportHeading, benchReportHeadlines, publishBenchReport } from './bench-report-log';
+import {
+  BENCH_REPORT_HEADING,
+  GATE_FAILED,
+  GATE_PASSED,
+  benchReportHeading,
+  benchReportHeadlines,
+  publishBenchReport,
+} from './bench-report-log';
+import { benchGate } from './bench-gate';
 import type { RenderBenchReport } from './bench-session';
 import { GPU_TIMER_STATUS } from './gpu-timer';
 import type { BudgetVerdict } from './render-benchmark';
@@ -57,9 +65,12 @@ function reportWith(overrides: Partial<RenderBenchReport> = {}): RenderBenchRepo
     heapGrowthBytesPerFrame: 2048,
     gpuStatus: GPU_TIMER_STATUS.ok,
     verdict: VERDICT,
+    gate: benchGate(VERDICT, IS_ADVANCING, []),
     ...overrides,
   };
 }
+
+const IS_ADVANCING = true;
 
 function rowStartingWith(report: RenderBenchReport, label: string): string {
   return benchReportHeadlines(report).find((row) => row.startsWith(label)) ?? '';
@@ -77,6 +88,32 @@ describe('benchReportHeading', () => {
 });
 
 describe('benchReportHeadlines', () => {
+  it('leads with the gate: a judged, within-budget run that advanced is evidence', () => {
+    expect(benchReportHeadlines(reportWith())[0]).toBe(`gate       ${GATE_PASSED}`);
+  });
+
+  it('fails the gate on an unjudged row nobody expected, and says what the URL may name (#264)', () => {
+    const verdict: BudgetVerdict = { ...VERDICT, isFullyJudged: false, unjudged: ['gpu'] };
+    const failed = reportWith({ verdict, gate: benchGate(verdict, IS_ADVANCING, []) });
+    expect(rowStartingWith(failed, 'gate')).toBe(
+      `gate       ${GATE_FAILED} — unjudged and not expected: gpu (&expectUnjudged= names what may be)`,
+    );
+    const expected = reportWith({ verdict, gate: benchGate(verdict, IS_ADVANCING, ['gpu']) });
+    expect(rowStartingWith(expected, 'gate')).toBe(`gate       ${GATE_PASSED} (expected unjudged: gpu)`);
+  });
+
+  it('fails the gate on a parked or over-budget run, naming each reason', () => {
+    const verdict: BudgetVerdict = {
+      ...VERDICT,
+      isWithinBudget: false,
+      overruns: [{ name: 'frame', measured: 13, budget: 12 }],
+    };
+    const report = reportWith({ verdict, gate: benchGate(verdict, !IS_ADVANCING, []) });
+    expect(rowStartingWith(report, 'gate')).toBe(
+      `gate       ${GATE_FAILED} — over budget (see the verdict); parked on one tick (pass &advance=1)`,
+    );
+  });
+
   it('leads with a verdict that says every row was judged and none broke', () => {
     expect(rowStartingWith(reportWith(), 'verdict')).toBe(`verdict    ${WITHIN_BUDGET} on every judged row`);
   });
@@ -132,7 +169,7 @@ describe('benchReportHeadlines', () => {
     const stagesRow = rowStartingWith(report, 'stages p95');
     expect(RENDER_STAGE_NAMES.filter((stage) => !stagesRow.includes(`${stage} `))).toEqual([]);
     expect(stagesRow).toContain('net 0.00');
-    expect(stagesRow).toContain('submit 0.60');
+    expect(stagesRow).toContain('submit 0.70');
     expect(rowStartingWith(report, 'window')).toBe(
       'window     120 frames, 100 cells, 1400 motes, heap 2048 bytes/frame (a range over runs, never one)',
     );

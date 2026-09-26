@@ -16,6 +16,37 @@ function appWithGl() {
   return { app: { renderer: { gl: context } } as unknown as Application, context };
 }
 
+const FRAME_MS = 16;
+const NANOSECONDS_PER_MILLISECOND = 1_000_000;
+
+/** An app whose GL context has the timer extension; the n-th query resolves at once to `queryMs[n]`. */
+function appWithGpuTimer() {
+  const queryMs: number[] = [];
+  let created = 0;
+  const context = {
+    ...appWithGl().context,
+    getExtension: vi.fn(() =>
+      Object.fromEntries([
+        ['TIME_ELAPSED_EXT', 1],
+        ['GPU_DISJOINT_EXT', 2],
+      ]),
+    ),
+    getParameter: () => false,
+    createQuery: () => ({ index: created++ }),
+    beginQuery: vi.fn(),
+    endQuery: vi.fn(),
+    getQueryParameter: (query: { index: number }, name: string) =>
+      name === 'available' ? true : (queryMs[query.index] ?? 0) * NANOSECONDS_PER_MILLISECOND,
+    deleteQuery: vi.fn(),
+    // The GL enum names, built by name as gpu-timer.spec.ts does: the WebGL API's, not ours.
+    ...Object.fromEntries([
+      ['QUERY_RESULT_AVAILABLE', 'available'],
+      ['QUERY_RESULT', 'result'],
+    ]),
+  };
+  return { app: { renderer: { gl: context } } as unknown as Application, queryMs };
+}
+
 describe('FrameInstrumentation', () => {
   it('counts the draw calls of the last submit and builds the report with every stage key', () => {
     const clock = new ManualClock(0);
@@ -51,6 +82,24 @@ describe('FrameInstrumentation', () => {
     const report = instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null);
     expect(report).toMatchObject({ drawCalls: 0, gpuMs: null, heapMb: null });
     expect(instrumentation.gpuStatus).toBe(GPU_TIMER_STATUS.unsupported);
+  });
+
+  it('opens the window on the GPU timer: a warm-up compile stall neither lands in `gpuMs` nor blanks it (#264)', () => {
+    const clock = new ManualClock(0);
+    const instrumentation = new FrameInstrumentation(clock);
+    const { app, queryMs } = appWithGpuTimer();
+    instrumentation.attach(app);
+    const frameTaking = (gpuMs: number): void => {
+      queryMs.push(gpuMs);
+      instrumentation.submit(() => clock.advanceMilliseconds(FRAME_MS));
+    };
+    frameTaking(1);
+    frameTaking(FRAME_MS * 50);
+    instrumentation.openWindow();
+    frameTaking(2);
+    frameTaking(3);
+    expect(instrumentation.report({ visibleCells: 0, visibleMotes: 0 }, null).gpuMs).toBeCloseTo(2.95, 9);
+    expect(instrumentation.gpuStatus).toBe(GPU_TIMER_STATUS.ok);
   });
 
   it('wraps a context once however often it is attached, and unwraps it on destroy', () => {

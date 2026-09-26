@@ -92,25 +92,25 @@ class: a new assumption stated here, not traced to any doc). The load is stated 
 | baseline    | 8 (one per player)            | 1 400 (`FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER`) | 110           | `architecture/client.md §6` populations at 8 players, ecology/food-and-spawn.md §3 |
 | bench scene | `RENDER_BENCH_CELL_COUNT` 100 | `RENDER_BENCH_MOTE_COUNT` 1 400                   | 110           | this doc: the superset, same motes and fragments as the baseline                   |
 
-Budget per stage (ms, p95) at the bench load. The seven `renderStagesMs` keys are the CPU stages
+Budget per stage (ms, p95) at the bench load. The eight `renderStagesMs` keys are the CPU stages
 `render/bench/render-stage-timer.ts` brackets; the three rows below them are not keys:
 
-| `renderStagesMs` key                                | Budget | `renderStagesMs` key                            | Budget |
-| --------------------------------------------------- | ------ | ----------------------------------------------- | ------ |
-| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites (i)          | 0.3    |
-| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` (i) | 0.1    |
-| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)               | 1.0    |
-| `food` mote and fragment updates (i)                | 0.6    |                                                 |        |
+| `renderStagesMs` key                                | Budget | `renderStagesMs` key                             | Budget |
+| --------------------------------------------------- | ------ | ------------------------------------------------ | ------ |
+| `net` snapshot apply + interpolation                | 1.0    | `effects` clips and effect sprites (i)           | 0.3    |
+| `cells` registry diff, shape terms, instance buffer | 1.2    | `camera` follow, zoom, cull, `cameraExtent` (i)  | 0.1    |
+| `organelles` slots, lag, mapping (≤ 1 200 sprites)  | 1.0    | `submit` Pixi render (≤ 17 calls)                | 1.0    |
+| `food` mote and fragment updates (i)                | 0.6    | `dish` depth particles, light-pool placement (i) | 0.4    |
 
 **(i) informational** (ruling on ticket #470): a stage budget under **1** ms (`RENDER_JUDGED_STAGE_BUDGET_MIN_MS`) is
 below what any consumer browser's clock resolves, so the verdict reports its p95 and never judges it; the frame p95
 and the draw calls carry the frame. A number nobody can measure outside a lab raises no line.
 
-| Not a key                                    | Budget | What it is                                                                                             |
-| -------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
-| `gpuMs` (its own field)                      | 4.0    | GPU timer query; `null` whenever the number is unavailable or implausible (below), and then not judged |
-| HUD (Angular and the dish, inside the frame) | 1.0    | the residual the timer measures per frame as `frame − Σ its top-level brackets`, reported at p95       |
-| headroom                                     | 1.8    | 12 − Σ keys (5.2) − `gpuMs` − HUD; a number in this table, never a field                               |
+| Not a key                       | Budget | What it is                                                                                             |
+| ------------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| `gpuMs` (its own field)         | 4.0    | GPU timer query; `null` whenever the number is unavailable or implausible (below), and then not judged |
+| HUD (Angular, inside the frame) | 1.0    | the residual the timer measures per frame as `frame − Σ its top-level brackets`, reported at p95       |
+| headroom                        | 1.4    | 12 − Σ keys (5.6) − `gpuMs` − HUD; a number in this table, never a field                               |
 
 **Measurement.** `ClientPerformanceReport` (`shared/types/messages.ts`) carries the fields below and the server's
 `clientPerformance` schema accepts them, so the server stays game-agnostic. The key list lives beside the type, the
@@ -149,7 +149,7 @@ export interface ClientPerformanceReport {
 **How the numbers are taken** (`render/bench/`, #208). `render-stage-timer.ts` is the injected `StageMeasurer` the
 renderer and the cell layer bracket their stages with, on the injected wall `Clock`, a `RENDER_SAMPLE_CAPACITY_FRAMES`
 ring per stage and per frame; a stage measured inside another (`organelles` inside `cells`) is taken out of the outer
-sample, so the seven keys add up without double counting, and work done outside the frame is `accrue`d to its stage's
+sample, so the eight keys add up without double counting, and work done outside the frame is `accrue`d to its stage's
 next sample: the session charges a snapshot applied on arrival to `net` and measures the frame's interpolation as
 `net`; the renderer accrues the effects' start (before the cell sync) to `effects`. `frame-instrumentation.ts` is what
 both sessions wrap around a frame: the timer, `draw-call-counter.ts` (the four GL draw entry points of the app's
@@ -163,8 +163,12 @@ report every `RENDER_REPORT_EVERY_FRAMES` frames. Every budget and bench number 
 section and §6 back and pins the constants to them.
 
 The `camera` key is the camera and nothing else — follow, zoom, cull, `cameraExtent`, the world transform. The dish
-(the depth-particle walk, the light-pool placement) is **not** a stage: it runs unbracketed inside the frame and so
-lands in the HUD residual row, together with Angular's HUD. The cell views every later stage reads (`cellsById`, the
+(the depth-particle walk, the light-pool placement) is **its own key**, `dish` (ticket #264): until then it ran
+unbracketed and landed in the HUD residual, and the bench route, which draws no HUD, reported a residual that was
+almost all dish and judged it against Angular's budget (2.10 and 1.92 ms on a box about 5× slow). Its **0.4** ms is
+that figure scaled to hardware, taken from the headroom (1.8 → 1.4); it is informational, so the hardware run reports
+it and says whether 0.4 holds. The HUD row is now Angular and the browser alone, and on the bench route, which has
+no HUD, it should read near zero. The cell views every later stage reads (`cellsById`, the
 own cell, the last-view lookup) are accrued to `cells`, the stage that consumes them, so no per-frame work sits
 outside every key.
 
@@ -181,7 +185,11 @@ applied (`unjudged` names every row the evidence could not judge; `isFullyJudged
 - **`gpuMs` is a measurement or it is `null`.** Each query is checked against the wall clock between the two submits
   it brackets: in steady state a frame's GPU time cannot exceed its frame period, so a sample above
   `RENDER_GPU_SAMPLE_MAX_FRAME_RATIO` (**2×**) that period is not a measurement. The timer drops it, stops trusting
-  that context and reports `gpuMs: null`. The bench report's `gpuStatus` says which of the four cases holds: `ok`,
+  that context for the rest of the window and reports `gpuMs: null`. The bench **opens the window when its warm-up
+  ends** (`FrameInstrumentation.openWindow`, ticket #264): the samples and the implausible count start over, and
+  every query still in flight, all of them warm-up submits, is recycled unread, so a shader-compile stall in the
+  warm-up neither lands in `gpuMs` nor blanks it. A live room never reopens it: there, one implausible sample
+  distrusts the context for the session. The bench report's `gpuStatus` says which of the four cases holds: `ok`,
   `unsupported` (no `EXT_disjoint_timer_query_webgl2` — SwiftShader, most mobile GPUs, and desktop Chrome unless the
   extension is exposed), `pending` (no query has resolved yet) or `implausible`. A `null` is never an overrun: the
   verdict lists `gpu` as unjudged instead. The disjoint flag is read once a frame (reading it clears it) and drops
@@ -189,7 +197,7 @@ applied (`unjudged` names every row the evidence could not judge; `isFullyJudged
 - **The HUD residual is measured, not subtracted.** The timer records, per frame, `frame − Σ its top-level brackets`,
   and the verdict judges the p95 of that against the HUD budget, so the row can fail. The old subtraction
   `frameTimeP95Ms − Σ renderStagesMs` is still reported as `derivedResidualMs`, signed and never judged: it goes
-  negative because a sum of seven independent p95s is not the p95 of their sum, and because work accrued from outside
+  negative because a sum of eight independent p95s is not the p95 of their sum, and because work accrued from outside
   a frame (a snapshot applied on arrival) is charged to a stage without ever being inside the frame bracket.
 - **A CPU-clock row needs a clock that resolves it** (ticket #504). Browsers quantise `performance.now()` unless the
   page is cross-origin isolated: 1 ms in Firefox, 0.1 ms plus jitter in Chrome, so a stage p95 read off such a clock
@@ -224,13 +232,13 @@ absorbed and respawned on a cadence (player cells, ticket #501: an absorb names 
 return is a `respawn` effect, which a wild seat's is not), eats and level-ups scheduled by `bench-effects.ts`; motes by the eukaryote-era
 shares with the bacteria on a tick-driven walk, fragments drifting, `bench-food.ts`), all from the
 `cosmetic:bench` fork of the seed, fed through the real `WorldStore` by a `ManualClock` (`bench-driver.ts`,
-snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1][&cues=1]`
+snapshots at `SNAPSHOT_EVERY_TICKS`); the dev-only route `/?bench=<seed>&tick=<n>&zoom=<z>[&window=<frames>][&advance=1][&preserve=1][&cues=1][&expectUnjudged=<rows>]`
 (`render-bench.component.ts` behind the `IS_BENCH_ROUTE` token and loaded on demand, absent from a production build, architecture/client.md §6; `bench-session.ts` the engine) renders it,
 parked at tick `n` and re-rendered every frame at `zoom` px/wu in a fixed 1920 × 1080 canvas, and after
 `RENDER_BENCH_WARMUP_FRAMES` + `RENDER_BENCH_REPORT_FRAMES` frames (`window=` shortens the report window where a
 software GPU renders a frame in seconds; the smoke passes 24) publishes the **bench report** to both sinks above —
 the console block leads with the verdict, then the frame, GPU and HUD rows against their budgets, the draw calls,
-the seven stages and the window, and a quantile row prints its window instead of a verdict wherever
+the eight stages and the window, and a quantile row prints its window instead of a verdict wherever
 `isP95Estimable` is false, so no number quoted from it comes from a window too short to hold one — and
 `data-testid="render-bench-report"`: the wire report plus `seed`, `tick`, `zoom`, `frames`, the `verdict`, and
 `heapGrowthBytesPerFrame` (the heap growth over the window after a forced collection, through Chrome's
@@ -241,7 +249,7 @@ two fresh loads of the same `seed`, `tick` and `zoom` draw identical pixels — 
 and the draw-call ceiling at two zoom bands; never an absolute time, the box's load decides those). Fresh-load
 determinism is the claim the route supports: a page walked to a tick and a page loaded at it are **not** the same
 frame, because effects due at that tick have already drained on the walked page. The numbers in a PR body come from a
-hardware run of the same route, with the machine's load stated.
+hardware run of the same route, with the machine's load stated, and pass its gate (§7.3).
 
 ### 7.1 The encyclopedia preview (#363)
 
@@ -389,3 +397,38 @@ ticket #470's hardware run is what says whether anything of it is left to chase.
 **The bytes did not move.** `noise-tile.spec.ts` and `radial-bake.spec.ts` pin FNV-1a digests of the production
 bakes, taken from the implementations these replaced, so the mottle and the vignette are byte for byte what every
 screenshot and every pixel-determinism check already shows.
+
+### 7.3 The hardware run (#264)
+
+The verdict's `isWithinBudget` covers only the rows it could judge, so on its own a run with no GPU timer reads as a
+pass. The bench report therefore carries a **`gate`** (`bench/bench-gate.ts`), and its row leads the console
+block. It passes only when all three hold:
+
+| Condition                         | Why                                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `verdict.isWithinBudget`          | no judged row broke its budget                                                                     |
+| every `unjudged` row was expected | `expectUnjudged=<rows>` names them up front, in the URL; an unexpected unjudged row fails the gate |
+| `advance=1`                       | a parked window measures the interpolation half of `net` only, so a parked run is never evidence   |
+
+`expectUnjudged` takes row names separated by commas: the stage keys and `frame`, `gpu`, `hud`, `drawCalls`. An
+unknown name is dropped, which can only fail the gate, never pass it. Name a row only when the machine cannot
+measure it and the PR says why. Typically that is `gpu` on a browser without `EXT_disjoint_timer_query_webgl2`.
+Without the flag, the gate is `isFullyJudged` itself.
+
+**The URL.** Serve a dev build (`./run.sh`), open devtools, then load the page at 1080p, `devicePixelRatio` 1:
+
+```text
+/?bench=42&tick=120&zoom=1&advance=1
+/?bench=42&tick=120&zoom=1&advance=1&cues=1
+```
+
+The default window is `RENDER_BENCH_REPORT_FRAMES` (240) after `RENDER_BENCH_WARMUP_FRAMES` (30). Never shorten it
+with `window=` for evidence. Take one run at each evidence zoom (`zoom=1.8`, `1`, `0.36`, visual-style/performance-and-checklist.md §9).
+Whether the browser exposes `EXT_disjoint_timer_query_webgl2` depends on the browser, its version and the GPU;
+`gpuStatus` says `unsupported` where it does not. Then the gate names `gpu`, and the run either passes
+`expectUnjudged=gpu` and says so in the PR, or moves to a browser that has the extension. A clock coarser than a tenth of a budget leaves its CPU rows unjudged too (§7, "Reading a
+report"), so a hardware run is taken on Chrome, whose 0.1 ms step judges every row of 1 ms or more.
+
+**What the PR quotes:** the gate row, the machine (CPU, GPU, OS, browser and version), its load, and from the
+report `frameTimeP95Ms`, `gpuMs`, the `hud` residual, `drawCalls`, every `renderStagesMs` key (the informational ones
+too: `dish`'s 0.4 is provisional until this run), `sampleCount` and `isTickAdvancing`.
