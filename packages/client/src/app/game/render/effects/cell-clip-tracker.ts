@@ -1,11 +1,19 @@
 // Which clips each cell is playing (docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1): one `MotionClipPlayer` per cell,
 // started from the frame's effects (`cells/cell-effects.ts` names the clip and the mote angle),
 // sampled into the frame's `CellDeformations` through `cells/cell-clips.ts` together with the
-// engulf terms read off the views (`engulfProgress`, never the clock). The cell layer merges the
-// result with its contact dents and ghost seals; a cell with nothing playing gets no entry and rests.
+// engulf terms read off the views (`engulfProgress` remapped onto the clip at the room's seal, never the clock).
+// The cell layer merges the result with its contact dents and ghost seals; a cell with nothing playing gets no
+// entry and rests.
 
-import { MOTION_CLIP, MOTION_CLIPS, type CellView, type EntityId } from '@evolution/shared';
-import { clipDeformation, type CellClipInput } from '../cells/cell-clips';
+import {
+  MOTION_CLIP,
+  MOTION_CLIPS,
+  engulfSealProgress,
+  type CellView,
+  type EngulfPhaseSeconds,
+  type EntityId,
+} from '@evolution/shared';
+import { clipDeformation, engulfClipPosition, type CellClipInput } from '../cells/cell-clips';
 import type { CellDeformation, CellDeformations } from '../cells/cell-deformation';
 import type { CellClipStart } from '../cells/cell-effects';
 import { MotionClipPlayer } from './motion-clip-player';
@@ -18,14 +26,22 @@ interface CellClipState {
 
 export type CellViewsById = ReadonlyMap<EntityId, CellView>;
 
-/** The engulf terms of a predator: the angle to its prey and the prey's progress; rest when it is not engulfing. */
+/**
+ * The engulf terms of a predator: the angle to its prey and where the prey's progress falls on the clip at the room's
+ * seal (`absorption` is the live balance's, so a patched phase second moves the arms with the HUD); rest when it is
+ * not engulfing.
+ */
 export function engulfClipInput(
   cell: CellView,
   cellsById: CellViewsById,
-): Pick<CellClipInput, 'preyAngle' | 'engulfProgress'> {
+  absorption: EngulfPhaseSeconds,
+): Pick<CellClipInput, 'preyAngle' | 'engulfClipPosition'> {
   const prey = cell.engulfingCellId === null ? undefined : cellsById.get(cell.engulfingCellId);
-  if (prey === undefined) return { preyAngle: null, engulfProgress: null };
-  return { preyAngle: Math.atan2(prey.y - cell.y, prey.x - cell.x), engulfProgress: prey.engulfProgress };
+  if (prey === undefined) return { preyAngle: null, engulfClipPosition: null };
+  return {
+    preyAngle: Math.atan2(prey.y - cell.y, prey.x - cell.x),
+    engulfClipPosition: engulfClipPosition(prey.engulfProgress, engulfSealProgress(absorption)),
+  };
 }
 
 export function cellsById(cells: readonly CellView[]): CellViewsById {
@@ -57,13 +73,14 @@ export class CellClipTracker {
 
   private deformationOf(
     cell: CellView,
-    state: CellClipState | undefined,
     views: CellViewsById,
     nowMs: number,
+    absorption: EngulfPhaseSeconds,
   ): CellDeformation | null {
+    const state = this.states.get(cell.id);
     const tracks = state?.player.sample(nowMs) ?? {};
     const isEating = state?.player.isPlaying(MOTION_CLIP.eat, nowMs) ?? false;
-    const engulf = engulfClipInput(cell, views);
+    const engulf = engulfClipInput(cell, views, absorption);
     if (Object.keys(tracks).length === 0 && engulf.preyAngle === null) return null;
     return clipDeformation({
       tracks,
@@ -75,13 +92,19 @@ export class CellClipTracker {
 
   /**
    * This frame's deformation per cell that is playing a clip or engulfing; states of cells no longer in
-   * the frame are dropped. `views` is the frame's cells by id (the renderer builds it once per frame).
+   * the frame are dropped. `absorption` is the frame's balance (the engulf seal); `views` is the frame's cells by id
+   * (the renderer builds it once per frame).
    */
-  deformations(cells: readonly CellView[], nowMs: number, views: CellViewsById = cellsById(cells)): CellDeformations {
+  deformations(
+    cells: readonly CellView[],
+    nowMs: number,
+    absorption: EngulfPhaseSeconds,
+    views: CellViewsById = cellsById(cells),
+  ): CellDeformations {
     for (const cellId of this.states.keys()) if (!views.has(cellId)) this.states.delete(cellId);
     const deformations = new Map<EntityId, CellDeformation>();
     for (const cell of cells) {
-      const deformation = this.deformationOf(cell, this.states.get(cell.id), views, nowMs);
+      const deformation = this.deformationOf(cell, views, nowMs, absorption);
       if (deformation !== null) deformations.set(cell.id, deformation);
     }
     return deformations;

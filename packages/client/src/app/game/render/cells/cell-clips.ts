@@ -1,10 +1,10 @@
 // The clip hooks (docs/rendering/contents-and-motion.md §4, docs/rendering/cells.md §2.1): sampling a sheet-03 clip's tracks at a position,
 // and turning the tracks a cell is playing into its `CellDeformation` — the eat dimple and wrap at
-// the mote, the engulf arms, notch and seal at the prey (from `engulfProgress`, never the clock),
+// the mote, the engulf arms, notch and seal at the prey (from `engulfProgress` remapped onto the clip, never the clock),
 // the predator's seal relaxing from the ghost's `absorbed` clip, the pulse of level-up / respawn /
 // eat and the respawn alpha. Pure; slice C (#207) owns the player that decides which clips run.
 
-import { MOTION_CLIPS, sampleTrack, type MotionClip, type MotionClipId } from '@evolution/shared';
+import { ENGULF_CLIP_SEAL_AT, MOTION_CLIPS, sampleTrack, type MotionClip, type MotionClipId } from '@evolution/shared';
 import {
   EAT_DIMPLE_SIGMA_DEG,
   EAT_WRAP_SIGMA_DEG,
@@ -29,8 +29,8 @@ export interface CellClipInput {
   readonly moteAngle: number | null;
   /** Where the engulfed prey is; `null` when the cell is not engulfing. */
   readonly preyAngle: number | null;
-  /** The prey's `engulfProgress`; `null` when the cell is not engulfing. */
-  readonly engulfProgress: number | null;
+  /** Where on the `engulf` clip the prey's progress falls (`engulfClipPosition`); `null` when the cell is not engulfing. */
+  readonly engulfClipPosition: number | null;
   /** The `absorbed` clip's `seal` from the ghost this cell just absorbed; `null` otherwise. */
   readonly absorbedSeal: number | null;
 }
@@ -39,7 +39,7 @@ export const REST_CLIP_INPUT: CellClipInput = {
   tracks: {},
   moteAngle: null,
   preyAngle: null,
-  engulfProgress: null,
+  engulfClipPosition: null,
   absorbedSeal: null,
 };
 
@@ -51,6 +51,9 @@ const NOTCH_SIGMA = degreesToRadians(ENGULF_NOTCH_SIGMA_DEG);
 const SEAL_SIGMA = degreesToRadians(ENGULF_SEAL_SIGMA_DEG);
 const REST_PULSE = 1;
 const FULL_ALPHA = 1;
+const ENGULF_CLIP = MOTION_CLIPS.engulf;
+/** `engulfProgress` at the payout. */
+const COMPLETE_PROGRESS = 1;
 
 /** Every track of `clip` at `position` (ms or progress, per the clip's domain). */
 export function sampleClipTracks(clip: MotionClip, position: number): ClipTrackValues {
@@ -71,10 +74,23 @@ function eatBumps(input: CellClipInput): ShapeBump[] {
   return [bump(dimple, input.moteAngle, EAT_DIMPLE_SIGMA), bump(wrap, input.moteAngle, EAT_WRAP_SIGMA)];
 }
 
-/** The arms at ±30°, the notch and the seal at the prey angle, from `engulfProgress` (visual-style/motion-and-legibility.md §5). */
+/**
+ * Where on the `engulf` clip a prey's `engulfProgress` falls (docs/rendering/contents-and-motion.md §4, ticket #703):
+ * piecewise linear, sending the room's `engulfSealProgress` to `ENGULF_CLIP_SEAL_AT`, so the arms peak and the seal
+ * starts where the simulation seals even under a patched phase second. The identity at the default seal of 0.5.
+ */
+export function engulfClipPosition(engulfProgress: number, sealProgress: number): number {
+  if (engulfProgress < sealProgress) return (engulfProgress / sealProgress) * ENGULF_CLIP_SEAL_AT;
+  const absorbBandWidth = COMPLETE_PROGRESS - sealProgress;
+  if (absorbBandWidth <= 0) return ENGULF_CLIP.duration;
+  const absorbShare = (engulfProgress - sealProgress) / absorbBandWidth;
+  return ENGULF_CLIP_SEAL_AT + absorbShare * (ENGULF_CLIP.duration - ENGULF_CLIP_SEAL_AT);
+}
+
+/** The arms at ±30°, the notch and the seal at the prey angle, from the clip position (visual-style/motion-and-legibility.md §5). */
 function engulfBumps(input: CellClipInput): ShapeBump[] {
-  if (input.preyAngle === null || input.engulfProgress === null) return [];
-  const tracks = sampleClipTracks(MOTION_CLIPS.engulf, input.engulfProgress);
+  if (input.preyAngle === null || input.engulfClipPosition === null) return [];
+  const tracks = sampleClipTracks(ENGULF_CLIP, input.engulfClipPosition);
   const arm = tracks['arm'] ?? 0;
   return [
     bump(arm, input.preyAngle + ARM_OFFSET, ARM_SIGMA),
@@ -99,7 +115,7 @@ export function clipDeformation(input: CellClipInput): CellDeformation {
     pulse: input.tracks['pulse'] ?? REST_PULSE,
     alpha: input.tracks['alpha'] ?? FULL_ALPHA,
   };
-  return input.preyAngle === null || input.engulfProgress === null
+  return input.preyAngle === null || input.engulfClipPosition === null
     ? deformation
     : { ...deformation, preyAngle: input.preyAngle };
 }
@@ -156,14 +172,14 @@ export const UNAIMED_CLIP_CONTEXT: ClipPeakContext = { moteAngle: null, preyAngl
  * the seal at their widest sum (ticket #364's two-cell scenes frame their lens by it).
  *
  * Its own walk rather than `clipDeformationPeak(MOTION_CLIP.engulf, …)`: the engulf is the one clip driven by
- * progress instead of the clock, so `engulfBumps` samples `MOTION_CLIPS.engulf` at `input.engulfProgress` and
+ * progress instead of the clock, so `engulfBumps` samples `MOTION_CLIPS.engulf` at `input.engulfClipPosition` and
  * reads nothing from `tracks`. Fed through the clock walk it would report a round cell.
  */
 export function engulfDeformationPeak(): ClipDeformationPeak {
   return peakOverWalk((share) => ({
     ...REST_CLIP_INPUT,
     preyAngle: ENGULF_PEAK_PREY_ANGLE,
-    engulfProgress: share * MOTION_CLIPS.engulf.duration,
+    engulfClipPosition: share * ENGULF_CLIP.duration,
   }));
 }
 

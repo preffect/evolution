@@ -66,7 +66,13 @@ const EAT_EASE: readonly EasingName[] = [
   EASING.easeInOutSine,
   EASING.linear,
 ];
-const ENGULF_AT = [0, 0.5, 1.0] as const;
+/**
+ * Where the `engulf` clip's arms peak and its seal starts: the clip's progress at the simulation's seal. The clip is
+ * sampled at `engulfProgress` remapped so the room's `engulfSealProgress` lands here (ticket #703), so a patched phase
+ * second moves the arms and the seal with the HUD's escape arc.
+ */
+export const ENGULF_CLIP_SEAL_AT = 0.5;
+const ENGULF_AT = [0, ENGULF_CLIP_SEAL_AT, 1.0] as const;
 const ENGULF_EASE: readonly EasingName[] = [EASING.easeOutCubic, EASING.easeInOutQuad, EASING.linear];
 const ABSORBED_AT = [0, 200, 400, 600] as const;
 const ABSORBED_EASE: readonly EasingName[] = [EASING.linear, EASING.easeInQuad, EASING.easeOutBack, EASING.linear];
