@@ -4,7 +4,13 @@
 // swallowed prey's toxin as the dose alone, never by contact as well.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_INTERVAL_S, type EntityId } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
+  TICK_INTERVAL_S,
+  type EntityId,
+} from '@evolution/shared';
 import { createEngulfFixture, type EngulfFixture } from '../../testing/engulf-builders.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { requirePlayer } from '../world/lookups.js';
@@ -18,8 +24,8 @@ const SPINE_TRAIT = 'diatom_shell';
 const toxinFraction = DEFAULT_BALANCE.traits.TRAIT_TIERS[TOXIN_TRAIT][0]!.toxinDrainFractionPerSecond!;
 const spikeFraction = DEFAULT_BALANCE.traits.TRAIT_TIERS[SPINE_TRAIT][0]!.spikeDrainFractionPerSecond!;
 /** Inside the cover band, and inside the wrap band. */
-const COVER_PROGRESS = absorption.ENGULF_WRAP_START_PROGRESS / 2;
-const WRAP_PROGRESS = (absorption.ENGULF_WRAP_START_PROGRESS + absorption.ENGULF_SEAL_PROGRESS) / 2;
+const COVER_PROGRESS = ENGULF_WRAP_START_PROGRESS / 2;
+const WRAP_PROGRESS = (ENGULF_WRAP_START_PROGRESS + ENGULF_SEAL_PROGRESS) / 2;
 /** A prey heavier than the builder's 20, so a dose read off the predator's 100 or the wrong cell shows. */
 const PREY_MASS = 60;
 /** Digits for a fraction the test computes the same way the code does, and for a mass after one tick. */

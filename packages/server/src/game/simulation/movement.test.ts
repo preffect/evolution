@@ -1,6 +1,14 @@
 // docs/ecology/mass-and-movement.md §5.2 (E6, E8), docs/game-design/controls-and-scope.md §6, §8 (G4–G6) and docs/traits/constants-and-acceptance.md §6 (T2).
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, gelSpeedFactor, radiusForMass, TICK_INTERVAL_S, type Vec2 } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
+  TICK_INTERVAL_S,
+  gelSpeedFactor,
+  radiusForMass,
+  type Vec2,
+} from '@evolution/shared';
 import { BROTH_POINT } from '../../testing/gameplay/placement.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
@@ -166,7 +174,7 @@ const CLAMP_TOLERANCE_WU = 1e-9;
 function carriedPair(): EngulfFixture {
   const fixture = createEngulfFixture();
   beginEngulf(fixture);
-  fixture.prey.engulfProgress = DEFAULT_BALANCE.absorption.ENGULF_SEAL_PROGRESS;
+  fixture.prey.engulfProgress = ENGULF_SEAL_PROGRESS;
   sealEngulf(fixture);
   return fixture;
 }
@@ -187,23 +195,23 @@ describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs
   it('slows the predator before the seal and frees it after (E9b)', () => {
     const { world, predator, prey } = engulfingPair();
     expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
-    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    prey.engulfProgress = ENGULF_SEAL_PROGRESS;
     expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED);
   });
 
   it('grabs the prey mildly in cover, holds it in wrap and stops it once sealed (E11, E11b, #634)', () => {
     const { world, prey } = engulfingPair();
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_COVER);
-    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    prey.engulfProgress = ENGULF_WRAP_START_PROGRESS;
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
-    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    prey.engulfProgress = ENGULF_SEAL_PROGRESS;
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBe(0);
   });
 
   it('multiplies both halves for a cell that is predator and prey at once (a chain)', () => {
     const { world, predator, prey } = engulfingPair();
     beginEngulf({ predator: prey, prey: predator });
-    prey.engulfProgress = absorption.ENGULF_WRAP_START_PROGRESS;
+    prey.engulfProgress = ENGULF_WRAP_START_PROGRESS;
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBeCloseTo(
       absorption.ENGULF_PREY_SPEED_FACTOR * absorption.ENGULF_PREDATOR_SPEED_FACTOR,
       12,
@@ -212,7 +220,7 @@ describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs
 
   it('carries a sealed prey at its offset with the predator velocity, not the kernel (E11b)', () => {
     const { world, predator, prey } = engulfingPair();
-    prey.engulfProgress = absorption.ENGULF_SEAL_PROGRESS;
+    prey.engulfProgress = ENGULF_SEAL_PROGRESS;
     sealEngulf({ predator, prey });
     predator.targetX = predator.x - predator.radius * TARGET_RADII;
     prey.targetX = prey.x + prey.radius * TARGET_RADII;

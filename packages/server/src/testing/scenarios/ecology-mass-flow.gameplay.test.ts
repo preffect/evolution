@@ -10,6 +10,7 @@ import {
   DEFAULT_BALANCE,
   DNA_TAG,
   EFFECT_KIND,
+  ENGULF_WRAP_START_PROGRESS,
   FOOD_KIND,
   TICK_INTERVAL_S,
   TRAIT_TIERS,
@@ -222,7 +223,7 @@ describe('docs/ecology/acceptance.md §8 E17: the mass flow explains every tick 
     )
       .expect('the engulf is still in cover', (view) => cellOf(view, 1)?.engulfProgress)
       .atTick(SPINY.inCoverTick)
-      .toBeLessThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeLessThan(ENGULF_WRAP_START_PROGRESS)
       .expect('a swallowed rate in cover, never counted as toxin', (view) => {
         const rates = massFlowOf(view, 0)?.ratesPerSecond;
         return rates !== undefined && (rates.swallowed ?? 0) < 0 && rates.toxin === undefined;

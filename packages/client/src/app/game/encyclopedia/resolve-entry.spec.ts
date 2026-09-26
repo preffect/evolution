@@ -3,7 +3,13 @@
 // tier table; the derived links match the balance's catalog; groups and see-also are derived, never written.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, ENTITY_KIND, TRAIT_CATEGORY, type BalanceConfig } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  ENGULF_BASE_DURATION_SECONDS,
+  ENTITY_KIND,
+  TRAIT_CATEGORY,
+  type BalanceConfig,
+} from '@evolution/shared';
 import { buildEntryDefinitions } from './build-entries';
 import { factContextFor } from './encyclopedia-context';
 import { DERIVED_LINK, derivedLinkTargets } from './facts/derived-links';
@@ -48,21 +54,19 @@ describe('resolveEntry over a patched balance', () => {
     expect(dosed.summary.some((segment) => segment.kind === 'value' && segment.text === '4×')).toBe(true);
   });
 
-  it('reads the engulf phase times from the span the engulf runs on: they follow the seal and sum to the whole', () => {
+  it('reads the engulf phase times from the phase seconds the engulf runs on: a patched wrap moves the wrap alone', () => {
     const phaseTimes = (entry: ResolvedEntry): number[] =>
       ['coverTime', 'wrapTime', 'absorbTime'].map((key) => Number.parseFloat(factText(entry, key)[0] ?? ''));
     const shippedTimes = phaseTimes(resolveEntry('action:engulf', shipped));
-    const whole = DEFAULT_BALANCE.absorption.ENGULF_BASE_DURATION_SECONDS;
-    expect(shippedTimes.reduce((sum, seconds) => sum + seconds, 0)).toBeCloseTo(whole);
-    const laterSeal = factContextFor(patchedBalance((balance) => (balance.absorption['ENGULF_SEAL_PROGRESS'] = 0.75)));
-    const sealedLater = phaseTimes(resolveEntry('action:engulf', laterSeal));
-    expect(sealedLater[1]).toBeGreaterThan(shippedTimes[1] ?? 0);
-    expect(sealedLater[2]).toBeLessThan(shippedTimes[2] ?? 0);
-    expect(sealedLater.reduce((sum, seconds) => sum + seconds, 0)).toBeCloseTo(whole);
-    const slower = factContextFor(
-      patchedBalance((balance) => (balance.absorption['ENGULF_BASE_DURATION_SECONDS'] = whole * 2)),
+    expect(shippedTimes.reduce((sum, seconds) => sum + seconds, 0)).toBeCloseTo(ENGULF_BASE_DURATION_SECONDS);
+    const longerWrapSeconds = DEFAULT_BALANCE.absorption.ENGULF_WRAP_SECONDS * 2;
+    const longerWrap = factContextFor(
+      patchedBalance((balance) => (balance.absorption['ENGULF_WRAP_SECONDS'] = longerWrapSeconds)),
     );
-    expect(phaseTimes(resolveEntry('action:engulf', slower))[2]).toBeCloseTo((shippedTimes[2] ?? 0) * 2);
+    const [cover, wrap, absorb] = phaseTimes(resolveEntry('action:engulf', longerWrap));
+    expect(cover).toBeCloseTo(shippedTimes[0] ?? 0);
+    expect(wrap).toBeCloseTo(longerWrapSeconds);
+    expect(absorb).toBeCloseTo(shippedTimes[2] ?? 0);
   });
 
   it('floors the world level at the round’s end as the game does, never rounding it up', () => {

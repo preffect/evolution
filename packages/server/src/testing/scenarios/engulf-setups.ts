@@ -26,6 +26,8 @@ import { BROTH_POINT } from '../gameplay/placement.js';
 import { FULL_THROTTLE_RADII, decayed } from './shared-setups.js';
 
 export const absorption = DEFAULT_BALANCE.absorption;
+/** The default progress bands, derived from the phase seconds (#367): the E-rows' wrap-start and seal ticks land on them. */
+export { ENGULF_SEAL_PROGRESS, ENGULF_WRAP_START_PROGRESS } from '@evolution/shared';
 const controls = DEFAULT_BALANCE.controls;
 export const PREDATOR_MASS = 100;
 export const PREY_MASS = 20;

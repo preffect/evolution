@@ -28,8 +28,6 @@ import { FACT_SOURCE, type FactDefinition } from './model/fact';
 import { ENCYCLOPEDIA_ENTRIES } from './registry';
 import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
 
-/** Leaves the simulation does not read (#367 removes the list). */
-const UNREAD_LEAVES = ['ENGULF_COVER_SECONDS', 'ENGULF_WRAP_SECONDS', 'ENGULF_ABSORB_SECONDS'];
 type Path = readonly string[];
 
 /** A proxy over `target` that records the path of every number it hands out, `length` included. */
@@ -226,11 +224,10 @@ function registryFacts(): readonly FactDefinition[] {
 }
 
 describe('the fact sources', () => {
-  it('resolve every balance path to a finite number, and never to a leaf the simulation does not read', () => {
+  it('resolve every balance path to a finite number', () => {
     for (const fact of registryFacts()) {
       if (fact.source.kind !== FACT_SOURCE.balance) continue;
       expect(Number.isFinite(readBalancePath(DEFAULT_BALANCE, fact.source.path))).toBe(true);
-      for (const leaf of UNREAD_LEAVES) expect(fact.source.path).not.toContain(leaf);
     }
   });
 

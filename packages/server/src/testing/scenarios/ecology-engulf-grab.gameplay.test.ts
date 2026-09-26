@@ -8,6 +8,7 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   ENGULF_RELEASE_REASON,
+  ENGULF_WRAP_START_PROGRESS,
   PLAYER_LIFE_STATE,
   radiusForMass,
 } from '@evolution/shared';
@@ -118,7 +119,7 @@ function expectDrainedEscape(builder: ReturnType<typeof rimChase>, breakTick: nu
     .toEqual([CELL_STATE.beingEngulfed])
     .expect('still in the cover band', progressOfPrey)
     .atTick(breakTick)
-    .toBeBetween(0, absorption.ENGULF_WRAP_START_PROGRESS)
+    .toBeBetween(0, ENGULF_WRAP_START_PROGRESS)
     .expect('not yet released the tick before', releaseReasons)
     .atTick(releaseTick - 1)
     .toEqual([])

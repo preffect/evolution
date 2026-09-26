@@ -94,8 +94,8 @@ The values this doc owns (§3.1.2, §3.1.3, §6). Home: `packages/client/src/app
 CODE-STANDARDS §2 gives them; the client's `render/constants-ledger.spec.ts` (#100) parses this table the way
 `constants-ledger.test.ts` parses the four design tables (first-cell names, count pinned) against that file, so a
 renamed floor fails on either side. Balance numbers the indicators read (`ENDOSYMBIOSIS_BACTERIA_REQUIRED` as the
-endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, `ENGULF_SEAL_PROGRESS`, `SPRINT_COOLDOWN_SECONDS`,
-`MAX_LEVEL`) are not here: they come from `game_state.balance`.
+endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the seal progress `engulfSealProgress` derives from the
+engulf phase seconds, `SPRINT_COOLDOWN_SECONDS`, `MAX_LEVEL`) are not here: they come from `game_state.balance`.
 
 | Constant                                                    | Value      | Unit | Rationale                                                                                                                            |
 | ----------------------------------------------------------- | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------ |

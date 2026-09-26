@@ -23,10 +23,11 @@ if (predator.mass >= prey.mass * 1.25) startEngulf(predator, prey, 1.0);
 socket.send(JSON.stringify({ type: 'player_input', payload }));
 
 // right
-const { ENGULF_BASE_DURATION_SECONDS } = context.balance.absorption;
-if (canEngulf(predator, prey, context.balance.absorption)) {
-  // the ratio rule has one home: shared/simulation/engulf-eligibility.ts (ecology/absorption.md §6.1)
-  startEngulf(predator, prey, ENGULF_BASE_DURATION_SECONDS);
+const { absorption } = context.balance;
+if (canEngulf(predator, prey, absorption)) {
+  // the ratio rule has one home: shared/simulation/engulf-eligibility.ts (ecology/absorption.md §6.1);
+  // a derived value is computed from the live leaves, never read as a leaf of its own (constants-files-tests.md §9)
+  startEngulf(predator, prey, engulfBaseDurationSeconds(absorption));
 }
 send({ type: CLIENT_MESSAGE_TYPE.playerInput, payload });
 ```

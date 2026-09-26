@@ -5,8 +5,8 @@
 // puts the prey back where it started, **with the same id**, so its look is identical every loop (§12.7).
 //
 // **The phases are the balance's.** Progress climbs from contact to the payout over the three
-// `engulfPhaseSpanSeconds`, so a patched `ENGULF_BASE_DURATION_SECONDS` or `ENGULF_SEAL_PROGRESS` retimes the
-// arms, the seal and the payout as the loop plays (`engulf-pair.ts`). The predator's speed while it holds is the
+// `engulfPhaseSpanSeconds`, so a patched `ENGULF_COVER_SECONDS`, `ENGULF_WRAP_SECONDS` or `ENGULF_ABSORB_SECONDS`
+// retimes the arms, the seal and the payout as the loop plays (`engulf-pair.ts`). The predator's speed while it holds is the
 // simulation's `predatorEngulfSpeedFactor`, so its stretch eases through the cover and wrap and returns once
 // sealed. The prey is passive here: it neither steers nor sprints, which is what lets the engulf run its course.
 //

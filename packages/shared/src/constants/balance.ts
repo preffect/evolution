@@ -9,6 +9,8 @@
 // One ladder constant stays out too: `ENDOSYMBIOSIS_BACTERIA_REQUIRED` reaches a room only as the
 // catalog's `unlockedBy.count` (traits.ts), the number the draft gate and the ladder orbit read. A
 // second copy under `ladder` would be read by nobody, agreeing with the catalog only by coincidence (#286).
+// Constants computed from balance leaves stay out as well (`DERIVED_BALANCE_CONSTANTS`): a patch of the leaves they
+// come from must move them, and a patch of their own copy would disagree with those leaves (#367).
 
 import * as absorption from './absorption.js';
 import { deepFreeze } from './deep-freeze.js';
@@ -33,6 +35,19 @@ type WidenNumberLeaves<Value> = Value extends number
   : Value extends string | boolean | null | undefined
     ? Value
     : { [Key in keyof Value]: WidenNumberLeaves<Value[Key]> };
+
+/**
+ * Every constant the design tables mark `derived`: computed from balance leaves, so never a leaf itself. Each is
+ * derived at read time from the leaves it comes from (`simulation/engulf-pace.ts`) and declared outside the domain
+ * modules (`absorption-derived.ts`), so no domain spreads it in: balance.test.ts checks that no domain carries one,
+ * and constants-ledger.test.ts that every `derived` row of the design tables is listed here, so a new derived
+ * constant cannot slip into the balance untagged (#367).
+ */
+export const DERIVED_BALANCE_CONSTANTS = [
+  'ENGULF_BASE_DURATION_SECONDS',
+  'ENGULF_WRAP_START_PROGRESS',
+  'ENGULF_SEAL_PROGRESS',
+] as const;
 
 /** `source` as a plain record without `key`: the spread every other domain gets, less one constant. */
 function omitConstant<Source extends object, Key extends keyof Source>(source: Source, key: Key): Omit<Source, Key> {

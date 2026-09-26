@@ -17,6 +17,8 @@ export const ENGULF_CENTRE_DISTANCE_WU = 10;
 export const E9_PAYOUT_TICK = 36;
 export const E9_COVER_TICKS = 6;
 export const E9_SEAL_TICK = 18;
+/** The default progress bands, derived from the phase seconds (#367): E9's cover and seal ticks land on them. */
+export { ENGULF_SEAL_PROGRESS, ENGULF_WRAP_START_PROGRESS } from '@evolution/shared';
 
 export interface EngulfFixture {
   world: WorldState;

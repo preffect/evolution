@@ -26,6 +26,7 @@ import {
   TICK_INTERVAL_S,
   engulfPhaseSpanSeconds,
   engulfProgressDelta,
+  engulfSealProgress,
   playerId,
   predatorEngulfSpeedFactor,
   preyHeldSpeedFactor,
@@ -149,7 +150,7 @@ export function engulfProgressAfter(sinceContactTicks: number, balance: BalanceC
  * the arms, so an escape's decay plays it backwards.
  */
 export function heldOffsetWu(progress: number, geometry: EngulfPairGeometry, balance: BalanceConfig): number {
-  const sealShare = Math.min(1, progress / balance.absorption.ENGULF_SEAL_PROGRESS);
+  const sealShare = Math.min(1, progress / engulfSealProgress(balance.absorption));
   return geometry.contactReachWu * (1 - (1 - PREVIEW_ENGULF_SINK_FRACTION) * sealShare);
 }
 

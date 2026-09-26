@@ -6,7 +6,14 @@
 // T4's seeded spit-out is `traits-engulf-spit-out.gameplay.test.ts`.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STATE, DEFAULT_BALANCE, ENGULF_RELEASE_REASON, foldModifiers } from '@evolution/shared';
+import {
+  CELL_STATE,
+  DEFAULT_BALANCE,
+  ENGULF_RELEASE_REASON,
+  ENGULF_SEAL_PROGRESS,
+  ENGULF_WRAP_START_PROGRESS,
+  foldModifiers,
+} from '@evolution/shared';
 import { cellOf } from '../gameplay/evolution-views.js';
 import {
   E9_PAYOUT_TICK,
@@ -69,16 +76,16 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
       .toEqual([CELL_STATE.beingEngulfed])
       .expect('still in cover on tick 10', progressOfPrey)
       .atTick(T3_ROW.coverEndTick - 1)
-      .toBeLessThan(absorption.ENGULF_WRAP_START_PROGRESS)
+      .toBeLessThan(ENGULF_WRAP_START_PROGRESS)
       .expect('cover ends on tick 11', progressOfPrey)
       .atTick(T3_ROW.coverEndTick)
-      .toBeGreaterThan(absorption.ENGULF_WRAP_START_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON)
+      .toBeGreaterThan(ENGULF_WRAP_START_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON)
       .expect('not sealed on tick 31', progressOfPrey)
       .atTick(T3_ROW.sealTick - 1)
-      .toBeLessThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
       .expect('sealed on tick 32', progressOfPrey)
       .atTick(T3_ROW.sealTick)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('held on the release ratio 1.25 through tick 68', statesOfPrey)
       .atTick(T3_ROW.payoutTick - 1)
       .toEqual([CELL_STATE.beingEngulfed])
@@ -100,7 +107,7 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
       .advance(T6_ROW.payoutTick)
       .expect('sealed on tick 18: the vacuole does not touch cover or wrap', progressOfPrey)
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, 1e-4)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, 1e-4)
       .expect('still being engulfed on tick 32', statesOfPrey)
       .atTick(T6_ROW.payoutTick - 1)
       .toEqual([CELL_STATE.beingEngulfed])
@@ -132,7 +139,7 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
       .advance(T18.controlPayoutTick)
       .expect('sealed on tick 36', progressOfPrey)
       .atTick(T18.sealTick)
-      .toBeGreaterThan(absorption.ENGULF_SEAL_PROGRESS)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
       .expect('A still holds on the ratio on tick 50', holdsOnRatio)
       .atTick(T18.releaseTick - 1)
       .toBe(true)
@@ -200,7 +207,7 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows armour, poison
       .advance(T21.payoutTick)
       .expect('sealed on tick 18', progressOfPrey)
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(absorption.ENGULF_SEAL_PROGRESS, 1e-4)
+      .toBeCloseTo(ENGULF_SEAL_PROGRESS, 1e-4)
       .expect('absorbed on tick 36', preyCell)
       .atTick(T21.payoutTick)
       .toSatisfy((cell) => cell === undefined, 'no cell')
