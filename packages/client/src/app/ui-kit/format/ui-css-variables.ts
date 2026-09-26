@@ -108,6 +108,7 @@ function layoutVariables(): StyleVariables {
     '--ui-side-panel-width': pixels(kit.UI_SIDE_PANEL_WIDTH_PX),
     '--ui-side-panel-alpha': String(kit.UI_SIDE_PANEL_ALPHA),
     '--ui-side-panel-blur': pixels(kit.UI_SIDE_PANEL_BLUR_PX),
+    '--ui-panel-bleed-shrink': String(kit.UI_PANEL_BLEED_SHRINK),
     '--ui-scrollbar': pixels(kit.UI_SCROLLBAR_PX),
     '--ui-scroll-fade': pixels(kit.UI_SCROLL_FADE_PX),
     '--ui-focus-ring': pixels(kit.UI_FOCUS_RING_PX),
