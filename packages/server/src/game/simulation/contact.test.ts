@@ -14,6 +14,8 @@ const CENTRE_DISTANCE = 10;
 /** E10's run length and its stated bound, `A.radius + B.radius − distance` < 0.01 wu. */
 const SEPARATION_TICKS = 120;
 const OVERLAP_BOUND_WU = 0.01;
+/** How far past A a crossed B lands on the start-of-tick line (#709). */
+const CROSSED_BY_WU = 2;
 
 function twoCells(massA: number, massB: number): { world: WorldState; cellA: CellRecord; cellB: CellRecord } {
   const world = createTestWorld({
@@ -121,6 +123,71 @@ describe('separateOverlappingCells', () => {
     cellB.x = cellA.x + 1000;
     separateOverlappingCells(world, DEFAULT_BALANCE);
     expect(cellB.x).toBe(cellA.x + 1000);
+  });
+});
+
+describe('separateOverlappingCells: a pair whose centres crossed this tick (#709)', () => {
+  const fraction = DEFAULT_BALANCE.growth.CELL_SEPARATION_FRACTION_PER_TICK;
+  /** A at the broth point, B `CENTRE_DISTANCE` east of it at the start of the tick. */
+  const startCentresOf = (cellA: CellRecord, cellB: CellRecord) =>
+    new Map([
+      [cellA, { x: BROTH_POINT.x, y: BROTH_POINT.y }],
+      [cellB, { x: BROTH_POINT.x + CENTRE_DISTANCE, y: BROTH_POINT.y }],
+    ]);
+
+  it('pushes a head-on crossed pair back to its own sides, to f × the radii apart, by inverse mass', () => {
+    const { world, cellA, cellB } = twoCells(24, 20);
+    const startCentres = startCentresOf(cellA, cellB);
+    cellB.x = BROTH_POINT.x - CROSSED_BY_WU;
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
+    const shiftA = BROTH_POINT.x - cellA.x;
+    const shiftB = cellB.x - (BROTH_POINT.x - CROSSED_BY_WU);
+    expect(cellB.x - cellA.x).toBeCloseTo((cellA.radius + cellB.radius) * fraction, 9);
+    expect(shiftB).toBeCloseTo(shiftA * (24 / 20), 9);
+    expect([cellA.y, cellB.y]).toEqual([BROTH_POINT.y, BROTH_POINT.y]);
+  });
+
+  it('without the start centres the same pair is pushed out the far side (the #709 fault)', () => {
+    const { world, cellA, cellB } = twoCells(24, 20);
+    cellB.x = BROTH_POINT.x - CROSSED_BY_WU;
+    separateOverlappingCells(world, DEFAULT_BALANCE);
+    expect(cellB.x).toBeLessThan(cellA.x);
+  });
+
+  it('treats a glancing pass, still ahead along the start line, as ordinary separation', () => {
+    const { world, cellA, cellB } = twoCells(20, 20);
+    const startCentres = startCentresOf(cellA, cellB);
+    cellB.y = BROTH_POINT.y + CENTRE_DISTANCE;
+    const overlap = overlapOf(cellA, cellB);
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
+    expect(cellB.x - cellA.x).toBeCloseTo(CENTRE_DISTANCE + (overlap * fraction) / Math.SQRT2, 9);
+    expect(cellB.y - cellA.y).toBeCloseTo(CENTRE_DISTANCE + (overlap * fraction) / Math.SQRT2, 9);
+  });
+
+  it('leaves a pair alone that passed out of reach across the start line', () => {
+    const { world, cellA, cellB } = twoCells(20, 20);
+    const startCentres = startCentresOf(cellA, cellB);
+    cellB.x = BROTH_POINT.x - CROSSED_BY_WU;
+    cellB.y = BROTH_POINT.y + (cellA.radius + cellB.radius) * 2;
+    const before = [cellB.x, cellB.y];
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
+    expect([cellB.x, cellB.y]).toEqual(before);
+  });
+
+  it('leaves a crossed engulf-eligible pair alone', () => {
+    const { world, cellA, cellB } = twoCells(100, 20);
+    const startCentres = startCentresOf(cellA, cellB);
+    cellB.x = BROTH_POINT.x - CROSSED_BY_WU;
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
+    expect([cellA.x, cellB.x]).toEqual([BROTH_POINT.x, BROTH_POINT.x - CROSSED_BY_WU]);
+  });
+
+  it('pushes back a pair that tunnelled clean through, out of contact on the far side', () => {
+    const { world, cellA, cellB } = twoCells(20, 20);
+    const startCentres = startCentresOf(cellA, cellB);
+    cellB.x = BROTH_POINT.x - (cellA.radius + cellB.radius) * 2;
+    separateOverlappingCells(world, DEFAULT_BALANCE, startCentres);
+    expect(cellB.x - cellA.x).toBeCloseTo((cellA.radius + cellB.radius) * fraction, 9);
   });
 });
 

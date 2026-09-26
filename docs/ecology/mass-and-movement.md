@@ -116,6 +116,13 @@ engulf is in progress the pair is left alone until payout or release, whatever t
 drifted to (E16). A pair inside a spit-out refractory (§6.1) is separated as if neither could engulf the
 other, so a spat-out prey is pushed clear (T4). Cells never bounce; the renderer draws the contact dent.
 
+Cells never pass through each other. One tick's closing can be more than separation's fraction of the
+overlap undoes (two equal cells charging head-on at full speed, #709), so separation reads each pair's
+centres from the start of the tick: a pair whose centres crossed that start-of-tick centre line while in
+reach across it is put back where the centres meet on that line, then pushed apart along it by
+`CELL_SEPARATION_FRACTION_PER_TICK` of the sum of the radii, split by inverse mass as above. The pair
+ends the tick on its own sides. A glancing pass that stays ahead along the line is ordinary separation.
+
 ### 5.4 Growth, cap and mitosis (reserved)
 
 - Mass gained from food is applied in full (`digestionFactor` = 1 + trait bonuses).
