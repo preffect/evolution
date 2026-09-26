@@ -43,28 +43,31 @@ const W3_MASS_BEFORE_LEVEL = 199.983;
 const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
 /**
- * W3: since #677 (every cell at the top speed) a wild cell eats the idle player once in the window, on tick 12 365:
- * the budget is 351.17 − 182 / 60 = 348.13, so "between 348 and 352". Across seeds 1–11, 3 of 11 windows hold one
- * death (348–352) and the rest none (351–354). Before #677 the pinned seed's death fell just before the window (tick
- * 10 667, 48 spectate ticks inside: 350–354); #638's run had none near it (351–355).
+ * W3: since #710 (nothing rides past the rim) no wild cell eats the idle player in or near the window: the budget is
+ * 351.17, so "between 351 and 355". Across seeds 1–11, 3 of 11 windows hold one death (348–352) and the rest none
+ * (351–354). From #677 to #710 the pinned seed held one death, on tick 12 365 (348–352); before #677 its death fell
+ * just before the window (tick 10 667, 48 spectate ticks inside: 350–354); #638's run had none near it (351–355).
  */
-const W3_DEATHS_IN_WINDOW = 1;
-const W3_SPAWNED_LOW = 348;
-const W3_SPAWNED_HIGH = 352;
-/** W3 on the pinned seed: 248 algae in 348 motes, 0.713 (the 0.70 row; the window's σ is ≈ 0.07; 0.700 before #677). */
-const W3_ALGAE_SHARE_ON_SEED = 0.713;
+const W3_DEATHS_IN_WINDOW = 0;
+const W3_SPAWNED_LOW = 351;
+const W3_SPAWNED_HIGH = 355;
 /**
- * W9: since #677 (every cell at the top speed) the hunting-era seats eat the idle player three times in the window:
- * 526.75 − 3 × 182 / 60 × 1.5 = 513.1 → "between 513 and 517". Across seeds 1–11 the window holds 1 to 3 deaths
- * (513–526), each count inside its own budget's bound. Algae share on the seed: 278 in 513, 0.542 (0.516 from #634, two
- * deaths, 517–521; none before).
+ * W3 on the pinned seed: 239 algae in 354 motes, 0.675 (the 0.70 row; the window's σ is ≈ 0.07; 0.713 from #677,
+ * 0.700 before).
  */
-const W9_DEATHS_IN_WINDOW = 3;
-const W9_SPAWNED_LOW = 513;
-const W9_SPAWNED_HIGH = 517;
-const W9_ALGAE_SHARE = 0.5;
-const W9_ALGAE_SHARE_ON_SEED = 0.542;
-const ALGAE_SHARE_TOLERANCE = 0.06;
+const W3_ALGAE_SHARE_ON_SEED = 0.675;
+/**
+ * W9: since #710 (nothing rides past the rim) the hunting-era seats never eat the idle player in the window: the
+ * budget is whole, 526.75 → "between 526 and 530". Across seeds 1–11 the window holds 1 to 3 deaths (513–526), each
+ * count inside its own budget's bound. Algae share on the seed: 301 in 526, 0.572 (0.542 from #677, three deaths,
+ * 513–517; 0.516 from #634, two deaths, 517–521; none before). The `eukaryote` row is 0.50, but the window's σ is
+ * ≈ 0.07 (W3), so since #710 the share is pinned to the seed, never to a band (0.50 ± 0.06 until then). That the
+ * spawner draws the `eukaryote` row at all is held by `spawner.test.ts` (20 000 motes, 0.50 ± 0.03).
+ */
+const W9_DEATHS_IN_WINDOW = 0;
+const W9_SPAWNED_LOW = 526;
+const W9_SPAWNED_HIGH = 530;
+const W9_ALGAE_SHARE_ON_SEED = 0.572;
 /** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states (± 0.001). */
 const SEED_SHARE_TOLERANCE = 0.001;
 /** W6: seat 0 at mass 380 (radius 77.97) and A at 20, pinned, 390 wu east; the velocity read 60 ticks on. */
@@ -127,12 +130,12 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     // The pure table: the protocell and prokaryote rows the fill and the window read.
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.protocell).toEqual({ algae: 0.75, bacterium: 0.25 });
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.prokaryote).toEqual({ algae: 0.7, bacterium: 0.3 });
-    // The seed's own draw of the 0.70 row (docs/ecology/acceptance.md §8.1 W3), with one death in the window.
+    // The seed's own draw of the 0.70 row (docs/ecology/acceptance.md §8.1 W3), with no death in the window.
     expect(counts.deaths).toBe(RUNS_PER_ROW * W3_DEATHS_IN_WINDOW);
     expect(Math.abs(algaeShareOf(counts) - W3_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
   });
 
-  it('W9: the eukaryote bloom spawns 513–517 motes in the window (three deaths) at 50 % algae; the variant table', async () => {
+  it('W9: the eukaryote bloom spawns 526–530 motes in the window (no death) at the 50 % algae row; the variant table', async () => {
     const run = seededSolo('W9').advance(EUKARYOTE_TICK + WILD_WINDOW_TICKS + ONE_TICK);
     const { counts, windowEnd } = heldWindow(run, EUKARYOTE_TICK + ONE_TICK);
     await run
@@ -140,10 +143,9 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(windowEnd)
       .toBeBetween(W9_SPAWNED_LOW, W9_SPAWNED_HIGH)
       .runDeterministic();
-    // Seats eat the idle player three times in the window on this seed; each spectate takes the per-player rate off the budget.
+    // No seat eats the idle player in the window on this seed; a spectate would take the per-player rate off the budget.
     expect(counts.deaths).toBe(RUNS_PER_ROW * W9_DEATHS_IN_WINDOW);
-    expect(algaeShareOf(counts)).toBeGreaterThanOrEqual(W9_ALGAE_SHARE - ALGAE_SHARE_TOLERANCE);
-    expect(algaeShareOf(counts)).toBeLessThanOrEqual(W9_ALGAE_SHARE + ALGAE_SHARE_TOLERANCE);
+    expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.eukaryote).toEqual({ algae: 0.5, bacterium: 0.5 });
     expect(Math.abs(algaeShareOf(counts) - W9_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
     const weights = (
       zone: (typeof ZONE_ID)[keyof typeof ZONE_ID],

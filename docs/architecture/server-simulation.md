@@ -15,9 +15,10 @@ against it):
                    (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation, held to a minimum centre
-                   distance, which reads the start-of-tick centres so a pair that crossed this tick is pushed back to its own sides
-                   (ecology/mass-and-movement.md §5.3)
-   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only
+                   distance, which reads the start-of-tick centres so a pair that crossed this tick is pushed back to its own sides,
+                   and stops each push at the wall, the other cell taking what the wall kept (ecology/mass-and-movement.md §5.3, #710)
+   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only;
+                   every gain (here, 5 and 6) pushes a cell grown against the wall inward (ecology/mass-and-movement.md §5.4)
    5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a wild cell,
                    free or engulfing, takes every drain and gain but no base decay (the settle takes decay from its growth)
    6 engulf        canStart / canContinue, progress, release, payout, chains; absorbed cells removed
