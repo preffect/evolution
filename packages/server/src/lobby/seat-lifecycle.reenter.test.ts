@@ -52,6 +52,20 @@ describe('seat-lifecycle: join_game for the room already held (#335)', () => {
     fixture.room.stop();
   });
 
+  it('#714: counts the reconnect game_state, with the start ones, in the room bandwidth', () => {
+    const fixture = createHeldRoomLobby();
+    fixture.handlers.onJoinGame(fixture.bob, fixture.rejoin);
+    // One tick takes in everything sent off the tick record since the room started.
+    fixture.room.step(1);
+    const gameStateBytes = ['alice', 'bob']
+      .flatMap((playerId) => fixture.sent[playerId]!)
+      .filter((message) => (message as { type: string }).type === SERVER_MESSAGE_TYPE.gameState)
+      .reduce<number>((sum, message) => sum + JSON.stringify(message).length, 0);
+    expect(sentTypesTo(fixture.sent, 'bob').filter((type) => type === SERVER_MESSAGE_TYPE.gameState)).toHaveLength(2);
+    expect(fixture.room.performanceTracker.worstTick()?.offTickBytes).toBe(gameStateBytes);
+    fixture.room.stop();
+  });
+
   it('a dropped player re-enters: the grace timer is cancelled and the seat is attached again', () => {
     vi.useFakeTimers();
     const fixture = createHeldRoomLobby();

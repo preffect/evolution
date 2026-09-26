@@ -14,6 +14,7 @@ import {
   type GameSnapshot,
 } from '@evolution/shared';
 import { GameRoom } from './game-room.js';
+import { roundToHundredths } from './performance-tracker.js';
 import {
   createManualRoomTiming,
   createSpyGameModule,
@@ -31,6 +32,8 @@ const INTERVALS_TO_SPAN_SKIPPED_TICKS = 3;
 const INTERVALS_TO_SAMPLE_BYTES = 2;
 /** Ticks past a boundary `step()` is asked for: deliberately not a whole interval. */
 const TICKS_PAST_A_BOUNDARY = 1;
+/** Frames sent off the tick record in the off-tick test: a step's closing frame and a republish. */
+const OFF_TICK_FRAMES = 2;
 const roomOptions = () => createTestRoomInitOptions([ROOM_PLAYER_ID]);
 
 /**
@@ -118,6 +121,24 @@ describe('game-room: the broadcast cadence (docs/architecture/entity-model.md §
     // Bytes/sec stays a true rate: the zero-byte ticks are in the average that `TICK_HZ` scales.
     const broadcastBytes = JSON.stringify(sent[ROOM_PLAYER_ID]![0]).length;
     expect(stats.broadcastBytesPerSec).toBeCloseTo((broadcastBytes / SNAPSHOT_EVERY_TICKS) * TICK_HZ, 1);
+  });
+
+  it('#714: counts the off-tick frames, a step closing frame and a republish, in the bandwidth', () => {
+    const sent: SentLog = {};
+    const room = new GameRoom(createSpyGameModule(), roomOptions(), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
+    room.start();
+    room.step(SNAPSHOT_EVERY_TICKS + TICKS_PAST_A_BOUNDARY);
+    room.republishSnapshot();
+    // Ends on a broadcast tick, so every frame sent so far is on a tick record: the two off-tick ones on the next.
+    room.step(SNAPSHOT_EVERY_TICKS - TICKS_PAST_A_BOUNDARY);
+
+    const frames = sent[ROOM_PLAYER_ID]!;
+    const bytesSent = frames.reduce<number>((sum, message) => sum + JSON.stringify(message).length, 0);
+    const stats = room.performanceTracker.getStats();
+    expect(frames).toHaveLength(INTERVALS_TO_SAMPLE_BYTES + OFF_TICK_FRAMES);
+    expect(stats.sampleCount).toBe(INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS);
+    expect(stats.broadcastBytesPerSec).toBe(roundToHundredths((bytesSent / stats.sampleCount) * TICK_HZ));
   });
 
   it('step() past a cadence boundary still broadcasts the frame it stopped on', () => {

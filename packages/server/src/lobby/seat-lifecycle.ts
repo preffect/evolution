@@ -1,7 +1,7 @@
 import type { PlayerId } from '@evolution/shared';
 import { DISCONNECT_GRACE_MS, SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import type { Connection } from '../ws/connection.js';
-import { broadcastMessage, sendMessage } from '../ws/connection.js';
+import { broadcastMessage } from '../ws/connection.js';
 import type { GameRoom } from './game-room.js';
 import type { PendingGame } from './pending-game.js';
 
@@ -91,7 +91,7 @@ export class SeatLifecycle {
     const room = this.registry.activeRooms.get(gameId);
     if (room) {
       room.reattachPlayer(connection);
-      sendMessage(connection, room.gameStateMessageFor(connection.playerId as PlayerId));
+      room.sendGameState(connection);
     }
     return true;
   }
