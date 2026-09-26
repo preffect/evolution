@@ -190,7 +190,7 @@
 ```text
 ./validate.sh test         # unit tier with coverage thresholds
 ./validate.sh integration  # *.integration.test.ts / *.integration.spec.ts tier + *.gameplay.test.ts (opt-in; all --affected runs it)
-./validate.sh typecheck    # type check all packages, the client's Playwright e2e/ included (builds shared first when stale)
+./validate.sh typecheck    # type check all packages, the client's vitest specs and Playwright e2e/ included (builds shared first when stale)
 ./validate.sh lint         # eslint + prettier --check + disable-directive / TODO audit
 ./validate.sh duplication  # jscpd (.jscpd.json)
 ./validate.sh format --scope server  # eslint --fix + prettier --write on what lint --scope server reads; lists the changed files
