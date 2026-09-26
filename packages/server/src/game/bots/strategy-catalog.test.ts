@@ -8,7 +8,7 @@ import {
   createTestWorldView,
 } from '../../testing/bot-builders.js';
 import { createStrategyByName } from './strategy-catalog.js';
-import { BOT_STRATEGY_NAMES, isBotStrategyName } from './strategy-constants.js';
+import { BOT_STRATEGY_NAMES, HUNTER_AIM_PAST_PREY_RADII, isBotStrategyName } from './strategy-constants.js';
 
 const perception = createTestPerception();
 
@@ -36,7 +36,7 @@ describe('strategy catalog', () => {
       snapshot: createTestWorldView({ cells: [self, prey, other] }),
       cell: { x: 0, y: 0, radius: 10 },
     });
-    expect(strategy.decide(context)).toEqual({ targetX: 50, targetY: 0 });
+    expect(strategy.decide(context)).toEqual({ targetX: 50 + HUNTER_AIM_PAST_PREY_RADII * self.radius, targetY: 0 });
   });
 
   it('registers the hunter that grazes while it has no prey and the forager that grazes until a threat comes close', () => {
