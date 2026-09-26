@@ -12,6 +12,11 @@ export const CELL_BASE_SPEED = 220;
 export const CELL_ACCELERATION_SECONDS = 0.25;
 /** Overlapping cells that cannot engulf each other separate by this share of the overlap per tick. */
 export const CELL_SEPARATION_FRACTION_PER_TICK = 0.2;
+/**
+ * Two cells that cannot engulf each other end every tick at least this share of their radii's sum apart
+ * (docs/ecology/mass-and-movement.md §5.3, #709): the overlap is capped at half, so a pair can't pivot through itself.
+ */
+export const CELL_MIN_CENTRE_DISTANCE_FRACTION = 0.5;
 /** gelSpeedFactor(mass) = clamp(1 − mass / GEL_MASS_SCALE, GEL_MIN_SPEED_FACTOR, GEL_MAX_SPEED_FACTOR). */
 export const GEL_MASS_SCALE = 1000;
 export const GEL_MIN_SPEED_FACTOR = 0.4;

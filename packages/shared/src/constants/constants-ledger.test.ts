@@ -60,7 +60,7 @@ function pathWithinPackages(file: URL): string | undefined {
  */
 const CONSTANTS_TABLE_SOURCES = [
   { documentName: 'game-design/constants-and-acceptance.md', section: 12, expectedNames: 38 },
-  { documentName: 'ecology/constants.md', section: 7, expectedNames: 101 },
+  { documentName: 'ecology/constants.md', section: 7, expectedNames: 102 },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16 },
   { documentName: 'traits/constants-and-acceptance.md', section: 5, expectedNames: 7 },
 ] as const;

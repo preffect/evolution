@@ -116,12 +116,21 @@ engulf is in progress the pair is left alone until payout or release, whatever t
 drifted to (E16). A pair inside a spit-out refractory (§6.1) is separated as if neither could engulf the
 other, so a spat-out prey is pushed clear (T4). Cells never bounce; the renderer draws the contact dent.
 
-Cells never pass through each other. One tick's closing can be more than separation's fraction of the
-overlap undoes (two equal cells charging head-on at full speed, #709), so separation reads each pair's
-centres from the start of the tick: a pair whose centres crossed that start-of-tick centre line while in
-reach across it is put back where the centres meet on that line, then pushed apart along it by
-`CELL_SEPARATION_FRACTION_PER_TICK` of the sum of the radii, split by inverse mass as above. The pair
-ends the tick on its own sides. A glancing pass that stays ahead along the line is ordinary separation.
+Two such cells never pass through each other (#709), by two rules on top of the fraction:
+
+- **Depth cap.** The push is at least enough to leave the centres `CELL_MIN_CENTRE_DISTANCE_FRACTION` of
+  the sum of the radii apart (half: for an equal pair, neither centre enters the other cell), along the
+  centre line and split by inverse mass as above. Ordinary bumping stays shallower than that; without the
+  cap a pair charging each other settled about 80 % overlapped and, the slightest bit off the axis,
+  pivoted through itself within a few ticks.
+- **Crossing.** A fast pair (sprinting on speed traits) can close more than the minimum distance in one
+  tick. Separation reads each pair's centres from the start of the tick: a pair whose centres crossed that
+  start-of-tick centre line while in reach across it is put back where the centres meet on that line, then
+  pushed apart along it to the minimum distance, and ends the tick on its own sides.
+
+What holds at the end of every tick: the pair is at least the minimum distance apart, and its centres
+never jump past each other within a tick. Two cells pressed together off-centre can still roll round each
+other at that distance, as the steer lags the turning centre line: they slide past, never through.
 
 ### 5.4 Growth, cap and mitosis (reserved)
 

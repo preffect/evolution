@@ -3,8 +3,9 @@
 // overlap, split by inverse mass (the lighter cell moves more). Pairs are walked id-sorted
 // (docs/determinism/ordering-and-state-hash.md §4). A predator and its current prey are left alone until payout or release
 // (E16), and a pair inside a spit-out refractory is separated as if neither could engulf the other,
-// so a spat-out prey is pushed clear (T4). A pair whose centres crossed this tick is pushed back along its
-// start-of-tick centre line instead (#709). Engulf contact lives here too: it is the one geometric
+// so a spat-out prey is pushed clear (T4). The push is at least enough to leave the centres
+// `CELL_MIN_CENTRE_DISTANCE_FRACTION` of the radii's sum apart, and a pair whose centres crossed this tick is pushed
+// back along its start-of-tick centre line instead (#709). Engulf contact lives here too: it is the one geometric
 // test the engulf step shares with nothing else.
 
 import { canEngulf, distanceBetween, type BalanceConfig, type Vec2 } from '@evolution/shared';
@@ -109,6 +110,15 @@ function shiftApart(pair: CellPair, unit: Vec2, shift: number): void {
   higher.y += unit.y * shift * higherShare;
 }
 
+/** The closest two cells that cannot engulf each other may end a tick (wu): a share of their radii's sum (§5.3). */
+function minimumCentreDistanceOf(pair: CellPair, balance: BalanceConfig): number {
+  return (pair.lower.radius + pair.higher.radius) * balance.growth.CELL_MIN_CENTRE_DISTANCE_FRACTION;
+}
+
+/**
+ * `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap, or more when that would still leave the centres closer than
+ * the minimum centre distance: the depth cap that stops an off-axis pair pivoting through itself (#709).
+ */
 function pushApart(pair: CellPair, overlap: number, balance: BalanceConfig): void {
   const { lower, higher } = pair;
   const distance = distanceBetween(lower, higher);
@@ -117,16 +127,19 @@ function pushApart(pair: CellPair, overlap: number, balance: BalanceConfig): voi
     return;
   }
   const unit = { x: (higher.x - lower.x) / distance, y: (higher.y - lower.y) / distance };
-  shiftApart(pair, unit, overlap * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK);
+  const fractionShift = overlap * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
+  shiftApart(pair, unit, Math.max(fractionShift, minimumCentreDistanceOf(pair, balance) - distance));
 }
 
 /**
  * A crossed pair is put back where its centres meet on the start-of-tick line, then separated from there as any pair
- * is: `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap coincident centres have, the sum of the radii.
+ * is: `CELL_SEPARATION_FRACTION_PER_TICK` of the overlap coincident centres have (the sum of the radii), or the
+ * minimum centre distance when that is further.
  */
 function pushBack(pair: CellPair, crossing: Crossing, balance: BalanceConfig): void {
   const radii = pair.lower.radius + pair.higher.radius;
-  shiftApart(pair, crossing.unit, radii * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK - crossing.along);
+  const fractionShift = radii * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
+  shiftApart(pair, crossing.unit, Math.max(fractionShift, minimumCentreDistanceOf(pair, balance)) - crossing.along);
 }
 
 function isSeparable(pair: CellPair, world: WorldState, balance: BalanceConfig): boolean {

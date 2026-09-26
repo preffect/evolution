@@ -89,11 +89,12 @@ const W10_TOLERANCE = 0.01;
 /** The wound recovers with the 6 s time constant: the trace checks at least that many ticks of it. */
 const W10_RECOVERY_TICKS = wildCells.WILD_CELL_RECOVERY_SECONDS * TICK_HZ;
 /**
- * The first tick seat 0 weighs 1.25 × P again, 349 ticks after the release; no new engulf of P before it. Since #677
+ * The first tick seat 0 weighs 1.25 × P again, 348 ticks after the release; no new engulf of P before it. Since #677
  * the 494-mass seat swims at the full top speed and leaves P's toxin within a few ticks, so less drain slows its
- * recovery than when it swam at its mass curve's 96 wu/s (≥ 360 ticks before #677).
+ * recovery than when it swam at its mass curve's 96 wu/s (≥ 360 ticks before #677). Since #709 the release leaves the
+ * pair deeper than the minimum centre distance, so separation pushes it out to that distance at once: one tick less.
  */
-const W10_FIRST_HEAVY_ENOUGH_TICK = 21_991;
+const W10_FIRST_HEAVY_ENOUGH_TICK = 21_990;
 /** How long after the release the trace runs: past the tick seat 0 is heavy enough to start on P again. */
 const W10_TRACE_TICKS = 600;
 /** "Ratio 1.3 → massFactor 1.25 / 1.3": the cover rate (1/69.2 a tick), and the progress after the start tick. */
