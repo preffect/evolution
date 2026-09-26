@@ -36,21 +36,22 @@ const ROW_TICKS = 120;
 const UNSPAT_PAYOUT_TICK = 44;
 /** What the row states: it moves only when the stream or the rules really change. */
 const TABLE_SPIT_OUT_TICK = 39;
-const TOP_TIER = 3;
+const { TRAIT_TIER_COUNT } = DEFAULT_BALANCE.traits;
 const diatomTiers = DEFAULT_BALANCE.traits.TRAIT_TIERS.diatom_shell;
 const diatomShell = (tier: number): EngulfSide => ({ traits: [{ traitId: 'diatom_shell', tier }] });
 
 /**
  * The tick a spiny prey is spat out, from the table seed's own `engulf` stream: the prey rolls once per tick from
  * the first wrap tick (the tick after progress reaches the wrap band, E9's tick 7), and the first draw under the
- * per-tick chance spits it out (docs/ecology/absorption.md §6.1). Undefined when no draw before the payout lands.
+ * per-tick chance spits it out (docs/ecology/absorption.md §6.1). Undefined when no draw lands before the
+ * payout tick.
  */
 function spitOutTickOf(chancePerSecond: number): number | undefined {
   const firstWrapTick = E9_COVER_END_TICK + 1;
   const stream = createSeededRandom(TABLE_SEED).fork(RANDOM_STREAM.engulf);
   const chance = spitOutChancePerTick(chancePerSecond);
-  for (let draw = 0; draw < UNSPAT_PAYOUT_TICK; draw += 1) {
-    if (stream.nextFloat() < chance) return firstWrapTick + draw;
+  for (let tick = firstWrapTick; tick < UNSPAT_PAYOUT_TICK; tick += 1) {
+    if (stream.nextFloat() < chance) return tick;
   }
   return undefined;
 }
@@ -112,8 +113,8 @@ describe('traits/constants-and-acceptance.md §6: T4, the Diatom Shell spit-out 
   });
 
   it('Diatom Shell III rolls the same stream, so the same draw spits B out on the same tick', async () => {
-    expect(spitOutTickOf(diatomTiers[TOP_TIER - 1]!.spitOutChancePerSecond!)).toBe(spitOutTick);
-    await engulfPairOnTableSeedOf('T4 Diatom Shell III', {}, diatomShell(TOP_TIER))
+    expect(spitOutTickOf(diatomTiers[TRAIT_TIER_COUNT - 1]!.spitOutChancePerSecond!)).toBe(spitOutTick);
+    await engulfPairOnTableSeedOf('T4 Diatom Shell III', {}, diatomShell(TRAIT_TIER_COUNT))
       .hashEvery(1)
       .advance(spitOutTick)
       .expect(`spat out on tick ${spitOutTick}`, releaseReasons)
