@@ -21,6 +21,12 @@ export interface TickRecord {
    * A paused room's resync on an ack (#300) lands on the next tick it runs.
    */
   resyncBytes: number;
+  /**
+   * Everything sent off the loop's tick broadcasts since the previous tick, all clients together (#714): a debug step's
+   * closing frame, a republish after a debug mutation, and the `game_state` of a start, late join or reconnect. A
+   * paused room's lands on the next tick it runs.
+   */
+  offTickBytes: number;
   /** Optional free-form counts a game may report (e.g. { entities: 12 }). */
   entities?: Record<string, number>;
 }
@@ -41,8 +47,8 @@ export type SnapshotBroadcast = Omit<TickBroadcast, 'isBroadcastTick'>;
 /** A tick that did not broadcast sent no `game_snapshot`. */
 export const NOTHING_BROADCAST: SnapshotBroadcast = Object.freeze({ snapshotBytes: 0, broadcastClients: 0 });
 
-/** A tick as the room measures it; the tracker adds the resync bytes it was told of since the previous one. */
-export type MeasuredTick = Omit<TickRecord, 'resyncBytes'>;
+/** A tick as the room measures it; the tracker adds the resync and off-tick bytes it was told of since the previous one. */
+export type MeasuredTick = Omit<TickRecord, 'resyncBytes' | 'offTickBytes'>;
 
 /** One tick's record from its readings: `broadcastMs` is exactly 0 on a silent tick, whatever the clock did. */
 export function tickRecordOf(readings: TickClockReadings, broadcast: TickBroadcast): MeasuredTick {
@@ -109,11 +115,17 @@ export class PerformanceTracker {
   private worstBroadcastMs = 0;
   private droppedTickTotal = 0;
   private resyncBytesSinceLastTick = 0;
+  private offTickBytesSinceLastTick = 0;
   private readonly clientReports = new Map<string, ClientPerformanceReport>();
 
   recordTick(measured: MeasuredTick): void {
-    const record: TickRecord = { ...measured, resyncBytes: this.resyncBytesSinceLastTick };
+    const record: TickRecord = {
+      ...measured,
+      resyncBytes: this.resyncBytesSinceLastTick,
+      offTickBytes: this.offTickBytesSinceLastTick,
+    };
     this.resyncBytesSinceLastTick = 0;
+    this.offTickBytesSinceLastTick = 0;
     if (this.ticks.length < SAMPLE_CAPACITY) {
       this.ticks.push(record);
     } else {
@@ -129,6 +141,11 @@ export class PerformanceTracker {
   /** A `game_state` resync was sent (#276): counted in the bandwidth of the tick it was sent on, or the next. */
   recordResyncBytes(bytes: number): void {
     this.resyncBytesSinceLastTick += bytes;
+  }
+
+  /** Bytes sent off the tick record (#714), all clients together: counted in the bandwidth of the next tick, like a resync. */
+  recordOffTickBytes(bytes: number): void {
+    this.offTickBytesSinceLastTick += bytes;
   }
 
   /** A capped catch-up always runs `MAX_TICKS_PER_ADVANCE` ticks too, so drops never precede the first sample. */
@@ -159,9 +176,9 @@ export class PerformanceTracker {
     const broadcastTickTimes = this.ticks
       .filter((record) => record.isBroadcastTick)
       .map((record) => record.broadcastMs);
-    // Bytes/sec at the tick rate: the delta at its mean size times the clients sent it, plus every resync.
+    // Bytes/sec at the tick rate: the delta at its mean size times the clients sent it, plus every resync and off-tick frame.
     const totalBytes = this.ticks.reduce(
-      (sum, record) => sum + record.snapshotBytes * record.broadcastClients + record.resyncBytes,
+      (sum, record) => sum + record.snapshotBytes * record.broadcastClients + record.resyncBytes + record.offTickBytes,
       0,
     );
     return {

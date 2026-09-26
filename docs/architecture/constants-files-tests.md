@@ -71,6 +71,7 @@ packages/shared/src/
   net/snapshot-acknowledger.ts                                  tells the room which tick a client has applied (wire-contract.md §4, #266); the client's RenderSession and the server's socket tests share it so they cannot drift (#664)
 packages/server/src/
   lobby/{game-room,ticker,snapshot-backlog}.ts                   room drives the accumulator via Ticker; snapshot-backlog: per-client flow control on the acknowledged tick and the resync it owes (§4, #266)
+  lobby/snapshot-dispatch.ts                                     every snapshot and game_state a room sends, and the bytes it reports to the tracker; the room only decides when (§4, #714)
   lobby/viewer-snapshots.ts, ws/snapshot-frame.ts                what each connection is sent (the policy) and the splice that closes one shared stringify per viewer (§4)
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
