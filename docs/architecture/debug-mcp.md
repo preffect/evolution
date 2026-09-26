@@ -57,7 +57,9 @@ its numbers are at the wire precision (architecture/wire-contract.md §4); the i
 whose `bbox` tests exact positions, `debug_get_player_progress`) and the answers of the debug mutations read the
 records at full precision (`EXACT_SNAPSHOT_VALUES`, #341).
 `patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
-at paths that exist, validated as a whole before anything is written. A derived constant is no path
+at paths that exist, validated as a whole before anything is written. A declared structure path is refused by
+name, saying where its numbers live: a `traits.TRAIT_CATALOG` patch is told that trait tier numbers live in
+`traits.TRAIT_TIERS`, which cannot be patched live yet (ticket #715; #150). A derived constant is no path
 (`DERIVED_BALANCE_CONSTANTS`, architecture/constants-files-tests.md §9): patch the leaves it comes from, e.g.
 `ENGULF_WRAP_SECONDS`, which moves the engulf's wrap band and base duration in play (#367).
 
