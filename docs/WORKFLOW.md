@@ -143,7 +143,8 @@ Lane 2 runs steps 2 and 4 only, with one reviewer and one round. Lane 3 runs eve
 1. **Design review** (architect) before code: approach, file plan, interfaces, where constants
    and config live, test plan.
 2. **Code review** against the checklist in `.github/PULL_REQUEST_TEMPLATE.md`. Findings are
-   **line-anchored PR review comments**; reviewers request changes rather than fixing silently.
+   **line-anchored PR review comments**, each tagged with severity and evidence (`docs/TEAM.md`
+   "Reporting a finding"); reviewers request changes rather than fixing silently.
 3. **Domain review** where the change is playable or visible (with screenshots for visuals).
    Which roles review which PR is the table in `docs/TEAM.md`.
 4. The author fixes, **replies on every thread** saying what changed, and the reviewer resolves
