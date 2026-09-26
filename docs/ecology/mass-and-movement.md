@@ -116,7 +116,7 @@ engulf is in progress the pair is left alone until payout or release, whatever t
 drifted to (E16). A pair inside a spit-out refractory (§6.1) is separated as if neither could engulf the
 other, so a spat-out prey is pushed clear (T4). Cells never bounce; the renderer draws the contact dent.
 
-Two such cells never pass through each other (#709), by two rules on top of the fraction:
+Two such cells never pass through each other (#709), by two rules on top of the fraction, and neither leaves the dish:
 
 - **Depth cap.** A pair may not end the tick deeper than it started it, or deeper than the minimum centre
   distance, `CELL_MIN_CENTRE_DISTANCE_FRACTION` of the sum of the radii (half: for an equal pair, neither
@@ -132,6 +132,13 @@ Two such cells never pass through each other (#709), by two rules on top of the 
   start-of-tick centre line while in reach across it is put back where the centres meet on that line, then
   pushed apart along it to the same closest allowed distance, and ends the tick on its own sides.
 
+- **The wall (#710).** Separation never pushes a cell past the rim: each push stops at `DISH_RADIUS − radius`
+  (radially, as the kernel's clamp), and what the wall kept one cell from taking the other takes, along the same
+  centre line. A pair pressed into the wall therefore settles exactly as far apart as it would in open broth, with
+  the wall cell at the rim. A clamp pass after separation alone would not do: the wall cell's share of every push
+  would be lost, so a pressed pair sank deeper than the minimum distance each tick (7.5 wu against a minimum of
+  18.7 for a 24 / 20 pair) or, with the heavier cell pushing, never settled (0.45 wu of jitter a tick).
+
 What holds at the end of every tick, for an isolated pair: it is no closer than the smaller of the minimum
 distance and where it started the tick, and its centres never jump past each other within a tick. Pairs are
 pushed one after another (id order), so with three or more cells pressed together a later push can press an
@@ -144,6 +151,9 @@ minimum distance, as the steer lags the turning centre line: they slide past, ne
 - At `CELL_MAX_MASS` any further mass, from food, absorption or photosynthesis (§4.1), is converted to
   DNA at `MASS_OVERFLOW_DNA_PER_MASS` so growing at the cap still progresses the leaderboard. One home:
   every mass gain goes through the capped gain; nothing adds mass past the cap (#179).
+- A cell that grows against the wall (eating at step 4, a payout at step 6) is pushed inward by its growth, in
+  the capped gain itself, so its rim stays inside the dish at the end of the tick (docs/ecology/absorption.md §6.3,
+  #710). A loss never moves a centre.
 - **Mitosis, merge-back and eject are build 2.** Their constants are declared in `growth.ts` so the
   contract is stable: `MITOSIS_MIN_MASS` 200, `MITOSIS_MAX_CELLS` 4, `MITOSIS_COOLDOWN_SECONDS` 8,
   `MITOSIS_MERGE_SECONDS` 20, `EJECT_MASS` 10. `GameInput.shouldSplit` / `.shouldEject` are validated and ignored;

@@ -5,13 +5,15 @@
 // (E16), and a pair inside a spit-out refractory is separated as if neither could engulf the other,
 // so a spat-out prey is pushed clear (T4). The push is at least enough to leave the centres
 // `CELL_MIN_CENTRE_DISTANCE_FRACTION` of the radii's sum apart, or no closer than they started the tick, and a pair
-// whose centres crossed this tick is pushed back along its start-of-tick centre line instead (#709). Engulf contact lives here too: it is the one geometric
+// whose centres crossed this tick is pushed back along its start-of-tick centre line instead (#709). No push crosses the
+// dish wall; the other cell takes what the wall kept (#710). Engulf contact lives here too: it is the one geometric
 // test the engulf step shares with nothing else.
 
 import { canEngulf, distanceBetween, type BalanceConfig, type Vec2 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import { compareEntityIds } from '../world/entity-ids.js';
 import type { WorldState } from '../world/world-state.js';
+import { keepInsideDish } from './dish-wall.js';
 import { hasSpitOutRefractory } from './engulf-spit-out.js';
 
 /** Where a cell is and how big: all engulf contact reads. */
@@ -98,16 +100,41 @@ function crossingOf(pair: CellPair, startCentres: StartCentres): Crossing | unde
   return along < 0 && across < pair.lower.radius + pair.higher.radius ? { unit, along } : undefined;
 }
 
-/** Moves the pair `shift` wu further apart along `unit` (lower → higher), split by inverse mass (the lighter moves more). */
-function shiftApart(pair: CellPair, unit: Vec2, shift: number): void {
+/**
+ * Moves a cell by `offset`, stopped at the dish wall; answers how much of the move along `direction` (the unit
+ * vector the offset points along) the wall took.
+ */
+function moveWithinDish(cell: CellRecord, offset: Vec2, direction: Vec2, dishRadius: number): number {
+  const plannedX = cell.x + offset.x;
+  const plannedY = cell.y + offset.y;
+  cell.x = plannedX;
+  cell.y = plannedY;
+  keepInsideDish(cell, dishRadius);
+  return Math.max(0, (plannedX - cell.x) * direction.x + (plannedY - cell.y) * direction.y);
+}
+
+/** `unit × shift × share`, multiplied in that order: separation's arithmetic since #709, so a push in open broth is bit-for-bit unchanged. */
+const scaled = (unit: Vec2, shift: number, share = 1): Vec2 => ({
+  x: unit.x * shift * share,
+  y: unit.y * shift * share,
+});
+
+/**
+ * Moves the pair `shift` wu further apart along `unit` (lower → higher), split by inverse mass (the lighter moves
+ * more). Neither is pushed past the rim (docs/ecology/absorption.md §6.3, #710): what the wall keeps one cell from
+ * taking, the other takes, so a pair pressed into the wall still ends as far apart as a pair in open broth.
+ */
+function shiftApart(pair: CellPair, unit: Vec2, shift: number, balance: BalanceConfig): void {
   const { lower, higher } = pair;
+  const dishRadius = balance.world.DISH_RADIUS;
   const totalMass = lower.mass + higher.mass;
   const lowerShare = higher.mass / totalMass;
   const higherShare = lower.mass / totalMass;
-  lower.x -= unit.x * shift * lowerShare;
-  lower.y -= unit.y * shift * lowerShare;
-  higher.x += unit.x * shift * higherShare;
-  higher.y += unit.y * shift * higherShare;
+  const away = { x: -unit.x, y: -unit.y };
+  const lowerTaken = moveWithinDish(lower, scaled(away, shift, lowerShare), away, dishRadius);
+  const higherTaken = moveWithinDish(higher, scaled(unit, shift, higherShare), unit, dishRadius);
+  moveWithinDish(lower, scaled(away, higherTaken), away, dishRadius);
+  moveWithinDish(higher, scaled(unit, lowerTaken), unit, dishRadius);
 }
 
 /**
@@ -139,7 +166,7 @@ function pushApart(pair: CellPair, overlap: number, closestAllowed: number, bala
   }
   const unit = { x: (higher.x - lower.x) / distance, y: (higher.y - lower.y) / distance };
   const fractionShift = overlap * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
-  shiftApart(pair, unit, Math.max(fractionShift, closestAllowed - distance));
+  shiftApart(pair, unit, Math.max(fractionShift, closestAllowed - distance), balance);
 }
 
 /**
@@ -150,7 +177,7 @@ function pushApart(pair: CellPair, overlap: number, closestAllowed: number, bala
 function pushBack(pair: CellPair, crossing: Crossing, closestAllowed: number, balance: BalanceConfig): void {
   const radii = pair.lower.radius + pair.higher.radius;
   const fractionShift = radii * balance.growth.CELL_SEPARATION_FRACTION_PER_TICK;
-  shiftApart(pair, crossing.unit, Math.max(fractionShift, closestAllowed) - crossing.along);
+  shiftApart(pair, crossing.unit, Math.max(fractionShift, closestAllowed) - crossing.along, balance);
 }
 
 function isSeparable(pair: CellPair, world: WorldState, balance: BalanceConfig): boolean {

@@ -10,16 +10,15 @@ function isFiniteCell(cell: CellView): boolean {
 }
 
 /**
- * How far a rim may sit past the dish: separation runs after the wall clamp (docs/architecture/server-simulation.md §3,
- * step 3), so a cell its neighbours press into the wall ends the tick past `DISH_RADIUS − radius`. Ticket #710: on this
- * playthrough's seed the worst is wild cell c-16 (radius 95.7) 16.5 wu past on tick 7527; the tolerance sits just above
- * it and drops to float slack once #710 lands. A cell the wall clamp no longer holds overruns it within a few ticks.
+ * How far a rim may sit past the dish: float slack only. The wall clamp runs again after separation
+ * (docs/architecture/server-simulation.md §3, step 3, #710), so a cell its neighbours press into the wall still ends
+ * the tick at `DISH_RADIUS − radius` at most; the scenario reads exact values, not the wire's rounded ones.
  */
-const WALL_OVERRUN_TOLERANCE_WU = 20;
+const RIM_EPSILON_WU = 1e-9;
 
 /**
- * Every cell is a finite, positive body under the mass cap, clamped inside the dish (docs/ecology/mass-and-movement.md
- * §5) to within `WALL_OVERRUN_TOLERANCE_WU`.
+ * Every cell is a finite, positive body under the mass cap, its whole body inside the dish (docs/ecology/mass-and-movement.md
+ * §5, docs/ecology/absorption.md §6.3).
  */
 function cellBodyViolations(cells: readonly CellView[], balance: BalanceConfig): string[] {
   return cells.flatMap((cell) => {
@@ -31,8 +30,8 @@ function cellBodyViolations(cells: readonly CellView[], balance: BalanceConfig):
       violations.push(`cell ${cell.id} mass ${cell.mass} outside (0, ${balance.growth.CELL_MAX_MASS}]`);
     }
     const rimOverrun = Math.hypot(cell.x, cell.y) + cell.radius - balance.world.DISH_RADIUS;
-    if (rimOverrun > WALL_OVERRUN_TOLERANCE_WU) {
-      violations.push(`cell ${cell.id} rim ${rimOverrun} wu past the dish, over ${WALL_OVERRUN_TOLERANCE_WU} wu`);
+    if (rimOverrun > RIM_EPSILON_WU) {
+      violations.push(`cell ${cell.id} rim ${rimOverrun} wu past the dish, over ${RIM_EPSILON_WU} wu`);
     }
     return violations;
   });
