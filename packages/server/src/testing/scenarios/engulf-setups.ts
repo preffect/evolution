@@ -7,7 +7,12 @@
 // the wild rows (docs/ecology/acceptance.md §8.1 W4, W5, W10; `wild-setups.ts`) read the E9 ticks from here.
 
 import { DEFAULT_BALANCE, DNA_TAG, EFFECT_KIND, TICK_HZ, radiusForMass } from '@evolution/shared';
-import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
+import {
+  PLACED_ROW_SEED,
+  TABLE_SEED,
+  evolutionScenario as scenario,
+  withoutGelPatches,
+} from '../gameplay/evolution-adapter.js';
 import {
   cellOf,
   detritusMass,
@@ -119,9 +124,29 @@ export function engulfPairOf(
   prey: EngulfSide = {},
   centreDistanceWu = CENTRE_DISTANCE_WU,
 ) {
-  return scenario(name)
-    .seed(PLACED_ROW_SEED)
-    .players(2)
+  return placePair(scenario(name).seed(PLACED_ROW_SEED).players(2), predator, prey, centreDistanceWu);
+}
+
+/**
+ * The E9 setup on the table seed with its gel patches cleared (#402): T4's spit-out is a draw of the seed-42
+ * `engulf` stream, and seed 42 puts a gel patch by the broth point, so the patches go before the cells are placed.
+ */
+export function engulfPairOnTableSeedOf(name: string, predator: EngulfSide = {}, prey: EngulfSide = {}) {
+  return placePair(
+    scenario(name).seed(TABLE_SEED).players(2).place(withoutGelPatches),
+    predator,
+    prey,
+    CENTRE_DISTANCE_WU,
+  );
+}
+
+function placePair(
+  builder: ReturnType<typeof scenario>,
+  predator: EngulfSide,
+  prey: EngulfSide,
+  centreDistanceWu: number,
+) {
+  return builder
     .placeCell({ ...predator, playerIndex: 0, mass: predator.mass ?? PREDATOR_MASS })
     .placeCell({ ...prey, playerIndex: 1, mass: prey.mass ?? PREY_MASS, eastOfFirstCellWu: centreDistanceWu });
 }
