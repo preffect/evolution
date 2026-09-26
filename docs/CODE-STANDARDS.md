@@ -86,12 +86,18 @@ Rules that keep this honest:
 - `constants-ledger.test.ts` pins every constant a design table names: the rows are parsed
   from the docs' constants tables (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
   `traits/constants-and-acceptance.md §5`), one assertion per name and the per-doc name count pinned, so a rename or a
-  row added or removed fails on either side until both are updated. `balance.test.ts`
+  row added or removed fails on either side until both are updated. It also reads the other way (#150): every
+  `UPPER_SNAKE` export of a design domain file (the files each table owns, above) is named by a row of its doc's table
+  or by a family glob such as `MITOSIS_*`, so a constant added in code without a doc row fails the gate. The few exports
+  that are not a tunable row (`STARTING_STAGE`, an alias of `STAGE_ORDER[0]`) sit in the test's `EXPORTS_WITHOUT_A_ROW`,
+  one line and one reason each, and an entry that gains a row or stops being exported fails too. `balance.test.ts`
   pins that `data/balance.json` equals `DEFAULT_BALANCE`; a hand edit of the JSON fails the gate.
 - `DEFAULT_BALANCE` is deep-frozen and aliases the module constants. A room patches a
   `structuredClone` of it (`applyBalancePatch` returns a fresh copy), never the default. Tier
   numbers are read from `balance.traits.TRAIT_TIERS` only; `TRAIT_CATALOG[n].tiers` is
-  structure, never read for a number, so a `debug_set_balance` patch has one path.
+  structure, never read for a number, so a `debug_set_balance` patch has one path: `applyBalancePatch` refuses a
+  path under `traits.TRAIT_CATALOG` by name, saying the tier numbers live in `traits.TRAIT_TIERS` (not patchable live yet, ticket #715), rather than failing it as a missing
+  leaf (`STRUCTURE_PATHS` in `game/debug/balance-patch.ts` declares the structure paths, #150).
 - Time constants are stored in seconds (or ms with the suffix) and converted to ticks in one
   place: `secondsToTicks` in `packages/shared/src/time/units.ts`.
 
