@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { playerId } from '@evolution/shared';
+import { STEER_FULL_THROTTLE_RADII, playerId } from '@evolution/shared';
 import {
   TEST_PLAYER_ID,
   createTestBotCell,
@@ -7,8 +7,13 @@ import {
   createTestScriptContext,
   createTestWorldView,
 } from '../../../testing/bot-builders.js';
-import { createGrazingHunterStrategy, createHunterStrategy } from './hunter.js';
-import { BOT_STRATEGY_NAME, HUNT_PREFERENCE, HUNTER_SPRINT_WITHIN_RADII } from '../strategy-constants.js';
+import { createGrazingHunterStrategy, createHunterStrategy, huntTargetFrom } from './hunter.js';
+import {
+  BOT_STRATEGY_NAME,
+  HUNT_PREFERENCE,
+  HUNTER_AIM_PAST_PREY_RADII,
+  HUNTER_SPRINT_WITHIN_RADII,
+} from '../strategy-constants.js';
 
 const perception = createTestPerception();
 const self = createTestBotCell({ id: 'self', playerId: TEST_PLAYER_ID, mass: 100, radius: 10 });
@@ -119,6 +124,23 @@ describe('hunter strategy', () => {
   });
 });
 
+describe('huntTargetFrom', () => {
+  it('aims the given number of own radii past the prey, along the line from its own centre through the prey', () => {
+    expect(huntTargetFrom(self, { x: 300, y: 0 }, 2)).toEqual({ x: 320, y: 0 });
+    expect(huntTargetFrom(self, { x: -30, y: -40 }, 1)).toEqual({ x: -36, y: -48 });
+  });
+
+  it('aims at the centre with no offset, or when the prey sits on its own centre', () => {
+    expect(huntTargetFrom(self, { x: 300, y: 0 }, 0)).toEqual({ x: 300, y: 0 });
+    expect(huntTargetFrom(self, { x: 0, y: 0 }, 2)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+/** Where the catalogue hunter aims at a prey due east of `self`: `HUNTER_AIM_PAST_PREY_RADII` own radii beyond it. */
+function aimPastEast(prey: { x: number }): { targetX: number; targetY: number } {
+  return { targetX: prey.x + HUNTER_AIM_PAST_PREY_RADII * self.radius, targetY: 0 };
+}
+
 describe('grazing hunter (the catalogue hunter)', () => {
   it('is named hunter', () => {
     expect(createGrazingHunterStrategy(perception)().name).toBe(BOT_STRATEGY_NAME.hunter);
@@ -134,19 +156,36 @@ describe('grazing hunter (the catalogue hunter)', () => {
 
   it('hunts over grazing as soon as a prey is engulfable, and picks afresh after a grazing gap', () => {
     const strategy = createGrazingHunterStrategy(perception)();
-    expect(strategy.decide(contextWith([self, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: smallPrey.y });
+    expect(strategy.decide(contextWith([self, smallPrey]))).toEqual(aimPastEast(smallPrey));
     expect(strategy.decide(contextWith([self]))).toEqual({ targetX: nearMote.x, targetY: nearMote.y });
     // Without the gap it would stay on smallPrey (the commitment test above); after it, the largest wins again.
     expect(strategy.decide(contextWith([self, smallPrey, biggerPrey]))).toEqual({
-      targetX: biggerPrey.x,
-      targetY: biggerPrey.y,
+      targetX: 0,
+      targetY: biggerPrey.y + HUNTER_AIM_PAST_PREY_RADII * self.radius,
     });
+  });
+
+  it('aims past its prey so the target stays at the full-throttle distance even on contact, where the bare hunter aims at the centre', () => {
+    const touching = { ...smallPrey, x: self.radius, y: 0 };
+    const command = createGrazingHunterStrategy(perception)().decide(contextWith([self, touching]));
+    expect(command).toEqual({ ...aimPastEast(touching), isSprinting: true });
+    expect(command?.targetX).toBeGreaterThanOrEqual(self.x + STEER_FULL_THROTTLE_RADII * self.radius);
+    expect(createHunterStrategy(perception)().decide(contextWith([self, touching]))).toEqual({
+      targetX: touching.x,
+      targetY: 0,
+      isSprinting: true,
+    });
+  });
+
+  it('takes an explicit aim over the catalogue default', () => {
+    const strategy = createGrazingHunterStrategy(perception, { aimPastRadii: 0 })();
+    expect(strategy.decide(contextWith([self, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: 0 });
   });
 
   it('grazes while its named prey is out of reach and hunts it once it is engulfable', () => {
     const strategy = createGrazingHunterStrategy(perception, { preyPlayerId: smallPrey.playerId })();
     expect(strategy.decide(contextWith([self, biggerPrey]))).toEqual({ targetX: nearMote.x, targetY: nearMote.y });
-    expect(strategy.decide(contextWith([self, biggerPrey, smallPrey]))).toEqual({ targetX: smallPrey.x, targetY: 0 });
+    expect(strategy.decide(contextWith([self, biggerPrey, smallPrey]))).toEqual(aimPastEast(smallPrey));
   });
 
   it('sends nothing with neither prey nor food', () => {
