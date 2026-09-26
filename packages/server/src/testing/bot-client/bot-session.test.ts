@@ -3,6 +3,7 @@ import {
   CLIENT_MESSAGE_TYPE,
   MAX_TICKS_PER_ADVANCE,
   SERVER_MESSAGE_TYPE,
+  SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   TICK_INTERVAL_MS,
   createSeededRandom,
   createTestSessionConfig,
@@ -172,6 +173,24 @@ describe('bot session: the client tick', () => {
     expect(timing.ticker.isStarted()).toBe(false);
     expect(inputsSent()).toHaveLength(1);
     expect(session.stats()).toMatchObject({ isConnected: false, clientTick: 1, inputsSent: 1 });
+  });
+});
+
+describe('bot session: acknowledging snapshots (#721)', () => {
+  const acksSent = (transport: ReturnType<typeof createFakeBotTransport>) =>
+    transport.sent.filter((message) => message.type === CLIENT_MESSAGE_TYPE.snapshotAck);
+
+  it("acknowledges a game_state at once and every delta at the browser's cadence", () => {
+    const { transport } = sessionRunning();
+    transport.receive(gameState(createTestSnapshot({ tick: 7 })));
+    expect(acksSent(transport)).toEqual([{ type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: 7 }]);
+    const deltaTicks = Array.from({ length: SNAPSHOT_ACK_EVERY_SNAPSHOTS * 2 }, (_unused, index) => 8 + index);
+    for (const tick of deltaTicks) transport.receive(gameSnapshot(createTestSnapshot({ tick })));
+    expect(acksSent(transport).map((message) => (message as { tick: number }).tick)).toEqual([
+      7,
+      deltaTicks[SNAPSHOT_ACK_EVERY_SNAPSHOTS - 1],
+      deltaTicks.at(-1),
+    ]);
   });
 });
 

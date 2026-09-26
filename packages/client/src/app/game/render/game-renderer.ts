@@ -1,7 +1,7 @@
 // The renderer (docs/rendering/budget.md §7, docs/architecture/client.md §6): owns the camera state and the
 // layers and turns one `RenderFrame` into one Pixi render. The HUD crossings (`previewTraitId`,
 // `reticle`, `ownCellIndicators` in, `cameraExtent` out) are the only things it exchanges with anything else. The
-// stages run in the §7 order (camera, food, cells with organelles inside, effects, submit), each
+// stages run in the §7 order (camera, dish, food, cells with organelles inside, effects, submit), each
 // bracketed by the injected `StageMeasurer` that feeds `renderStagesMs` (`net` is the session's).
 // The effects arrive once, in the frame whose render tick reached them: the effects layer and the
 // clip tracker both start from them before the cell layer syncs, so a prey that just left the
@@ -178,6 +178,11 @@ export class GameRenderer {
     return { camera, zoom: zoomFor(camera, this.viewport), extent: cameraExtent(camera, this.viewport) };
   }
 
+  /** The depth-particle walk and the light-pool placement: a stage of its own, not the camera or the HUD (§7, #264). */
+  private dishStage(frame: RenderFrame, camera: CameraState): void {
+    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
+  }
+
   /** The cell views every later stage reads, charged to the `cells` stage that consumes them (§7). */
   private cellViews(
     frame: RenderFrame,
@@ -207,9 +212,7 @@ export class GameRenderer {
   ): RenderOutputs {
     const { stages } = this;
     const { camera, zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
-    // The depth-particle walk and the light-pool placement are neither the camera nor a stage of their own
-    // (§7): they land in the frame's unbracketed residual, which the HUD budget row judges.
-    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
+    stages.measure(RENDER_STAGE.dish, () => this.dishStage(frame, camera));
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const { ownCell, views, viewOf } = stages.accrue(RENDER_STAGE.cells, () => this.cellViews(frame, ownPlayerId));
     const { deformations, ownCellRing } = stages.accrue(RENDER_STAGE.effects, () => {

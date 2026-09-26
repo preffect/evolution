@@ -63,9 +63,9 @@ describe('budgetVerdict', () => {
     const verdict = budgetVerdict(createTestClientPerformanceReport({ ...timing, gpuMs: 1 }), evidence(0.4));
     expect(verdict.isWithinBudget).toBe(true);
     expect(verdict.isFullyJudged).toBe(true);
-    expect(verdict.stagesTotalMs).toBeCloseTo(7 * 0.05, 9);
+    expect(verdict.stagesTotalMs).toBeCloseTo(RENDER_STAGE_NAMES.length * 0.05, 9);
     expect(verdict.residualP95Ms).toBe(0.4);
-    expect(verdict.derivedResidualMs).toBeCloseTo(1 - 7 * 0.05, 9);
+    expect(verdict.derivedResidualMs).toBeCloseTo(1 - RENDER_STAGE_NAMES.length * 0.05, 9);
   });
 
   it('names every overrun: a stage, the frame, the GPU, the HUD share and the draw calls', () => {
@@ -94,13 +94,13 @@ describe('budgetVerdict', () => {
   });
 
   it('fails the HUD row on a measured residual, which the old derived one could not', () => {
-    // The stages sum past the frame p95 (seven p95s are not the p95 of their sum), so the derived residual is
+    // The stages sum past the frame p95 (eight p95s are not the p95 of their sum), so the derived residual is
     // negative while the frame really did spend 2 ms outside every bracket.
     const verdict = budgetVerdict(
       createTestClientPerformanceReport({ renderStagesMs: stages(1), frameTimeP95Ms: 5 }),
       evidence(2),
     );
-    expect(verdict.derivedResidualMs).toBe(5 - 7);
+    expect(verdict.derivedResidualMs).toBe(5 - RENDER_STAGE_NAMES.length);
     expect(verdict.overruns.map((overrun) => overrun.name)).toContain(BUDGET_ROW.hud);
   });
 
@@ -130,14 +130,16 @@ describe('budgetVerdict', () => {
 
   it('reports the sub-millisecond stages as informational: never an overrun, never unjudged (ticket #470)', () => {
     expect([...INFORMATIONAL].sort(), 'the §7 rows under 1 ms').toEqual(
-      [RENDER_STAGE.food, RENDER_STAGE.effects, RENDER_STAGE.camera].sort(),
+      [RENDER_STAGE.food, RENDER_STAGE.effects, RENDER_STAGE.camera, RENDER_STAGE.dish].sort(),
     );
     const verdict = budgetVerdict(
       createTestClientPerformanceReport({ renderStagesMs: stages(0.9), gpuMs: 1 }),
       evidence(0.4),
     );
     expect(verdict.informational).toEqual(INFORMATIONAL);
-    expect(verdict.overruns, 'food, effects and camera at 0.9 ms are over their budgets, yet not judged').toEqual([]);
+    expect(verdict.overruns, 'food, effects, camera and dish at 0.9 ms are over their budgets, yet not judged').toEqual(
+      [],
+    );
     expect(verdict.unjudged).toEqual([]);
     expect(verdict.isFullyJudged).toBe(true);
   });

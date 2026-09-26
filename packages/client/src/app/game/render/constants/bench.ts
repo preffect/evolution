@@ -28,11 +28,12 @@ export const RENDER_STAGE_BUDGET_MS: Readonly<Record<RenderStageName, number>> =
   food: 0.6,
   effects: 0.3,
   camera: 0.1,
+  dish: 0.4,
   submit: 1.0,
 };
 export const RENDER_GPU_BUDGET_MS = 4.0;
 /**
- * What is left of a frame outside the timed brackets (the HUD, the dish placement, the browser),
+ * What is left of a frame outside the timed brackets (the HUD and the browser; the dish is its own stage since #264),
  * measured per frame as `frame − Σ its top-level brackets` and reported at p95 (docs/rendering/budget.md §7).
  */
 export const RENDER_HUD_BUDGET_MS = 1.0;

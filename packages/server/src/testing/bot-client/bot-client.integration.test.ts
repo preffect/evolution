@@ -6,6 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   CLIENT_MESSAGE_TYPE,
+  SNAPSHOT_ACK_EVERY_SNAPSHOTS,
   SNAPSHOT_EVERY_TICKS,
   TICK_INTERVAL_MS,
   createTestSessionConfig,
@@ -14,9 +15,13 @@ import type { GameInput, PlayerId } from '@evolution/shared';
 import { echoBotBinding } from '../../game/bots/bot-binding.js';
 import { createNamedBotPilot } from '../../game/bots/bot-pilot.js';
 import { defaultGameModuleFactory, type GameModuleFactory } from '../../game/game-module.js';
+import type { SnapshotFlowTelemetry } from '../../lobby/snapshot-backlog.js';
+import { registerPerformanceTools } from '../../mcp/handlers/performance.js';
 import { captureManualTimings } from '../bot-builders.js';
+import { createToolCapture, parseToolJson } from '../builders.js';
 import { echoedInput, type EchoSnapshot } from '../gameplay/echo-adapter.js';
 import { nextServerMessage, openTestSocket, startTestWebSocketServer } from '../socket-builders.js';
+import { untilRoomDecides } from '../wait-for.js';
 import type { BotSession } from './bot-session.js';
 import { createBotSwarm, type BotSwarm } from './bot-swarm.js';
 import { BotClientError } from './errors.js';
@@ -27,6 +32,8 @@ const TICKS = 300;
 const BOT_COUNT = 2;
 const SEED = 42;
 const STRATEGY = 'wander';
+/** Ticks until each bot has acknowledged a delta: one ack cadence of broadcasts. */
+const ACKNOWLEDGED_TICKS = SNAPSHOT_ACK_EVERY_SNAPSHOTS * SNAPSHOT_EVERY_TICKS;
 
 interface LandingWaiter {
   readonly playerIds: readonly string[];
@@ -172,6 +179,34 @@ describe('bot client against a real server', () => {
       // One snapshot per broadcast, not per tick (docs/architecture/entity-model.md §1).
       expect(stats.snapshotsReceived).toBeGreaterThanOrEqual(Math.floor(TICKS / SNAPSHOT_EVERY_TICKS));
     }
+  });
+
+  /** `debug_get_room_performance`'s `snapshotFlow` for the room, read through the tool as a debug client would. */
+  async function readSnapshotFlow(gameId: string): Promise<SnapshotFlowTelemetry> {
+    const tools = createToolCapture();
+    registerPerformanceTools(tools.mcp, { lobbyManager: started.lobby, connections: started.connections });
+    const rooms = parseToolJson(await tools.call('debug_get_room_performance', { gameId }));
+    return (rooms as { snapshotFlow: SnapshotFlowTelemetry }[])[0]!.snapshotFlow;
+  }
+
+  it('#721: acknowledges its snapshots as the browser does, so the room measures each bot like a browser', async () => {
+    const gameId = await hostedGame();
+    const room = started.lobby.getActiveRoom(gameId)!;
+    const bots = swarmFor(gameId);
+    await bots.start();
+    const botIds = bots.bots().map((bot) => bot.playerId);
+
+    for (let tick = 1; tick <= ACKNOWLEDGED_TICKS; tick += 1) await orderedTick(botIds, tick);
+    // The newest broadcast is the delta each bot's cadence acknowledges, so once the ack lands nothing is in flight.
+    await untilRoomDecides(
+      () => botIds.every((botId) => room.snapshotBacklog.backlogTicksOf(botId) === 0),
+      `every bot acknowledged the delta of tick ${ACKNOWLEDGED_TICKS}`,
+    );
+    const { players } = await readSnapshotFlow(gameId);
+    for (const botId of botIds) expect(players[botId]).toEqual({ backlogTicks: 0, isOwedResync: false });
+    // The raw host socket acknowledges nothing: the tool tells the two apart.
+    expect(players['host']?.backlogTicks).toBeNull();
+    expect(bots.stats().map((stats) => stats.errorsReceived)).toEqual([0, 0]);
   });
 
   it('fails loudly, with the server error, when the game does not exist', async () => {
