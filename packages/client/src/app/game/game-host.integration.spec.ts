@@ -9,13 +9,16 @@
 //
 // Mounting the component is what makes the pin real, and it is possible because `createPixiApp` is now injected
 // through `CREATE_PIXI_APP` rather than imported (jsdom has no WebGL). Nothing here is mocked that carries a rule:
-// the fakes are a canvas, a clock, an audio backend and a socket.
+// the fakes are a canvas, a clock, an audio backend and a socket. The same mount pins the hop out to the wire
+// (ticket #256): the render session's frame-budget report leaves the socket as `client_performance`.
 
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CLIENT_MESSAGE_TYPE,
   DEFAULT_BALANCE,
   ManualClock,
+  RENDER_STAGE_NAMES,
   SERVER_MESSAGE_TYPE,
   createTestSessionConfig,
   createTestSnapshot,
@@ -23,7 +26,7 @@ import {
   type ServerMessage,
 } from '@evolution/shared';
 import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../testing/builders';
-import { createFakePixiApp } from '../../testing/fake-pixi-app';
+import { createFakePixiApp, type FakePixiApp } from '../../testing/fake-pixi-app';
 import { FakeWebSocket } from '../../testing/fake-websocket';
 import { IdentityService } from '../services/identity.service';
 import { WebSocketService } from '../services/websocket.service';
@@ -33,8 +36,12 @@ import { GameHostComponent } from './game-host.component';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud/hud-state.service';
 import { HUD_TEST_ID } from './test-ids/hud-test-ids';
 import { CREATE_PIXI_APP } from './render/pixi-app-provider';
+import { CLIENT_PERFORMANCE_REPORT_INTERVAL_MS } from './render/constants';
 
 const VIEWPORT = { width: 1280, height: 720 };
+/** The frame period the report test draws at; the renderer's staged build takes a few frames before the first draw. */
+const FRAME_MS = 20;
+const BUILD_FRAMES_MAX = 100;
 
 function flush(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
@@ -61,8 +68,10 @@ function press(code: string): void {
   TestBed.tick();
 }
 
-describe('what the game host hands the input seam', () => {
+describe('what the game host hands the input seam and the wire', () => {
   let hudState: HudStateService;
+  let clock: ManualClock;
+  let pixi: FakePixiApp;
 
   beforeEach(async () => {
     FakeWebSocket.reset();
@@ -74,12 +83,14 @@ describe('what the game host hands the input seam', () => {
       unlock: vi.fn(),
       disconnect: vi.fn(),
     };
+    clock = new ManualClock(0);
+    pixi = createFakePixiApp(VIEWPORT);
     TestBed.configureTestingModule({
       imports: [GameHostComponent],
       providers: [
         { provide: IdentityService, useValue: { clientId: 'me' } },
-        { provide: CLOCK, useValue: new ManualClock(0) },
-        { provide: CREATE_PIXI_APP, useValue: () => Promise.resolve(createFakePixiApp(VIEWPORT)) },
+        { provide: CLOCK, useValue: clock },
+        { provide: CREATE_PIXI_APP, useValue: () => Promise.resolve(pixi) },
         { provide: AudioHooks, useValue: { connect: () => audio } },
       ],
     });
@@ -126,5 +137,22 @@ describe('what the game host hands the input seam', () => {
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
     press('Escape');
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+  });
+
+  /** Ticket #256: the report goes out through the host's `reportPerformance`, the service and the socket. */
+  it('sends the frame-budget report as client_performance once a report interval of frames has been drawn', async () => {
+    const sentReports = () =>
+      FakeWebSocket.latest()
+        .sentMessages()
+        .filter((message) => (message as { type: string }).type === CLIENT_MESSAGE_TYPE.clientPerformance);
+    const framesToFirstReport = BUILD_FRAMES_MAX + CLIENT_PERFORMANCE_REPORT_INTERVAL_MS / FRAME_MS;
+    for (let frame = 0; frame < framesToFirstReport && sentReports().length === 0; frame += 1) {
+      clock.advanceMilliseconds(FRAME_MS);
+      pixi.tick();
+      await flush();
+    }
+    const [sent] = sentReports() as { report: { renderStagesMs: object } }[];
+    expect(sent).toBeDefined();
+    expect(Object.keys(sent!.report.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
   });
 });

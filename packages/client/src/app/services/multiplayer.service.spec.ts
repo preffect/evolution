@@ -4,6 +4,7 @@ import {
   CLIENT_MESSAGE_TYPE,
   DEFAULT_BALANCE,
   SERVER_MESSAGE_TYPE,
+  createTestClientPerformanceReport,
   createTestGameInput,
   createTestSessionConfig,
   createTestSnapshot,
@@ -20,6 +21,8 @@ const CONFIG = createTestSessionConfig({ maxPlayers: 4 });
 /** Flow control (#266): the newest snapshot tick the client has applied. */
 const ACKNOWLEDGED_TICK = 42;
 const INPUT = createTestGameInput({ sequence: 5 });
+/** The render session's frame-budget report (#256). */
+const PERFORMANCE_REPORT = createTestClientPerformanceReport({ frameTimeP95Ms: 11 });
 
 describe('MultiplayerService', () => {
   let transport: TransportStub;
@@ -41,6 +44,7 @@ describe('MultiplayerService', () => {
     service.deleteGame('g1');
     service.sendInput(INPUT);
     service.acknowledgeSnapshot(ACKNOWLEDGED_TICK);
+    service.sendPerformanceReport(PERFORMANCE_REPORT);
     service.disconnect();
     expect(transport.connect).toHaveBeenCalled();
     expect(transport.disconnect).toHaveBeenCalled();
@@ -53,6 +57,7 @@ describe('MultiplayerService', () => {
       { type: CLIENT_MESSAGE_TYPE.deleteGame, gameId: 'g1' },
       { type: CLIENT_MESSAGE_TYPE.playerInput, payload: INPUT },
       { type: CLIENT_MESSAGE_TYPE.snapshotAck, tick: ACKNOWLEDGED_TICK },
+      { type: CLIENT_MESSAGE_TYPE.clientPerformance, report: PERFORMANCE_REPORT },
     ]);
   });
 

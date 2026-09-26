@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_MESSAGE_TYPE, createTestSessionConfig } from '@evolution/shared';
+import { CLIENT_MESSAGE_TYPE, createTestClientPerformanceReport, createTestSessionConfig } from '@evolution/shared';
 import { registerPerformanceTools } from './performance.js';
 import { createTestLobby, createToolCapture, parseToolJson } from '../../testing/builders.js';
 
@@ -15,8 +15,9 @@ function fixtureWithOneActiveRoom() {
   fixture.handlers.onStartGame(alice, { type: CLIENT_MESSAGE_TYPE.startGame, gameId });
   const capture = createToolCapture();
   registerPerformanceTools(capture.mcp, { lobbyManager: fixture.lobby, connections: fixture.connections });
-  const stop = () => fixture.lobby.getActiveRoom(gameId)?.stop();
-  return { ...capture, gameId, stop };
+  const room = fixture.lobby.getActiveRoom(gameId)!;
+  const stop = () => room.stop();
+  return { ...capture, gameId, room, stop };
 }
 
 describe('debug_get_performance', () => {
@@ -40,6 +41,28 @@ describe('debug_get_room_performance', () => {
     const rooms = parseToolJson(await fixture.call('debug_get_room_performance')) as { gameId: string }[];
     expect(rooms.map((room) => room.gameId)).toEqual([fixture.gameId]);
     expect(rooms[0]).toMatchObject({ playerCount: 1, sampleCount: 0 });
+    fixture.stop();
+  });
+
+  it('#256: lists the newest client report per player beside the tick stats and the snapshot flow', async () => {
+    const fixture = fixtureWithOneActiveRoom();
+    const older = createTestClientPerformanceReport({ frameTimeP95Ms: 30 });
+    const newest = createTestClientPerformanceReport({ frameTimeP95Ms: 11, gpuMs: 2.5 });
+    fixture.room.recordClientPerformance('alice', older);
+    fixture.room.recordClientPerformance('alice', newest);
+    const [room] = parseToolJson(
+      await fixture.call('debug_get_room_performance', { gameId: fixture.gameId }),
+    ) as Record<string, unknown>[];
+    expect(room).toMatchObject({ playerCount: 1, clientReports: { alice: newest } });
+    expect(room).toHaveProperty('snapshotFlow.players.alice');
+    expect(room).toHaveProperty('broadcastBytesPerSec');
+    fixture.stop();
+  });
+
+  it('lists no client report for a room whose clients have sent none', async () => {
+    const fixture = fixtureWithOneActiveRoom();
+    const [room] = parseToolJson(await fixture.call('debug_get_room_performance')) as Record<string, unknown>[];
+    expect(room).toMatchObject({ clientReports: {} });
     fixture.stop();
   });
 

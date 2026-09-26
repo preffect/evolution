@@ -15,7 +15,7 @@ import {
   type GameInput,
   type ServerMessage,
 } from '@evolution/shared';
-import { TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
+import { SILENT_TELEMETRY_SEAMS, TEST_OWN_PLAYER_ID, createTestCellView } from '../../../testing/builders';
 import { createFakePixiApp } from '../../../testing/fake-pixi-app';
 import { EVOLUTION_DEBUG_KEY, type EvolutionDebugHost } from '../debug/evolution-debug';
 import { setupGame, type GameTeardown } from '../game-setup';
@@ -97,7 +97,7 @@ async function startGame(): Promise<Harness> {
     disconnect: vi.fn(),
   };
   const teardown = setupGame(
-    { send: (input) => sent.push(input), messages$, acknowledgeSnapshot: () => undefined, host },
+    { send: (input) => sent.push(input), messages$, ...SILENT_TELEMETRY_SEAMS, host },
     {
       clock,
       connectAudio: () => audio,
