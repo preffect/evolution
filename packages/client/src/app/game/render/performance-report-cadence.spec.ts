@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ManualClock } from '@evolution/shared';
 import { CLIENT_PERFORMANCE_REPORT_INTERVAL_MS, RENDER_P95_MIN_SAMPLE_FRAMES } from './constants';
