@@ -1,3 +1,4 @@
+// @vitest-environment node
 import {
   RENDER_STAGE,
   RENDER_STAGE_NAMES,

@@ -1,3 +1,4 @@
+// @vitest-environment node
 // A clip running across a scene swap (docs/architecture/encyclopedia.md §12.7): the rule that the preview's render
 // tick is monotonic and never wraps, and the consequence that makes it matter.
 

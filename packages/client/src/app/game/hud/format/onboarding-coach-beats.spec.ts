@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ZONE_ID, secondsToTicks } from '@evolution/shared';
 import {

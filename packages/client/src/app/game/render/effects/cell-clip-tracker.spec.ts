@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MOTION_CLIP, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';

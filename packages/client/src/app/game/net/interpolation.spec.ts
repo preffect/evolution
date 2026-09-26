@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { INTERPOLATION_DELAY_TICKS, MAX_EXTRAPOLATION_TICKS, TICK_INTERVAL_MS, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../testing/builders';

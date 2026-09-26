@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { NO_HUD_INPUTS, NO_RETICLE, outputsBeforeAnyFrame } from './render-io';
 

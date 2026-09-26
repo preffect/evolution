@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The amoeba's lobes in the shape terms (#192, docs/rendering/cells.md §2.1): the frame's pseudopods appended after the
 // deformation's bumps, aimed along the heading or round the engulfed prey, and the core's reach.
 

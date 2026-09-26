@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, createSeededRandom, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';

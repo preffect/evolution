@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { TRAIT_DRAFT_SIZE } from '@evolution/shared';
 import {

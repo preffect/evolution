@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/rendering/files-and-tests.md §9: the contact dent from a visible-cell scan; visual-style/motion-and-legibility.md §5's σ per trait.
 
 import { describe, expect, it } from 'vitest';
