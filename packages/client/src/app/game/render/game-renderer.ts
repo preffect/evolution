@@ -217,7 +217,7 @@ export class GameRenderer {
       this.clips.start(cellClipStarts(frame.effects, viewOf), nowMs);
       const ringSource = ownCellRingSourceOf(inputs.ownCellIndicators);
       return {
-        deformations: this.clips.deformations(frame.cells, nowMs, views),
+        deformations: this.clips.deformations(frame.cells, nowMs, frame.balance.absorption, views),
         ownCellRing: this.ownCellRing.update(ownCell?.id ?? null, ringSource, nowMs),
       };
     });

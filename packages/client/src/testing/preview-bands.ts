@@ -147,7 +147,7 @@ function drawnDeformation(cell: CellView, tracks: ClipTrackValues, cellsById: Ce
     ...REST_CLIP_INPUT,
     tracks,
     moteAngle: AIMED_AT_THE_APPROACH,
-    ...engulfClipInput(cell, cellsById),
+    ...engulfClipInput(cell, cellsById, BALANCE.absorption),
   });
 }
 

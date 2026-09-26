@@ -125,6 +125,13 @@ so the dip reads between the arms and its tail at ±30° is −0.004). The arms 
 so the two never add on the flanks; the `absorbed` row is the sheet's "relaxing 0.60 → 0.42 → 0.22", with a new
 0 at done so the predator is round when the ghost leaves.
 
+**The engulf clip is sampled on the remapped progress** (ticket #703): the renderer samples it at
+`engulfClipPosition(engulfProgress, engulfSealProgress(balance.absorption))` (`render/cells/cell-clips.ts`), a
+piecewise-linear remap that sends the room's seal to the clip's 0.5 keyframe (`ENGULF_CLIP_SEAL_AT`) and the payout
+to 1.0. So a patched phase second (`ENGULF_WRAP_SECONDS` 1.0 seals at 2/3) moves the arm peak and the seal onset
+with the HUD's escape arc (`ui/hud.md §3.1`), and at the default seal of exactly 0.5 the remap is the identity, bit
+for bit, so the default look is unchanged.
+
 | Clip, keyframe          | `arm` | `notch` | `seal` |
 | ----------------------- | ----- | ------- | ------ |
 | `engulf` 0 contact      | 0     | 0       | 0      |
