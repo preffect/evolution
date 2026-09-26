@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, createTestTraitOfferView, type TraitOfferView } from '@evolution/shared';
 import type { InputWorldContext } from './game-input-builder';

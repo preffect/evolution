@@ -10,8 +10,11 @@
 // that has to be written down here.
 
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
+
+import { DYNAMIC_IMPORT, STATIC_IMPORT, importGraph, resolveSource, specifiers } from '../../testing/import-graph';
+import { repoPath } from '../../testing/repo-document';
 
 const CLIENT_SOURCE = 'packages/client/src';
 const ENTRY = 'main.ts';
@@ -59,46 +62,9 @@ const PAGE_TERRITORIES: Readonly<Record<string, PageTerritory>> = {
   },
 };
 
-/** Module specifiers a file imports for their values: `import … from`, bare `import '…'` and `export … from`. */
-const STATIC_IMPORT = /^(?:import|export)\s+(?!type\s)(?:[^'";]*?\sfrom\s+)?'([^']+)'/gm;
-const DYNAMIC_IMPORT = /import\(\s*'([^']+)'\s*\)/g;
-
-function clientSourceRoot(): string {
-  let directory = process.cwd();
-  while (!existsSync(join(directory, CLIENT_SOURCE))) {
-    const parent = dirname(directory);
-    if (parent === directory) throw new Error(`${CLIENT_SOURCE} not found above ${process.cwd()}`);
-    directory = parent;
-  }
-  return join(directory, CLIENT_SOURCE);
-}
-
-/** A relative specifier as the source file it names; `null` for a package, which holds no page. */
-function resolveSource(fromFile: string, specifier: string): string | null {
-  if (!specifier.startsWith('.')) return null;
-  const base = resolve(dirname(fromFile), specifier);
-  const candidate = [`${base}.ts`, join(base, 'index.ts')].find((path) => existsSync(path));
-  if (candidate === undefined) throw new Error(`${specifier} from ${fromFile} names no source file`);
-  return candidate;
-}
-
-function specifiers(source: string, pattern: RegExp): string[] {
-  return [...source.matchAll(pattern)].map((match) => match[1] ?? '');
-}
-
 /** Every source file a static import chain from `entry` reaches. */
-function staticallyReachable(entry: string): Set<string> {
-  const reached = new Set<string>();
-  const pending = [entry];
-  for (let file = pending.pop(); file !== undefined; file = pending.pop()) {
-    if (reached.has(file)) continue;
-    reached.add(file);
-    for (const specifier of specifiers(readFileSync(file, 'utf8'), STATIC_IMPORT)) {
-      const target = resolveSource(file, specifier);
-      if (target !== null) pending.push(target);
-    }
-  }
-  return reached;
+function staticallyReachable(entry: string): ReadonlySet<string> {
+  return importGraph(entry, { patterns: [STATIC_IMPORT] }).files;
 }
 
 /** The offset just past the brace that closes the block opened at `openBrace`. */
@@ -120,7 +86,7 @@ function ownerOf(relativePath: string): string | null {
 }
 
 describe('the production bundle and the dev-only pages (#423)', () => {
-  const root = clientSourceRoot();
+  const root = repoPath(CLIENT_SOURCE);
   const loaderPath = join(root, LOADER);
   const loaderSource = readFileSync(loaderPath, 'utf8');
   const pages = specifiers(loaderSource, DYNAMIC_IMPORT)

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
   CAMERA_MAX_VIEW_HALF_HEIGHT_WU,

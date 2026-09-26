@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ZONE_ID, entityId, secondsToTicks, type MassFlowView } from '@evolution/shared';
 import { createTestCellAbsorbedEffect, createTestEatEffect } from '../../../testing/builders';

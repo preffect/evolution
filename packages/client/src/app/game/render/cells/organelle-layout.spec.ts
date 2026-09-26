@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/rendering/files-and-tests.md §9: slot centres inside 0.92 and outside the keep-out, the sprite body inside
 // the membrane (#243), outside the nucleus disc, gap held, append-only across tiers, seeded.
 import { describe, expect, it } from 'vitest';

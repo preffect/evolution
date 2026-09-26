@@ -1,3 +1,4 @@
+// @vitest-environment node
 // docs/ui/encyclopedia.md §11.5: every move but Back pushes the location it left, Back pops, a move to the location
 // already shown pushes nothing, the stack is capped, and the rail never offers a category with no entries.
 

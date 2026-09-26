@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, canEngulf, entityId, type CellView } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';

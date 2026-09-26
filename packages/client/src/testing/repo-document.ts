@@ -5,13 +5,18 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-/** A document by its repo-relative path; the runner's cwd is a package or the root, so walk up to it. */
-export function readRepoDocument(relativePath: string): string {
+/** A path by its repo-relative form; the runner's cwd is a package or the root, so walk up to it. */
+export function repoPath(relativePath: string): string {
   let directory = process.cwd();
   while (!existsSync(join(directory, relativePath))) {
     const parent = dirname(directory);
     if (parent === directory) throw new Error(`${relativePath} not found above ${process.cwd()}`);
     directory = parent;
   }
-  return readFileSync(join(directory, relativePath), 'utf8');
+  return join(directory, relativePath);
+}
+
+/** A document by its repo-relative path. */
+export function readRepoDocument(relativePath: string): string {
+  return readFileSync(repoPath(relativePath), 'utf8');
 }

@@ -81,8 +81,12 @@ node environment, where its environment cost is ~0 ms. The 91 files that carry i
   converted graph does — it imports only `vitest` and `node:` builtins — but a spec that pulls in
   a third-party package keeps jsdom unless that package is checked.
 - The same docblock works in the integration tier (`lint-guard.integration.spec.ts` carries it).
-- Only the section 7 checklist enforces any of this: nothing fails when a new DOM-free spec is
-  written without the docblock, so the saving decays unless reviewers look (ticket #489).
+- `packages/client/src/testing/spec-environment.spec.ts` enforces both directions (ticket #489): it walks every
+  client spec's import graph (`src/testing/import-graph.ts`, into `@evolution/shared`'s sources) and fails when a
+  spec whose graph reaches no DOM lacks the docblock, or when a `node` spec's graph holds a `typeof window` /
+  `typeof document` / `… in globalThis` sniff. "Reaches the DOM" is the rule above read off the syntax tree, so a
+  DOM word in a comment or a string does not count; when it landed it moved 49 more specs to `node`. A `node` spec
+  whose graph imports `@angular/core` or `pixi.js` and passes is left alone: only a sniff fails it.
 
 ### 2.2 Client workers: reused for plain specs, one process per `TestBed` spec (#540)
 
@@ -188,7 +192,9 @@ the only bound (`testing/wait-for.ts`, #421).
 3. A changed rule or number has a scenario named by its design-table row.
 4. Fixtures come from `src/testing/`; no ad-hoc object literals repeated across tests.
 5. No `.only`, no `.skip`, no snapshot of a large object, no `Math.random`, no real time.
-6. A new client spec with no DOM in its import graph carries `// @vitest-environment node` (§2.1).
+6. A new client spec with no DOM in its import graph carries `// @vitest-environment node` (§2.1);
+   `src/testing/spec-environment.spec.ts` fails the unit tier when it does not, or when a `node` spec's graph sniffs
+   the environment. A spec it misreads goes on its commented `EXEMPTIONS` list with the reason.
 7. Coverage did not go down; if it went up, the threshold went up with it.
 8. Vitest's `toBeCloseTo(expected, numDigits)` and `expect.closeTo` take a **digit count**, passing when
    `|Δ| < 10^−numDigits / 2`: a tolerance there (`0.01`, `1e-12`) makes the bound about ±0.5 and the assertion

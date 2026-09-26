@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { MILLISECONDS_PER_SECOND, RECONCILE_BLEND_SECONDS, RECONCILE_SNAP_DISTANCE_WU } from '@evolution/shared';
 import { PoseCorrection } from './pose-correction';

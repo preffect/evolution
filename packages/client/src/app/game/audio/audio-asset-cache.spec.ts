@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AUDIO_ASSET_BASE_PATH, AUDIO_MANIFEST_FILE_NAME, parseAudioManifest } from '@evolution/shared';
 import { AudioAssetCache, FetchAudioAssetLoader, audioAssetUrl } from './audio-asset-cache';

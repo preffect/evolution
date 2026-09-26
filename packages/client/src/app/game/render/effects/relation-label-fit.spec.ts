@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { LABEL_PILL_HEIGHT_PX, THREAT_LABEL_GAP_PX } from '../constants';
 import { HALF, boxIntersectsDisc, boxesIntersect } from '../geometry';

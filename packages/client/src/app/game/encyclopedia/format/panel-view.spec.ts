@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { ENCYCLOPEDIA_CATEGORY } from '../model/categories';
 import type { EntryId } from '../model/entry-id';

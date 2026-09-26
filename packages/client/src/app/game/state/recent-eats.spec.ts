@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { entityId, secondsToTicks, type GameEffect } from '@evolution/shared';
 import { createTestCellAbsorbedEffect, createTestEatEffect } from '../../../testing/builders';

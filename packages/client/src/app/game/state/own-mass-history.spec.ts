@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { entityId, secondsToTicks } from '@evolution/shared';
 import { AFFECTING_MASS_HISTORY_SECONDS, AFFECTING_MASS_SAMPLE_SECONDS } from '../hud/hud-constants';
