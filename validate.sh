@@ -888,6 +888,9 @@ RUNNER_RPC_TIMEOUT_MS=180000
 RUNNER_RPC_UNPATCHED_TIMEOUT_MS=60000 # what the patch falls back to for a value it does not accept
 RUNNER_RPC_MAX_TIMEOUT_MS=2147483647  # setTimeout's largest delay: the patch refuses a larger one, which would fire at once
 MILLISECONDS_PER_SECOND=1000
+# The opt-in tier's per-test budget (vitest.tiers.ts OPT_IN_TEST_TIMEOUT_MS; the unit tier keeps vitest's
+# 5 s): longer than the watchdog, so there a tripped watchdog can be the branch's own scenario (#478).
+OPT_IN_TEST_TIMEOUT_SECONDS=300
 
 # Worker cap (#475). Vitest's forks pool defaults to `availableParallelism() - 1` workers, and forgets
 # its own main process, which alone serves the vite transforms, the coverage collection and the
@@ -958,10 +961,12 @@ total_tests_run() { # <summary lines>
 }
 
 # What the runner reported outside its tests (#475), as the lines to print; empty when it reported
-# none. Every package's `Errors N` line counts, and an RPC timeout among them is named as the
-# infrastructure failure it is, so nobody reads the passed counts above it as a green run.
-unhandled_error_report() { # <runner output>
-  local line rest errors=0 timeouts=0 noun=errors
+# none. Every package's `Errors N` line counts, and an RPC timeout among them is named for what it is
+# in the tier that ran (#478): in `test` the infrastructure failure no diff causes, in `integration`
+# possibly the branch's, since a scenario may hold its worker longer than the watchdog. Either way
+# nobody reads the passed counts above it as a green run.
+unhandled_error_report() { # <test | integration> <runner output>
+  local cmd="$1" line rest errors=0 timeouts=0 noun=errors
   while IFS= read -r line; do
     rest="$line"
     [[ ! "$line" =~ $PNPM_LINE_PREFIX_PATTERN ]] || rest="${BASH_REMATCH[2]}"
@@ -970,7 +975,7 @@ unhandled_error_report() { # <runner output>
     elif [[ "$rest" == *"$RUNNER_RPC_TIMEOUT_MARKER"* ]]; then
       timeouts=$((timeouts + 1))
     fi
-  done <<< "$1"
+  done <<< "$2"
   [[ $errors -gt 0 ]] || return 0
   [[ $errors -ne 1 ]] || noun=error
   echo "validate.sh: the runner reported $errors unhandled $noun outside its tests, and exited non-zero:"
@@ -991,6 +996,11 @@ unhandled_error_report() { # <runner output>
   local watchdog="${timeout_ms}ms" # a sub-second experiment would read as 0s
   [[ $((timeout_ms % MILLISECONDS_PER_SECOND)) -ne 0 ]] || watchdog="$((timeout_ms / MILLISECONDS_PER_SECOND))s"
   echo "validate.sh: $timeouts of them $timeout_errors: the runner's $watchdog worker RPC watchdog."
+  if [[ "$cmd" == integration ]]; then
+    echo "validate.sh: in this tier that can be this branch — a scenario may run for ${OPT_IN_TEST_TIMEOUT_SECONDS}s, and one holding its worker for $watchdog trips it."
+    echo "validate.sh: run the scenario alone (integration --scope <package> -- <file>) before calling it infrastructure (docs/engineering/validation-gate.md §1)."
+    return 0
+  fi
   echo "validate.sh: that is infrastructure, not this branch — the runner made no progress for $watchdog, which no diff causes and none fixes."
   echo "validate.sh: re-run it, on a quieter box (docs/engineering/validation-gate.md §1)."
 }
@@ -1019,6 +1029,8 @@ run_package_tests() { # <test | integration> <extra args...>
   resolve_runner_args "$cmd" "$@" || return 1
   local workers
   workers="$(runner_worker_limit)"
+  # vitest lets these variables win over a config's poolOptions worker count (#478): a package that
+  # sets one there sees it silently ignored. Change the cap here (runner_worker_limit) instead.
   export VITEST_MAX_FORKS="${VITEST_MAX_FORKS:-$workers}" VITEST_MAX_THREADS="${VITEST_MAX_THREADS:-$workers}"
   export VITEST_WORKER_RPC_TIMEOUT_MS="${VITEST_WORKER_RPC_TIMEOUT_MS:-$RUNNER_RPC_TIMEOUT_MS}"
   if [[ "$cmd" == test ]]; then
@@ -1039,7 +1051,7 @@ run_package_tests() { # <test | integration> <extra args...>
     rc=1
   fi
   # Last, so it is the final word of the phase and a `-tN` filter still shows it.
-  unhandled="$(unhandled_error_report "$output")"
+  unhandled="$(unhandled_error_report "$cmd" "$output")"
   if [[ -n "$unhandled" ]]; then
     printf '%s\n' "$unhandled"
     rc=1

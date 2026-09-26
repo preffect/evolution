@@ -64,7 +64,8 @@
      that blocks its worker for longer than the watchdog can trip it on its own, and that one is the
      branch's. So a unit run where every test passed and the watchdog still fired is infrastructure, a
      runner that made no progress for three minutes, not the branch: re-run it on a quieter box rather than
-     looking for the cause in the diff. A vitest upgrade fails `pnpm install` on the unused patch until it
+     looking for the cause in the diff. The banner says which, by tier (#478): `test` calls it infrastructure,
+     `integration` says it can be the branch and to run the scenario alone first. A vitest upgrade fails `pnpm install` on the unused patch until it
      is ported to the new version's `dist` (`pnpm patch vitest@<version>`) or dropped;
    - **narrows with `--scope`** (#281): `--scope shared|server|client` runs every phase on one
      package (its tests keep the package's coverage floor unless `-- extra-args` filter them: a
