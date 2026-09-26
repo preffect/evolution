@@ -214,11 +214,11 @@ every tick
 - **`GameModule` seam additions** (#97): `serializeFullState(): { snapshot, balance }` (what `game_state`
   carries; required, the echo returns its broadcast snapshot and `DEFAULT_BALANCE`), `getDebugHandle()` (section 8).
   **Every snapshot carries its tick** (#277): `GameModule<Input, Snapshot extends TickedSnapshot>`, where
-  `TickedSnapshot` is `{ readonly tick: number }` (`game/game-module.ts`), because the room's flow control measures each
+  `TickedSnapshot` is `{ readonly tick: number }` (`game/game-module.ts`): the tick the snapshot was taken at, never
+  lower than the previous snapshot's for the life of the room, because the room's flow control measures each
   client's queue by the tick of what it was sent and acknowledged (`lobby/snapshot-backlog.ts`). The template echo
   counts its own ticks and sends `{ tick, players }`, so it is flow-controlled exactly as the Evolution module is
-  (`lagging-ack-resync.integration.test.ts` runs on both); before, it carried no tick and was exempt only because an
-  `undefined` stored as the tick last sent read back as "never sent".
+  (`lagging-ack-resync.integration.test.ts` runs on both).
   `viewerState: { keys, serialize(viewerPlayerId, broadcast), serializeFull(viewerPlayerId, snapshot) }` (#331, #171,
   optional, `ViewerState`): the snapshot members each connection is sent for itself alone, declared by the module in
   the order they are written, and one viewer's values for them. A module implements
@@ -511,7 +511,8 @@ is sent fewer deltas than a healthy client, since every skipped broadcast and th
 sent. A client that **never** acknowledges (the headless bot client) has only the byte half: while its socket hovers at
 the limit it can be resynced as often as every other broadcast. It still never holds more than the limit plus one
 `game_state`, because a resync goes out only once the socket has drained under the limit, and nothing that depends on
-the rate (below) runs on such a client.
+the rate (below) runs on such a client. It does make bot-measured bandwidth and resync counts unlike a browser's, which
+ticket #721 closes by having the bot client acknowledge snapshots as the browser does.
 
 **Two things depend on the rate, not only the bandwidth.** The bound is also a correctness dependency of the browser
 client: `WorldStore` bounds its pending effects by dropping those its buffer's oldest snapshot has passed, and only

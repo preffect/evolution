@@ -58,7 +58,8 @@ export interface GameModule<
 
 /**
  * What every module's snapshot carries, whatever the game (docs/architecture/wire-contract.md §4): the tick it was taken
- * at. `snapshot_ack` echoes it and the room's flow control measures each client's queue with it
+ * at, never lower than the previous snapshot's for the life of the room, since the flow control subtracts ticks and keeps
+ * the newest ack (a tick that restarted would read every later ack as stale). `snapshot_ack` echoes it and the room's flow control measures each client's queue with it
  * (`lobby/snapshot-backlog.ts`), so that verb is generic transport because the contract says so, not by accident (#277).
  */
 export interface TickedSnapshot {
