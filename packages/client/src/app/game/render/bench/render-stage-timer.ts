@@ -1,4 +1,4 @@
-// Brackets the seven CPU stages of a frame (docs/rendering/budget.md §7) on the injected clock and keeps
+// Brackets the eight CPU stages of a frame (docs/rendering/budget.md §7) on the injected clock and keeps
 // a ring of samples per stage, per frame and for the frame's unbracketed residual, so every p95
 // comes from the last few hundred frames. The timer knows nothing about Pixi: the session and the
 // renderer call `measure` around each stage. Work done between frames (a snapshot applied on
@@ -62,6 +62,12 @@ export class SampleRing {
     else this.oldest = (this.oldest + 1) % this.capacity;
   }
 
+  /** Empties the window (a measurement window opening after a warm-up). */
+  clear(): void {
+    this.oldest = 0;
+    this.size = 0;
+  }
+
   /** Drops the newest sample (a frame abandoned after its stage was measured). */
   pop(): void {
     if (this.size > 0) this.size -= 1;
@@ -106,8 +112,8 @@ export type FrameTimingReport = Pick<
 >;
 
 /**
- * Per frame, `frame − Σ its top-level brackets`: the share of the frame no stage key covers (the HUD, the
- * dish placement, the browser). Measured frame by frame, so it is never the difference of two p95s.
+ * Per frame, `frame − Σ its top-level brackets`: the share of the frame no stage key covers (the HUD and the
+ * browser). Measured frame by frame, so it is never the difference of two p95s.
  */
 export interface FrameResidual {
   readonly p95Ms: number;
@@ -163,7 +169,7 @@ export class RenderStageTimer implements StageMeasurer {
   /**
    * Runs `work` as one sample of `stage`, plus whatever was accrued to the stage since its last sample.
    * A stage measured inside another (organelles inside cells) is taken out of the outer sample, so the
-   * seven keys add up to the frame's CPU time without double counting.
+   * eight keys add up to the frame's CPU time without double counting.
    */
   measure<Result>(stage: RenderStageName, work: () => Result): Result {
     const bracket = { started: this.clock.nowMilliseconds(), nestedMs: 0 };

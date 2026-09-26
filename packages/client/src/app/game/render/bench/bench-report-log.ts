@@ -7,6 +7,9 @@
 // the window that produced them instead of a comparison a reader would quote. A row the page's clock is too coarse
 // for (ticket #504) prints its number marked unjudged with the clock's step, and an informational stage (a budget
 // under `RENDER_JUDGED_STAGE_BUDGET_MIN_MS`, ticket #470) is marked as such in the stages row.
+//
+// **The gate row comes first** (ticket #264): whether the run is evidence at all (`bench-gate.ts`), and if not, what
+// to change in the URL, so a within-budget verdict with the GPU unavailable is never read as a pass.
 
 import { RENDER_STAGE_NAMES } from '@evolution/shared';
 import {
@@ -46,6 +49,29 @@ function overrunText(overrun: BudgetOverrun): string {
 function clockReason(report: RenderBenchReport): string {
   const { timerResolutionMs } = report.verdict;
   return `the page's clock steps ${formatMeasuredMilliseconds(timerResolutionMs)}`;
+}
+
+export const GATE_PASSED = 'PASS — evidence a PR may quote';
+export const GATE_FAILED = 'FAIL — not evidence';
+
+/** Why the gate failed, each with what the next run's URL changes. */
+function gateReasons(report: RenderBenchReport): string[] {
+  const { gate, verdict } = report;
+  return [
+    ...(verdict.isWithinBudget ? [] : ['over budget (see the verdict)']),
+    ...(gate.unexpectedUnjudged.length === 0
+      ? []
+      : [`unjudged and not expected: ${gate.unexpectedUnjudged.join(', ')} (&expectUnjudged= names what may be)`]),
+    ...(gate.isTickAdvancing ? [] : ['parked on one tick (pass &advance=1)']),
+  ];
+}
+
+function gateValue(report: RenderBenchReport): string {
+  const { gate } = report;
+  const expected =
+    gate.expectedUnjudged.length === 0 ? '' : ` (expected unjudged: ${gate.expectedUnjudged.join(', ')})`;
+  if (gate.isPassed) return `${GATE_PASSED}${expected}`;
+  return `${GATE_FAILED} — ${gateReasons(report).join('; ')}`;
 }
 
 /** The headline the rest of the block explains: what broke, or what the evidence could not judge. */
@@ -98,6 +124,7 @@ function quantileRowValue(
 export function benchReportHeadlines(report: RenderBenchReport): readonly string[] {
   const { residualP95Ms } = report.verdict;
   return [
+    measurementRow('gate', gateValue(report)),
     measurementRow('verdict', verdictValue(report)),
     measurementRow(
       'frame p95',

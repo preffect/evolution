@@ -22,7 +22,7 @@ const CANVAS = 'canvas[data-testid="game-canvas"]';
 /** `PREVIEW_CANVAS_MAX_PX` (docs/architecture/encyclopedia.md §12.7); the spec runs outside the app's module graph. */
 const CANVAS_MAX_DEVICE_PX = 900;
 /** `RENDER_STAGE` (docs/rendering/budget.md §7), restated here for the same reason. */
-const RENDER_STAGE_KEYS = ['camera', 'cells', 'effects', 'food', 'net', 'organelles', 'submit'];
+const RENDER_STAGE_KEYS = ['camera', 'cells', 'dish', 'effects', 'food', 'net', 'organelles', 'submit'];
 /** `PREVIEW_ROUTE_LENS_PX` (`preview-route.component.ts`); restated for the same reason as the two above. */
 const ROUTE_LENS_CSS_PX = 360;
 

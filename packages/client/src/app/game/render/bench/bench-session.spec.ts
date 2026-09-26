@@ -10,6 +10,7 @@ import {
   RENDER_BENCH_SEED,
   RENDER_BENCH_WARMUP_FRAMES,
 } from '../constants';
+import { BUDGET_ROW_NAMES } from './bench-gate';
 import { GPU_TIMER_STATUS } from './gpu-timer';
 import { BENCH_SHEET, BenchSession, parseBenchQuery, type BenchQuery, type RenderBenchReport } from './bench-session';
 
@@ -18,6 +19,7 @@ const DEFAULT_FLAGS = {
   shouldPreserveDrawingBuffer: false,
   shouldDrawCues: false,
   sheet: null,
+  expectedUnjudged: [],
 };
 
 describe('parseBenchQuery', () => {
@@ -31,7 +33,9 @@ describe('parseBenchQuery', () => {
       shouldPreserveDrawingBuffer: true,
       shouldDrawCues: false,
       sheet: null,
+      expectedUnjudged: [],
     });
+    expect(parseBenchQuery('?bench&expectUnjudged=gpu,hud').expectedUnjudged).toEqual(['gpu', 'hud']);
     expect(parseBenchQuery('?bench&cues=1').shouldDrawCues).toBe(true);
     expect(parseBenchQuery('?bench&cues=yes').shouldDrawCues).toBe(false);
     expect(parseBenchQuery('?bench')).toEqual({
@@ -141,10 +145,36 @@ describe('BenchSession', () => {
     expect(report.verdict.sampleCount).toBe(SMALL_WINDOW_FRAMES);
     expect(report.verdict.isP95Estimable, 'a twelve-frame window cannot support a p95').toBe(false);
     expect(report.verdict.isFullyJudged).toBe(false);
+    expect(
+      report.gate.isPassed,
+      'within budget where judged is not evidence: the rows are unjudged, the tick parked',
+    ).toBe(false);
+    expect(report.gate.unexpectedUnjudged).toEqual(report.verdict.unjudged);
     expect(api.performanceReport()).toBe(report);
     pixi.tick();
     expect(reports).toHaveLength(1);
     expect(pixi.renderCalls.count).toBe(RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES + 1);
+  });
+
+  it('opens the GPU window once, when the warm-up ends, so no warm-up frame reaches `gpuMs` (#264)', async () => {
+    const { subject, pixi } = await session();
+    const openWindow = vi.spyOn(subject.instrumentation, 'openWindow');
+    for (let frame = 0; frame < RENDER_BENCH_WARMUP_FRAMES - 1; frame += 1) pixi.tick();
+    expect(openWindow).not.toHaveBeenCalled();
+    pixi.tick();
+    expect(openWindow).toHaveBeenCalledTimes(1);
+    for (let frame = 0; frame < SMALL_WINDOW_FRAMES; frame += 1) pixi.tick();
+    expect(openWindow).toHaveBeenCalledTimes(1);
+  });
+
+  it('gates a run on the rows its URL expected unjudged and on `advance=1`', async () => {
+    const { pixi, reports } = await session({
+      ...SMALL_QUERY,
+      shouldAdvanceTick: true,
+      expectedUnjudged: BUDGET_ROW_NAMES,
+    });
+    for (let frame = 0; frame < RENDER_BENCH_WARMUP_FRAMES + SMALL_WINDOW_FRAMES; frame += 1) pixi.tick();
+    expect(reports[0]!.gate).toMatchObject({ isPassed: true, unexpectedUnjudged: [], isTickAdvancing: true });
   });
 
   it('renders the production context unless `preserve=1` asks for the readable backbuffer', async () => {

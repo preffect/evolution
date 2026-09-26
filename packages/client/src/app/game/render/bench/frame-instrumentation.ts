@@ -114,6 +114,15 @@ export class FrameInstrumentation {
     }
   }
 
+  /**
+   * Opens the measurement window once a warm-up is over (ticket #264): the GPU timer starts over, so a warm-up
+   * shader compile neither lands in `gpuMs` nor marks it implausible for the window. The CPU rings need nothing:
+   * their capacity is the window, so the warm-up's samples have rolled out of them by the report.
+   */
+  openWindow(): void {
+    this.gpu?.openWindow();
+  }
+
   /** Why `gpuMs` is a number or `null`. */
   get gpuStatus(): GpuTimerStatus {
     return this.gpu?.status() ?? GPU_TIMER_STATUS.unsupported;

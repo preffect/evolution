@@ -68,7 +68,7 @@ describe('GameRenderer', () => {
     expect(centre.y).toBeCloseTo(30);
   });
 
-  it('brackets the frame in the seven stages of docs/rendering/budget.md §7, in order, with the organelles inside the cells', () => {
+  it('brackets the frame in the eight stages of docs/rendering/budget.md §7, in order, with the organelles inside the cells', () => {
     const { stages, log } = recordingStages();
     const { renderer: subject } = renderer(stages);
     subject.render(createTestRenderFrame({ cells: [createTestCellView()] }), TEST_OWN_PLAYER_ID, INPUTS, () =>
@@ -77,7 +77,9 @@ describe('GameRenderer', () => {
     expect(log).toEqual([
       `measure:${RENDER_STAGE.camera}`,
       `end:${RENDER_STAGE.camera}`,
-      // The dish runs here, bracketed by nothing: §7 charges it to the frame's residual, not to `camera`.
+      // The dish is its own stage (#264): neither `camera` nor the HUD residual.
+      `measure:${RENDER_STAGE.dish}`,
+      `end:${RENDER_STAGE.dish}`,
       `accrue:${RENDER_STAGE.cells}`,
       `end:${RENDER_STAGE.cells}`,
       `accrue:${RENDER_STAGE.effects}`,

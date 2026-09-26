@@ -44,7 +44,7 @@ effects/{indicator-fill-tween,indicator-text}.ts    the DNA fill's linear tween;
 effects/own-cell-ring.ts                           the sprint ring per frame: the fill, the `sprint_ready` brighten on reaching ready, the escape's predator (§10, #295)
 effects/{arc-instance,arc-shader,arc-mesh}.ts       the arc primitive (§10): the row packing (start angles through `screenRadiansOf`, a round or butt cap per row), the distance-to-stroke GLSL, one instanced mesh drawing every ring, track and arc of a frame in one call (#294)
 effects/orbit-backing-arcs.ts                       the ladder orbit's backings as butt-ended arc rows over `orbitLayout`'s padded, merged spans (§10, #294)
-bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208)
+bench/{render-stage-timer,draw-call-counter,gpu-timer,frame-instrumentation,render-benchmark,bench-gate}.ts   the stage brackets, the two GL counters, what both sessions wrap around a frame, the report and its verdict (§7, #208), and the hardware run's gate (budget.md §7.3, #264)
 bench/{bench-scene,bench-traits,bench-food,bench-effects,bench-driver}.ts   the fixed-seed world and its snapshot at any tick, driven through the real store on a `ManualClock` (§7)
 bench/{bench-session,bench-route,render-bench.component,heap-probe}.ts   the dev-only route: the engine and its query flags, the `?bench` key and `IS_BENCH_ROUTE` gate (kept apart so the shell ships no bench, architecture/client.md §6), the component (loaded on demand), Chrome's heap counter (§7)
 preview/{preview-spec,preview-scene,preview-frame,preview-session,preview-host,preview-timings,preview-still}.ts   the encyclopedia preview seam (architecture/encyclopedia.md §12.7): the spec data, spec → scene, scene → `RenderFrame`, the third `FrameLoopSession`, the `ENCYCLOPEDIA_PREVIEW` token, the walk arithmetic and the two budgets' verdict, the cached still frames (#378)
@@ -54,7 +54,7 @@ preview/scenes/{cell-scene,food-scene,zone-scene}.ts   the subject scenes (#363:
 preview/scenes/{action-subject,eat-scene,sprint-scene,level-up-scene}.ts   the single-cell action scenes (#364): the shared subject held at the lens centre and followed as `ownPlayerId`, and the three scenes over it
 preview/scenes/{engulf-pair,engulf-scene,escape-scene}.ts   the two-cell action scenes (#364): the pair at exactly the required ratio, the server's contact rule, the phase spans and the lens over two bodies, and the two scenes over it — the subject as predator to a payout and a respawn, the subject as prey to a `cell_released`
 bench/indicator-sheet.ts                            `sheet=indicators`: the own-cell indicator textures drawn at their px floor and magnified over the field colour, the evidence sheet of §10 (#294)
-game-renderer.ts  render-io.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the seven stages), its HUD crossings (`RenderInputs` in, `RenderOutputs` out), one room's session, the texture bundle, whom the camera follows
+game-renderer.ts  render-io.ts  render-session.ts  render-textures.ts  render-target.ts   the orchestrator (the eight stages), its HUD crossings (`RenderInputs` in, `RenderOutputs` out), one room's session, the texture bundle, whom the camera follows
 frame-loop-session.ts  renderer-slot.ts                       the frame loop, gate and instrumentation all three sessions share (§7, #208); the one renderer a session holds, built over its seeded textures and disposed with them, keeping the bundle's seed-independent half across a rebuild (§7.2, #442); `beginBuild` stages it one bake per frame for the live room (§7.2, #479)
 render-texture-stages.ts  staged-bake.ts                       the bundle's two halves as lists of bakes, and the step runner a staged build and a whole one share (§7.2, #479)
 renderer-warm-up.ts                                     after the last bake, the staged renderer's uploads, warm-up draw and off-screen render before its commit (§7.2, #603)
@@ -117,7 +117,8 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   `radial-bake.spec.ts` (FNV-1a digests of the production bakes, pinned to the pre-#442 samplers),
   `bench-route.spec.ts` (the `?bench` key and both halves of the production gate),
   `render-stage-timer.spec.ts` (p95s, accrual, nesting, the measured residual, a cancelled frame),
-  `gpu-timer.spec.ts` (the plausibility rule and the four statuses), `render-benchmark.spec.ts` (the verdict rows,
+  `gpu-timer.spec.ts` (the plausibility rule, the four statuses, a window opened after the warm-up),
+  `bench-gate.spec.ts` (an unexpected unjudged row, a parked run and an overrun each fail the gate), `render-benchmark.spec.ts` (the verdict rows,
   a window too short to judge, an unavailable `gpuMs`), `render-budget-ledger.spec.ts` (§6–§7's numbers against the
   constants); `motion.test.ts` in
   `shared` (one snapshot per clip; durations and keyframe times equal sheet 03's; every `pulse` ≤ 1.14; overshoot

@@ -114,7 +114,7 @@ export interface LobbyGameInfo {
 }
 
 /**
- * The seven CPU stages of a client frame (docs/rendering/budget.md §7), the keys of `renderStagesMs`. Listed
+ * The eight CPU stages of a client frame (docs/rendering/budget.md §7), the keys of `renderStagesMs`. Listed
  * beside the report because the server's schema and the client's stage timer must agree on them.
  */
 export const RENDER_STAGE = {
@@ -124,6 +124,7 @@ export const RENDER_STAGE = {
   food: 'food',
   effects: 'effects',
   camera: 'camera',
+  dish: 'dish',
   submit: 'submit',
 } as const;
 export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];
@@ -131,6 +132,7 @@ export type RenderStageName = (typeof RENDER_STAGE)[keyof typeof RENDER_STAGE];
 export const RENDER_STAGE_NAMES: readonly RenderStageName[] = [
   RENDER_STAGE.net,
   RENDER_STAGE.camera,
+  RENDER_STAGE.dish,
   RENDER_STAGE.food,
   RENDER_STAGE.cells,
   RENDER_STAGE.organelles,
