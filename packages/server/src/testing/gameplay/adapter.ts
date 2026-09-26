@@ -9,10 +9,11 @@
 import type { PlayerId, StateHash } from '@evolution/shared';
 import type { BotWorldBinding } from '../../game/bots/bot-binding.js';
 import type { CellLocation } from '../../game/bots/perception.js';
-import type { GameModule, RoomInitOptions } from '../../game/game-module.js';
+import type { GameModule, RoomInitOptions, TickedSnapshot } from '../../game/game-module.js';
 
 export type { PlayerCommand, TraitChoiceCommand } from '../../game/bots/bot-strategy.js';
 export type { CellLocation } from '../../game/bots/perception.js';
+export type { TickedSnapshot } from '../../game/game-module.js';
 
 /** What the session hands `applyFixture` besides the record: the runner's ids, never the DSL's id scheme. */
 export interface FixtureContext {
@@ -32,7 +33,10 @@ export interface FixtureContext {
  * - A scheduled fixture (`context.tick` > 0) is applied between ticks, after that tick's joins and
  *   leaves and before its scripts, exactly as recorded in the replay's `patches`.
  */
-export interface ScenarioAdapter<Input, Snapshot, Fixture> extends BotWorldBinding<Input, Snapshot> {
+export interface ScenarioAdapter<Input, Snapshot extends TickedSnapshot, Fixture> extends BotWorldBinding<
+  Input,
+  Snapshot
+> {
   /** Builds the module the way the lobby would: the round seed is `options.config.seed`, no `RandomSource` is passed. */
   createModule(options: RoomInitOptions): GameModule<Input, Snapshot>;
   /**

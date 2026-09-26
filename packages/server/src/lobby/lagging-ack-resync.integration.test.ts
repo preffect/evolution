@@ -4,7 +4,8 @@
 // `SNAPSHOT_ACK_EVERY_SNAPSHOTS`), and its acks lag: it falls a limit behind, is resynced, and applies that `game_state`
 // only after the room has run past the limit again. #655 measured the freeze that followed on a throttled page: the one
 // delta that ended the resync hold read as a limit-deep queue, the client owed no ack for a single delta, and the room
-// never sent it anything again.
+// never sent it anything again. It runs on the template echo as well: the flow control reads the `tick` every module's
+// snapshot carries (`TickedSnapshot`, #277), where the echo used to carry none and was never measured at all.
 // Run with `./validate.sh integration`.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -18,6 +19,7 @@ import {
   type ServerMessage,
 } from '@evolution/shared';
 import { evolutionModuleFactory } from '../game/evolution-module.js';
+import { defaultGameModuleFactory } from '../game/game-module.js';
 import {
   advanceRoomTicks,
   closeLobbySocketHarness,
@@ -76,11 +78,14 @@ function newestTickOfType(client: TestClient, type: string): number | undefined 
   return newest === undefined ? undefined : tickOf(newest);
 }
 
-describe('a client whose acks lag behind a running room (#655)', () => {
+describe.each([
+  { module: 'the Evolution module', factory: evolutionModuleFactory },
+  { module: 'the template echo', factory: defaultGameModuleFactory },
+])('a client whose acks lag behind a running room (#655), on $module', ({ factory }) => {
   let harness: LobbySocketHarness;
 
   beforeEach(async () => {
-    harness = await startLobbySocketHarness(evolutionModuleFactory);
+    harness = await startLobbySocketHarness(factory);
   });
 
   afterEach(async () => {
