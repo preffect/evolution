@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { AMOEBA_ARM_GRAB_REACH_RADII, DEFAULT_BALANCE, MOTION_CLIP, entityId } from '@evolution/shared';
+import { AMOEBA_ARM_GRAB_REACH_RADII, CELL_STAGE, DEFAULT_BALANCE, MOTION_CLIP, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
+import { summariseCellTraits } from '../cells/cell-traits';
+import { buildShapeTerms } from '../cells/shape-terms';
 import { CellClipTracker, armHoldRadii, cellsById, engulfClipInput } from './cell-clip-tracker';
 
 const cell = createTestCellView({ id: entityId('c'), x: 0, y: 0 });
@@ -64,6 +66,42 @@ describe('armHoldRadii (#753)', () => {
 });
 
 describe('CellClipTracker', () => {
+  /** The whole path (#753): the views' distance through the tracker's deformation to an amoeba arm on the prey. */
+  it('reaches an amoeba’s arm out to a prey it holds outside its body', () => {
+    const amoeba = createTestCellView({
+      id: entityId('amoeba'),
+      radius: 40,
+      stage: CELL_STAGE.specialised,
+      traits: [{ traitId: 'amoeba_pseudopods', tier: 1 }],
+    });
+    const preyAngle = -0.6;
+    const distance = 50;
+    const prey = createTestCellView({
+      id: entityId('prey'),
+      x: distance * Math.cos(preyAngle),
+      y: distance * Math.sin(preyAngle),
+      radius: 10,
+      engulfProgress: 0.1,
+    });
+    const predator = { ...amoeba, engulfingCellId: prey.id };
+    const deformation = new CellClipTracker().deformations([predator, prey], 0, absorption).get(predator.id)!;
+    const hold = (distance + prey.radius * absorption.ENGULF_COVERAGE_FRACTION) / amoeba.radius - 1;
+    expect(deformation.armHoldRadii).toBeCloseTo(hold, 12);
+    const terms = buildShapeTerms({
+      view: predator,
+      traits: summariseCellTraits(predator),
+      timeSeconds: 0.5,
+      speedRatio: 0,
+      heading: 0,
+      phase: 0,
+      stripRow: 0,
+      strip: null,
+      deformation,
+    });
+    const onPrey = terms.bumps.filter((bump) => Math.abs(bump.centre - preyAngle) < 1e-9);
+    expect(onPrey.map((bump) => bump.amplitude)).toContainEqual(expect.closeTo(hold, 9));
+  });
+
   it('plays an aimed eat on its cell: the dimple at the mote, the pulse, then rest with no entry', () => {
     const tracker = new CellClipTracker();
     expect(tracker.start([{ cellId: cell.id, clipId: MOTION_CLIP.eat, angle: Math.PI / 2 }], 0)).toBe(1);
