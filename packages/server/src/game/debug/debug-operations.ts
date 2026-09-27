@@ -18,7 +18,7 @@ import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
 import { refreshPlayerStage } from '../progression/ladder.js';
-import { refreshCellDerivedState } from '../progression/modifiers.js';
+import { refreshCellDerivedState, refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
 import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
@@ -156,10 +156,11 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
 
 /**
  * Number leaves only, validated as a whole (balance-patch.ts); the world carries the new copy. A copy whose `MAX_LEVEL`
- * wraps a wild build past `TRAIT_TIER_COUNT` is refused here rather than thrown inside the room's step (#671).
+ * wraps a wild build past `TRAIT_TIER_COUNT` is refused here rather than thrown inside the room's step (#671). A tier
+ * patch refolds every cell from the traits it already owns, since the fold runs only when traits change (#715).
  */
 export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
-  const patched = applyBalancePatch(world.balance, patch).balance;
+  const { balance: patched, didChangeTraitTiers } = applyBalancePatch(world.balance, patch);
   const topTier = topWildTier(patched);
   if (isPastTopTraitTier(topTier, patched)) {
     throw new DebugRequestError(
@@ -168,6 +169,9 @@ export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unkn
     );
   }
   world.balance = patched;
+  if (didChangeTraitTiers) {
+    for (const cell of world.cells) refreshCellDerivedStateFromTraits(cell, cell.traits, world.balance);
+  }
   return world.balance;
 }
 

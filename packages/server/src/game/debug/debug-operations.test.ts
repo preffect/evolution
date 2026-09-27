@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  FIRST_TIER,
   ENTITY_KIND,
   FOOD_KIND,
   playerId,
@@ -30,6 +31,13 @@ const UNKNOWN_LEAF = 'NOPE';
 const MAX_LEVEL_LEAF = 'MAX_LEVEL';
 const TRAIT_TIER_COUNT_LEAF = 'TRAIT_TIER_COUNT';
 const NOBODY = playerId('nobody');
+const TIER_TABLES_LEAF = 'TRAIT_TIERS';
+const CILIA = 'cilia';
+const TIER_I_ROW = 0;
+const PATCHED_SPEED = 2;
+const CILIA_SPEED_PATCH = {
+  traits: { [TIER_TABLES_LEAF]: { [CILIA]: { [TIER_I_ROW]: { speedMultiplier: PATCHED_SPEED } } } },
+};
 
 describe('spawnForDebug', () => {
   it('spawns an algae mote by default and a bacterium with its variant', () => {
@@ -72,7 +80,7 @@ describe('spawnForDebug', () => {
 describe('grantDnaForDebug', () => {
   it('adds DNA through the cell multiplier and tag points per listed tag', () => {
     const world = createTestWorld();
-    world.players[0]!.ownedTraits = [{ traitId: 'nucleoid', tier: 1 }];
+    world.players[0]!.ownedTraits = [{ traitId: 'nucleoid', tier: FIRST_TIER }];
     world.cells[0]!.modifiers = { ...world.cells[0]!.modifiers, dnaGainMultiplier: 1.05 };
     const view = grantDnaForDebug(world, ALICE, { dna: 20, tags: ['motile', 'toxic'] }) as PlayerProgressView;
     expect(view.dnaCumulative).toBeCloseTo(21, 12);
@@ -110,8 +118,8 @@ describe('setPlayerForDebug', () => {
     expect([cell.targetX, cell.targetY]).toEqual([null, null]);
     expect(cell.level).toBe(4);
     expect(cell.traits).toEqual([
-      { traitId: 'nucleoid', tier: 1 },
-      { traitId: 'cilia', tier: 1 },
+      { traitId: 'nucleoid', tier: FIRST_TIER },
+      { traitId: 'cilia', tier: FIRST_TIER },
     ]);
     expect(cell.modifiers.speedMultiplier).toBe(1.1);
     expect(cell.stage).toBe('prokaryote');
@@ -153,6 +161,26 @@ describe('setBalanceForDebug', () => {
     expect(world.balance).toBe(patched);
     expect(before.world.DISH_RADIUS).toBe(3000);
     expect(() => setBalanceForDebug(world, { world: { [UNKNOWN_LEAF]: 1 } })).toThrow(DebugRequestError);
+  });
+});
+
+describe('setBalanceForDebug, a trait tier patch (#715)', () => {
+  it('refolds a player cell that already owns the trait', () => {
+    const world = createTestWorld();
+    setPlayerForDebug(world, ALICE, { traits: [CILIA] });
+    const cell = world.cells[0]!;
+    expect(cell.modifiers.speedMultiplier).toBe(DEFAULT_BALANCE.traits.TRAIT_TIERS.cilia[TIER_I_ROW]!.speedMultiplier);
+    setBalanceForDebug(world, CILIA_SPEED_PATCH);
+    expect(cell.modifiers.speedMultiplier).toBe(PATCHED_SPEED);
+  });
+
+  it('refolds a wild cell from the build it carries', () => {
+    const world = createTestWorld({ hasWildSeats: true });
+    const wildCell = world.cells.find((cell) => cell.playerId === null)!;
+    wildCell.traits = [{ traitId: CILIA, tier: FIRST_TIER }];
+    setBalanceForDebug(world, CILIA_SPEED_PATCH);
+    expect(wildCell.modifiers.speedMultiplier).toBe(PATCHED_SPEED);
+    expect(wildCell.traits).toEqual([{ traitId: CILIA, tier: FIRST_TIER }]);
   });
 });
 
