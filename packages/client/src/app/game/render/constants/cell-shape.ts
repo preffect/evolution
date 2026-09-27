@@ -114,13 +114,9 @@ export const PSEUDOPOD_FLANK_SPREAD = 0.3;
 export const PSEUDOPOD_LEAN_GAIN = 3;
 export const PSEUDOPOD_ENGULF_LEAN = 1;
 /**
- * The arm hold (#753, ecology/absorption.md §6.1 "the arm grab"): while the prey is held outside the body, the lobe
- * nearest it leaves its flank and reaches to the prey instead of cycling, its tip as far past the prey's centre as the
- * body's coverage would be, so it draws back with the prey as the pull brings it in. It hands back to its flank and its
- * cycle over the last `PSEUDOPOD_HOLD_BLEND_RADII` of that reach before the body takes the prey. The blend is a distance,
- * so the pull sets its duration: at the fastest pull, `ENGULF_ARM_PULL_RADII_PER_SECOND` 1.5 r/s at every tier (a pull
- * capped by the prey's speed is slower), 0.45 r lasts 300 ms (18 ticks), twice the 150 ms §5 calls a snap; a predator
- * swimming onto its prey shortens it. The arm swings ~72 ° back to its flank at about 4 ° a tick.
+ * The arm hold (#753, ecology/absorption.md §6.1): the lobe nearest a prey held outside the body lies across it and draws
+ * back with it, handing back to its flank over the last this-many radii of the hold. A distance, so the pull sets the
+ * time: 300 ms (18 ticks) at the fastest, 1.5 r/s at every tier, twice §5's 150 ms snap; the arm swings ~4 ° a tick.
  */
 export const PSEUDOPOD_HOLD_BLEND_RADII = 0.45;
 /** The extension cycle's rate. */

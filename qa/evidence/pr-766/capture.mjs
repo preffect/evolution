@@ -1,7 +1,8 @@
 // Ticket #753 evidence: an amoeba holding a prey at arm's length, the arm drawing back with it as the pull brings it in.
 // Private stack 4510/4512, own Chromium, one process; `debug_set_player` grants tier I (two arms).
-// Usage: node capture.mjs <outDir>. The before row ran the same script with `formBumps` in shape-terms.ts passing
-// `armHold: NO_ARM_HOLD`; the strip is the 640 px clips cropped to 360 px round the cell and labelled.
+// Usage: node capture.mjs <outDir>. hand-back.png is steps 1-24 of this script. The before row of hold-before-after.png
+// ran it with `formBumps` in shape-terms.ts passing `armHold: NO_ARM_HOLD`; the strips are the 640 px clips cropped to
+// 360 px round the cell and labelled.
 import pw from '/usr/lib/node_modules/@playwright/mcp/node_modules/playwright-core/index.js';
 
 const { chromium } = pw;
@@ -12,7 +13,7 @@ const AMOEBA = ['nucleoid', 'ribosomes', 'nuclear_envelope', 'cytoskeleton', 'am
 const PREY_ANGLE = -0.6;
 const ARM_GRAB_REACH = 0.6175;
 const COVERAGE = 0.5;
-const PULL_STEPS = [1, 6, 12, 18];
+const PULL_STEPS = [1, 6, 12, 18, 21, 24];
 /** A tall square viewport: the camera frames a fixed number of radii, so the cell grows with the viewport. */
 const SHOT_SIZE = 1600;
 const CROP = 640;
