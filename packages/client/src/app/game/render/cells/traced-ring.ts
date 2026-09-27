@@ -11,7 +11,7 @@
 // `cell-shader-rings.ts`, term for term; `traced-ring-reach.ts` bounds it for the quad, the cull and the labels.
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
-import { RING_TRACE_ARC_SAMPLES, RING_TRACE_SIGMA_WIDENING, RING_TRACE_SLOPE_STEP_RAD } from '../constants';
+import { RING_TRACE_ARC_SAMPLES, RING_TRACE_BODY_ARC_SAMPLES, RING_TRACE_SIGMA_WIDENING } from '../constants';
 import { HALF, SQUARE_DERIVATIVE_FACTOR, wrapAngle } from '../geometry';
 import { stretchAt, type RadialProfileTerms } from './radial-profile';
 
@@ -55,28 +55,20 @@ export function ringBodyScaleAt(body: RingBody | null, theta: number): TracedRin
 const BARE_BODY: TracedRingSample = { r: 1, derivative: 0 };
 const BARE_FORM = { value: 1, derivative: 0 } as const;
 
-/** The body offset out by the ring's gap along its normal, `r · S + gap · √(1 + (S′/S)²)`, never inside the circle. */
-function ringBaseValue(ring: TracedRing, body: RingBody, theta: number): number {
-  const scale = ringBodyScaleAt(body, theta);
-  const slope = scale.derivative / scale.r;
-  const gapWu = ring.circleWu - body.radius;
-  return Math.max(ring.circleWu, body.radius * scale.r + gapWu * Math.sqrt(1 + slope * slope));
-}
-
 /**
- * What the lobes stand on, with its slope: the circle exactly where the body is round and at most unit size (a round
- * cell at rest), else the body offset by the gap wherever that passes the circle (a slipper's nose, a fast front).
+ * What the lobes stand on, with its slope: the circle, or the body offset by the ring's gap along its normal,
+ * `r · S + gap · √(1 + (S′/S)²)`, wherever that passes it (a slipper's nose, a fast swimmer's front). A round cell at
+ * rest (`S` exactly 1 and flat) keeps the exact circle. The slope is the body's, `r · S′`: the offset term's own slope
+ * is second order and left out.
  */
 export function ringBaseAt(ring: TracedRing, theta: number): TracedRingSample {
   const { body } = ring;
+  const circle = { r: ring.circleWu, derivative: 0 };
   const scale = ringBodyScaleAt(body, theta);
-  if (body === null || (scale.r <= 1 && scale.derivative === 0)) return { r: ring.circleWu, derivative: 0 };
-  const after = ringBaseValue(ring, body, theta + RING_TRACE_SLOPE_STEP_RAD);
-  const before = ringBaseValue(ring, body, theta - RING_TRACE_SLOPE_STEP_RAD);
-  return {
-    r: ringBaseValue(ring, body, theta),
-    derivative: (after - before) / (RING_TRACE_SLOPE_STEP_RAD + RING_TRACE_SLOPE_STEP_RAD),
-  };
+  if (body === null || (scale.r <= 1 && scale.derivative === 0)) return circle;
+  const slope = scale.derivative / scale.r;
+  const offsetWu = body.radius * scale.r + (ring.circleWu - body.radius) * Math.sqrt(1 + slope * slope);
+  return offsetWu <= ring.circleWu ? circle : { r: offsetWu, derivative: body.radius * scale.derivative };
 }
 
 /** The membrane's core radius under `centre`, wu: `r · pulse · B · stretch` there, before the surface terms. */
@@ -146,12 +138,10 @@ function extraElementWu(ring: TracedRing, phi: number): number {
   return Math.hypot(sample.r, sample.derivative) - ring.circleWu;
 }
 
-/** Steps of the arc grid in the half turn either side of the heading. */
-const HALF_TURN_STEPS = RING_TRACE_ARC_SAMPLES * HALF;
-
 /**
  * The traced ring's extra arc length over its circle's from the **heading** to `theta` (negative behind it), wu:
- * `∫ (√(R² + R′²) − circle) dφ` by trapezoids on a fixed grid of `RING_TRACE_ARC_SAMPLES` round the turn, the step
+ * `∫ (√(R² + R′²) − circle) dφ` by trapezoids on a fixed grid round the turn (`RING_TRACE_ARC_SAMPLES`, or the
+ * coarser `RING_TRACE_BODY_ARC_SAMPLES` for a ring with no lobe, which only the smooth body shapes), the step
  * `theta` falls in integrated under its straight line so the length grows smoothly. Counted from the heading, an arm
  * that grows slides only the dashes between it and the tail, and the sum jumps only at the tail, where the two halves
  * meet. 0 on a bare circle.
@@ -161,10 +151,11 @@ export function tracedRingExtraArcWu(ring: TracedRing, theta: number): number {
   const delta = wrapAngle(theta - anchor);
   const direction = delta < 0 ? -1 : 1;
   const span = Math.abs(delta);
-  const step = RADIANS_PER_FULL_TURN / RING_TRACE_ARC_SAMPLES;
+  const samples = ring.lobes.length > 0 ? RING_TRACE_ARC_SAMPLES : RING_TRACE_BODY_ARC_SAMPLES;
+  const step = RADIANS_PER_FULL_TURN / samples;
   let extraWu = 0;
   let start = extraElementWu(ring, anchor);
-  for (let index = 0; index < HALF_TURN_STEPS; index += 1) {
+  for (let index = 0; index < samples * HALF; index += 1) {
     const reached = index * step;
     if (reached >= span) break;
     const end = extraElementWu(ring, anchor + direction * (reached + step));

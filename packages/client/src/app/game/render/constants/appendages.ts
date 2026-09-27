@@ -21,8 +21,8 @@ export const APPENDAGE_MIN_NECK_WIDTH_RADII = 0.3;
 export const RING_TRACE_SIGMA_WIDENING = 0.21;
 /** The dash runs along the traced ring: its extra arc length is integrated in this many trapezoids round the turn. */
 export const RING_TRACE_ARC_SAMPLES = 96;
-/** The step the traced ring's body offset is differenced over for its slope, radians. */
-export const RING_TRACE_SLOPE_STEP_RAD = 0.001;
+/** …or this many when the ring has no lobe and only the body shapes it: a smooth curve, a coarser grid is enough. */
+export const RING_TRACE_BODY_ARC_SAMPLES = 48;
 /** Angles the ring's body offset is sampled at for its reach bound, round the turn. */
 export const RING_TRACE_REACH_SAMPLES = 360;
 /** What the sampled body bound adds for the peaks between its samples, as a share. */

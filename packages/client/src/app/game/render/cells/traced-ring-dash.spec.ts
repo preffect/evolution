@@ -8,6 +8,7 @@ import {
   AMOEBA_STATES as STATES,
   AMOEBA_TIERS as TIERS,
   amoebaTerms,
+  formTerms,
 } from '../../../../testing/amoeba-ring-states';
 import { REST_DEFORMATION } from './cell-deformation';
 import { wrapAngle } from '../geometry';
@@ -34,6 +35,11 @@ const DASH_TOLERANCE = 0.05;
  * trapezoid grid spreads the jump over one step (≈ 3 px at 1 px/wu), so a dash there runs up to 20 % long or short. */
 const SMOOTH_SHARE = 0.97;
 const KINK_DASH_TOLERANCE = 0.2;
+/**
+ * A ring only the body shapes hands over from the circle to the offset body at up to four kinks, and the slipper's oral
+ * groove is narrow on the coarser grid, so a few more of its probes than an arm's sit near one.
+ */
+const BODY_SMOOTH_SHARE = 0.95;
 const DASH_PROBE_STEP = 0.001;
 
 /** `|measured arc element / true element − 1|` every 0.02 rad round the ring. */
@@ -97,4 +103,32 @@ describe('the dash runs along the traced curve', () => {
       expect(tracedRingExtraArcWu(grown, theta)).toBeCloseTo(tracedRingExtraArcWu(ring, theta), 2);
     }
   });
+});
+
+describe('the dash along a ring only the body shapes (the coarser grid)', () => {
+  const bodies = [
+    ...TIERS.flatMap((tier) =>
+      [0, 1].map((speedRatio) => ({ name: `paramecium tier ${tier} at speed ${speedRatio}`, tier, speedRatio })),
+    ),
+    { name: 'round blob flat out', tier: 1 as const, speedRatio: 1 },
+  ];
+
+  it.each(bodies)(
+    '$name: the dash keeps its length along the curve, within 5 % but at the circle’s hand-over',
+    (body) => {
+      const formTraitId = body.name.startsWith('paramecium') ? 'paramecium_cilia' : null;
+      const terms = formTerms(formTraitId, body.tier, {
+        timeSeconds: 0.5,
+        speedRatio: body.speedRatio,
+        deformation: REST_DEFORMATION,
+      });
+      const ring = tracedRingOf(terms, RING_WU);
+      expect(ring.lobes).toEqual([]);
+      const errors = localDashErrors(ring);
+      expect(Math.max(...errors)).toBeLessThan(KINK_DASH_TOLERANCE);
+      expect(errors.filter((error) => error < DASH_TOLERANCE).length / errors.length).toBeGreaterThan(
+        BODY_SMOOTH_SHARE,
+      );
+    },
+  );
 });

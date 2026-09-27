@@ -9,8 +9,8 @@
 import {
   MAX_SHAPE_BUMPS,
   RING_TRACE_ARC_SAMPLES,
+  RING_TRACE_BODY_ARC_SAMPLES,
   RING_TRACE_SIGMA_WIDENING,
-  RING_TRACE_SLOPE_STEP_RAD,
 } from '../constants';
 import { HALF } from '../geometry';
 import { glslFloat } from './cell-shader-source';
@@ -26,21 +26,18 @@ vec2 ringBodyScale(Instance inst, float theta) {
   return inst.pulse * vec2(form.x * stretch.x, form.y * stretch.x + form.x * stretch.y);
 }
 
-/** The body offset out by the ring's gap along its normal, 'r · S + gap · √(1 + (S′/S)²)', never inside the circle. */
-float ringBaseValue(Instance inst, float circleWu, float theta) {
-  vec2 body = ringBodyScale(inst, theta);
-  float slope = body.y / body.x;
-  return max(circleWu, inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope));
-}
-
-/** What the lobes stand on (traced-ring.ts ringBaseAt): the circle exactly for a round body at most unit size. */
+/**
+ * What the lobes stand on (traced-ring.ts ringBaseAt): the circle, or the body offset by the gap along its normal,
+ * 'r · S + gap · √(1 + (S′/S)²)', where that passes it, with the body's slope 'r · S′'; the exact circle for a round
+ * body at rest.
+ */
 vec2 ringBase(Instance inst, float circleWu, float theta) {
   vec2 body = ringBodyScale(inst, theta);
   if (body.x <= 1.0 && body.y == 0.0) return vec2(circleWu, 0.0);
-  float stepRad = ${glslFloat(RING_TRACE_SLOPE_STEP_RAD)};
-  float after = ringBaseValue(inst, circleWu, theta + stepRad);
-  float before = ringBaseValue(inst, circleWu, theta - stepRad);
-  return vec2(ringBaseValue(inst, circleWu, theta), (after - before) / (stepRad + stepRad));
+  float slope = body.y / body.x;
+  float offsetWu = inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope);
+  if (offsetWu <= circleWu) return vec2(circleWu, 0.0);
+  return vec2(offsetWu, inst.r * body.y);
 }
 
 /**
@@ -98,13 +95,15 @@ float tracedRingExtraElement(Instance inst, vec4 lobes[RING_LOBE_SLOTS], int cou
 /**
  * The traced ring's extra arc length over its circle's from the heading to 'theta', negative behind it, wu
  * (traced-ring.ts tracedRingExtraArcWu): trapezoids on a fixed grid round the turn, the last step integrated under its
- * straight line; it jumps only at the tail, so a growing arm slides only the dashes between it and the tail.
+ * straight line (a coarser grid with no lobe); it jumps only at the tail, so a growing arm slides only the dashes
+ * between it and the tail.
  */
 float tracedRingExtraArc(Instance inst, vec4 lobes[RING_LOBE_SLOTS], int count, float circleWu, float theta) {
   float delta = wrapAngle(theta - inst.heading);
   float direction = delta < 0.0 ? -1.0 : 1.0;
   float span = abs(delta);
-  float stepRad = TAU / ${glslFloat(RING_TRACE_ARC_SAMPLES)};
+  float samples = count > 0 ? ${glslFloat(RING_TRACE_ARC_SAMPLES)} : ${glslFloat(RING_TRACE_BODY_ARC_SAMPLES)};
+  float stepRad = TAU / samples;
   float extraWu = 0.0;
   float startWu = tracedRingExtraElement(inst, lobes, count, circleWu, inst.heading);
   for (int index = 0; index < ${RING_TRACE_ARC_SAMPLES * HALF}; index++) {

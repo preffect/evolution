@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   RING_TRACE_ARC_SAMPLES,
   RING_TRACE_SIGMA_WIDENING,
-  RING_TRACE_SLOPE_STEP_RAD,
+  RING_TRACE_BODY_ARC_SAMPLES,
   WARNING_RING_ROTATION_DEG_PER_SECOND,
 } from '../constants';
 import { HALF, degreesToRadians } from '../geometry';
@@ -54,14 +54,11 @@ describe('the traced rings in the cell shader (#730)', () => {
     const scale = glslFunction('vec2 ringBodyScale(');
     expect(scale).toContain('float delta = wrapAngle(theta - inst.heading);');
     expect(scale).toContain('return inst.pulse * vec2(form.x * stretch.x, form.y * stretch.x + form.x * stretch.y);');
-    const value = glslFunction('float ringBaseValue(');
-    expect(value).toContain('return max(circleWu, inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope));');
     const base = glslFunction('vec2 ringBase(');
     expect(base).toContain('if (body.x <= 1.0 && body.y == 0.0) return vec2(circleWu, 0.0);');
-    expect(base).toContain(`float stepRad = ${glslFloat(RING_TRACE_SLOPE_STEP_RAD)};`);
-    expect(base).toContain(
-      'return vec2(ringBaseValue(inst, circleWu, theta), (after - before) / (stepRad + stepRad));',
-    );
+    expect(base).toContain('float offsetWu = inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope);');
+    expect(base).toContain('if (offsetWu <= circleWu) return vec2(circleWu, 0.0);');
+    expect(base).toContain('return vec2(offsetWu, inst.r * body.y);');
   });
 
   it('measures the threat ring’s dash along the traced curve from the heading, the circle’s arc unchanged', () => {
@@ -77,7 +74,10 @@ describe('the traced rings in the cell shader (#730)', () => {
     expect(element).toContain('return length(ring) - circleWu;');
     const arc = glslFunction('float tracedRingExtraArc(');
     expect(arc).toContain('float delta = wrapAngle(theta - inst.heading);');
-    expect(arc).toContain(`float stepRad = TAU / ${glslFloat(RING_TRACE_ARC_SAMPLES)};`);
+    expect(arc).toContain(
+      `float samples = count > 0 ? ${glslFloat(RING_TRACE_ARC_SAMPLES)} : ${glslFloat(RING_TRACE_BODY_ARC_SAMPLES)};`,
+    );
+    expect(arc).toContain('float stepRad = TAU / samples;');
     expect(arc).toContain('float startWu = tracedRingExtraElement(inst, lobes, count, circleWu, inst.heading);');
     expect(arc).toContain(`for (int index = 0; index < ${RING_TRACE_ARC_SAMPLES * HALF}; index++) {`);
     expect(arc).toContain(
