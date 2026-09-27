@@ -262,6 +262,7 @@ function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
     lean:
       input.deformation.preyAngle === undefined ? input.speedRatio : Math.max(input.speedRatio, PSEUDOPOD_ENGULF_LEAN),
     armHold: input.deformation.armHoldRadii ?? NO_ARM_HOLD,
+    grip: input.deformation.armGrip,
   });
   return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
 }

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { AMOEBA_ARM_GRAB_REACH_RADII, CELL_STAGE, DEFAULT_BALANCE, MOTION_CLIP, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
+import { PSEUDOPOD_GRIP_EASE_MS } from '../constants';
 import { summariseCellTraits } from '../cells/cell-traits';
 import { buildShapeTerms } from '../cells/shape-terms';
 import { CellClipTracker, armHoldRadii, cellsById, engulfClipInput } from './cell-clip-tracker';
@@ -84,7 +85,9 @@ describe('CellClipTracker', () => {
       engulfProgress: 0.1,
     });
     const predator = { ...amoeba, engulfingCellId: prey.id };
-    const deformation = new CellClipTracker().deformations([predator, prey], 0, absorption).get(predator.id)!;
+    const tracker = new CellClipTracker();
+    tracker.deformations([predator, prey], 0, absorption);
+    const deformation = tracker.deformations([predator, prey], PSEUDOPOD_GRIP_EASE_MS, absorption).get(predator.id)!;
     const hold = (distance + prey.radius * absorption.ENGULF_COVERAGE_FRACTION) / amoeba.radius - 1;
     expect(deformation.armHoldRadii).toBeCloseTo(hold, 12);
     const terms = buildShapeTerms({

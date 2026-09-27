@@ -119,6 +119,8 @@ export const PSEUDOPOD_ENGULF_LEAN = 1;
  * time: 300 ms (18 ticks) at the fastest, 1.5 r/s at every tier, twice §5's 150 ms snap; the arm swings ~4 ° a tick.
  */
 export const PSEUDOPOD_HOLD_BLEND_RADII = 0.45;
+/** The held arm's linear swing at the grab and after an escape, on the render clock: 2 × §5's snap (#768, §5.1). */
+export const PSEUDOPOD_GRIP_EASE_MS = 300;
 /** The extension cycle's rate. */
 export const PSEUDOPOD_CYCLE_HZ = 0.35;
 /** At rest the fan sways about the held heading by ± this; the sway fades out as the lobes move to the flanks. */
