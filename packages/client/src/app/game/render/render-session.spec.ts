@@ -20,6 +20,9 @@ import {
 } from '../../../testing/render-session-harness';
 import { CLIENT_PERFORMANCE_REPORT_INTERVAL_MS, FIELD_TEXTURE_PX, RENDER_REPORT_EVERY_FRAMES } from './constants';
 
+/** Draws frames through a whole report interval: over 5 s on a loaded box (#747). */
+const REPORT_CADENCE_TIMEOUT_MS = 30_000;
+
 /** A frame period that divides the report interval exactly, so the frame the report is due on is known. */
 const REPORT_TEST_FRAME_MS = 20;
 
@@ -186,31 +189,35 @@ describe('RenderSession', () => {
     expect(subject.instrumentation.frameCount).toBe(RENDER_REPORT_EVERY_FRAMES);
   });
 
-  it('#256: sends the report through the reportPerformance seam once per interval, the report the debug hook answers', async () => {
-    const { subject, pixi, clock, reportPerformance } = session();
-    subject.onMessage(gameState());
-    await settle(subject, pixi);
-    // The first drawn frame starts the interval.
-    pixi.tick();
-    const framesPerInterval = CLIENT_PERFORMANCE_REPORT_INTERVAL_MS / REPORT_TEST_FRAME_MS;
-    for (let frame = 1; frame < framesPerInterval; frame += 1) {
+  it(
+    '#256: sends the report through the reportPerformance seam once per interval, the report the debug hook answers',
+    { timeout: REPORT_CADENCE_TIMEOUT_MS },
+    async () => {
+      const { subject, pixi, clock, reportPerformance } = session();
+      subject.onMessage(gameState());
+      await settle(subject, pixi);
+      // The first drawn frame starts the interval.
+      pixi.tick();
+      const framesPerInterval = CLIENT_PERFORMANCE_REPORT_INTERVAL_MS / REPORT_TEST_FRAME_MS;
+      for (let frame = 1; frame < framesPerInterval; frame += 1) {
+        clock.advanceMilliseconds(REPORT_TEST_FRAME_MS);
+        pixi.tick();
+      }
+      expect(subject.instrumentation.frameCount).toBe(framesPerInterval);
+      expect(reportPerformance).not.toHaveBeenCalled();
       clock.advanceMilliseconds(REPORT_TEST_FRAME_MS);
       pixi.tick();
-    }
-    expect(subject.instrumentation.frameCount).toBe(framesPerInterval);
-    expect(reportPerformance).not.toHaveBeenCalled();
-    clock.advanceMilliseconds(REPORT_TEST_FRAME_MS);
-    pixi.tick();
-    expect(reportPerformance).toHaveBeenCalledOnce();
-    const sent = reportPerformance.mock.calls[0]![0];
-    expect(sent).toBe(subject.debugApi().performanceReport());
-    expect(Object.keys(sent.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
-    for (let frame = 1; frame < framesPerInterval; frame += 1) {
-      clock.advanceMilliseconds(REPORT_TEST_FRAME_MS);
-      pixi.tick();
-    }
-    expect(reportPerformance).toHaveBeenCalledOnce();
-  });
+      expect(reportPerformance).toHaveBeenCalledOnce();
+      const sent = reportPerformance.mock.calls[0]![0];
+      expect(sent).toBe(subject.debugApi().performanceReport());
+      expect(Object.keys(sent.renderStagesMs).sort()).toEqual([...RENDER_STAGE_NAMES].sort());
+      for (let frame = 1; frame < framesPerInterval; frame += 1) {
+        clock.advanceMilliseconds(REPORT_TEST_FRAME_MS);
+        pixi.tick();
+      }
+      expect(reportPerformance).toHaveBeenCalledOnce();
+    },
+  );
 
   it('#275: keeps the audio session through a resync game_state; another player starts a new one', () => {
     const { subject, audio, dependencies } = session();
