@@ -48,6 +48,15 @@ describe('the paramecium in the cell shader', () => {
     );
   });
 
+  it('tints the tufts with the cell’s own rim colour, never the shared CILIA (#745)', () => {
+    const tufts = glslFunction('vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {');
+    expect(tufts).toContain('return over(acc, rimColour(inst), best.x * alpha * tip);');
+    expect(tufts).not.toContain('uCilia');
+    expect(glslFunction('vec3 shade(Instance inst, int column) {')).toContain(
+      'texelFetch(uPalette, ivec2(column, int(inst.palette + HALF)), 0)',
+    );
+  });
+
   it('spaces, sizes and tapers the tufts with the TypeScript reference’s numbers', () => {
     const tuft = glslFunction('vec3 ciliaTuftAt(float index, float stretch, Instance inst) {');
     expect(tuft).toContain(`wrapAngle((index + HALF) * ${glslFloat(RADIANS_PER_FULL_TURN / CILIA_TUFT_COUNT)})`);
