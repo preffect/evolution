@@ -139,6 +139,16 @@ describe('separability (visual-style/principles-and-palette.md §2 acceptance)',
     expect(Math.round(worst.delta)).toBe(21);
   });
 
+  it('keeps the rims, and so the paramecium fringes, apart: Coral–Rose the nearest at 11 (#745)', () => {
+    const deltas = pairs(PLAYER_PALETTE_TABLE).map(([first, second]) => ({
+      names: [first.name, second.name].sort(),
+      delta: hexDeltaE(first.rim, second.rim),
+    }));
+    const worst = deltas.reduce((low, row) => (row.delta < low.delta ? row : low));
+    expect(worst.names).toEqual(['Coral', 'Rose']);
+    expect(Math.round(worst.delta)).toBe(11);
+  });
+
   it('keeps every rim ≥ 4.5:1 (measured 10.7–16.4) and every base ≥ 4.0 against the field', () => {
     for (const row of PLAYER_PALETTE_TABLE) {
       const rim = contrastRatio(row.rim, BG_FIELD);
