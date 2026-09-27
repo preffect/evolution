@@ -240,10 +240,13 @@ vec2 profileAt(Instance inst, float theta) {
   return vec2(scale * heading.x * surface.x, scale * (heading.y * surface.x + heading.x * surface.y));
 }
 
-/** The frame every band reads: the fragment in the cell frame, ρ, the undeformed ρ, d (wu and radii), one px in wu. */
+/**
+ * The frame every band reads: the fragment in the cell frame, ρ, the undeformed ρ, the body frame (the undeformed
+ * point over the form's B, body-frame.ts) and its ρ, d (wu and radii), one px in wu.
+ */
 struct Frame {
   vec2 p; float len; float theta;
-  float rho; float rhoU; float d; float dr; float aa; float rPx;
+  float rho; float rhoU; vec2 pF; float rhoF; float d; float dr; float aa; float rPx;
 };
 
 Frame frameAt(Instance inst) {
@@ -254,6 +257,8 @@ Frame frameAt(Instance inst) {
   vec2 profile = profileAt(inst, frame.theta);
   frame.rho = frame.len / profile.x;
   frame.rhoU = frame.len / (inst.r * inst.pulse);
+  frame.pF = frame.p / (inst.r * inst.pulse * formAt(inst, wrapAngle(frame.theta - inst.heading)).x);
+  frame.rhoF = length(frame.pF);
   float slope = profile.y / profile.x;
   frame.d = (frame.len - profile.x) / sqrt(1.0 + slope * slope);
   frame.dr = frame.d / inst.r;

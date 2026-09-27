@@ -110,10 +110,10 @@ vec4 doubleFilm(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uOutline, band(frame.d, 0.0, outlineHalfWidth(inst), halfPx) * ${glslFloat(PROTOCELL_OUTLINE_ALPHA)});
 }
 
-/** The specular glint just inside the membrane toward the light, undeformed frame like the pools; a starving cell's dims with its wither. */
+/** The specular glint just inside the membrane toward the light, body frame like the pools; a starving cell's dims with its wither. */
 vec4 glint(Instance inst, Frame frame, vec4 acc) {
   vec2 centre = vec2(cos(${glslFloat(GLINT_ANGLE)}), sin(${glslFloat(GLINT_ANGLE)})) * ${glslFloat(GLINT_OFFSET_RADII)};
-  vec2 q = frame.p / (inst.r * inst.pulse) - centre;
+  vec2 q = frame.pF - centre;
   float rotation = ${glslFloat(GLINT_ROTATION)};
   vec2 local = vec2(cos(rotation) * q.x + sin(rotation) * q.y, -sin(rotation) * q.x + cos(rotation) * q.y);
   float e = length(local / vec2(${glslFloat(GLINT_RADII_X)}, ${glslFloat(GLINT_RADII_Y)}));

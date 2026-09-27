@@ -10,6 +10,7 @@ import {
   EUGLENA_FLAGELLUM_TIP_WIDTH_RADII,
   EUGLENA_FLAGELLUM_WAVES,
   FORM_ID,
+  HALO_OUTER_RADII,
 } from '../constants';
 import { CELL_FRAGMENT_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat } from './cell-shader-source';
@@ -58,6 +59,21 @@ describe('the euglena in the cell shader', () => {
     expect(whip).toContain(`min(offset / ${glslFloat(EUGLENA_FLAGELLUM_LENGTH_RADII)}, 1.0)`);
     expect(whip).toContain(
       `mix(${glslFloat(EUGLENA_FLAGELLUM_ROOT_WIDTH_RADII)}, ${glslFloat(EUGLENA_FLAGELLUM_TIP_WIDTH_RADII)}, share)`,
+    );
+  });
+
+  /** PR #765 review: the ramp, pools, glint and halo wrap the spindle's tips instead of capping them flat. */
+  it('lays the body ramp, the pools, the glint and the halo in the body frame over the form’s B', () => {
+    expect(glslFunction('Frame frameAt(Instance inst) {')).toContain(
+      'frame.pF = frame.p / (inst.r * inst.pulse * formAt(inst, wrapAngle(frame.theta - inst.heading)).x);',
+    );
+    expect(glslFunction('vec4 bodyRamp(Instance inst, Frame frame, float inside, vec4 acc) {')).toContain(
+      'vec2 q = frame.pF - centre;',
+    );
+    expect(glslFunction('float poolMask(Frame frame, vec2 centre, vec2 radii) {')).toContain('(frame.pF - centre)');
+    expect(glslFunction('vec4 glint(Instance inst, Frame frame, vec4 acc) {')).toContain('vec2 q = frame.pF - centre;');
+    expect(glslFunction('vec4 haloBand(Instance inst, Frame frame, vec4 acc) {')).toContain(
+      `haloAlpha(frame.rhoF, ${glslFloat(HALO_OUTER_RADII)}`,
     );
   });
 
