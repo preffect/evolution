@@ -124,10 +124,10 @@ ring hugging the outline instead).
 **Traced rings (#730, visual-style/motion-and-legibility.md §5.1 rule 4).** The warning and relation rings keep their
 gap from the body and its lobes, rather than cutting across an arm or a slipper's nose as a circle. A ring of circle
 radius `R_c` (gap `g = R_c − r`) is `R(θ) = base(θ) + max_i stack_i(θ)`. The **base** is the circle exactly where the
-body scale `S = pulse · B · stretch` is at most 1 and flat (a round cell at rest), else
-`max(R_c, r · S + g · √(1 + (S′/S)²))`: the body offset by the gap along its normal, so a slipper's nose or a fast
-swimmer's front keeps the gap too (the swim stretch is in `S`: a round cell's ring changes while it swims, never at
-rest); its slope is differenced over `RING_TRACE_SLOPE_STEP_RAD` 0.001. On top sits one **ring lobe** per outward bump
+body scale `S = pulse · B · stretch` is at most 1 and flat (a round cell at rest), else the body offset by the gap along
+its normal, `r · S + g · √(1 + (S′/S)²)`, all the way round: out past a slipper's nose or a fast swimmer's front, in
+along their narrow flanks, one smooth curve with no hand-over to the circle (the swim stretch is in `S`: a round cell's
+ring changes while it swims, never at rest); its slope is the body's, `r · S′`. On top sits one **ring lobe** per outward bump
 slot (the amoeba's pseudopods, an engulf's arms and seal, an eat's wrap; dents are skipped; fringe such as cilia tufts
 is drawn outside the bump slots and never traced), of height `core_i × a_i` where `core_i = r · S` under the bump, and
 σ widened to `√(σ² + RING_TRACE_SIGMA_WIDENING · ln(1 + g_i))` (`RING_TRACE_SIGMA_WIDENING` 0.21, `g_i` the gap
@@ -136,7 +136,8 @@ is itself plus every lobe with a broader bump σ, so an arm on a broad seal swel
 arms of one width leave a notch between them instead of merging into one bulge. The ring is banded by its first-order
 distance `(|p| − R) / √(1 + (R′/R)²)`; the threat ring's dash runs along the traced curve, its arc `(θ − ωt) · R_c` plus
 the extra length `∫ (√(R² + R′²) − R_c) dφ` counted from the heading, in trapezoids on a grid of `RING_TRACE_ARC_SAMPLES`
-96 round the turn, so the only seam the extra adds is at the tail. On a round cell at rest every term is the circle's
+96 round the turn (`RING_TRACE_BODY_ARC_SAMPLES` 24 for a ring with no lobe, which only the smooth body shapes), so the
+only seam the extra adds is at the tail. On a round cell at rest every term is the circle's
 own, bit for bit, so it draws exactly what it drew before. `cells/traced-ring.ts` is the TypeScript reference of
 `cells/cell-shader-rings.ts`; `cells/traced-ring-reach.ts` bounds the base by `R_c · max(S, √(1 + (S′/S)²))`, sampled
 at `RING_TRACE_REACH_SAMPLES` 360 angles with `RING_TRACE_REACH_MARGIN` 1 %, for the quad (this frame), the cull (any

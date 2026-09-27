@@ -1,6 +1,6 @@
 // The rings trace the body and its lobes (docs/visual-style/motion-and-legibility.md §5.1 rule 4, docs/rendering/cells.md
-// §2.2, #730): the engulf-warning ring and the relation rings are their circle, or the body offset by the ring's gap
-// along its normal wherever that passes the circle (a slipper's nose, a fast swimmer's front), plus a **ring lobe** over every
+// §2.2, #730): the engulf-warning ring and the relation rings are the body offset by the ring's gap along its normal
+// (a slipper's nose and flanks, a fast swimmer's stretched front; a round cell at rest: its circle), plus a **ring lobe** over every
 // bump that pushes the membrane out (the amoeba's arms, an engulf's arms, an eat's wrap), so each keeps its gap from
 // the outline instead of cutting across it. A ring lobe is the bump at its full height in world units, its σ widened so
 // the ring clears the arm's flanks by the gap as well as its tip. Each lobe rides on the sum of every broader lobe, and
@@ -56,19 +56,19 @@ const BARE_BODY: TracedRingSample = { r: 1, derivative: 0 };
 const BARE_FORM = { value: 1, derivative: 0 } as const;
 
 /**
- * What the lobes stand on, with its slope: the circle, or the body offset by the ring's gap along its normal,
- * `r · S + gap · √(1 + (S′/S)²)`, wherever that passes it (a slipper's nose, a fast swimmer's front). A round cell at
- * rest (`S` exactly 1 and flat) keeps the exact circle. The slope is the body's, `r · S′`: the offset term's own slope
- * is second order and left out.
+ * What the lobes stand on, with its slope: the body offset by the ring's gap along its normal,
+ * `r · S + gap · √(1 + (S′/S)²)`, out round a slipper's nose or a fast swimmer's front and in along their narrow flanks,
+ * one smooth curve with no hand-over to the circle. A body that is round, flat and at most unit size (a round cell at
+ * rest) keeps the exact circle. The slope is the body's, `r · S′`: the offset term's own slope is second order and left
+ * out.
  */
 export function ringBaseAt(ring: TracedRing, theta: number): TracedRingSample {
   const { body } = ring;
-  const circle = { r: ring.circleWu, derivative: 0 };
   const scale = ringBodyScaleAt(body, theta);
-  if (body === null || (scale.r <= 1 && scale.derivative === 0)) return circle;
+  if (body === null || (scale.r <= 1 && scale.derivative === 0)) return { r: ring.circleWu, derivative: 0 };
   const slope = scale.derivative / scale.r;
   const offsetWu = body.radius * scale.r + (ring.circleWu - body.radius) * Math.sqrt(1 + slope * slope);
-  return offsetWu <= ring.circleWu ? circle : { r: offsetWu, derivative: body.radius * scale.derivative };
+  return { r: offsetWu, derivative: body.radius * scale.derivative };
 }
 
 /** The membrane's core radius under `centre`, wu: `r · pulse · B · stretch` there, before the surface terms. */

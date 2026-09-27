@@ -1,6 +1,6 @@
 // The traced ring of the cell shader (docs/rendering/cells.md §2.2, docs/visual-style/motion-and-legibility.md §5.1
-// rule 4, #730): the engulf-warning and relation rings are their circle, or the body offset by the ring's gap along
-// its normal wherever that passes the circle, plus a ring lobe over every bump that pushes the membrane out, each lobe riding on
+// rule 4, #730): the engulf-warning and relation rings are the body offset by the ring's gap along its normal (a
+// round cell at rest: its circle), plus a ring lobe over every bump that pushes the membrane out, each lobe riding on
 // every broader one, the tallest stack taken; banded by the first-order distance from that curve, and the threat ring's
 // dash measured along it from the heading. `traced-ring.ts` is the TypeScript reference, term for term. Generic over
 // the profile: the body is whatever `formAt` and `stretchAt` make. A round cell at rest has a flat body scale of exactly
@@ -27,17 +27,21 @@ vec2 ringBodyScale(Instance inst, float theta) {
 }
 
 /**
- * What the lobes stand on (traced-ring.ts ringBaseAt): the circle, or the body offset by the gap along its normal,
- * 'r · S + gap · √(1 + (S′/S)²)', where that passes it, with the body's slope 'r · S′'; the exact circle for a round
- * body at rest.
+ * What the lobes stand on (traced-ring.ts ringBaseAt): the body offset by the gap along its normal,
+ * 'r · S + gap · √(1 + (S′/S)²)', with the body's slope 'r · S′'; the exact circle for a round body at rest.
  */
 vec2 ringBase(Instance inst, float circleWu, float theta) {
   vec2 body = ringBodyScale(inst, theta);
   if (body.x <= 1.0 && body.y == 0.0) return vec2(circleWu, 0.0);
   float slope = body.y / body.x;
-  float offsetWu = inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope);
-  if (offsetWu <= circleWu) return vec2(circleWu, 0.0);
-  return vec2(offsetWu, inst.r * body.y);
+  return vec2(inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope), inst.r * body.y);
+}
+
+/** Whether the fragment lies inside the ring's base here by more than a stroke along its normal: no line can reach it. */
+bool isInsideRingBase(Instance inst, Frame frame, float circleWu, float halfStrokeWu) {
+  vec2 base = ringBase(inst, circleWu, frame.theta);
+  float slope = base.y / base.x;
+  return frame.len < base.x - (halfStrokeWu + frame.aa) * sqrt(1.0 + slope * slope);
 }
 
 /**

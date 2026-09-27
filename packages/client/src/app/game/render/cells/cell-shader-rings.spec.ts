@@ -56,9 +56,13 @@ describe('the traced rings in the cell shader (#730)', () => {
     expect(scale).toContain('return inst.pulse * vec2(form.x * stretch.x, form.y * stretch.x + form.x * stretch.y);');
     const base = glslFunction('vec2 ringBase(');
     expect(base).toContain('if (body.x <= 1.0 && body.y == 0.0) return vec2(circleWu, 0.0);');
-    expect(base).toContain('float offsetWu = inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope);');
-    expect(base).toContain('if (offsetWu <= circleWu) return vec2(circleWu, 0.0);');
-    expect(base).toContain('return vec2(offsetWu, inst.r * body.y);');
+    expect(base).toContain(
+      'return vec2(inst.r * body.x + (circleWu - inst.r) * sqrt(1.0 + slope * slope), inst.r * body.y);',
+    );
+    for (const ring of [functionBody('warningRing'), functionBody('relationRing')]) {
+      expect(ring).toContain('if (isInsideRingBase(inst, frame, radiusWu, ');
+      expect(ring).not.toContain('frame.len < radiusWu');
+    }
   });
 
   it('measures the threat ring’s dash along the traced curve from the heading, the circle’s arc unchanged', () => {

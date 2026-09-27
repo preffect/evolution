@@ -91,13 +91,13 @@ float rimDashMask(Instance inst, Frame frame) {
 
 /**
  * The DANGER ring at 'warningRingPx', dashed and rotating, 'canEngulf' decided it: traced round the body and its arms
- * (cell-shader-rings.ts, #730), the dash measured along the traced curve. Nothing inside its circle: the ring only grows.
+ * (cell-shader-rings.ts, #730), the dash measured along the traced curve. Nothing inside its base: a lobe only adds.
  */
 vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.warningRingPx <= 0.0) return acc;
   float radiusWu = inst.warningRingPx / uZoom;
   float halfStroke = ${glslFloat(WARNING_RING_STROKE_PX)} * HALF / uZoom;
-  if (frame.len < radiusWu - halfStroke - frame.aa) return acc;
+  if (isInsideRingBase(inst, frame, radiusWu, halfStroke)) return acc;
   vec4 lobes[RING_LOBE_SLOTS];
   int count = tracedRingLobes(inst, radiusWu, lobes);
   vec2 traced = tracedRingAt(inst, lobes, count, radiusWu, frame.theta);
@@ -125,7 +125,7 @@ float relationLine(Instance inst, Frame frame, float radiusWu) {
 vec4 relationRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.relationRingPx <= 0.0) return acc;
   float radiusWu = inst.relationRingPx / uZoom;
-  if (frame.len < radiusWu - ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom - frame.aa) return acc;
+  if (isInsideRingBase(inst, frame, radiusWu, ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom)) return acc;
   float lines = relationLine(inst, frame, radiusWu);
   if (inst.relationRingLines < ${glslFloat(RELATION_RING.toxic)} - HALF) return over(acc, uGain, lines * ${glslFloat(EDIBLE_RING_ALPHA)});
   float outerWu = radiusWu + ${glslFloat(RELATION_RING_LINE_PITCH_PX)} / uZoom;
