@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { hexToRgb } from '../colour';
-import { VAC_RIM } from '../constants';
+import { EYESPOT, EYESPOT_RIM, VAC_RIM } from '../constants';
 import { CELL_INSTANCE_FLOATS } from './cell-instance';
 import { CellMesh } from './cell-mesh';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -55,6 +55,15 @@ describe('CellMesh', () => {
     const subject = mesh(1);
     const group = subject.membranePass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
     expect(group.uniforms[CELL_UNIFORM.ectoplasm]).toEqual(hexToRgb(VAC_RIM));
+    subject.destroy();
+  });
+
+  /** The euglena's eyespot is `EYESPOT` with an `EYESPOT_RIM` ring (visual-style/cells-and-organelles.md §4, #194). */
+  it('paints the eyespot in EYESPOT and its rim in EYESPOT_RIM', () => {
+    const subject = mesh(1);
+    const group = subject.membranePass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
+    expect(group.uniforms[CELL_UNIFORM.eyespot]).toEqual(hexToRgb(EYESPOT));
+    expect(group.uniforms[CELL_UNIFORM.eyespotRim]).toEqual(hexToRgb(EYESPOT_RIM));
     subject.destroy();
   });
 

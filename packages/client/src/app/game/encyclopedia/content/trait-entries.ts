@@ -177,7 +177,8 @@ export const TRAIT_ENTRY_ROWS = [
   },
   {
     traitId: 'euglena_eyespot',
-    summary: 'A red eyespot that finds food. Motes and DNA fragments near you drift toward you. One form per cell.',
+    summary:
+      'A spindle led by a long whip, with a red eyespot that finds food. Motes and DNA fragments near you drift toward you. One form per cell.',
     tierBodies: ['A red eyespot.', 'A sharper eye.', 'The sharpest eye.'],
     seeAlso: ['trait:chloroplast'],
   },
