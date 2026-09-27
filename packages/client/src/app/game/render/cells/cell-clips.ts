@@ -17,7 +17,8 @@ import { ease } from '../easing';
 import { degreesToRadians } from '../geometry';
 import type { ShapeBump } from './radial-profile';
 import type { CellDeformation } from './cell-deformation';
-import { bumpPeak, type ClipDeformationPeak } from './shape-terms';
+import { bumpPeak } from './radial-profile';
+import type { ClipDeformationPeak } from './shape-terms';
 
 export type ClipTrackValues = Readonly<Record<string, number>>;
 

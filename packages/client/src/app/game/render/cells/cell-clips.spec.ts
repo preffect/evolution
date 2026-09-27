@@ -22,7 +22,7 @@ import {
   sampleClipTracks,
   type ClipPeakContext,
 } from './cell-clips';
-import { bumpPeak } from './shape-terms';
+import { bumpPeak } from './radial-profile';
 import { degreesToRadians } from '../geometry';
 import { ENGULF_ARM_OFFSET_DEG, ENGULF_ARM_SIGMA_DEG, ENGULF_NOTCH_SIGMA_DEG } from '../constants';
 

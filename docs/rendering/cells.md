@@ -189,7 +189,7 @@ tier (visual-style/cells-and-organelles.md §4 resolves the 2.5), spindle 50 × 
 mouth : height 0.51, diatom valve r 26 wu → a circle. Forms: slipper (#193: the polar ellipse of the tier's aspect,
 × `1 + SLIPPER_FRONT_BLUNTNESS` 0.06 `cos Δ` for the blunt front, notched by the oral groove, a Gaussian
 `SLIPPER_ORAL_GROOVE_DEPTH` 0.14 deep at `SLIPPER_ORAL_GROOVE_DEG` 43° off the heading, σ 12°, then scaled to unit area;
-the instance's `formTier` picks the tier's baked aspect and scale in the GLSL; plus `CILIA_TUFT_COUNT` 20 cilia tufts, the
+the instance's `formTier` picks the tier's baked aspect and scale in the GLSL; plus `CILIA_TUFT_COUNT` 16 cilia tufts, the
 form's **appendage** (visual-style/motion-and-legibility.md §5.1), drawn in pass B outside the membrane: each is measured
 radially from the membrane, `CILIA_TUFT_REACH_RADII` 1.3 r at full extension, beating down to 0.66 of it in a metachronal
 wave nose to tail, bent back toward the tail, `CILIA_TUFT_ROOT_WIDTH_RADII` 0.40 r tapering to a 0.26 r round tip; the

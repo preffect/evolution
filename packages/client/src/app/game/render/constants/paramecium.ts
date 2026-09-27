@@ -12,7 +12,7 @@ export const SLIPPER_ORAL_GROOVE_SIGMA_DEG = 12;
 
 // ---- the cilia tufts: the paramecium's appendage (§5.1), a full fringe of bold tufts round the slipper ----
 /** Tufts round the whole outline, spaced near-evenly along it rather than by angle from the centre, none on the axis. */
-export const CILIA_TUFT_COUNT = 20;
+export const CILIA_TUFT_COUNT = 16;
 /**
  * A tuft at full extension, in radii past the membrane, measured out from the centre: the slipper's narrow flank
  * sits 0.71 r out at tier III, so its tufts reach 2.0 r there, 0.7 r past the 1.3 r rings, and still 1.93 r when
@@ -47,7 +47,7 @@ export const CILIA_TUFT_BEAT_SWING_DEG = 12;
 export const CILIA_TUFT_SIDE_GAIN = 2;
 /** A `CILIA` wash, deepest down the tuft's middle, with fine bright strands in it; at mid LOD only the wash. */
 export const CILIA_TUFT_WASH_CORE_ALPHA = 0.5;
-export const CILIA_TUFT_WASH_EDGE_ALPHA = 0.18;
+export const CILIA_TUFT_WASH_EDGE_ALPHA = 0.12;
 export const CILIA_TUFT_STRAND_ALPHA = 0.75;
 export const CILIA_TUFT_STRANDS = 3;
 export const CILIA_TUFT_STRAND_WIDTH_PX = 1;
