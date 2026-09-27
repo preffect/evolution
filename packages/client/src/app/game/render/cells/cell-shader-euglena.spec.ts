@@ -77,6 +77,17 @@ describe('the euglena in the cell shader', () => {
     );
   });
 
+  /** The spindle's flanks drew ribosome dots in the halo and its tips none (#767); `cellFramePoint` is the twin. */
+  it('lays the ribosome grid in the body frame, keeps each dot round in the undeformed frame, masked to the body', () => {
+    const speckle = glslFunction('vec4 ribosomeSpeckle(Instance inst, Frame frame, float inside, vec4 acc) {');
+    expect(speckle).toContain('vec2 cell = floor(frame.pF / pitch);');
+    expect(speckle).toContain(
+      'vec2 dotCentre = dotCentreF * formAt(inst, wrapAngle(atan(dotCentreF.y, dotCentreF.x) - inst.heading)).x;',
+    );
+    expect(speckle).toContain('length(q - dotCentre)');
+    expect(speckle).toContain('dotMask * alpha * inside * inst.lodBlend');
+  });
+
   it('names the eyespot uniforms', () => {
     expect(CELL_UNIFORM.eyespot).toBe('uEyespot');
     expect(CELL_UNIFORM.eyespotRim).toBe('uEyespotRim');
