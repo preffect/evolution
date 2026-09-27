@@ -41,6 +41,9 @@ import {
 } from './radial-profile';
 import { NOT_WITHERED } from './starving-wither';
 
+/** No prey held outside the body: every lobe keeps its fan place and cycle. */
+const NO_ARM_HOLD = 0;
+
 /** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
 const FULL = 1;
 const STILL = 0;
@@ -258,6 +261,7 @@ function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
     aim: input.deformation.preyAngle ?? input.heading,
     lean:
       input.deformation.preyAngle === undefined ? input.speedRatio : Math.max(input.speedRatio, PSEUDOPOD_ENGULF_LEAN),
+    armHold: input.deformation.armHoldRadii ?? NO_ARM_HOLD,
   });
   return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
 }

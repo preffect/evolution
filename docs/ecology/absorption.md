@@ -163,6 +163,9 @@ ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE × the prey's speed cap this tick)`: **1.5*
   stays where it was, at the lip of the seal, until the pull (or the predator) brings the body over the prey; the
   seal then records the carried offset as usual, so a carried prey is always under the body.
 
+The player sees the hold: the lobe nearest the prey reaches to it and draws back with it as the pull brings it in
+(ticket #753, cosmetic: docs/rendering/cells.md §2.1 pseudopods row); nothing on the server reads it.
+
 The rows it moves are T13's (a sprint at tick 7 no longer gets clear of Amoeba III; the escapes that remain drain
 later, held out on the arm), and T23 is the grab itself, the escape from it and the large amoeba's ([`traits/constants-and-acceptance.md §6`](../traits/constants-and-acceptance.md#6-acceptance-scenarios)).
 

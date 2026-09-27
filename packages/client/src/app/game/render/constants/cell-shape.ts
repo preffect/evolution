@@ -113,6 +113,12 @@ export const PSEUDOPOD_FLANK_DEG = 65;
 export const PSEUDOPOD_FLANK_SPREAD = 0.3;
 export const PSEUDOPOD_LEAN_GAIN = 3;
 export const PSEUDOPOD_ENGULF_LEAN = 1;
+/**
+ * The arm hold (#753, ecology/absorption.md §6.1): the lobe nearest a prey held outside the body lies across it and draws
+ * back with it, handing back to its flank over the last this-many radii of the hold. A distance, so the pull sets the
+ * time: 300 ms (18 ticks) at the fastest, 1.5 r/s at every tier, twice §5's 150 ms snap; the arm swings ~4 ° a tick.
+ */
+export const PSEUDOPOD_HOLD_BLEND_RADII = 0.45;
 /** The extension cycle's rate. */
 export const PSEUDOPOD_CYCLE_HZ = 0.35;
 /** At rest the fan sways about the held heading by ± this; the sway fades out as the lobes move to the flanks. */

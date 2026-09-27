@@ -103,6 +103,7 @@ describe('clipDeformation', () => {
       preyAngle: 0,
       engulfClipPosition: 0.5,
       absorbedSeal: null,
+      armHoldRadii: 0,
     });
     expect(deformation.bumps.map((slot) => [slot.amplitude, slot.centre])).toEqual([
       [0.62, degreesToRadians(30)],
@@ -116,10 +117,17 @@ describe('clipDeformation', () => {
   });
 
   /** The amoeba's lobes reach for the prey (#192): the angle rides only while an engulf is in progress. */
-  it('carries the prey angle while engulfing and nowhere else', () => {
-    const engulfing = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 1.2, engulfClipPosition: 0.3 });
-    expect(engulfing.preyAngle).toBe(1.2);
-    expect(clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0.5, absorbedSeal: 0.42 }).preyAngle).toBeUndefined();
+  it('carries the prey angle and the arm hold while engulfing and nowhere else (#753)', () => {
+    const engulfing = clipDeformation({
+      ...REST_CLIP_INPUT,
+      preyAngle: 1.2,
+      engulfClipPosition: 0.3,
+      armHoldRadii: 0.4,
+    });
+    expect(engulfing).toMatchObject({ preyAngle: 1.2, armHoldRadii: 0.4 });
+    const relaxing = clipDeformation({ ...REST_CLIP_INPUT, preyAngle: 0.5, absorbedSeal: 0.42, armHoldRadii: 0.4 });
+    expect(relaxing.preyAngle).toBeUndefined();
+    expect(relaxing.armHoldRadii).toBeUndefined();
     expect(clipDeformation({ ...REST_CLIP_INPUT, moteAngle: 1 }).preyAngle).toBeUndefined();
   });
 
