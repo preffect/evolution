@@ -106,6 +106,7 @@ defaults live in `absorption-derived.ts`): patch a phase second, not them (#367,
 | `ENGULF_MIN_DURATION_FACTOR`                                                                     | 0.5              | ×                                                                                         |
 | `ENGULF_ESCAPE_DECAY_MULTIPLIER`                                                                 | 2                | × (cover and wrap out of contact; released at 0, #634)                                    |
 | `ENGULF_ARM_PULL_RADII_PER_SECOND`                                                               | 1.5              | predator radii / s (the amoeba's arm draws a prey it holds outside body contact in, #735) |
+| `ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE`                                                           | 0.5              | × the held prey's speed cap this tick (the pull never outruns the prey, #735)             |
 | `ENGULF_STRUGGLE_SLOWDOWN` / `ENGULF_STRUGGLE_SLOWDOWN_CAP`                                      | 0.5 / 0.9        | ratio of the phase rate                                                                   |
 | `ENGULF_PREDATOR_SPEED_FACTOR` / `ENGULF_PREDATOR_SPEED_FACTOR_SEALED`                           | 1.0 / 1.0        | × (cover and wrap / absorb; holding costs no speed, #634)                                 |
 | `ENGULF_PREY_SPEED_FACTOR_COVER` / `ENGULF_PREY_SPEED_FACTOR` / `ENGULF_PREY_SPEED_FACTOR_FLOOR` | 0.85 / 0.8 / 0.3 | × (the grab in cover, #634 / wrap / the floor of both; absorb is 0)                       |

@@ -61,7 +61,7 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    still reads from the body. The body is also exactly the **hit disc**: contact, separation and the seal all use the
    round body radius `r` (`ecology/absorption.md`), never the appendage. Appendages add no collision and no mass, and
    an appendage that overlaps another cell does not push it. **One exception, the amoeba's grab (ticket #735):** an
-   amoeba starts and holds an engulf from its arm's reach, the arm's shortest length past the body
+   amoeba starts and holds an engulf from its arm's reach on a prey that is not steering away, the arm's shortest length past the body
    (`AMOEBA_ARM_GRAB_REACH_RADII` = `PSEUDOPOD_REACH × PSEUDOPOD_RETRACTED_SHARE`, 0.6175 r, shared with the server,
    the same all round), and draws the prey in until the body covers it (`ecology/absorption.md §6.1`, the arm
    grab). Every other form's appendages stay cosmetic until a ticket of their own decides otherwise.

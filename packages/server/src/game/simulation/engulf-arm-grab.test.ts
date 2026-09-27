@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AMOEBA_ARM_GRAB_REACH_RADII,
   DEFAULT_BALANCE,
+  ENGULF_RELEASE_REASON,
   ENGULF_SEAL_PROGRESS,
   TICK_INTERVAL_S,
   distanceBetween,
@@ -15,6 +16,7 @@ import {
 import {
   ENGULF_PREY_MASS,
   createEngulfFixture,
+  releaseReasonsOf,
   stepEngulf,
   type EngulfFixture,
 } from '../../testing/engulf-builders.js';
@@ -22,7 +24,8 @@ import { createTestStepContext } from '../../testing/world-builders.js';
 import { setBalanceForDebug } from '../debug/debug-operations.js';
 import { engulfContactGap } from './contact.js';
 import { canStartEngulf } from './engulf.js';
-import { grabContactGap, isGrabContact, pullPreyByArm } from './engulf-arm-grab.js';
+import { armPullPerTick, grabContactGap, isGrabContact, pullPreyByArm } from './engulf-arm-grab.js';
+import { speedCapOf } from './movement.js';
 
 const AMOEBA_I = [{ traitId: 'amoeba_pseudopods', tier: 1 }] as const;
 /** E10's under-ratio predator: 24 against 20 never starts, arm or no arm. */
@@ -33,6 +36,8 @@ const HALF_WAY_OUT_THE_ARM = 0.5;
 const PAST_THE_ARM_WU = 0.01;
 /** A balance path, named through a constant because a patch is keyed by constant names. */
 const PULL_LEAF = 'ENGULF_ARM_PULL_RADII_PER_SECOND';
+/** An amoeba large enough that 1.5 of its radii a second outruns a free prey: R = 4 √1000 ≈ 126 wu. */
+const LARGE_PREDATOR_MASS = 1000;
 /** Enough ticks for any engulf to have sealed twice over. */
 const LONG_HOLD_TICKS = 120;
 const DISTANCE_DIGITS = 9;
@@ -105,6 +110,12 @@ describe('starting an engulf by the arm (#735)', () => {
     expect(fixture.prey.engulfedByCellId).toBeNull();
   });
 
+  it("never grabs a prey that is steering away through the arm's reach", () => {
+    const fixture = armPair();
+    fixture.prey.steerCommand = { directionX: 1, directionY: 0, throttle: 1 };
+    expect(canStartEngulf(fixture.predator, fixture.prey, fixture.world, DEFAULT_BALANCE)).toBe(false);
+  });
+
   it("never starts past the arm's tip", () => {
     const fixture = armPair({ share: 1, extraWu: PAST_THE_ARM_WU });
     expect(canStartEngulf(fixture.predator, fixture.prey, fixture.world, DEFAULT_BALANCE)).toBe(false);
@@ -118,9 +129,20 @@ describe('the arm draws the prey in (#735)', () => {
   it('moves a prey held by the arm alone toward the predator by the pull, along the centre line', () => {
     const fixture = armPair();
     const before = distanceBetween(fixture.predator, fixture.prey);
-    pullPreyByArm(fixture, DEFAULT_BALANCE);
+    pullPreyByArm(fixture, fixture.world, DEFAULT_BALANCE);
     expect(distanceBetween(fixture.predator, fixture.prey)).toBeCloseTo(before - pullPerTick(fixture), DISTANCE_DIGITS);
     expect(fixture.prey.y).toBe(fixture.predator.y);
+  });
+
+  it("never draws faster than its share of the prey's own speed cap, however large the amoeba", () => {
+    const fixture = armPair({ predatorMass: LARGE_PREDATOR_MASS });
+    const byRadius = pullPerTick(fixture);
+    const byPreySpeed =
+      DEFAULT_BALANCE.absorption.ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE *
+      speedCapOf(fixture.prey, fixture.world, DEFAULT_BALANCE) *
+      TICK_INTERVAL_S;
+    expect(byPreySpeed).toBeLessThan(byRadius);
+    expect(armPullPerTick(fixture, fixture.world, DEFAULT_BALANCE)).toBeCloseTo(byPreySpeed, DISTANCE_DIGITS);
   });
 
   it('leaves a prey in body contact, one past the arm, and any prey of a predator without arms where it is', () => {
@@ -128,7 +150,7 @@ describe('the arm draws the prey in (#735)', () => {
     withArms(inBody);
     for (const fixture of [inBody, armPair({ share: 1, extraWu: PAST_THE_ARM_WU }), armPair({ hasArms: false })]) {
       const before = { x: fixture.prey.x, y: fixture.prey.y };
-      pullPreyByArm(fixture, DEFAULT_BALANCE);
+      pullPreyByArm(fixture, fixture.world, DEFAULT_BALANCE);
       expect({ x: fixture.prey.x, y: fixture.prey.y }).toEqual(before);
     }
   });
@@ -146,5 +168,19 @@ describe('only the body seals (#735)', () => {
     stepEngulf(fixture);
     expect(fixture.prey.carriedOffsetX).not.toBeNull();
     expect(fixture.prey.engulfProgress).toBeGreaterThan(ENGULF_SEAL_PROGRESS);
+  });
+
+  it("lets a prey that steers away drain out on the arm, never held in a stalemate at arm's length", () => {
+    const fixture = armPair();
+    withoutPull(fixture);
+    stepEngulf(fixture, LONG_HOLD_TICKS);
+    const atTheLip = fixture.prey.engulfProgress;
+    fixture.prey.steerCommand = { directionX: 1, directionY: 0, throttle: 1 };
+    stepEngulf(fixture);
+    expect(fixture.prey.engulfProgress).toBeLessThan(atTheLip);
+    stepEngulf(fixture, LONG_HOLD_TICKS);
+    expect(isGrabContact(fixture.predator, fixture.prey, DEFAULT_BALANCE)).toBe(true);
+    expect(fixture.prey.engulfedByCellId).toBeNull();
+    expect(releaseReasonsOf(fixture.context.effects)).toEqual([ENGULF_RELEASE_REASON.escaped]);
   });
 });

@@ -4,10 +4,12 @@
 // absorbs it. The same placement with a plain predator, and the amoeba one wu past its arm's reach, never start.
 
 import { describe, it } from 'vitest';
-import { ENGULF_SEAL_PROGRESS } from '@evolution/shared';
+import { ENGULF_RELEASE_REASON, ENGULF_SEAL_PROGRESS, PLAYER_LIFE_STATE } from '@evolution/shared';
 import { distanceBetweenCells, type EvolutionView } from '../gameplay/evolution-views.js';
 import {
   PROGRESS_TOLERANCE,
+  lifeStateOfPrey,
+  sprintsAwayFrom,
   absorption,
   absorptionsOfPredator,
   engulfPairOf,
@@ -35,6 +37,41 @@ const LIP_LAST_TICK = 23;
 /** B reaches body contact on tick 24, which seals it; the absorb runs 18 more ticks at 1/36 from 0.526. */
 const SEAL_TICK = 24;
 const PAYOUT_TICK = 44;
+
+/** T23 (c): B half-way out E9's arm (past the body's 31.06 wu), idle until it sprints away on tick 10: out on tick 14. */
+const HALF_WAY_OUT_THE_ARM_WU = 45;
+const SPRINT_TICK = 10;
+const SPRINT_ESCAPE_RELEASE_TICK = 14;
+/**
+ * T23 (d), the large amoeba (#735 review): A Amoeba III at 1000 (R 126.5 wu, a pull of 1.5 R/s = 190 wu/s uncapped)
+ * grabs B at 50 from 150 wu (body 112.4 wu, arm 190.5 wu); B sprints away on tick 10 and gets out, because the pull is
+ * capped at half of B's own speed cap. Uncapped, the arm pulled B under the body and absorbed it on tick 49.
+ */
+const LARGE_AMOEBA: EngulfSide = { mass: 1000, traits: [{ traitId: 'amoeba_pseudopods', tier: 3 }] };
+const LARGE_AMOEBA_PREY: EngulfSide = { mass: 50 };
+const LARGE_AMOEBA_PLACEMENT_WU = 150;
+const LARGE_AMOEBA_RELEASE_TICK = 15;
+
+/** The pair placed `placementWu` apart, B sprinting away from `SPRINT_TICK`, released `escaped` on `releaseTick` and alive. */
+function expectSprintEscape(
+  name: string,
+  sides: { predator: EngulfSide; prey: EngulfSide },
+  placementWu: number,
+  releaseTick: number,
+) {
+  return sprintsAwayFrom(SPRINT_TICK)(engulfPairOf(name, sides.predator, sides.prey, placementWu))
+    .advance(ROW_TICKS)
+    .expect('grabbed and held until the sprint', progressOfPrey)
+    .atTick(SPRINT_TICK - 1)
+    .toBeGreaterThan(0)
+    .expect(`released on tick ${releaseTick}`, releaseReasons)
+    .atTick(releaseTick)
+    .toEqual([ENGULF_RELEASE_REASON.escaped])
+    .expect('B alive at the end of the row', lifeStateOfPrey)
+    .atEnd()
+    .toBe(PLAYER_LIFE_STATE.alive)
+    .runDeterministic();
+}
 
 const distanceOfPair = (view: EvolutionView): number | undefined => distanceBetweenCells(view, 0, 1);
 
@@ -87,5 +124,23 @@ describe('traits/constants-and-acceptance.md §6: the amoeba arm grab (#735)', (
         .toBe(0)
         .runDeterministic();
     }
+  });
+
+  it("T23 (c): a prey held at arm's length that sprints away drains out and escapes", async () => {
+    await expectSprintEscape(
+      'T23 (c) sprint from the arm',
+      { predator: AMOEBA_I, prey: {} },
+      HALF_WAY_OUT_THE_ARM_WU,
+      SPRINT_ESCAPE_RELEASE_TICK,
+    );
+  });
+
+  it('T23 (d): a large amoeba cannot out-pull a prey that sprints away (Amoeba III 1000 v 50)', async () => {
+    await expectSprintEscape(
+      'T23 (d) large amoeba',
+      { predator: LARGE_AMOEBA, prey: LARGE_AMOEBA_PREY },
+      LARGE_AMOEBA_PLACEMENT_WU,
+      LARGE_AMOEBA_RELEASE_TICK,
+    );
   });
 });

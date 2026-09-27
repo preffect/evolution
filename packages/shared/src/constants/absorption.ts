@@ -29,6 +29,12 @@ export const ENGULF_ESCAPE_DECAY_MULTIPLIER = 2;
  */
 export const ENGULF_ARM_PULL_RADII_PER_SECOND = 1.5;
 /**
+ * The pull never outruns the prey (#735 review): it is capped at this share of the held prey's own speed cap this tick
+ * (sprint, gel and the held factor included), so a prey swimming or sprinting straight away always gains on the arm,
+ * however large the amoeba.
+ */
+export const ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE = 0.5;
+/**
  * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
  * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
  */

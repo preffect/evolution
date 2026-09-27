@@ -17,7 +17,7 @@ at 0.85 / 0.75 / 0.65 of its base time and a wrapped prey's held speed factor is
 of 0.8 (ecology/absorption.md §6.1). The absorb phase is untouched (lobes grab, they do not digest: that is the Food
 Vacuole). As prey: none, by design (lobes reach outward; a wrapped amoeba has only its cytoskeleton's
 wriggle, which it owns by prerequisite). **The arms grab** (ticket #735, ecology/absorption.md §6.1 "the arm grab"):
-the amoeba starts and holds an engulf on a prey its arm reaches, `armGrabReachRadii` 0.6175 of its radius past its
+the amoeba starts and holds an engulf on a prey its arm reaches and that is not steering away, `armGrabReachRadii` 0.6175 of its radius past its
 body (`AMOEBA_ARM_GRAB_REACH_RADII`, the arm's shortest length, the same all round and at every tier: the tier adds
 arms, not length), and the arm draws the prey in at `ENGULF_ARM_PULL_RADII_PER_SECOND` until the body covers it; only
 the body seals. Visual: 2 / 3 / 4 long arms reach out of the round body, well past the

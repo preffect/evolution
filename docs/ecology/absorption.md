@@ -139,22 +139,29 @@ the arms' angles are the renderer's (its clock, its smoothed heading, the cosmet
 where an arm points; taking the arm's shortest length, and the same coverage of the prey's radius the body needs, is
 what keeps an all-round reach honest. Three rules, and nothing else changes:
 
-- **Start and hold by the arm:** step 1 starts on `inGrab` instead of `inContact`, and step 5 counts `inGrab` as
-  contact in cover and wrap, so a prey the arm holds advances the engulf like one under the body. A prey that gets
-  past the arm drains and escapes as before. The mass ratio, the refractory and the separation are untouched:
-  contact, the dent and the push stay the body's.
+- **Start and hold by the arm:** step 1 starts on `inContact`, or on `inGrab` while the prey is not steering away
+  (`awayEffort` = 0, the struggle's own projection below), and step 5 counts the same arm hold as contact in cover and
+  wrap, so a prey the arm holds advances the engulf like one under the body. A prey that steers away is never held by
+  the arm alone: it drains as out of contact (it is still pulled) and escapes when the progress runs out, unless the
+  pull or the predator brings the body over it first. So a prey swimming through the arm's reach is not grabbed, and a
+  prey pinned at arm's length (against the rim, say) cannot hover there with the progress climbing and draining for
+  minutes, which the #735 review found. The mass ratio, the refractory and the separation are untouched: contact, the
+  dent and the push stay the body's.
 - **The pull:** before step 5, an unsealed prey held by the arm alone (outside `inContact`, inside `inGrab`) is drawn
-  toward the predator's centre by `ENGULF_ARM_PULL_RADII_PER_SECOND` **1.5** predator radii a second (1 wu a tick
-  for E9's 40 wu predator; the last tick may carry it up to one step inside `inContact`), then the dish wall. It moves
-  the prey only, and adds to whatever the prey's own steering does: a prey sprinting away still outruns it.
+  toward the predator's centre at `min(ENGULF_ARM_PULL_RADII_PER_SECOND × predator.radius,
+ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE × the prey's speed cap this tick)`: **1.5** predator radii a second, never more
+  than **0.5** of what the held prey can swim right now (sprint, gel and the held factor included). The last tick may
+  carry it up to one step inside `inContact`, then the dish wall. It moves the prey only, and the cap is what keeps
+  "a prey swimming or sprinting away still gains" true at every size: 1.5 R/s alone outran a held prey from an
+  amoeba of about 300 mass (the #735 review). E9's 40 wu amoeba pulls 1 wu a tick, under its cap.
 - **Only the body seals:** progress that would cross `ENGULF_SEAL_PROGRESS` while the prey is held by the arm alone
   stays where it was, at the lip of the seal, until the pull (or the predator) brings the body over the prey; the
   seal then records the carried offset as usual, so a carried prey is always under the body.
 
 The rows it moves are T13's (a sprint at tick 7 no longer gets clear of Amoeba III; the escapes that remain drain
-later, held out on the arm), and T23 is the grab itself ([`traits/constants-and-acceptance.md §6`](../traits/constants-and-acceptance.md#6-acceptance-scenarios)).
+later, held out on the arm), and T23 is the grab itself, the escape from it and the large amoeba's ([`traits/constants-and-acceptance.md §6`](../traits/constants-and-acceptance.md#6-acceptance-scenarios)).
 
-**Struggle (cover and wrap, while `inGrab`).** The prey's steer command of this tick — the one the
+**Struggle (cover and wrap, while in contact).** The prey's steer command of this tick — the one the
 movement step took from its start-of-tick pose and moved on, kept on the record as
 `CellRecord.steerCommand` (`steerCommand` of the shared movement kernel, §5.2) rather than taken a
 second time after the centres have moved — is projected away from the predator:
@@ -203,13 +210,13 @@ alone (above), so the toxin's effect is read on the predator, not promised on th
 **Order inside the engulf step, per pair** (stable id order, #74; the numbers the scenarios quote come
 from this order):
 
-1. No engulf: start when `inGrab` ∧ `canStart` ∧ the predator has no live refractory on this prey
+1. No engulf: start when (`inContact` ∨ the arm hold) ∧ `canStart` ∧ the predator has no live refractory on this prey
    ∧ the prey was not released `aborted` this tick (below). Progress 0, then continue below on the same tick.
 2. `¬canContinue` → release, reason `ratio`.
 3. `phase` = `engulfPhaseOf(progress, balance.absorption)` from the progress at the start of the step.
 4. Wrap or absorb with a positive chance: draw and compare → release, reason `spat_out`, refractory.
 5. Cover or wrap: the arm's pull first (a prey in `inGrab` but not `inContact`, the arm grab above); then in contact
-   (`inGrab`) → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
+   (`inContact` or the arm hold) → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
    `progress −= ENGULF_ESCAPE_DECAY_MULTIPLIER × baseRatePerTick`, release (`escaped`) when it is ≤ ε (drained to 0;
    a wrap drains back through the cover band first). Absorb: `progress += phaseRatePerTick`.
 6. Progress ≥ 1 − ε → payout. Progress crossed `ENGULF_SEAL_PROGRESS` this tick → seal (offset recorded,
