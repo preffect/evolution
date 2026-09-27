@@ -15,7 +15,7 @@ import { EATING_CLIP_CONTEXT, clipDeformationPeak, engulfDeformationPeak } from 
 import { CULL_DRAW_STATE, cullReachPx, cullReachRadii } from './cell-cull';
 import { cellDrawExtentRadii } from './cell-draw-extent';
 import { summariseCellTraits } from './cell-traits';
-import { peakRingLobeRadii } from './traced-ring';
+import { peakRingBodyScale, peakRingLobeRadii } from './traced-ring-reach';
 
 const TAILED = summariseCellTraits(
   createTestCellView({ stage: CELL_STAGE.eukaryote, traits: [{ traitId: 'simple_flagellum', tier: 3 }] }),
@@ -42,7 +42,11 @@ const AMOEBA = summariseCellTraits(
   createTestCellView({ stage: CELL_STAGE.specialised, traits: [{ traitId: 'amoeba_pseudopods', tier: 3 }] }),
   null,
 );
-const round = (drawnRadii: number) => ({ drawnRadii, ringLobeRadii: 0 });
+const PARAMECIUM = summariseCellTraits(
+  createTestCellView({ stage: CELL_STAGE.specialised, traits: [{ traitId: 'paramecium_cilia', tier: 3 }] }),
+  null,
+);
+const round = (drawnRadii: number) => ({ drawnRadii, ringBodyScale: 1, ringLobeRadii: 0 });
 
 describe('cullReachRadii', () => {
   it('is the drawn extent in the cull state, so a sprinting tier-III tail is inside it', () => {
@@ -59,6 +63,12 @@ describe('cullReachRadii', () => {
     expect(cullReachRadii(BARE).ringLobeRadii).toBeGreaterThan(0);
     expect(cullReachRadii(AMOEBA).ringLobeRadii).toBeGreaterThan(cullReachRadii(BARE).ringLobeRadii + PSEUDOPOD_REACH);
   });
+
+  it('scales the ring round the body at its widest: a sprinting blob’s front, a slipper’s nose more (#730)', () => {
+    expect(cullReachRadii(BARE).ringBodyScale).toBe(peakRingBodyScale(BARE, CULL_DRAW_STATE));
+    expect(cullReachRadii(BARE).ringBodyScale).toBeGreaterThan(1);
+    expect(cullReachRadii(PARAMECIUM).ringBodyScale).toBeGreaterThan(cullReachRadii(BARE).ringBodyScale);
+  });
 });
 
 describe('cullReachPx', () => {
@@ -72,7 +82,12 @@ describe('cullReachPx', () => {
   });
 
   it('adds the ring’s lobes past its outermost line, in px of the cell', () => {
-    const lobed = { drawnRadii: 1, ringLobeRadii: 0.5 };
+    const lobed = { drawnRadii: 1, ringBodyScale: 1, ringLobeRadii: 0.5 };
     expect(cullReachPx(lobed, 3) - cullReachPx(round(1), 3)).toBeCloseTo(1.5, 9);
+  });
+
+  it('scales the ring’s outermost line by the body before the lobes', () => {
+    const scaled = { drawnRadii: 1, ringBodyScale: 1.5, ringLobeRadii: 0 };
+    expect(cullReachPx(scaled, 3)).toBeCloseTo((ENGULF_WARNING_RING_MIN_PX + WARNING_RING_STROKE_PX) * 1.5, 9);
   });
 });

@@ -26,7 +26,7 @@ import {
 import { dnaRingRadiusPx, ladderOrbitRadiusPx } from './own-cell-geometry';
 import { threatLabelPlacement } from './threat-label-placement';
 import { warningRingRadiusPx } from '../cells/cell-instance-builder';
-import { ringArmReachPx } from '../cells/traced-ring';
+import { ringLabelReachPx } from '../cells/traced-ring-reach';
 
 const textures = createTestRenderTextures().indicators;
 const REQUIRED = endosymbiontTallies()[0]!.required;
@@ -216,8 +216,10 @@ describe('threatAnchorFor', () => {
       });
     const circlePx = warningRingRadiusPx(giant.radius);
     expect(anchorOf(giant)?.warningRingPx).toBe(circlePx);
-    expect(anchorOf(amoeba)?.warningRingPx).toBe(circlePx + ringArmReachPx(amoeba, amoeba.radius));
-    expect(ringArmReachPx(amoeba, amoeba.radius)).toBeGreaterThan(0);
+    expect(anchorOf(amoeba)?.warningRingPx).toBe(ringLabelReachPx(amoeba, circlePx, amoeba.radius));
+    expect(ringLabelReachPx(amoeba, circlePx, amoeba.radius)).toBeGreaterThan(circlePx);
+    const paramecium = { ...giant, traits: [{ traitId: 'paramecium_cilia' as const, tier: 3 as const }] };
+    expect(anchorOf(paramecium)?.warningRingPx, 'round the slipper’s nose').toBeGreaterThan(circlePx);
   });
 
   it('has nothing to anchor to without a record, a threat, its view, an own cell, or a drawn ring', () => {

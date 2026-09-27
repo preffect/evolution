@@ -8,7 +8,7 @@ import type { CellView, EntityId } from '@evolution/shared';
 import type { LastViewOf } from '../cells/cell-effects';
 import { relationRingOuterLinePx, relationRingPackingFor } from '../cells/cell-instance-builder';
 import { cellLodFor } from '../cells/cell-lod';
-import { ringArmReachPx } from '../cells/traced-ring';
+import { ringLabelReachPx } from '../cells/traced-ring-reach';
 import { LABEL_PILL_HEIGHT_PX, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX, WHITE } from '../constants';
 import { HALF, type Disc, type UprightBox } from '../geometry';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
@@ -58,7 +58,7 @@ function drawnRings(input: RelationSceneInput): DrawnRelationRing[] {
     const screenRadiusPx = view.radius * input.zoom;
     const packing = relationRingPackingFor(ring, cellLodFor(screenRadiusPx), NO_WARNING_RING);
     if (packing.relationRingPx <= 0) continue;
-    const ringPx = relationRingOuterLinePx(packing) + ringArmReachPx(view, screenRadiusPx);
+    const ringPx = ringLabelReachPx(view, relationRingOuterLinePx(packing), screenRadiusPx);
     rings.push({ cellId, x: view.x, y: view.y, ringPx });
   }
   return rings;

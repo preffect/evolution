@@ -115,7 +115,10 @@ export class CellRenderState {
   private ciliaPhase = 0;
   private lastTimeSeconds: number | null = null;
   /** The cull reach in radii and the traits it was worked out for: a trait fold, so kept until the traits change. */
-  private cullReach: { key: string; radii: CullReachRadii } = { key: '', radii: { drawnRadii: 0, ringLobeRadii: 0 } };
+  private cullReach: { key: string; radii: CullReachRadii } = {
+    key: '',
+    radii: { drawnRadii: 0, ringBodyScale: 1, ringLobeRadii: 0 },
+  };
   /** The view this cell was last drawn with: the ghost's source when the cell is absorbed. */
   private drawnView: CellView | null = null;
 

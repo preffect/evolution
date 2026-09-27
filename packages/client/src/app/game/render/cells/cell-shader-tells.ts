@@ -90,8 +90,8 @@ float rimDashMask(Instance inst, Frame frame) {
 }
 
 /**
- * The DANGER ring at 'warningRingPx', dashed and rotating, 'canEngulf' decided it: traced round the outline's arms
- * (cell-shader-rings.ts, #730), the dash measured along the traced curve. Nothing inside its circle: a lobe only adds.
+ * The DANGER ring at 'warningRingPx', dashed and rotating, 'canEngulf' decided it: traced round the body and its arms
+ * (cell-shader-rings.ts, #730), the dash measured along the traced curve. Nothing inside its circle: the ring only grows.
  */
 vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
   if (inst.warningRingPx <= 0.0) return acc;
@@ -100,11 +100,11 @@ vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
   if (frame.len < radiusWu - halfStroke - frame.aa) return acc;
   vec4 lobes[RING_LOBE_SLOTS];
   int count = tracedRingLobes(inst, radiusWu, lobes);
-  vec2 traced = tracedRingAt(lobes, count, radiusWu, frame.theta);
+  vec2 traced = tracedRingAt(inst, lobes, count, radiusWu, frame.theta);
   float ring = band(tracedRingDistance(frame, traced), 0.0, halfStroke, frame.aa * HALF);
   if (ring <= 0.0) return acc;
   float arcWu = (frame.theta - ${glslFloat(WARNING_RING_ROTATION_RAD_PER_SECOND)} * uTimeSeconds) * radiusWu;
-  float arcPx = (arcWu + tracedRingExtraArc(lobes, count, radiusWu, frame.theta)) * uZoom;
+  float arcPx = (arcWu + tracedRingExtraArc(inst, lobes, count, radiusWu, frame.theta)) * uZoom;
   return over(acc, uDanger, ring * dash(arcPx, ${glslFloat(WARNING_RING_DASH_PX[0])}, ${glslFloat(WARNING_RING_DASH_PX[1])}));
 }
 
@@ -112,7 +112,7 @@ vec4 warningRing(Instance inst, Frame frame, vec4 acc) {
 float relationLine(Instance inst, Frame frame, float radiusWu) {
   vec4 lobes[RING_LOBE_SLOTS];
   int count = tracedRingLobes(inst, radiusWu, lobes);
-  vec2 traced = tracedRingAt(lobes, count, radiusWu, frame.theta);
+  vec2 traced = tracedRingAt(inst, lobes, count, radiusWu, frame.theta);
   return band(tracedRingDistance(frame, traced), 0.0, ${glslFloat(RELATION_RING_STROKE_PX)} * HALF / uZoom, frame.aa * HALF);
 }
 

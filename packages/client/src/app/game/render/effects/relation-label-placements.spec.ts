@@ -14,7 +14,7 @@ import {
   WHITE,
 } from '../constants';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
-import { ringArmReachPx } from '../cells/traced-ring';
+import { ringLabelReachPx } from '../cells/traced-ring-reach';
 import { relationLabelPlacements, relationLabelSceneFor, type RelationLabelFrame } from './relation-label-placements';
 import { HALF, boxIntersectsDisc } from '../geometry';
 
@@ -60,9 +60,10 @@ describe('relationLabelSceneFor', () => {
   it('reaches an amoeba’s ring out past the arms it traces, so its label never sits on one (#730)', () => {
     const amoeba = { ...PREY, traits: [{ traitId: 'amoeba_pseudopods' as const, tier: 3 as const }] };
     const scene = relationLabelSceneFor({ indicators: indicatorsWith([amoeba]), viewOf: viewOfAll([amoeba]), zoom: 2 });
-    const armsPx = ringArmReachPx(amoeba, amoeba.radius * 2);
-    expect(armsPx).toBeGreaterThan(PSEUDOPOD_REACH * amoeba.radius * 2);
-    expect(scene.anchors.map((ringAnchor) => ringAnchor.ringPx)).toEqual([RELATION_RING_RADII * 20 + armsPx]);
+    const circlePx = RELATION_RING_RADII * 20;
+    const reachPx = ringLabelReachPx(amoeba, circlePx, amoeba.radius * 2);
+    expect(reachPx - circlePx).toBeGreaterThan(PSEUDOPOD_REACH * amoeba.radius * 2);
+    expect(scene.anchors.map((ringAnchor) => ringAnchor.ringPx)).toEqual([reachPx]);
   });
 
   it('anchors nothing without a record, for a cell no longer in view, or for a ring the far LOD does not draw', () => {

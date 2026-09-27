@@ -10,16 +10,17 @@ import {
   amoebaTerms,
 } from '../../../../testing/amoeba-ring-states';
 import { REST_DEFORMATION } from './cell-deformation';
-import { ringLobesOf, tracedRingAt, tracedRingExtraArcWu, type RingLobe } from './traced-ring';
+import { wrapAngle } from '../geometry';
+import { tracedRingAt, tracedRingExtraArcWu, tracedRingOf, type TracedRing } from './traced-ring';
 
 /** `∫ √(R² + R′²) dθ` from −π to `theta` by fine trapezoids: the true length of the traced curve. */
-function trueArcWu(lobes: readonly RingLobe[], theta: number): number {
+function trueArcWu(ring: TracedRing, theta: number): number {
   const steps = 20000;
   const step = (theta + Math.PI) / steps;
   let length = 0;
   let previous = 0;
   for (let index = 0; index <= steps; index += 1) {
-    const sample = tracedRingAt(lobes, RING_WU, -Math.PI + index * step);
+    const sample = tracedRingAt(ring, -Math.PI + index * step);
     const element = Math.hypot(sample.r, sample.derivative);
     if (index > 0) length += (element + previous) * 0.5 * step;
     previous = element;
@@ -36,11 +37,13 @@ const KINK_DASH_TOLERANCE = 0.2;
 const DASH_PROBE_STEP = 0.001;
 
 /** `|measured arc element / true element − 1|` every 0.02 rad round the ring. */
-function localDashErrors(lobes: readonly RingLobe[]): number[] {
-  const arc = (theta: number) => RING_WU * theta + tracedRingExtraArcWu(lobes, RING_WU, theta);
+function localDashErrors(ring: TracedRing): number[] {
+  const arc = (theta: number) => RING_WU * theta + tracedRingExtraArcWu(ring, theta);
+  const tail = wrapAngle((ring.body?.heading ?? 0) + Math.PI);
   const errors: number[] = [];
   for (let theta = -Math.PI + 0.01; theta < Math.PI - 0.01; theta += 0.02) {
-    const sample = tracedRingAt(lobes, RING_WU, theta);
+    if (Math.abs(wrapAngle(theta - tail)) < DASH_PROBE_STEP * 2) continue;
+    const sample = tracedRingAt(ring, theta);
     const measured = (arc(theta + DASH_PROBE_STEP) - arc(theta - DASH_PROBE_STEP)) / (2 * DASH_PROBE_STEP);
     errors.push(Math.abs(measured / Math.hypot(sample.r, sample.derivative) - 1));
   }
@@ -49,17 +52,21 @@ function localDashErrors(lobes: readonly RingLobe[]): number[] {
 
 describe('the dash runs along the traced curve', () => {
   const terms = amoebaTerms(3, { timeSeconds: 0, speedRatio: 0, deformation: REST_DEFORMATION });
-  const lobes = ringLobesOf(terms, RING_WU);
+  const ring = tracedRingOf(terms, RING_WU);
+  const tail = wrapAngle(terms.heading + Math.PI);
+  /** The whole extra length: the jump at the tail, where the two halves counted from the heading meet. */
+  const totalExtra = tracedRingExtraArcWu(ring, tail - 1e-9) - tracedRingExtraArcWu(ring, tail + 1e-9);
+  /** The arc from −π, the extra re-based across the tail seam, so it can be held against the true length. */
   const modelArc = (theta: number) =>
     RING_WU * (theta + Math.PI) +
-    tracedRingExtraArcWu(lobes, RING_WU, theta) -
-    tracedRingExtraArcWu(lobes, RING_WU, -Math.PI);
+    tracedRingExtraArcWu(ring, theta) -
+    tracedRingExtraArcWu(ring, -Math.PI) +
+    (theta >= tail ? totalExtra : 0);
 
   it.each(TIERS.flatMap((tier) => STATES.map((entry) => ({ tier, ...entry }))))(
     'tier $tier, $name: the dash keeps its length along the curve, within 5 % but at a notch’s kink',
     ({ tier, state }) => {
-      const tracedLobes = ringLobesOf(amoebaTerms(tier, state), RING_WU);
-      const errors = localDashErrors(tracedLobes);
+      const errors = localDashErrors(tracedRingOf(amoebaTerms(tier, state), RING_WU));
       expect(Math.max(...errors), 'the one grid step round a kink').toBeLessThan(KINK_DASH_TOLERANCE);
       const within = errors.filter((error) => error < DASH_TOLERANCE).length / errors.length;
       expect(within).toBeGreaterThan(SMOOTH_SHARE);
@@ -68,13 +75,26 @@ describe('the dash runs along the traced curve', () => {
 
   it('and the whole length round the ring to within 1 %', () => {
     const almostRound = Math.PI - 1e-9;
-    expect(Math.abs(modelArc(almostRound) / trueArcWu(lobes, almostRound) - 1)).toBeLessThan(0.01);
+    expect(Math.abs(modelArc(almostRound) / trueArcWu(ring, almostRound) - 1)).toBeLessThan(0.01);
   });
 
-  it('only jumps where θ wraps, as the circle’s arc does', () => {
+  it('counts from the heading, and jumps only at the tail, where the two halves meet', () => {
+    expect(tracedRingExtraArcWu(ring, terms.heading)).toBe(0);
     for (let theta = -Math.PI + 0.01; theta < Math.PI - 0.01; theta += 0.01) {
-      expect(Math.abs(modelArc(theta + 0.01) - modelArc(theta))).toBeLessThan(RING_WU);
+      const step = tracedRingExtraArcWu(ring, theta + 0.01) - tracedRingExtraArcWu(ring, theta);
+      const isAcrossTail = Math.abs(wrapAngle(theta + 0.005 - tail)) < 0.01;
+      if (!isAcrossTail) expect(Math.abs(step), `θ ${theta.toFixed(2)}`).toBeLessThan(RING_WU);
     }
-    expect(tracedRingExtraArcWu(lobes, RING_WU, -Math.PI)).toBe(0);
+  });
+
+  it('holds every dash on the far side of the heading still, to 0.01 wu, while an arm grows (the crawl halves)', () => {
+    const [arm, ...others] = ring.lobes;
+    if (arm === undefined) throw new Error('a tier-III amoeba has lobes');
+    const grown = { ...ring, lobes: [{ ...arm, amplitudeWu: arm.amplitudeWu * 1.3 }, ...others] };
+    const side = Math.sign(wrapAngle(arm.centre - terms.heading));
+    for (let away = 0.05; away < Math.PI - 0.05; away += 0.05) {
+      const theta = terms.heading - side * away;
+      expect(tracedRingExtraArcWu(grown, theta)).toBeCloseTo(tracedRingExtraArcWu(ring, theta), 2);
+    }
   });
 });

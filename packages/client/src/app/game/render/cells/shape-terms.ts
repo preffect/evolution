@@ -206,7 +206,7 @@ function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): 
   );
 }
 
-function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
+export function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   return {
     k: speedRatio,
     along: STRETCH_ALONG,

@@ -27,7 +27,7 @@ import type { CellLod } from './cell-lod';
 import type { CellTraitSummary } from './cell-traits';
 import { REST_OWN_CELL_RING, type OwnCellRing } from './self-ring';
 import type { ShapeTerms } from './shape-terms';
-import { ringLobeReachRadii } from './traced-ring';
+import { ringBodyPeak, ringLobeReachRadii } from './traced-ring-reach';
 
 export interface CellInstanceInput {
   readonly view: CellView;
@@ -129,12 +129,14 @@ function ringReachPx(rings: CellRings): number {
 }
 
 /**
- * The quad reaches the profile's maximum, the far-dot halo or the outermost ring traced round the arms (its circle plus
- * its tallest lobe, `traced-ring.ts`), never less than the §2 floor.
+ * The quad reaches the profile's maximum, the far-dot halo or the outermost ring traced round the body and the arms
+ * (its circle scaled by the body's peak, plus its tallest lobe stack, `traced-ring-reach.ts`), never less than the §2
+ * floor.
  */
 export function quadExtentRadii(terms: ShapeTerms, lod: CellLod, rings: CellRings = NO_RINGS): number {
   const ringReach = ringReachPx(rings);
-  const ringRadii = ringReach > 0 ? ringReach / lod.screenRadiusPx + ringLobeReachRadii(terms) : 0;
+  const ringRadii =
+    ringReach > 0 ? (ringReach / lod.screenRadiusPx) * ringBodyPeak(terms) + ringLobeReachRadii(terms) : 0;
   return Math.max(CELL_QUAD_EXTENT_RADII, terms.maxRadii, lod.isFarDot ? FAR_DOT_HALO_RADII : 0, ringRadii);
 }
 

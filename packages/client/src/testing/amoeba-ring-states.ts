@@ -1,7 +1,7 @@
-// The amoeba states the traced-ring specs walk (#730): every tier resting, swimming flat out and engulfing, on a
-// 40 wu cell with the warning ring at its 1.3 r. One place, so the clearance and the dash specs judge the same frames.
+// The states the traced-ring specs walk (#730): every tier resting, swimming flat out and engulfing, on a 40 wu cell
+// (the amoeba, the paramecium or a round blob) with the warning ring at its 1.3 r. One place, so the clearance and the dash specs judge the same frames.
 
-import { CELL_STAGE, MOTION_CLIPS, createSeededRandom, type TraitTier } from '@evolution/shared';
+import { CELL_STAGE, MOTION_CLIPS, createSeededRandom, type TraitId, type TraitTier } from '@evolution/shared';
 import { createTestCellView } from './builders';
 import { ENGULF_WARNING_RING_RADII } from '../app/game/render/constants';
 import { buildNoiseStrip } from '../app/game/render/noise/noise-strip';
@@ -21,11 +21,12 @@ export interface AmoebaState {
   readonly deformation: CellDeformation;
 }
 
-export function amoebaTerms(tier: TraitTier, state: AmoebaState): ShapeTerms {
+/** A 40 wu cell of the stage-five form `formTraitId` at `tier` (none: a round blob), in `state`. */
+export function formTerms(formTraitId: TraitId | null, tier: TraitTier, state: AmoebaState): ShapeTerms {
   const view = createTestCellView({
     radius: AMOEBA_RING_RADIUS,
     stage: CELL_STAGE.specialised,
-    traits: [{ traitId: 'amoeba_pseudopods', tier }],
+    traits: formTraitId === null ? [] : [{ traitId: formTraitId, tier }],
   });
   return buildShapeTerms({
     view,
@@ -37,6 +38,10 @@ export function amoebaTerms(tier: TraitTier, state: AmoebaState): ShapeTerms {
     wither: 0,
     ...state,
   });
+}
+
+export function amoebaTerms(tier: TraitTier, state: AmoebaState): ShapeTerms {
+  return formTerms('amoeba_pseudopods', tier, state);
 }
 
 const ENGULF_POSITIONS = [0.25, 0.5, 0.75].map((share) => share * MOTION_CLIPS.engulf.duration);

@@ -19,7 +19,7 @@ import { EATING_CLIP_CONTEXT, UNAIMED_CLIP_CONTEXT, clipDeformationPeak, engulfD
 import { NO_EFFECT_REACH, cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
 import { relationRingOuterLinePx, relationRingPackingFor, warningRingRadiusPx } from './cell-instance-builder';
 import type { CellTraitSummary } from './cell-traits';
-import { peakRingLobeRadii } from './traced-ring';
+import { peakRingBodyScale, peakRingLobeRadii } from './traced-ring-reach';
 import { REST_CLIP_PEAK, type ClipDeformationPeak } from './shape-terms';
 import { RELATION_RING } from '../../hud/format/relations-for';
 
@@ -58,7 +58,9 @@ export const CULL_DRAW_STATE: CellDrawState = {
 export interface CullReachRadii {
   /** The widest the cell is drawn over any frame (the far dot's halo included). */
   readonly drawnRadii: number;
-  /** The most a ring on it reaches past its circle over any frame, traced round the arms (`peakRingLobeRadii`). */
+  /** The widest its body scales a ring's circle out over any frame (`peakRingBodyScale`), at least 1. */
+  readonly ringBodyScale: number;
+  /** The most a ring on it reaches past that, traced round the arms (`peakRingLobeRadii`). */
   readonly ringLobeRadii: number;
 }
 
@@ -66,14 +68,15 @@ export interface CullReachRadii {
 export function cullReachRadii(traits: CellTraitSummary): CullReachRadii {
   return {
     drawnRadii: Math.max(cellDrawExtentRadii(traits, CULL_DRAW_STATE).drawnRadii, FAR_DOT_HALO_RADII),
+    ringBodyScale: peakRingBodyScale(traits, CULL_DRAW_STATE),
     ringLobeRadii: peakRingLobeRadii(traits, CULL_DRAW_STATE),
   };
 }
 
 /**
  * The cull reach in px for a cell of `screenRadiusPx` whose drawing reaches `reach.drawnRadii`: the drawing, or the
- * outer edge of the widest ring it could carry (the warning ring's px floor, the toxic ring's outer line) with its
- * lobes traced round the arms, whichever is wider. `drawnRadii` measures the tail's centreline, and its round-capped
+ * outer edge of the widest ring it could carry (the warning ring's px floor, the toxic ring's outer line), scaled
+ * round its body and traced round its arms, whichever is wider. `drawnRadii` measures the tail's centreline, and its round-capped
  * outer stroke reaches half its width further, in px whatever the zoom, so that half is added on top.
  */
 export function cullReachPx(reach: CullReachRadii, screenRadiusPx: number): number {
@@ -81,5 +84,6 @@ export function cullReachPx(reach: CullReachRadii, screenRadiusPx: number): numb
   const relation = relationRingPackingFor(RELATION_RING.toxic, { hasTells: true, screenRadiusPx }, 0);
   const relationPx = relationRingOuterLinePx(relation) + RELATION_RING_STROKE_PX;
   const drawingPx = reach.drawnRadii * screenRadiusPx + FLAGELLUM_OUTER_PX * HALF;
-  return Math.max(drawingPx, Math.max(warningPx, relationPx) + reach.ringLobeRadii * screenRadiusPx);
+  const ringPx = Math.max(warningPx, relationPx) * reach.ringBodyScale + reach.ringLobeRadii * screenRadiusPx;
+  return Math.max(drawingPx, ringPx);
 }

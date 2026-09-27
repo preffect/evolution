@@ -1,22 +1,19 @@
-// The rings trace the outline (docs/visual-style/motion-and-legibility.md §5.1 rule 4, docs/rendering/cells.md §2.2,
-// #730): the engulf-warning ring and the relation rings are their circle plus a **ring lobe** over every bump that
-// pushes the membrane out (the amoeba's arms, an engulf's arms, an eat's wrap), so each keeps its gap from the outline
-// instead of cutting across an arm. A ring lobe is the bump at its full height in world units, its σ widened so the
-// ring clears the arm's flanks by the gap as well as its tip. Each lobe rides on the sum of every broader lobe, and the
-// ring takes the tallest of those stacks: an arm on an engulf's broad seal swell stacks as the membrane does, while two
-// arms of one width side by side leave a notch between them, as an offset curve would, instead of merging into one
-// bulge past both tips. With no such bump the ring is its circle, exactly. The dash of
-// the threat ring is measured along the traced curve: its circle's arc plus the extra length the lobes add. The TypeScript
-// reference of `cell-shader-rings.ts`, term for term; the reach bounds for the quad, the cull and the labels read it.
+// The rings trace the body and its lobes (docs/visual-style/motion-and-legibility.md §5.1 rule 4, docs/rendering/cells.md
+// §2.2, #730): the engulf-warning ring and the relation rings are their circle, or the body offset by the ring's gap
+// along its normal wherever that passes the circle (a slipper's nose, a fast swimmer's front), plus a **ring lobe** over every
+// bump that pushes the membrane out (the amoeba's arms, an engulf's arms, an eat's wrap), so each keeps its gap from
+// the outline instead of cutting across it. A ring lobe is the bump at its full height in world units, its σ widened so
+// the ring clears the arm's flanks by the gap as well as its tip. Each lobe rides on the sum of every broader lobe, and
+// the ring takes the tallest of those stacks: an arm on an engulf's broad seal swell stacks as the membrane does, while
+// two arms of one width side by side leave a notch between them, as an offset curve would. A round cell at rest has no
+// lobe and a body scale of exactly 1 and flat, so its ring is its circle, bit for bit. The threat ring's dash is measured along
+// the traced curve: its circle's arc plus the extra length, counted from the heading. The TypeScript reference of
+// `cell-shader-rings.ts`, term for term; `traced-ring-reach.ts` bounds it for the quad, the cull and the labels.
 
-import { RADIANS_PER_FULL_TURN, type CellView } from '@evolution/shared';
-import { PSEUDOPOD_REACH, RING_TRACE_ARC_SAMPLES, RING_TRACE_SIGMA_WIDENING } from '../constants';
-import { SQUARE_DERIVATIVE_FACTOR, wrapAngle } from '../geometry';
-import { NO_EFFECT_REACH, type CellDrawState } from './cell-draw-extent';
-import { summariseCellTraits, type CellTraitSummary } from './cell-traits';
-import { pseudopodCount } from './forms/form-profiles';
+import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { RING_TRACE_ARC_SAMPLES, RING_TRACE_SIGMA_WIDENING, RING_TRACE_SLOPE_STEP_RAD } from '../constants';
+import { HALF, SQUARE_DERIVATIVE_FACTOR, wrapAngle } from '../geometry';
 import { stretchAt, type RadialProfileTerms } from './radial-profile';
-import { REST_CLIP_PEAK, peakStretchRadii } from './shape-terms';
 
 /** One lobe of a traced ring: its height past the circle in world units, its centre and its widened σ (radians). */
 export interface RingLobe {
@@ -27,14 +24,63 @@ export interface RingLobe {
   readonly breadth: number;
 }
 
-/** The traced ring's radius `R(θ)` and `R′(θ)`, world units. */
+/** A value and its derivative in θ: the traced ring's `R(θ)` and `R′(θ)` in world units, or the body's scale. */
 export interface TracedRingSample {
   readonly r: number;
   readonly derivative: number;
 }
 
+/** The body terms a ring reads: its size, heading, form, stretch and pulse. */
+export type RingBody = Pick<RadialProfileTerms, 'radius' | 'heading' | 'form' | 'stretch' | 'pulse'>;
+
+/** One traced ring: its circle, the body it keeps its gap from (`null` for a bare circle) and its lobes. */
+export interface TracedRing {
+  readonly circleWu: number;
+  readonly body: RingBody | null;
+  readonly lobes: readonly RingLobe[];
+}
+
+/** `pulse · B · stretch` at `theta` and its derivative: the body's radius over `r` there; 1 for a bare circle. */
+export function ringBodyScaleAt(body: RingBody | null, theta: number): TracedRingSample {
+  if (body === null) return BARE_BODY;
+  const delta = wrapAngle(theta - body.heading);
+  const form = body.form === null ? BARE_FORM : body.form.evaluate(delta);
+  const stretch = stretchAt(body.stretch, delta);
+  return {
+    r: body.pulse * form.value * stretch.value,
+    derivative: body.pulse * (form.derivative * stretch.value + form.value * stretch.derivative),
+  };
+}
+
+const BARE_BODY: TracedRingSample = { r: 1, derivative: 0 };
+const BARE_FORM = { value: 1, derivative: 0 } as const;
+
+/** The body offset out by the ring's gap along its normal, `r · S + gap · √(1 + (S′/S)²)`, never inside the circle. */
+function ringBaseValue(ring: TracedRing, body: RingBody, theta: number): number {
+  const scale = ringBodyScaleAt(body, theta);
+  const slope = scale.derivative / scale.r;
+  const gapWu = ring.circleWu - body.radius;
+  return Math.max(ring.circleWu, body.radius * scale.r + gapWu * Math.sqrt(1 + slope * slope));
+}
+
+/**
+ * What the lobes stand on, with its slope: the circle exactly where the body is round and at most unit size (a round
+ * cell at rest), else the body offset by the gap wherever that passes the circle (a slipper's nose, a fast front).
+ */
+export function ringBaseAt(ring: TracedRing, theta: number): TracedRingSample {
+  const { body } = ring;
+  const scale = ringBodyScaleAt(body, theta);
+  if (body === null || (scale.r <= 1 && scale.derivative === 0)) return { r: ring.circleWu, derivative: 0 };
+  const after = ringBaseValue(ring, body, theta + RING_TRACE_SLOPE_STEP_RAD);
+  const before = ringBaseValue(ring, body, theta - RING_TRACE_SLOPE_STEP_RAD);
+  return {
+    r: ringBaseValue(ring, body, theta),
+    derivative: (after - before) / (RING_TRACE_SLOPE_STEP_RAD + RING_TRACE_SLOPE_STEP_RAD),
+  };
+}
+
 /** The membrane's core radius under `centre`, wu: `r · pulse · B · stretch` there, before the surface terms. */
-function coreRadiusWu(terms: RadialProfileTerms, centre: number): number {
+export function coreRadiusWu(terms: RadialProfileTerms, centre: number): number {
   const delta = wrapAngle(centre - terms.heading);
   const form = terms.form === null ? 1 : terms.form.evaluate(delta).value;
   return terms.radius * terms.pulse * form * stretchAt(terms.stretch, delta).value;
@@ -45,16 +91,22 @@ export function widenedRingSigma(sigma: number, gapCores: number): number {
   return Math.sqrt(sigma * sigma + RING_TRACE_SIGMA_WIDENING * Math.log(1 + Math.max(gapCores, 0)));
 }
 
-/** The ring lobes of a ring of `ringRadiusWu` around a membrane with these terms: one per outward bump. */
-export function ringLobesOf(terms: RadialProfileTerms, ringRadiusWu: number): RingLobe[] {
+/** The ring lobes round a circle of `circleWu` and the body: one per outward bump, its gap from what it stands on. */
+export function ringLobesOf(terms: RadialProfileTerms, circleWu: number): RingLobe[] {
+  const base: TracedRing = { circleWu, body: terms, lobes: [] };
   return terms.bumps
     .filter((bump) => bump.amplitude > 0)
     .map((bump) => {
       const coreWu = coreRadiusWu(terms, bump.centre);
-      const gapCores = (ringRadiusWu - coreWu) / coreWu;
+      const gapCores = (ringBaseAt(base, bump.centre).r - coreWu) / coreWu;
       const sigma = widenedRingSigma(bump.sigma, gapCores);
       return { amplitudeWu: coreWu * bump.amplitude, centre: bump.centre, sigma, breadth: bump.sigma };
     });
+}
+
+/** The ring of `circleWu` traced round the body and the lobes these terms draw. */
+export function tracedRingOf(terms: RadialProfileTerms, circleWu: number): TracedRing {
+  return { circleWu, body: terms, lobes: ringLobesOf(terms, circleWu) };
 }
 
 /** `A · exp(−Δ² / 2σ²)` and its derivative in Δ. */
@@ -63,8 +115,8 @@ function lobeSample(lobe: RingLobe, delta: number): TracedRingSample {
   return { r: value, derivative: -value * (delta / (lobe.sigma * lobe.sigma)) };
 }
 
-/** `R(θ) = ring + the tallest stack`, with `R′`: each lobe plus every broader one; the circle where no lobe reaches. */
-export function tracedRingAt(lobes: readonly RingLobe[], ringRadiusWu: number, theta: number): TracedRingSample {
+/** The tallest stack of lobes at `theta`, each lobe with every broader one under it, and its derivative. */
+function tallestStack(lobes: readonly RingLobe[], theta: number): TracedRingSample {
   const samples = lobes.map((lobe) => lobeSample(lobe, wrapAngle(theta - lobe.centre)));
   let best: TracedRingSample = { r: 0, derivative: 0 };
   lobes.forEach((lobe, index) => {
@@ -77,75 +129,48 @@ export function tracedRingAt(lobes: readonly RingLobe[], ringRadiusWu: number, t
     });
     if (height > best.r) best = { r: height, derivative };
   });
-  return { r: ringRadiusWu + best.r, derivative: best.derivative };
+  return best;
 }
 
-/** `√(R² + R′²) − ring` at `phi`: how much faster than its circle the traced ring runs there, wu per radian. */
-function extraElementWu(lobes: readonly RingLobe[], ringRadiusWu: number, phi: number): number {
-  const sample = tracedRingAt(lobes, ringRadiusWu, phi);
-  return Math.hypot(sample.r, sample.derivative) - ringRadiusWu;
+/** `R(θ) = base + the tallest stack`, with `R′`: the circle exactly where neither the body nor a lobe reaches. */
+export function tracedRingAt(ring: TracedRing, theta: number): TracedRingSample {
+  const base = ringBaseAt(ring, theta);
+  const stack = tallestStack(ring.lobes, theta);
+  return { r: base.r + stack.r, derivative: base.derivative + stack.derivative };
 }
+
+/** `√(R² + R′²) − circle` at `phi`: how much faster than its circle the ring runs there; exactly 0 on the circle. */
+function extraElementWu(ring: TracedRing, phi: number): number {
+  const sample = tracedRingAt(ring, phi);
+  if (sample.derivative === 0) return sample.r - ring.circleWu;
+  return Math.hypot(sample.r, sample.derivative) - ring.circleWu;
+}
+
+/** Steps of the arc grid in the half turn either side of the heading. */
+const HALF_TURN_STEPS = RING_TRACE_ARC_SAMPLES * HALF;
 
 /**
- * The traced ring's extra arc length from `θ = −π` to `theta` over its circle's, wu: `∫ (√(R² + R′²) − ring) dφ` by
- * trapezoids on a fixed grid of `RING_TRACE_ARC_SAMPLES` round the turn, the step `theta` falls in integrated under its
- * straight line so the length grows smoothly. It only jumps where `θ` itself wraps, as the circle's arc does.
+ * The traced ring's extra arc length over its circle's from the **heading** to `theta` (negative behind it), wu:
+ * `∫ (√(R² + R′²) − circle) dφ` by trapezoids on a fixed grid of `RING_TRACE_ARC_SAMPLES` round the turn, the step
+ * `theta` falls in integrated under its straight line so the length grows smoothly. Counted from the heading, an arm
+ * that grows slides only the dashes between it and the tail, and the sum jumps only at the tail, where the two halves
+ * meet. 0 on a bare circle.
  */
-export function tracedRingExtraArcWu(lobes: readonly RingLobe[], ringRadiusWu: number, theta: number): number {
-  if (lobes.length === 0) return 0;
+export function tracedRingExtraArcWu(ring: TracedRing, theta: number): number {
+  const anchor = ring.body?.heading ?? 0;
+  const delta = wrapAngle(theta - anchor);
+  const direction = delta < 0 ? -1 : 1;
+  const span = Math.abs(delta);
   const step = RADIANS_PER_FULL_TURN / RING_TRACE_ARC_SAMPLES;
   let extraWu = 0;
-  let start = extraElementWu(lobes, ringRadiusWu, -Math.PI);
-  for (let index = 0; index < RING_TRACE_ARC_SAMPLES; index += 1) {
-    const phi = -Math.PI + index * step;
-    if (phi >= theta) break;
-    const end = extraElementWu(lobes, ringRadiusWu, phi + step);
-    const covered = Math.min(theta - phi, step);
+  let start = extraElementWu(ring, anchor);
+  for (let index = 0; index < HALF_TURN_STEPS; index += 1) {
+    const reached = index * step;
+    if (reached >= span) break;
+    const end = extraElementWu(ring, anchor + direction * (reached + step));
+    const covered = Math.min(span - reached, step);
     extraWu += start * covered + ((end - start) * covered * covered) / (step + step);
     start = end;
   }
-  return extraWu;
-}
-
-/** How far this frame's ring lobes can reach past the circle, in radii: the tallest stack of full lobe heights. */
-export function ringLobeReachRadii(terms: RadialProfileTerms): number {
-  const outward = terms.bumps.filter((bump) => bump.amplitude > 0);
-  const heights = outward.map((bump) => (coreRadiusWu(terms, bump.centre) * bump.amplitude) / terms.radius);
-  let reach = 0;
-  outward.forEach((bump, index) => {
-    let stack = 0;
-    outward.forEach((other, otherIndex) => {
-      if (otherIndex === index || other.sigma > bump.sigma) stack += heights[otherIndex] ?? 0;
-    });
-    reach = Math.max(reach, stack);
-  });
-  return reach;
-}
-
-/**
- * The most a ring's lobes can reach past its circle over **any** frame in `state`, in radii: a full-length pseudopod
- * stacked on the clips' widest bump sum, on the widest core the pulse, the form and the stretch make.
- */
-export function peakRingLobeRadii(traits: CellTraitSummary, state: CellDrawState): number {
-  const lobeReach = pseudopodCount(traits.form, traits.formTier) > 0 ? PSEUDOPOD_REACH : 0;
-  const bumpReach = lobeReach + state.clip.bumpRadii;
-  if (bumpReach === 0) return 0;
-  const formPeak = traits.form.profileAt(traits.formTier)?.peak ?? 1;
-  return state.clip.pulse * formPeak * peakStretchRadii(state.speedRatio, state.isSprinting) * bumpReach;
-}
-
-/**
- * What a label keeps clear of: a cell swimming flat out or sprinting, playing no clip. Its arms, not an engulf's, which
- * last a moment; a round cell's rings are then exactly their circles, so its labels sit where they always did.
- */
-const LABEL_RING_STATE: CellDrawState = {
-  speedRatio: 1,
-  isSprinting: true,
-  clip: REST_CLIP_PEAK,
-  effectRadii: NO_EFFECT_REACH,
-};
-
-/** How far past its circle a ring on `view` can trace its arms, px on a cell of `screenRadiusPx`: 0 on a round cell. */
-export function ringArmReachPx(view: CellView, screenRadiusPx: number): number {
-  return peakRingLobeRadii(summariseCellTraits(view, null), LABEL_RING_STATE) * screenRadiusPx;
+  return direction * extraWu;
 }

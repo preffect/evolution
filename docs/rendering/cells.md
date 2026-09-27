@@ -21,8 +21,9 @@ The renderer reads **only** what `net/` gives it and never feeds anything back
 ## 2. The cell: one quad, one fragment shader
 
 Every cell is **one instanced quad** whose half-size is the per-instance `quadExtentRadii × r` (§2.3):
-`max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII at far LOD, (ring reach px) / r_px + ringLobeReachRadii)`: the ring
-reach is the outermost ring line plus its stroke, and `ringLobeReachRadii` (`cells/traced-ring.ts`) the tallest stack of
+`max(CELL_QUAD_EXTENT_RADII, FAR_DOT_HALO_RADII at far LOD, (ring reach px) / r_px · ringBodyPeak + ringLobeReachRadii)`:
+the ring reach is the outermost ring line plus its stroke, scaled by how far the body pushes the ring out (`ringBodyPeak`),
+and `ringLobeReachRadii` (`cells/traced-ring-reach.ts`) the tallest stack of
 the ring's lobes, so a ring traced round the arms (#730) is never clipped.
 `CELL_QUAD_EXTENT_RADII` 3.0 (new) is the floor: the engulf arm at 1.62 r times the trait halo at 1.39 r, times the
 moving-wrap worst case (full-speed stretch 1.22 at k = 1, since `ENGULF_PREDATOR_SPEED_FACTOR` is 1 from #634, with an
@@ -121,19 +122,25 @@ ring hugging the outline instead).
 | prey under film               | pass B alpha × 0.62 while `engulfedByCellId` is set                                                                                                                                                                                                                                                                                                                                                                                                                                | visual-style/motion-and-legibility.md §6 "prey through film"                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | B    | ≥ mid                             |
 
 **Traced rings (#730, visual-style/motion-and-legibility.md §5.1 rule 4).** The warning and relation rings keep their
-gap from the outline, arms included, rather than cutting across an arm as a circle. A ring of circle radius `R_c` is
-`R(θ) = R_c + max_i stack_i(θ)`: one **ring lobe** per outward bump slot (the amoeba's pseudopods, an engulf's arms and
-seal, an eat's wrap; dents are skipped; fringe such as cilia tufts is drawn outside the bump slots and never traced), of height `core_i × a_i` where `core_i = r · pulse · B · stretch` under the
-bump, and σ widened to `√(σ² + RING_TRACE_SIGMA_WIDENING · ln(1 + g))` (`RING_TRACE_SIGMA_WIDENING` 0.21, `g` the gap
-`(R_c − core_i) / core_i`), fitted so the ring clears an arm's flanks by the gap as well as its tip. Each lobe's stack
+gap from the body and its lobes, rather than cutting across an arm or a slipper's nose as a circle. A ring of circle
+radius `R_c` (gap `g = R_c − r`) is `R(θ) = base(θ) + max_i stack_i(θ)`. The **base** is the circle exactly where the
+body scale `S = pulse · B · stretch` is at most 1 and flat (a round cell at rest), else
+`max(R_c, r · S + g · √(1 + (S′/S)²))`: the body offset by the gap along its normal, so a slipper's nose or a fast
+swimmer's front keeps the gap too (the swim stretch is in `S`: a round cell's ring changes while it swims, never at
+rest); its slope is differenced over `RING_TRACE_SLOPE_STEP_RAD` 0.001. On top sits one **ring lobe** per outward bump
+slot (the amoeba's pseudopods, an engulf's arms and seal, an eat's wrap; dents are skipped; fringe such as cilia tufts
+is drawn outside the bump slots and never traced), of height `core_i × a_i` where `core_i = r · S` under the bump, and
+σ widened to `√(σ² + RING_TRACE_SIGMA_WIDENING · ln(1 + g_i))` (`RING_TRACE_SIGMA_WIDENING` 0.21, `g_i` the gap
+`(base − core_i) / core_i`), fitted so the ring clears an arm's flanks by the gap as well as its tip. Each lobe's stack
 is itself plus every lobe with a broader bump σ, so an arm on a broad seal swell stacks as the membrane does, while two
 arms of one width leave a notch between them instead of merging into one bulge. The ring is banded by its first-order
 distance `(|p| − R) / √(1 + (R′/R)²)`; the threat ring's dash runs along the traced curve, its arc `(θ − ωt) · R_c` plus
-the extra length `∫ (√(R² + R′²) − R_c) dφ` from −π, in `RING_TRACE_ARC_SAMPLES` 96 trapezoids round the turn. With no
-outward bump every term is the circle's own, bit for bit, so a round cell at rest draws exactly what it drew before.
-`cells/traced-ring.ts` is the TypeScript reference of `cells/cell-shader-rings.ts`; the quad, the cull
-(`peakRingLobeRadii`) and the relation and threat labels (`ringArmReachPx`, which counts the pseudopods only) reach past
-the traced lobes.
+the extra length `∫ (√(R² + R′²) − R_c) dφ` counted from the heading, in trapezoids on a grid of `RING_TRACE_ARC_SAMPLES`
+96 round the turn, so the only seam the extra adds is at the tail. On a round cell at rest every term is the circle's
+own, bit for bit, so it draws exactly what it drew before. `cells/traced-ring.ts` is the TypeScript reference of
+`cells/cell-shader-rings.ts`; `cells/traced-ring-reach.ts` bounds the base by `R_c · max(S, √(1 + (S′/S)²))`, sampled
+at `RING_TRACE_REACH_SAMPLES` 360 angles with `RING_TRACE_REACH_MARGIN` 1 %, for the quad (this frame), the cull (any
+frame) and the relation and threat labels (`ringLabelReachPx`: the body at rest, then the pseudopods at speed).
 
 Layer-major order (all bodies, then all organelles, then all membranes) is what makes the prey's rim show
 through the predator's film for free; separation (`ecology/mass-and-movement.md §5.3`) means unrelated cells never overlap.
