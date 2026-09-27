@@ -1,10 +1,9 @@
-// Applies a `debug_set_balance` patch (docs/CODE-STANDARDS.md §2): number leaves only, at paths
-// that already exist. Tables and id arrays are structure, not tunables, so a patch that names
-// one is refused as a whole; a live balance is never left half-patched. The one array a patch indexes is a
-// trait's tier table under `traits.TRAIT_TIERS` (`traits.TRAIT_TIERS.cilia.0.speedMultiplier`, row 0 = tier I, #715). The input is never
-// written: the patch lands on a clone, so `DEFAULT_BALANCE` (deep-frozen, shared by every room)
-// can be patched directly and the caller keeps the copy it is handed back. A declared structure path
-// is refused by name, saying where its numbers live (#150).
+// Applies a `debug_set_balance` patch (docs/CODE-STANDARDS.md §2): number leaves only, at paths that already exist.
+// Tables and id arrays are structure, not tunables, so a patch that names one is refused as a whole; a live balance is
+// never left half-patched. The one array a patch indexes is a trait's tier table under `traits.TRAIT_TIERS`
+// (`traits.TRAIT_TIERS.cilia.0.speedMultiplier`, row 0 = tier I, #715). The input is never written: the patch lands
+// on a clone, so `DEFAULT_BALANCE` (deep-frozen, shared by every room) can be patched directly and the caller keeps
+// the copy it is handed back. A declared structure path is refused by name, saying where its numbers live (#150).
 
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch } from './simulation-debug-handle.js';

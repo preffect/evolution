@@ -89,11 +89,13 @@ describe('a trait tier patched live', () => {
     room.stop();
   });
 
-  it('speeds up a cell that already owns the trait, and the catalog copy the client reads moves with it', () => {
+  it('speeds up a cell that already owns the trait, and the balance the room sends carries the new number', () => {
     const unpatched = swimDistance(false);
     const patched = swimDistance(true);
     expect(unpatched.distance).toBeGreaterThan(0);
     expect(patched.distance / unpatched.distance).toBeGreaterThan((PATCHED_SPEED / TIER_I_SPEED) * RAMP_SLACK);
+    // The room's balance is a clone of the aliased DEFAULT_BALANCE, so this holds without the re-alias; the re-alias is
+    // pinned by the JSON round-trip unit test in balance-patch.test.ts.
     const catalogCilia = patched.balance?.traits.TRAIT_CATALOG.find((row) => row.id === CILIA);
     expect(catalogCilia?.tiers[TIER_I_ROW]?.speedMultiplier).toBe(PATCHED_SPEED);
   });

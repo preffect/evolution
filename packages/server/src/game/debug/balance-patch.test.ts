@@ -20,7 +20,12 @@ const CATALOG_TIER_PATCH = { traits: { [CATALOG_LEAF]: { 0: { tiers: { 0: { dnaG
 
 function liveBalance() {
   return {
-    ecology: { foodCapBase: 800, foodKinds: ['mote', 'fragment'], zones: { gelPatchCount: 3 }, zoneRadii: [10, 20] },
+    ecology: {
+      foodCapBase: 800,
+      foodKinds: ['mote', 'fragment'],
+      zones: { gelPatchCount: 3, ringRadii: [10, 20] },
+      zoneRadii: [10, 20],
+    },
     world: { dishRadius: 1000 },
   };
 }
@@ -122,5 +127,9 @@ describe('applyBalancePatch on the trait tier tables (#715)', () => {
 
   it('keeps every other array structure: an index into it is refused', () => {
     expect(() => applyBalancePatch(liveBalance(), { ecology: { zoneRadii: { 0: 5 } } })).toThrow(/not a number leaf/);
+    // A table at the tier tables' depth but outside `traits.TRAIT_TIERS`: only the path check refuses it.
+    expect(() => applyBalancePatch(liveBalance(), { ecology: { zones: { ringRadii: { 0: 5 } } } })).toThrow(
+      /not a number leaf/,
+    );
   });
 });
