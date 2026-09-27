@@ -6,7 +6,8 @@
 // wild, that can engulf it, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`), a nearest-first `hunter` (wild prey from
 // tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, leaving a prey to any cell in sight that could swallow it
 // from strictly closer, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` only when
-// the sprint can land, `wild-hunt-sprint.ts`) and the
+// the sprint can land, `wild-hunt-sprint.ts`, and aiming at the prey's centre except while the two touch and no
+// engulf has started or covers it, when it aims `WILD_HUNT_AIM_PAST_IN_CONTACT_RADII` own radii past it, #738) and the
 // `grazer` over algae and detritus; the wander rule keeps its heading in the seat (`wild-wander.ts`). A cell being
 // engulfed before the seal flees its predator and sprints, the player's engulf-escape tool.
 //
@@ -34,8 +35,9 @@ import { createFleeStrategy, fleeTargetFrom } from '../bots/strategies/flee.js';
 import { createGrazerStrategy } from '../bots/strategies/grazer.js';
 import { createHunterStrategy } from '../bots/strategies/hunter.js';
 import type { BotCellView } from '../bots/perception.js';
-import { HUNT_PREFERENCE } from '../bots/strategy-constants.js';
+import { HUNT_PREFERENCE, WILD_HUNT_AIM_PAST_IN_CONTACT_RADII } from '../bots/strategy-constants.js';
 import { engulfingPredatorOf, isCarried, isEngulfing } from '../simulation/engulf-state.js';
+import { isEngulfContact } from '../simulation/contact.js';
 import { tryStartSprint } from '../simulation/inputs.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
@@ -103,11 +105,11 @@ function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCom
   return { target, isSprinting: true };
 }
 
-/** What a sprint test reads: the two cells as records of this world, the deciding cell first. */
-type SprintTest = (self: CellRecord, other: CellRecord, world: WorldState, balance: BalanceConfig) => boolean;
+/** What a pair test (a sprint, a charge) reads: the two cells as records of this world, the deciding cell first. */
+type PairTest = (self: CellRecord, other: CellRecord, world: WorldState, balance: BalanceConfig) => boolean;
 
-/** A rule's sprint test over the sight's own records (`wild-hunt-sprint.ts`). */
-function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: SprintTest) {
+/** A rule's pair test over the sight's own records (`wild-hunt-sprint.ts`, `isHuntChargeWorthwhile`). */
+function pairTestOver(sight: WildSight, decision: WildDecisionContext, test: PairTest) {
   const recordOf = new Map<string, CellRecord>(sight.cells.map((cell) => [cell.id, cell]));
   return (self: BotCellView, other: BotCellView): boolean => {
     const deciding = recordOf.get(self.id);
@@ -118,6 +120,20 @@ function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: S
       test(deciding, counterpart, decision.world, decision.step.balance)
     );
   };
+}
+
+/**
+ * Whether a hunt that touches its prey aims past it (ticket #738): only to start an engulf, so neither while it is
+ * engulfing anything nor once its membrane covers the prey's centre (the engulf starts this tick). Charging past a prey
+ * that holds still would pull the membrane off its centre for the rest of the latched decision and drain the engulf.
+ */
+function isHuntChargeWorthwhile(
+  self: CellRecord,
+  prey: CellRecord,
+  _world: WorldState,
+  balance: BalanceConfig,
+): boolean {
+  return !isEngulfing(self) && !isEngulfContact(self, prey, balance);
 }
 
 /** Flee, then hunt, then graze, over what `cell` sees; `null` when none applies. */
@@ -134,12 +150,14 @@ function sightedCommand(
     withinRadii: wildCells.WILD_CELL_FLEE_RANGE_RADII,
     stepRadii: controls.STEER_FULL_THROTTLE_RADII,
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_FLEE_RADII,
-    isSprintWorthwhile: sprintTestOver(sight, decision, isFleeSprintWorthwhile),
+    isSprintWorthwhile: pairTestOver(sight, decision, isFleeSprintWorthwhile),
   };
   const huntOptions = {
     preference: HUNT_PREFERENCE.nearest,
+    aimPastInContactRadii: WILD_HUNT_AIM_PAST_IN_CONTACT_RADII,
+    isChargeWorthwhile: pairTestOver(sight, decision, isHuntChargeWorthwhile),
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_HUNT_RADII,
-    isSprintWorthwhile: sprintTestOver(sight, decision, isHuntSprintWorthwhile),
+    isSprintWorthwhile: pairTestOver(sight, decision, isHuntSprintWorthwhile),
   };
   const prey = createWildHuntPerception(sight, balance, cell, decision.isHuntingStage);
   return (

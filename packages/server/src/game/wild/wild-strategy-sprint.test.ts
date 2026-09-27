@@ -59,7 +59,7 @@ describe('decideWildTargets: sprint (W14)', () => {
     expect(engulfing.wild.sprintRemainingTicks).toBe(0);
   });
 
-  it('does not sprint at a prey it already covers: the engulf starts this tick, there is no gap to close', () => {
+  it('does not sprint or charge at a prey it already covers: the engulf starts this tick, there is no gap to close', () => {
     const covering = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 0.25, tick: HUNTING_TICK });
     decideWildTargets(covering.world, covering.context);
     expect(targetOf(covering.wild)).toEqual({ x: covering.player.x, y: covering.player.y });

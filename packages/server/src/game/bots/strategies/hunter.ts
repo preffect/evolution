@@ -9,7 +9,9 @@
 // The catalogue's `hunter` is `createGrazingHunterStrategy`: the same hunt, grazing like `grazer` while nothing is
 // engulfable (#376), so a bot spawned small grows into a predator instead of waiting for a bigger respawn, and aims
 // `HUNTER_AIM_PAST_PREY_RADII` own radii past its prey so it arrives at full throttle (#698). The wild strategy
-// composes the bare hunter, which aims at the prey's centre, with its own rules.
+// composes the bare hunter, which aims at the prey's centre, with its own rules, and `aimPastInContactRadii` past it
+// while the two touch and `isChargeWorthwhile` holds, so it charges in to start an engulf instead of riding alongside
+// its prey (#738).
 
 import { distanceBetween, unitVectorToward, type PlayerId, type Vec2 } from '@evolution/shared';
 import {
@@ -40,6 +42,10 @@ export interface HunterOptions {
   readonly preference?: HuntPreference;
   /** How far past the prey's centre it aims, along its line of approach, in own radii; 0 (the centre) by default. */
   readonly aimPastRadii?: number;
+  /** How far past the prey's centre it aims while the two touch (`isInContact`), in own radii; `aimPastRadii` by default. */
+  readonly aimPastInContactRadii?: number;
+  /** Whether it takes `aimPastInContactRadii` at a prey it touches; always by default (the wild hunt: only to start an engulf). */
+  readonly isChargeWorthwhile?: (self: BotCellView, prey: BotCellView) => boolean;
 }
 
 /** Which cells count as prey and which of them a fresh hunter takes; shared by every instance of one factory. */
@@ -56,6 +62,11 @@ const AIM_AT_CENTRE_RADII = 0;
 export function huntTargetFrom(self: BotCellView, prey: Vec2, aimPastRadii: number): Vec2 {
   const approach = unitVectorToward(self, prey);
   return { x: prey.x + approach.x * aimPastRadii * self.radius, y: prey.y + approach.y * aimPastRadii * self.radius };
+}
+
+/** Whether the two cells touch: their centres are within the sum of their radii. */
+function isInContact(self: BotCellView, other: BotCellView): boolean {
+  return distanceBetween(self, other) <= self.radius + other.radius;
 }
 
 function largestOf(cells: readonly BotCellView[]): BotCellView | undefined {
@@ -84,16 +95,24 @@ function preyRulesOf<Snapshot, ActorId>(
   };
 }
 
+/** How far past `prey` the hunter aims: `aimPastInContactRadii` while it touches and charges, else `aimPastRadii`. */
+function aimPastRadiiOf(options: HunterOptions): (self: BotCellView, prey: BotCellView) => number {
+  const {
+    aimPastRadii = AIM_AT_CENTRE_RADII,
+    aimPastInContactRadii = aimPastRadii,
+    isChargeWorthwhile = ALWAYS_WORTHWHILE,
+  } = options;
+  return (self, prey) =>
+    isInContact(self, prey) && isChargeWorthwhile(self, prey) ? aimPastInContactRadii : aimPastRadii;
+}
+
 export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
   perception: BotPerception<Snapshot, ActorId>,
   options: HunterOptions = {},
 ): BotStrategyFactory<Snapshot, ActorId> {
-  const {
-    sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII,
-    isSprintWorthwhile = ALWAYS_WORTHWHILE,
-    aimPastRadii = AIM_AT_CENTRE_RADII,
-  } = options;
+  const { sprintWithinRadii = HUNTER_SPRINT_WITHIN_RADII, isSprintWorthwhile = ALWAYS_WORTHWHILE } = options;
   const rules = preyRulesOf(perception, options);
+  const aimPastRadiiAt = aimPastRadiiOf(options);
 
   return (): BotStrategy<Snapshot, ActorId> => {
     let committedPreyId: string | undefined;
@@ -117,7 +136,7 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
         }
         const isSprinting =
           distanceBetween(self, prey) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, prey);
-        const target = huntTargetFrom(self, prey, aimPastRadii);
+        const target = huntTargetFrom(self, prey, aimPastRadiiAt(self, prey));
         return { targetX: target.x, targetY: target.y, ...(isSprinting ? { isSprinting } : {}) };
       },
     };

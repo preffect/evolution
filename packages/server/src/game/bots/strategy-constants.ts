@@ -2,7 +2,8 @@
 // opponents, not the game, so they live with the strategies rather than in `constants/`; a
 // caller with other numbers passes them through `WanderOptions` / `HunterOptions` / `FleeOptions`.
 // The wild cells' numbers come from `constants/wild-cells.ts` and travel through those same
-// options (`game/wild/wild-strategy.ts`); the defaults here stay the bot-client defaults.
+// options (`game/wild/wild-strategy.ts`); the defaults here stay the bot-client defaults. The one wild number here,
+// `WILD_HUNT_AIM_PAST_IN_CONTACT_RADII`, is derived from the steer kernel as the catalogue hunter's aim is, so it sits beside it.
 
 import { STEER_FULL_THROTTLE_RADII } from '@evolution/shared';
 
@@ -19,6 +20,12 @@ export const HUNTER_SPRINT_WITHIN_RADII = 4;
  * that full-throttle distance past the centre keeps the target at least that far away, so it arrives at full throttle.
  */
 export const HUNTER_AIM_PAST_PREY_RADII = STEER_FULL_THROTTLE_RADII;
+/**
+ * How far past its prey's centre a wild hunter aims while the two touch and it is not yet engulfing, in own radii
+ * (#738, docs/ecology/wild-cells.md §3.3.3): the catalogue hunter's full-throttle distance, so it charges through to
+ * start the engulf instead of slowing to ride alongside its prey; out of contact or once engulfing it aims at the centre.
+ */
+export const WILD_HUNT_AIM_PAST_IN_CONTACT_RADII = STEER_FULL_THROTTLE_RADII;
 /** A fleeing bot reacts to a threat within this many of its own radii. */
 export const FLEE_WITHIN_RADII = 8;
 /** A forager flees a cell that can engulf it within this many of its own radii, and grazes otherwise. */
