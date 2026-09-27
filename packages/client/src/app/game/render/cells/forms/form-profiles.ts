@@ -2,8 +2,9 @@
 // aspects each silhouette is drawn to, and the unit-area rule every profile obeys
 // (`∫ B² dΔ = 2π`, so the drawn area equals the blob's `π r²` and mass ∝ area holds for forms as
 // for the blob). #216 ships the registry with the blob (`B ≡ 1`) and the aspects; the five
-// silhouettes register their `profile` with #192–#196. Appendages (the amoeba's pseudopods, `amoeba-pseudopods.ts`)
-// are not body and sit outside the rule (visual-style/motion-and-legibility.md §5.1, #646).
+// silhouettes register their `profile` with #192–#196. Appendages (the amoeba's pseudopods, `amoeba-pseudopods.ts`;
+// the paramecium's cilia tufts, `paramecium-cilia.ts`) are not body and sit outside the rule
+// (visual-style/motion-and-legibility.md §5.1, #646).
 
 import { RADIANS_PER_FULL_TURN, tierEntryOf, type TraitId, type TraitTier } from '@evolution/shared';
 import {
@@ -17,6 +18,7 @@ import {
 } from '../../constants';
 import type { FormProfile } from '../radial-profile';
 import { AMOEBA_CORE_PROFILE } from './amoeba-pseudopods';
+import { slipperProfileAt } from './slipper-profile';
 
 export type FormId = (typeof FORM_ID)[keyof typeof FORM_ID];
 
@@ -50,7 +52,7 @@ export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<Trait
     {
       id: FORM_ID.slipper,
       aspectAt: (tier) => tierEntryOf(SLIPPER_ASPECT_BY_TIER, tier) ?? SLIPPER_TIER_I_ASPECT,
-      profileAt: BLOB_PROFILE,
+      profileAt: slipperProfileAt,
       isRigid: false,
     },
   ],

@@ -1,5 +1,6 @@
 // How far from its centre a cell is drawn (docs/rendering/cells.md §2, docs/architecture/encyclopedia.md §12.7):
-// the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, or a flagellum's tip
+// the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, the paramecium's cilia
+// tufts (#193), or a flagellum's tip
 // (rooted at the rear membrane, as the renderer roots it).
 //
 // Two readers, and they are deliberately not the same reader. The encyclopedia preview **frames its lens** by the
@@ -19,6 +20,7 @@ import {
 } from '../constants';
 import type { CellTraitSummary } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
+import { reachWithCiliaTufts } from './forms/paramecium-cilia';
 import {
   REST_CLIP_PEAK,
   haloOuterRadiiOf,
@@ -62,7 +64,8 @@ export function appendageReachRadii(
   isSprinting: boolean,
   pulse: number,
 ): number {
-  const ciliaReach = traits.ciliaCount > 0 ? membrane.widestRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
+  const hairReach = traits.ciliaCount > 0 ? membrane.widestRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
+  const ciliaReach = reachWithCiliaTufts(traits.form, hairReach, membrane.widestRadii);
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return ciliaReach;
   const alongRadii = membrane.rearRadii + FLAGELLUM_LENGTH_RADII * pulse;
