@@ -45,7 +45,10 @@ export const CILIA_TUFT_LEAN_DEG = 24;
 export const CILIA_TUFT_SPEED_LEAN_DEG = 16;
 export const CILIA_TUFT_BEAT_SWING_DEG = 12;
 export const CILIA_TUFT_SIDE_GAIN = 2;
-/** A `CILIA` wash, deepest down the tuft's middle, with fine bright strands in it; at mid LOD only the wash. */
+/**
+ * A wash of the cell's rim colour (the player's, #745: the tufts are its silhouette), deepest down the tuft's middle,
+ * with fine bright strands in it; at mid LOD only the wash.
+ */
 export const CILIA_TUFT_WASH_CORE_ALPHA = 0.5;
 export const CILIA_TUFT_WASH_EDGE_ALPHA = 0.12;
 export const CILIA_TUFT_STRAND_ALPHA = 0.75;

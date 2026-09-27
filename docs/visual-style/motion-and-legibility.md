@@ -73,6 +73,9 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    and while an engulf's arms or an eat's wrap push its outline out its ring bulges round them.
 5. **The quad and the preview lens never clip an appendage.** Its reach is counted in the form's reach bounds
    (docs/rendering/cells.md §2.4), and the quad grows past `CELL_QUAD_EXTENT_RADII` when it must.
+6. **Appendages wear the player's colour.** They are the cell's silhouette, so they take its palette, never a shared
+   organelle colour: the amoeba's arms are membrane, the paramecium's tufts the player's rim colour (ticket #745;
+   the exception to the organelle rule, visual-style/principles-and-palette.md §2).
 
 ## 6. Legibility at play scale
 

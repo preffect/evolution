@@ -117,6 +117,16 @@ nucleoid glow and the nucleus sprite (rim, chromatin, nucleolus, highlight; its 
 player's rim colour (strand `NUCLEOID_STRAND` stays near-white). Everything else
 in those tables is palette-independent so organelles look the same inside every player.
 
+**Appendages take the player's colour** (the one exception, human decision on ticket #745). An appendage
+(visual-style/motion-and-legibility.md §5.1) is the cell's silhouette, not an organelle inside it, so it is drawn in
+the player's palette: the amoeba's arms are body membrane (base ramp and rim), and the paramecium's cilia tufts are a
+wash and strands of the player's **rim** colour (Cyan's rim is `#a6f4ff`, the old `CILIA`, so the Cyan seat looks as
+before). The rim, not the base, because it is the light tone every cell already outlines itself with: ≥ 10.7:1 against
+the field, and pale enough that the saturated body fill still shows the slipper through the fringe. Seats stay
+told apart by their fringes as well as by their rims: the nearest rim pair is Coral–Rose at ΔE 11 (every other pair
+≥ 12), and the fringe always wraps its body's base, where Coral–Rose are 18 apart. `CILIA` stays the colour of the
+`cilia` trait's hairs, which are an organelle, and of the trait glyphs.
+
 **Player palettes.** `PLAYER_PALETTE_COUNT` is `MAX_PLAYERS_PER_GAME` (8) by construction, and
 `AVATAR_INDEX_MAX` in `constants/lobby.ts` derives from it as `PLAYER_PALETTE_COUNT − 1` (both live in
 `constants/lobby.ts`; the renderer's palette table pins its length against `PLAYER_PALETTE_COUNT`). Six ramps are sheet 01's player-palette table; two are new. Derived
