@@ -123,7 +123,7 @@ ring hugging the outline instead).
 **Traced rings (#730, visual-style/motion-and-legibility.md §5.1 rule 4).** The warning and relation rings keep their
 gap from the outline, arms included, rather than cutting across an arm as a circle. A ring of circle radius `R_c` is
 `R(θ) = R_c + max_i stack_i(θ)`: one **ring lobe** per outward bump slot (the amoeba's pseudopods, an engulf's arms and
-seal, an eat's wrap; dents are skipped), of height `core_i × a_i` where `core_i = r · pulse · B · stretch` under the
+seal, an eat's wrap; dents are skipped; fringe such as cilia tufts is drawn outside the bump slots and never traced), of height `core_i × a_i` where `core_i = r · pulse · B · stretch` under the
 bump, and σ widened to `√(σ² + RING_TRACE_SIGMA_WIDENING · ln(1 + g))` (`RING_TRACE_SIGMA_WIDENING` 0.21, `g` the gap
 `(R_c − core_i) / core_i`), fitted so the ring clears an arm's flanks by the gap as well as its tip. Each lobe's stack
 is itself plus every lobe with a broader bump σ, so an arm on a broad seal swell stacks as the membrane does, while two
