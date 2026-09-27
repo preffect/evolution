@@ -1,8 +1,8 @@
 // The paramecium's cilia tufts in pass B (#193, #646; docs/visual-style/motion-and-legibility.md §5.1):
 // `forms/paramecium-cilia.ts` term for term. A fragment past the slipper's membrane finds its slot along the spacing
 // parameter, tests the tufts two slots either side (a tuft bends back across its neighbours' slots), and paints the
-// one it lies in: a `CILIA` wash deepest down the middle with fine bright strands (faded out at mid LOD), the tip
-// fading like a brush's.
+// one it lies in: a wash of the cell's rim colour deepest down the middle with fine bright strands (faded out at mid
+// LOD), the tip fading like a brush's. The tufts are the slipper's silhouette, so they take the player's colour (#745).
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {
@@ -95,6 +95,6 @@ vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {
   float strands = tuftStrands(best.y, halfWidth, pxRadii) * inst.lodBlend;
   float alpha = mix(wash, ${glslFloat(CILIA_TUFT_STRAND_ALPHA)}, strands);
   float tip = mix(1.0, ${glslFloat(CILIA_TUFT_TIP_ALPHA_SHARE)}, smoothstep(HALF, 1.0, best.z));
-  return over(acc, uCilia, best.x * alpha * tip);
+  return over(acc, rimColour(inst), best.x * alpha * tip);
 }
 `;
