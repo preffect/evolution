@@ -1,7 +1,7 @@
 // Pass A of the cell shader (docs/rendering/cells.md §2.2, back → front): the halo (flat under the
 // body, "lit from inside"; the chloroplast / toxin trait halo replaces it), the far dot, the
 // four-stop body ramp and the two pools in the body frame (the undeformed frame over the form's B,
-// body-frame.ts), the cytoplasm noise in world units, the ribosome speckle on a hashed grid, the
+// body-frame.ts), the cytoplasm noise in world units, the ribosome speckle on a hashed body-frame grid, the
 // cytoskeleton filaments from the nucleus and, last, the nucleus ramp (#231): the disc under the
 // nucleus sprite as a three-stop radial ramp. Everything under the organelle sprites. The pools, the
 // noise and the interior tells fade with `lodBlend`; the trait halo and the nucleus ramp do not (the
@@ -139,22 +139,28 @@ vec4 cytoplasmNoise(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uWhite, fine * bandMask);
 }
 
-/** One dot per grid cell of pitch sqrt(annulus / density), salted by the cell's speckle seed: hashed radius (diameter floored in px), offset across the cell independent of the radius, and alpha; undeformed frame. */
-vec4 ribosomeSpeckle(Instance inst, Frame frame, vec4 acc) {
+/**
+ * One dot per grid cell of pitch sqrt(annulus / density), salted by the cell's speckle seed: hashed radius (diameter
+ * floored in px), offset across the cell independent of the radius, and alpha. The grid and the band sit in the body
+ * frame, so the stipple follows a form to its tips; each dot's centre is carried back to the undeformed frame over the
+ * form's B there and its radius measured in it, so the dot stays round; masked to the body (#767).
+ */
+vec4 ribosomeSpeckle(Instance inst, Frame frame, float inside, vec4 acc) {
   if (inst.speckleDensity <= 0.0 || inst.lodBlend <= 0.0) return acc;
   float pitch = sqrt(${glslFloat(SPECKLE_ANNULUS_AREA)} / inst.speckleDensity);
   vec2 q = frame.p / (inst.r * inst.pulse);
-  vec2 cell = floor(q / pitch);
+  vec2 cell = floor(frame.pF / pitch);
   vec2 salt = cell + inst.speckleSeed * ${glslFloat(SPECKLE_HASH_SALT.seed)};
   float radius = max(mix(${glslFloat(RIBOSOME_RADIUS_RADII_MIN)}, ${glslFloat(RIBOSOME_RADIUS_RADII_MAX)}, hash21(salt)), ${glslFloat(RIBOSOME_MIN_PX)} * HALF / frame.rPx);
   vec2 offset = (vec2(hash21(salt + ${glslFloat(SPECKLE_HASH_SALT.offsetX)}), hash21(salt + ${glslFloat(SPECKLE_HASH_SALT.offsetY)})) - HALF) * pitch * ${glslFloat(RIBOSOME_JITTER_SHARE)};
-  vec2 dotCentre = (cell + HALF) * pitch + offset;
-  float ring = length(dotCentre);
+  vec2 dotCentreF = (cell + HALF) * pitch + offset;
+  float ring = length(dotCentreF);
+  vec2 dotCentre = dotCentreF * formAt(inst, wrapAngle(atan(dotCentreF.y, dotCentreF.x) - inst.heading)).x;
   float inBand = step(${glslFloat(RIBOSOME_BAND_MIN_RADII)}, ring) * step(ring, ${glslFloat(RIBOSOME_BAND_MAX_RADII)});
   float feather = frame.aa / (inst.r * inst.pulse);
   float dotMask = (1.0 - smoothstep(radius - feather, radius + feather, length(q - dotCentre))) * inBand;
   float alpha = mix(${glslFloat(RIBOSOME_ALPHA_MIN)}, ${glslFloat(RIBOSOME_ALPHA_MAX)}, hash21(salt + ${glslFloat(SPECKLE_HASH_SALT.alpha)}));
-  return over(acc, uRibosome, dotMask * alpha * inst.lodBlend);
+  return over(acc, uRibosome, dotMask * alpha * inside * inst.lodBlend);
 }
 
 /** N filaments from the nucleus centre to 0.89 r as a screen-px mask around each spoke (a θ-fraction mask fans out), 1.1 px wide with a ±0.5 px feather. */
@@ -190,7 +196,7 @@ vec4 bodyPass(Instance inst, Frame frame) {
   acc = bodyRamp(inst, frame, inside, acc);
   acc = bodyPools(inst, frame, inside, acc);
   acc = cytoplasmNoise(inst, frame, acc);
-  acc = ribosomeSpeckle(inst, frame, acc);
+  acc = ribosomeSpeckle(inst, frame, inside, acc);
   acc = cytoskeletonFilaments(inst, frame, acc);
   return nucleusRamp(inst, frame, acc);
 }

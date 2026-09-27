@@ -19,12 +19,27 @@ export interface BodyFramePoint {
   readonly y: number;
 }
 
-/** The cell-frame point (`x`, `y`, world units) in the body frame: over `r · pulse · B(θ − h)`. */
-export function bodyFramePoint(terms: RadialProfileTerms, x: number, y: number): BodyFramePoint {
+/** `r · pulse · B(θ − h)` along the direction of (`x`, `y`): the body frame's unit there, in world units. */
+function bodyFrameScale(terms: RadialProfileTerms, x: number, y: number): number {
   const delta = wrapAngle(Math.atan2(y, x) - terms.heading);
   const form = terms.form === null ? 1 : terms.form.evaluate(delta).value;
-  const scale = terms.radius * terms.pulse * form;
+  return terms.radius * terms.pulse * form;
+}
+
+/** The cell-frame point (`x`, `y`, world units) in the body frame: over `r · pulse · B(θ − h)`. */
+export function bodyFramePoint(terms: RadialProfileTerms, x: number, y: number): BodyFramePoint {
+  const scale = bodyFrameScale(terms, x, y);
   return { x: x / scale, y: y / scale };
+}
+
+/**
+ * A body-frame point back in the cell frame (world units): times `r · pulse · B` at its own angle, since the body frame
+ * keeps the angle. The ribosome speckle places its dots' centres this way and measures their radii in the undeformed
+ * frame, so the stipple follows the form and each dot stays round (#767).
+ */
+export function cellFramePoint(terms: RadialProfileTerms, point: BodyFramePoint): BodyFramePoint {
+  const scale = bodyFrameScale(terms, point.x, point.y);
+  return { x: point.x * scale, y: point.y * scale };
 }
 
 /** The body ramp's `t` at a body-frame point: its distance from the ramp's centre over the ramp's radius. */
