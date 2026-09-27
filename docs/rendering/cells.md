@@ -219,8 +219,18 @@ form's **appendage** (visual-style/motion-and-legibility.md §5.1), drawn in pas
 radially from the membrane, `CILIA_TUFT_REACH_RADII` 1.3 r at full extension, beating down to 0.66 of it in a metachronal
 wave nose to tail, bent back toward the tail, `CILIA_TUFT_ROOT_WIDTH_RADII` 0.40 r tapering to a 0.26 r round tip,
 painted in `rimColour(inst)`, the player's rim (#745, visual-style/principles-and-palette.md §2); the
-reach bounds and the quad add the tufts past the widest membrane), spindle (pointed
-ends), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
+reach bounds and the quad add the tufts past the widest membrane), spindle (#194: a superellipse of `SPINDLE_ASPECT` 3.1
+whose exponent runs with `cos Δ` from `SPINDLE_FRONT_EXPONENT` 2 at the round nose to `SPINDLE_REAR_EXPONENT` 1.3 at the
+pointed rear, scaled to unit area; no exponent passes 2, so the tips are the peak, 1.85 r out; the same at every tier. Its
+**appendage** is one leading whip out of the nose (visual-style/motion-and-legibility.md §5.1), drawn in pass B outside the
+membrane along the heading: rooted `EUGLENA_FLAGELLUM_ROOT_INSET_RADII` 0.2 r inside the nose (the nose is `pulse · B(0) ·
+stretch(0)`), its tip `EUGLENA_FLAGELLUM_REACH_RADII` 2.2 r past it, a wave of `EUGLENA_FLAGELLUM_WAVES` 1.25 running root to tip
+at the cell's beat (`ciliaPhase`) whose swing grows from 0 at the root to `EUGLENA_FLAGELLUM_AMPLITUDE_RADII` 0.4 r at the tip,
+0.44 r wide at the root tapering to a 0.2 r round tip, measured square across it, in `rimColour(inst)` with a white highlight
+down its centre at full LOD; the reach bounds and the quad add the tip past the widest membrane (`forms/appendage-reach.ts`).
+The **eyespot** is painted in pass B over the organelle sprites, not from the atlas, because it rides the heading and the slots
+do not: an `EYESPOT` dot 0.15 r at (0.8, 0.16) r in the heading frame under the pulse and the stretch, an `EYESPOT` halo to
+0.26 r at 40 % × 1 / 1.25 / 1.5 per tier and an `EYESPOT_RIM` ring at full LOD; it stays at mid LOD as the form's red dot), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
 §2.1's perpendicular distance stops being optional), diatom (rigid: wobble, jitter, lobes **and breathing** zero,
 a silica valve does not breathe; 36 striae in pass A, 8 / 12 / 16 spine rays with bright tips in pass B), amoeba
 (#192, #646: `B ≡ AMOEBA_CORE_SCALE` 1, the round unit body, plus the pseudopod bumps of §2.1, long arms reaching 1.95 r
@@ -235,4 +245,4 @@ organelles do not (seat marks are frame-fixed, visual-style/principles-and-palet
 `SPINDLE_ASPECT`, `TRUMPET_MOUTH_TO_HEIGHT`, `DIATOM_ASPECT`, `PSEUDOPOD_COUNT_BY_TIER`, the rigid flag that stills
 the diatom's rest terms, and `normalisedArea` for the §9 pin); `radial-profile.ts` carries `B` as the `form` term
 and the GLSL's `formAt` mirrors it. #216 ships the registry with every profile at the blob (`B ≡ 1`); #192–#196
-register the silhouettes (the amoeba with #192, the slipper with #193).
+register the silhouettes (the amoeba with #192, the slipper with #193, the spindle with #194).

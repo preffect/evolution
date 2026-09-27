@@ -1,6 +1,7 @@
 // Pass B of the cell shader (docs/rendering/cells.md §2.2, over the organelle sprites): the inner
 // edge, the soft rim, the rim light with the outline through it (or the protocell double film),
-// the cell wall and the cilia (cell-shader-tells.ts), the paramecium's cilia tufts (cell-shader-fringe.ts), the glint, the prey-under-film alpha, and
+// the euglena's eyespot, the cell wall and the cilia (cell-shader-tells.ts), the paramecium's cilia tufts
+// (cell-shader-fringe.ts), the euglena's whip (cell-shader-euglena.ts), the glint, the prey-under-film alpha, and
 // the tells that snap with the LOD: seat-mark beads on the deformed outline, the own cell's self
 // ring (drawn as the sprint ring, #295) and the engulf-warning ring in the undeformed frame. Every
 // membrane band is a band of `d`.
@@ -172,9 +173,11 @@ vec4 membranePass(Instance inst, Frame frame) {
     acc = softRim(inst, frame, acc);
     acc = rimLight(inst, frame, acc);
   }
+  acc = eyespot(inst, frame, acc);
   acc = cellWall(inst, frame, acc);
   acc = cilia(inst, frame, acc);
   acc = ciliaTufts(inst, frame, acc);
+  acc = euglenaFlagellum(inst, frame, acc);
   acc = glint(inst, frame, acc);
   acc *= inst.passBAlpha;
   acc = seatMark(inst, frame, acc);

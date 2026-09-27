@@ -3,13 +3,13 @@
 // (`∫ B² dΔ = 2π`, so the drawn area equals the blob's `π r²` and mass ∝ area holds for forms as
 // for the blob). #216 ships the registry with the blob (`B ≡ 1`) and the aspects; the five
 // silhouettes register their `profile` with #192–#196. Appendages (the amoeba's pseudopods, `amoeba-pseudopods.ts`;
-// the paramecium's cilia tufts, `paramecium-cilia.ts`) are not body and sit outside the rule
+// the paramecium's cilia tufts, `paramecium-cilia.ts`; the euglena's flagellum, `euglena-flagellum.ts`) are not body
+// and sit outside the rule
 // (visual-style/motion-and-legibility.md §5.1, #646).
 
-import { RADIANS_PER_FULL_TURN, tierEntryOf, type TraitId, type TraitTier } from '@evolution/shared';
+import { tierEntryOf, type TraitId, type TraitTier } from '@evolution/shared';
 import {
   DIATOM_ASPECT,
-  FORM_AREA_SAMPLES,
   FORM_ID,
   PSEUDOPOD_COUNT_BY_TIER,
   SLIPPER_ASPECT_BY_TIER,
@@ -19,6 +19,8 @@ import {
 import type { FormProfile } from '../radial-profile';
 import { AMOEBA_CORE_PROFILE } from './amoeba-pseudopods';
 import { slipperProfileAt } from './slipper-profile';
+import { SPINDLE_PROFILE } from './spindle-profile';
+import { meanSquareRadius } from './unit-area';
 
 export type FormId = (typeof FORM_ID)[keyof typeof FORM_ID];
 
@@ -56,7 +58,10 @@ export const FORM_PROFILES: ReadonlyMap<TraitId, FormDefinition> = new Map<Trait
       isRigid: false,
     },
   ],
-  ['euglena_eyespot', { id: FORM_ID.spindle, aspectAt: () => SPINDLE_ASPECT, profileAt: BLOB_PROFILE, isRigid: false }],
+  [
+    'euglena_eyespot',
+    { id: FORM_ID.spindle, aspectAt: () => SPINDLE_ASPECT, profileAt: () => SPINDLE_PROFILE, isRigid: false },
+  ],
   [
     'stentor_trumpet',
     { id: FORM_ID.trumpet, aspectAt: () => TRUMPET_MOUTH_TO_HEIGHT, profileAt: BLOB_PROFILE, isRigid: false },
@@ -81,11 +86,5 @@ export function pseudopodCount(form: FormDefinition, tier: TraitTier): number {
 
 /** `∫ B² dΔ / 2π`: exactly 1 for a unit-area form. */
 export function normalisedArea(profile: FormProfile | null): number {
-  let sum = 0;
-  for (let index = 0; index < FORM_AREA_SAMPLES; index += 1) {
-    const delta = (index / FORM_AREA_SAMPLES) * RADIANS_PER_FULL_TURN - Math.PI;
-    const value = profile === null ? 1 : profile.evaluate(delta).value;
-    sum += value * value;
-  }
-  return sum / FORM_AREA_SAMPLES;
+  return profile === null ? 1 : meanSquareRadius((delta) => profile.evaluate(delta).value);
 }

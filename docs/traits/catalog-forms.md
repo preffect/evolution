@@ -49,7 +49,7 @@ motes into its groove; it has no pseudopods). Visual: the cell elongates into a 
 
 The eyespot senses food and the flagellum steers into it: motes and DNA fragments inside the range
 drift straight toward the centre (server side, seed-free, deterministic). Visual: a red eyespot at
-the front, a long leading flagellum, green body. Silhouette: spindle with a red dot. Audio: low hum,
+the front, a long leading flagellum past the rings, green body (rendering/cells.md §2.4, #194). Silhouette: spindle with a red dot. Audio: low hum,
 pitch rising with tier.
 
 #### 3.15 Diatom Shell `diatom_shell` — form, uncommon, tags `armored`, requires `cell_wall`

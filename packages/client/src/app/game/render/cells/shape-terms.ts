@@ -28,7 +28,7 @@ import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
-import { reachWithCiliaTufts } from './forms/paramecium-cilia';
+import { reachWithFormAppendages } from './forms/appendage-reach';
 import {
   ZERO_BUMP,
   bumpPeak,
@@ -285,6 +285,6 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     bumps: assignBumpSlots(formBumps(input)),
   };
   const withHalo = maxReachRadii(terms, haloOuterRadii);
-  const maxRadii = reachWithCiliaTufts(traits.form, withHalo, withHalo / haloOuterRadii);
+  const maxRadii = reachWithFormAppendages(traits.form, withHalo, withHalo / haloOuterRadii);
   return { ...terms, haloOuterRadii, maxRadii, isSprinting };
 }

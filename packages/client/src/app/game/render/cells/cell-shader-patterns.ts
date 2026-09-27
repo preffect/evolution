@@ -6,8 +6,6 @@
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { CHANNEL_MAX } from '../colour';
 import {
-  AMOEBA_CORE_SCALE,
-  FORM_ID,
   HASH_SCALE,
   HASH_SHIFT,
   MAX_SHAPE_BUMPS,
@@ -34,7 +32,7 @@ import {
   TEXEL_FLOATS,
   instanceScalarFields,
 } from './cell-instance';
-import { CELL_SHADER_SLIPPER } from './cell-shader-slipper';
+import { CELL_SHADER_FORMS } from './cell-shader-forms';
 import { glslFloat, instanceRead, instanceTexelLocals } from './cell-shader-source';
 
 /** The levels of one byte channel, so a hi byte weighs `BYTE_LEVELS` lo bytes. */
@@ -76,6 +74,8 @@ uniform vec3 uCellWall;
 uniform vec3 uCellWallLight;
 uniform vec3 uCilia;
 uniform vec3 uEctoplasm;
+uniform vec3 uEyespot;
+uniform vec3 uEyespotRim;
 uniform vec3 uDanger;
 uniform vec3 uGain;
 uniform vec3 uSallow;
@@ -187,13 +187,7 @@ vec4 stripSample(Instance inst, float unit) {
               (jitterB - jitterA) * perRadian, (lobesB - lobesA) * perRadian);
 }
 
-${CELL_SHADER_SLIPPER}
-/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the amoeba's core (#192), the slipper (#193); the blob for the rest until #194–#196. */
-vec2 formAt(Instance inst, float delta) {
-  if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) < HALF) return vec2(${glslFloat(AMOEBA_CORE_SCALE)}, 0.0);
-  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) < HALF) return slipperAt(inst.formTier, delta);
-  return vec2(1.0, 0.0);
-}
+${CELL_SHADER_FORMS}
 
 /** The speed stretch times the axial stretch at 'delta' from the heading, with d/dΔ (radial-profile.ts stretchAt). */
 vec2 stretchAt(Instance inst, float delta) {
