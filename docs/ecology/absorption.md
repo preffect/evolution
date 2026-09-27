@@ -145,7 +145,12 @@ what keeps an all-round reach honest. Three rules, and nothing else changes:
   the arm alone: it drains as out of contact (it is still pulled) and escapes when the progress runs out, unless the
   pull or the predator brings the body over it first. So a prey swimming through the arm's reach is not grabbed, and a
   prey pinned at arm's length (against the rim, say) cannot hover there with the progress climbing and draining for
-  minutes, which the #735 review found. The mass ratio, the refractory and the separation are untouched: contact, the
+  minutes, which the #735 review found.
+- **The re-grab cooldown:** a prey that escapes (`escaped`) a predator with arms cannot be grabbed by that
+  predator's arm alone for `ENGULF_ARM_REGRAB_COOLDOWN_SECONDS` **0.75** s. The body can still catch it meanwhile.
+  It is the spit-out refractory's record (`{ preyCellId, untilTick }`, one entry per prey, pruned by the engulf step,
+  in the state hash) kept in a second list, `armRegrabRefractories`. Without it, a prey whose steering wobbled
+  around "away" was grabbed and dropped five to ten times a second (the #735 review's flicker). The mass ratio, the refractory and the separation are untouched: contact, the
   dent and the push stay the body's.
 - **The pull:** before step 5, an unsealed prey held by the arm alone (outside `inContact`, inside `inGrab`) is drawn
   toward the predator's centre at `min(ENGULF_ARM_PULL_RADII_PER_SECOND × predator.radius,
@@ -210,7 +215,7 @@ alone (above), so the toxin's effect is read on the predator, not promised on th
 **Order inside the engulf step, per pair** (stable id order, #74; the numbers the scenarios quote come
 from this order):
 
-1. No engulf: start when (`inContact` ∨ the arm hold) ∧ `canStart` ∧ the predator has no live refractory on this prey
+1. No engulf: start when (`inContact` ∨ the arm hold outside its re-grab cooldown) ∧ `canStart` ∧ the predator has no live refractory on this prey
    ∧ the prey was not released `aborted` this tick (below). Progress 0, then continue below on the same tick.
 2. `¬canContinue` → release, reason `ratio`.
 3. `phase` = `engulfPhaseOf(progress, balance.absorption)` from the progress at the start of the step.

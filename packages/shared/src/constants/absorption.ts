@@ -35,6 +35,12 @@ export const ENGULF_ARM_PULL_RADII_PER_SECOND = 1.5;
  */
 export const ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE = 0.5;
 /**
+ * After a prey escapes an amoeba, that amoeba cannot grab it by the arm alone for this long (s), one entry per prey
+ * (#735 review: without it a prey wobbling around "away" was grabbed and dropped several times a second). The body
+ * can still catch it meanwhile.
+ */
+export const ENGULF_ARM_REGRAB_COOLDOWN_SECONDS = 0.75;
+/**
  * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
  * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
  */

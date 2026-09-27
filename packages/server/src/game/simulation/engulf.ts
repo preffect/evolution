@@ -20,7 +20,7 @@ import {
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
-import { isGrabContact, pullPreyByArm } from './engulf-arm-grab.js';
+import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
   hasSpitOutRefractory,
@@ -57,7 +57,7 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
 
 /**
  * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact (the body's, or the arm's hold for
- * a cell with arms, #735), no refractory,
+ * a cell with arms, #735, outside its re-grab cooldown on this prey), no refractory,
  * and the prey was not freed by an abort this tick (docs/ecology/absorption.md §6.3, the chain row: a cell the
  * world dropped inside its next predator may be started on "next tick", never on this one).
  */
@@ -73,7 +73,8 @@ export function canStartEngulf(
     canEngulf(predator, prey, balance.absorption) &&
     !wasAbortedThisTick(prey, world.tick) &&
     !hasSpitOutRefractory(predator, prey.id, world.tick) &&
-    (isEngulfContact(predator, prey, balance) || isArmHold(predator, prey, balance))
+    (isEngulfContact(predator, prey, balance) ||
+      (isArmHold(predator, prey, balance) && !hasArmRegrabRefractory(predator, prey.id, world.tick)))
   );
 }
 
@@ -195,6 +196,7 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
     // A slip drains, it does not cancel (#634): the prey is out only once the progress has drained to 0.
     if (prey.engulfProgress <= START_PROGRESS + absorption.ENGULF_PROGRESS_EPSILON) {
       releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
+      recordArmRegrabRefractory(world, pairing, context.balance);
     }
     return;
   }

@@ -12,6 +12,7 @@ import {
   TICK_INTERVAL_S,
   distanceBetween,
   foldModifiers,
+  secondsToTicks,
 } from '@evolution/shared';
 import {
   ENGULF_PREY_MASS,
@@ -24,7 +25,13 @@ import { createTestStepContext } from '../../testing/world-builders.js';
 import { setBalanceForDebug } from '../debug/debug-operations.js';
 import { engulfContactGap } from './contact.js';
 import { canStartEngulf } from './engulf.js';
-import { armPullPerTick, grabContactGap, isGrabContact, pullPreyByArm } from './engulf-arm-grab.js';
+import {
+  armPullPerTick,
+  grabContactGap,
+  hasArmRegrabRefractory,
+  isGrabContact,
+  pullPreyByArm,
+} from './engulf-arm-grab.js';
 import { speedCapOf } from './movement.js';
 
 const AMOEBA_I = [{ traitId: 'amoeba_pseudopods', tier: 1 }] as const;
@@ -38,6 +45,8 @@ const PAST_THE_ARM_WU = 0.01;
 const PULL_LEAF = 'ENGULF_ARM_PULL_RADII_PER_SECOND';
 /** An amoeba large enough that 1.5 of its radii a second outruns a free prey: R = 4 √1000 ≈ 126 wu. */
 const LARGE_PREDATOR_MASS = 1000;
+/** Cooldown windows the alternating prey is watched for. */
+const WINDOWS = 4;
 /** Enough ticks for any engulf to have sealed twice over. */
 const LONG_HOLD_TICKS = 120;
 const DISTANCE_DIGITS = 9;
@@ -182,5 +191,51 @@ describe('only the body seals (#735)', () => {
     expect(isGrabContact(fixture.predator, fixture.prey, DEFAULT_BALANCE)).toBe(true);
     expect(fixture.prey.engulfedByCellId).toBeNull();
     expect(releaseReasonsOf(fixture.context.effects)).toEqual([ENGULF_RELEASE_REASON.escaped]);
+  });
+});
+
+describe('the arm re-grab cooldown (#735)', () => {
+  const cooldownTicks = secondsToTicks(DEFAULT_BALANCE.absorption.ENGULF_ARM_REGRAB_COOLDOWN_SECONDS);
+  const steersAway = { directionX: 1, directionY: 0, throttle: 1 };
+  const steersSideways = { directionX: 0, directionY: 1, throttle: 1 };
+
+  /** The ticks on which the predator took hold of the prey, over `ticks` engulf steps of the prey's `steering`. */
+  function grabTicks(
+    fixture: EngulfFixture,
+    ticks: number,
+    steering: (tick: number) => EngulfFixture['prey']['steerCommand'],
+  ) {
+    const grabbed: number[] = [];
+    for (let step = 0; step < ticks; step += 1) {
+      fixture.prey.steerCommand = steering(step);
+      const wasFree = fixture.predator.engulfingCellId === null;
+      stepEngulf(fixture);
+      if (wasFree && fixture.predator.engulfingCellId === fixture.prey.id) grabbed.push(fixture.world.tick);
+    }
+    return grabbed;
+  }
+
+  it('grabs a prey that alternates steering away and sideways at most once per cooldown window', () => {
+    const fixture = armPair();
+    withoutPull(fixture);
+    const grabbed = grabTicks(fixture, WINDOWS * cooldownTicks, (step) =>
+      step % 2 === 0 ? steersSideways : steersAway,
+    );
+    expect(grabbed.length).toBeGreaterThan(1);
+    for (let index = 1; index < grabbed.length; index += 1) {
+      expect(grabbed[index]! - grabbed[index - 1]!).toBeGreaterThan(cooldownTicks);
+    }
+  });
+
+  it('still lets the body catch the prey during the cooldown', () => {
+    const fixture = armPair();
+    withoutPull(fixture);
+    grabTicks(fixture, 2, (step) => (step === 0 ? steersSideways : steersAway));
+    expect(fixture.predator.engulfingCellId).toBeNull();
+    expect(hasArmRegrabRefractory(fixture.predator, fixture.prey.id, fixture.world.tick + 1)).toBe(true);
+    fixture.prey.steerCommand = steersSideways;
+    expect(canStartEngulf(fixture.predator, fixture.prey, fixture.world, DEFAULT_BALANCE)).toBe(false);
+    placeOutTheArm(fixture, 0, -PAST_THE_ARM_WU);
+    expect(canStartEngulf(fixture.predator, fixture.prey, fixture.world, DEFAULT_BALANCE)).toBe(true);
   });
 });

@@ -4,13 +4,17 @@
 // the arm's shortest reach past the body, which every arm holds at every moment of its cycle. Contact and separation
 // stay the body's, and so does the seal: the body must cover the prey before it closes.
 
-import { TICK_INTERVAL_S, distanceBetween, type BalanceConfig } from '@evolution/shared';
+import { TICK_INTERVAL_S, distanceBetween, secondsToTicks, type BalanceConfig, type EntityId } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { engulfContactGap, type CellFootprint } from './contact.js';
 import { keepInsideDish } from './dish-wall.js';
 import type { EngulfPairing } from './engulf-state.js';
+import { hasLiveRefractory, rememberRefractory } from './engulf-spit-out.js';
 import { speedCapOf } from './movement.js';
+
+/** `armGrabReachRadii` of a cell without arms. */
+const NO_ARM_REACH_RADII = 0;
 
 /** What the grab reads of the predator: its footprint and how far its arms reach past it. */
 export type GrabbingCell = CellFootprint & { readonly modifiers: Pick<CellRecord['modifiers'], 'armGrabReachRadii'> };
@@ -53,4 +57,22 @@ export function pullPreyByArm(pairing: EngulfPairing, world: WorldState, balance
   prey.x -= (prey.x - predator.x) * share;
   prey.y -= (prey.y - predator.y) * share;
   keepInsideDish(prey, balance.world.DISH_RADIUS);
+}
+
+/** The re-grab cooldown (#735): this predator may not grab this prey by the arm alone yet; the body still may. */
+export function hasArmRegrabRefractory(predator: CellRecord, preyCellId: EntityId, tick: number): boolean {
+  return hasLiveRefractory(predator.armRegrabRefractories, preyCellId, tick);
+}
+
+/**
+ * A prey that escaped a predator with arms starts that predator's re-grab cooldown on it,
+ * `ENGULF_ARM_REGRAB_COOLDOWN_SECONDS`, so a prey whose steering wobbles around "away" is not grabbed and dropped
+ * several times a second. A predator without arms keeps no entry.
+ */
+export function recordArmRegrabRefractory(world: WorldState, pairing: EngulfPairing, balance: BalanceConfig): void {
+  if (pairing.predator.modifiers.armGrabReachRadii <= NO_ARM_REACH_RADII) {
+    return;
+  }
+  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_ARM_REGRAB_COOLDOWN_SECONDS);
+  rememberRefractory(pairing.predator.armRegrabRefractories, pairing.prey.id, untilTick);
 }

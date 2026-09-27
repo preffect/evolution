@@ -82,7 +82,7 @@ const CONSTANTS_TABLE_SOURCES = [
   {
     documentName: 'ecology/constants.md',
     section: 7,
-    expectedNames: 104,
+    expectedNames: 105,
     domainModules: { ecology, growth, absorption, wildCells, absorptionDerived },
   },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16, domainModules: { progression } },
