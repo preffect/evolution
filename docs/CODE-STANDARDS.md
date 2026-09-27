@@ -96,8 +96,11 @@ Rules that keep this honest:
   `structuredClone` of it (`applyBalancePatch` returns a fresh copy), never the default. Tier
   numbers are read from `balance.traits.TRAIT_TIERS` only; `TRAIT_CATALOG[n].tiers` is
   structure, never read for a number, so a `debug_set_balance` patch has one path: `applyBalancePatch` refuses a
-  path under `traits.TRAIT_CATALOG` by name, saying the tier numbers live in `traits.TRAIT_TIERS` (not patchable live yet, ticket #715), rather than failing it as a missing
-  leaf (`STRUCTURE_PATHS` in `game/debug/balance-patch.ts` declares the structure paths, #150).
+  path under `traits.TRAIT_CATALOG` by name, saying the tier numbers live in `traits.TRAIT_TIERS`, rather than failing
+  it as a missing leaf (`STRUCTURE_PATHS` in `game/debug/balance-patch.ts` declares the structure paths, #150). The
+  tier tables are the one array a patch indexes, by row (`traits.TRAIT_TIERS.cilia.0.speedMultiplier`, row 0 is tier
+  I); every other array stays structure. A tier patch points each catalog row's `tiers` back at its patched table, so
+  the catalog copy the client reads moves with it, and refolds every cell's modifiers at once (#715).
 - Time constants are stored in seconds (or ms with the suffix) and converted to ticks in one
   place: `secondsToTicks` in `packages/shared/src/time/units.ts`.
 

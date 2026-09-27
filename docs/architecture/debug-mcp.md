@@ -64,7 +64,11 @@ records at full precision (`EXACT_SNAPSHOT_VALUES`, #341).
 `patchBalance` applies `applyBalancePatch` (`game/debug/balance-patch.ts`): number leaves only,
 at paths that exist, validated as a whole before anything is written. A declared structure path is refused by
 name, saying where its numbers live: a `traits.TRAIT_CATALOG` patch is told that trait tier numbers live in
-`traits.TRAIT_TIERS`, which cannot be patched live yet (ticket #715; #150). A derived constant is no path
+`traits.TRAIT_TIERS` (#150). A tier number is patched by row, the one array index a patch takes:
+`{"traits":{"TRAIT_TIERS":{"cilia":{"0":{"speedMultiplier":2}}}}}` sets cilia tier I (row 0 is tier I; a field the
+row lacks, a row past the table or an index into any other array is refused). The catalog rows' `tiers` move with it,
+and every cell's `modifiers` are refolded from the traits it owns before the answer, so a paused room reads the new
+number at once rather than on the next step's fold (#715). A derived constant is no path
 (`DERIVED_BALANCE_CONSTANTS`, architecture/constants-files-tests.md §9): patch the leaves it comes from, e.g.
 `ENGULF_WRAP_SECONDS`, which moves the engulf's wrap band and base duration in play (#367).
 
