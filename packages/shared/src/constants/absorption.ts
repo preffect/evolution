@@ -24,6 +24,23 @@ export const ENGULF_MIN_DURATION_FACTOR = 0.5;
  */
 export const ENGULF_ESCAPE_DECAY_MULTIPLIER = 2;
 /**
+ * The arm grab (#735): while an amoeba holds a prey by its arm alone, before the seal, the arm draws the prey toward
+ * the body at this many predator radii per second, never past body contact; the seal waits for the body to cover it.
+ */
+export const ENGULF_ARM_PULL_RADII_PER_SECOND = 1.5;
+/**
+ * The pull never outruns the prey (#735 review): it is capped at this share of the held prey's own speed cap this tick
+ * (sprint, gel and the held factor included), so a prey swimming or sprinting straight away always gains on the arm,
+ * however large the amoeba.
+ */
+export const ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE = 0.5;
+/**
+ * After a prey escapes an amoeba, that amoeba cannot grab it by the arm alone for this long (s), one entry per prey
+ * (#735 review: without it a prey wobbling around "away" was grabbed and dropped several times a second). The body
+ * can still catch it meanwhile.
+ */
+export const ENGULF_ARM_REGRAB_COOLDOWN_SECONDS = 0.75;
+/**
  * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
  * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
  */

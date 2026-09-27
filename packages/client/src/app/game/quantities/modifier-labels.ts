@@ -150,6 +150,12 @@ export const MODIFIER_LABELS: Readonly<Record<ModifierKey, ModifierLabel>> = {
       value >= FULL_SPEED_FACTOR ? 'Gel no longer slows you' : `Gel slows you to no less than ${plainPercent(value)}`,
     betterWhen: MODIFIER_BETTER_WHEN.higher,
   },
+  armGrabReachRadii: {
+    noun: 'arm grab reach',
+    formatValue: radiiText,
+    formatLine: (value) => `Arms grab ${radiiText(value)} past the body`,
+    betterWhen: MODIFIER_BETTER_WHEN.higher,
+  },
 };
 
 /** Whether `value` helps its owner: above identity where higher is better, below it where lower is. */

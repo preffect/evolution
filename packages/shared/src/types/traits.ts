@@ -53,6 +53,11 @@ export interface CellModifiers {
   dnaKeptOnDeathFraction: number;
   /** Floor (max) on `gelSpeedFactor(mass)` (docs/ecology/mass-and-movement.md §5.2). */
   gelSpeedFactorFloor: number;
+  /**
+   * The arm grab (docs/ecology/absorption.md §6.1, #735): this cell's engulf start and hold reach this many of its own
+   * radii further than its body. Max: only a body plan with arms sets it.
+   */
+  armGrabReachRadii: number;
 }
 
 /** One tier's row: only the fields the tier changes. */

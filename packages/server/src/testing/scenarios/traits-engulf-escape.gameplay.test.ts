@@ -91,12 +91,19 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
       sealTick: 19,
       payoutTick: 37,
     }).runDeterministic();
-    await expectEscape('T13 (c) sprint at 7', amoeba, sprintsAwayFrom(7), 30);
+    // The arm grab (#735) draws a prey that stops fighting back in from the arm's reach, so the window closes a tick
+    // earlier (sprint at 7 escaped before it); a prey that keeps swimming away drains out on the arm, a tick later.
+    await expectEscape('T13 (c) sprint at 6', amoeba, sprintsAwayFrom(6), 28);
+    await expectAbsorbed('T13 (c) sprint at 7, held by the arm', amoeba, {
+      input: sprintsAwayFrom(7),
+      sealTick: 22,
+      payoutTick: 40,
+    }).runDeterministic();
     await expectEscape(
       'T13 (d) Amoeba I, sprint at 10',
       { predator: { traits: ['amoeba_pseudopods'] } },
       sprintsAwayFrom(10),
-      30,
+      31,
     );
   });
 

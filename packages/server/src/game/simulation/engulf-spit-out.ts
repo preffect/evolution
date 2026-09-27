@@ -16,7 +16,7 @@ import {
   type EngulfSpitOutDraw,
   type EntityId,
 } from '@evolution/shared';
-import type { CellRecord } from '../world/entities.js';
+import type { CellRecord, SpitOutRefractoryRecord } from '../world/entities.js';
 import { findCell } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import type { EngulfPairing } from './engulf-state.js';
@@ -58,33 +58,57 @@ function hasLapsed(untilTick: number, tick: number): boolean {
   return tick > untilTick;
 }
 
-/** A live refractory blocks this predator from restarting on this prey (docs/ecology/absorption.md §6.1). */
-export function hasSpitOutRefractory(predator: CellRecord, preyCellId: EntityId, tick: number): boolean {
-  return predator.spitOutRefractories.some(
+/** A live entry for `preyCellId` in one of a predator's refractory lists (spit-out, or the arm's re-grab, #735). */
+export function hasLiveRefractory(
+  refractories: readonly SpitOutRefractoryRecord[],
+  preyCellId: EntityId,
+  tick: number,
+): boolean {
+  return refractories.some(
     (refractory) => refractory.preyCellId === preyCellId && !hasLapsed(refractory.untilTick, tick),
   );
 }
 
-/** One entry per spat-out prey, so a predator that spits out X then Y within the second still remembers X. */
-export function recordSpitOutRefractory(world: WorldState, pairing: EngulfPairing, balance: BalanceConfig): void {
-  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS);
-  const existing = pairing.predator.spitOutRefractories.find((refractory) => refractory.preyCellId === pairing.prey.id);
+/** Sets `preyCellId`'s entry in one refractory list to `untilTick`: one entry per prey, first come first kept. */
+export function rememberRefractory(
+  refractories: SpitOutRefractoryRecord[],
+  preyCellId: EntityId,
+  untilTick: number,
+): void {
+  const existing = refractories.find((refractory) => refractory.preyCellId === preyCellId);
   if (existing === undefined) {
-    pairing.predator.spitOutRefractories.push({ preyCellId: pairing.prey.id, untilTick });
+    refractories.push({ preyCellId, untilTick });
     return;
   }
   existing.untilTick = untilTick;
 }
 
-/** Drops expired entries and entries for cells that have left the world, preserving order. */
+/** A live refractory blocks this predator from restarting on this prey (docs/ecology/absorption.md §6.1). */
+export function hasSpitOutRefractory(predator: CellRecord, preyCellId: EntityId, tick: number): boolean {
+  return hasLiveRefractory(predator.spitOutRefractories, preyCellId, tick);
+}
+
+/** One entry per spat-out prey, so a predator that spits out X then Y within the second still remembers X. */
+export function recordSpitOutRefractory(world: WorldState, pairing: EngulfPairing, balance: BalanceConfig): void {
+  const untilTick = world.tick + secondsToTicks(balance.absorption.ENGULF_SPIT_OUT_REFRACTORY_SECONDS);
+  rememberRefractory(pairing.predator.spitOutRefractories, pairing.prey.id, untilTick);
+}
+
+/** The entries of one list still live and naming a cell still in the world, in order. */
+function liveRefractories(world: WorldState, refractories: SpitOutRefractoryRecord[]): SpitOutRefractoryRecord[] {
+  if (refractories.length === 0) {
+    return refractories;
+  }
+  return refractories.filter(
+    (refractory) =>
+      !hasLapsed(refractory.untilTick, world.tick) && findCell(world, refractory.preyCellId) !== undefined,
+  );
+}
+
+/** Drops expired entries and entries for cells that have left the world from both lists, preserving order. */
 export function pruneSpitOutRefractories(world: WorldState): void {
   for (const cell of world.cells) {
-    if (cell.spitOutRefractories.length === 0) {
-      continue;
-    }
-    cell.spitOutRefractories = cell.spitOutRefractories.filter(
-      (refractory) =>
-        !hasLapsed(refractory.untilTick, world.tick) && findCell(world, refractory.preyCellId) !== undefined,
-    );
+    cell.spitOutRefractories = liveRefractories(world, cell.spitOutRefractories);
+    cell.armRegrabRefractories = liveRefractories(world, cell.armRegrabRefractories);
   }
 }

@@ -2,6 +2,7 @@
 // table. `traits.ts` re-exports them beside the catalog so `traits` stays the one domain.
 
 import type { CellModifiers, TraitTiers } from '../types/traits.js';
+import { AMOEBA_ARM_GRAB_REACH_RADII } from './pseudopods.js';
 
 /** The protocell baseline: every modifier at its identity (docs/traits/model.md §2). */
 export const DEFAULT_CELL_MODIFIERS: CellModifiers = {
@@ -29,6 +30,7 @@ export const DEFAULT_CELL_MODIFIERS: CellModifiers = {
   dnaGainMultiplier: 1,
   dnaKeptOnDeathFraction: 0,
   gelSpeedFactorFloor: 0,
+  armGrabReachRadii: 0,
 };
 
 /** `SPRINT_COOLDOWN_SECONDS + sprintCooldownSecondsDelta` never goes below this (s). */
@@ -92,9 +94,24 @@ export const TOXIN_VACUOLE_TIERS: TraitTiers = [
   { toxinDrainFractionPerSecond: 0.07 },
 ];
 export const AMOEBA_PSEUDOPODS_TIERS: TraitTiers = [
-  { gelSpeedFactorFloor: 0.6, wrapDurationMultiplierAsPredator: 0.85, gripStrengthBonus: 0.1 },
-  { gelSpeedFactorFloor: 0.8, wrapDurationMultiplierAsPredator: 0.75, gripStrengthBonus: 0.2 },
-  { gelSpeedFactorFloor: 1.0, wrapDurationMultiplierAsPredator: 0.65, gripStrengthBonus: 0.3 },
+  {
+    gelSpeedFactorFloor: 0.6,
+    wrapDurationMultiplierAsPredator: 0.85,
+    gripStrengthBonus: 0.1,
+    armGrabReachRadii: AMOEBA_ARM_GRAB_REACH_RADII,
+  },
+  {
+    gelSpeedFactorFloor: 0.8,
+    wrapDurationMultiplierAsPredator: 0.75,
+    gripStrengthBonus: 0.2,
+    armGrabReachRadii: AMOEBA_ARM_GRAB_REACH_RADII,
+  },
+  {
+    gelSpeedFactorFloor: 1.0,
+    wrapDurationMultiplierAsPredator: 0.65,
+    gripStrengthBonus: 0.3,
+    armGrabReachRadii: AMOEBA_ARM_GRAB_REACH_RADII,
+  },
 ];
 export const PARAMECIUM_CILIA_TIERS: TraitTiers = [
   { speedMultiplier: 1.1, accelerationSecondsMultiplier: 0.9, struggleSlowdownBonus: 0.1 },

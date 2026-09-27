@@ -53,6 +53,7 @@ export const MODIFIER_FOLD_RULES: Readonly<Record<keyof CellModifiers, FoldRule>
   dnaGainMultiplier: { fold: MODIFIER_FOLD.multiply },
   dnaKeptOnDeathFraction: { fold: MODIFIER_FOLD.add, cap: FULL_SHARE },
   gelSpeedFactorFloor: { fold: MODIFIER_FOLD.max },
+  armGrabReachRadii: { fold: MODIFIER_FOLD.max },
 };
 
 export const MODIFIER_NAMES = Object.keys(MODIFIER_FOLD_RULES) as readonly (keyof CellModifiers)[];

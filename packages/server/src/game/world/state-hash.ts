@@ -103,6 +103,7 @@ export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   'carriedOffsetX',
   'carriedOffsetY',
   { key: 'spitOutRefractories', hash: hashSpitOutRefractories },
+  { key: 'armRegrabRefractories', hash: hashSpitOutRefractories },
   { key: 'steerCommand', hash: hashSteerCommand },
   { key: 'lastRelease', hash: hashLastRelease },
 ];

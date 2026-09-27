@@ -1,7 +1,7 @@
 // The amoeba's silhouette and motion (docs/rendering/cells.md §2.1 pseudopods row, §2.4; docs/visual-style/
 // motion-and-legibility.md §5 / §5.1; sheet 04): the round core (`AMOEBA_CORE_SCALE`) and 2 / 3 / 4 long pseudopod
-// arms reaching well past the 1.3 r rings (#646). The arms are appendages, not body: cosmetic, outside the unit-area
-// rule and the hit disc. At rest the lobes fan out irregularly about the held heading and sway; with speed they move
+// arms reaching well past the 1.3 r rings (#646). The arms are appendages, not body: outside the unit-area rule and the
+// hit disc, though the server's engulf grabs from their shortest reach (#735, the shared `PSEUDOPOD_*` lengths). At rest the lobes fan out irregularly about the held heading and sway; with speed they move
 // out of the stretched front to the flanks (round the engulfed prey while it engulfs). Each lobe extends and retracts
 // on its own staggered sine, so one arm reaches while its neighbour pulls back. Pure over time and the cosmetic phase,
 // like every rest term.

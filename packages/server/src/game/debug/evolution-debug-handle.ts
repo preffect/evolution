@@ -62,6 +62,7 @@ export interface EngulfDebugState {
   readonly carriedOffsetX: number | null;
   readonly carriedOffsetY: number | null;
   readonly spitOutRefractories: readonly SpitOutRefractoryRecord[];
+  readonly armRegrabRefractories: readonly SpitOutRefractoryRecord[];
   readonly lastRelease: EngulfReleaseRecord | null;
 }
 
@@ -79,6 +80,7 @@ function engulfDebugStateOf(cell: CellRecord): EngulfDebugState {
     carriedOffsetX: cell.carriedOffsetX,
     carriedOffsetY: cell.carriedOffsetY,
     spitOutRefractories: cell.spitOutRefractories.map((refractory) => ({ ...refractory })),
+    armRegrabRefractories: cell.armRegrabRefractories.map((refractory) => ({ ...refractory })),
     lastRelease: cell.lastRelease === null ? null : { ...cell.lastRelease },
   };
 }

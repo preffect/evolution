@@ -162,6 +162,9 @@
   },
   "absorption": {
     "ENGULF_ABSORB_SECONDS": 0.6,
+    "ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE": 0.5,
+    "ENGULF_ARM_PULL_RADII_PER_SECOND": 1.5,
+    "ENGULF_ARM_REGRAB_COOLDOWN_SECONDS": 0.75,
     "ENGULF_COVERAGE_FRACTION": 0.5,
     "ENGULF_COVER_SECONDS": 0.2,
     "ENGULF_DNA_BASE": 30,
@@ -228,7 +231,8 @@
       "attractSpeed": 0,
       "dnaGainMultiplier": 1,
       "dnaKeptOnDeathFraction": 0,
-      "gelSpeedFactorFloor": 0
+      "gelSpeedFactorFloor": 0,
+      "armGrabReachRadii": 0
     },
     "EXCLUSION_GROUPS": ["body_plan", "membrane", "primary_locomotion"],
     "RESERVED_TRAIT_IDS": [
@@ -432,9 +436,24 @@
         "tags": ["predatory", "motile"],
         "exclusionGroup": "body_plan",
         "tiers": [
-          { "gelSpeedFactorFloor": 0.6, "wrapDurationMultiplierAsPredator": 0.85, "gripStrengthBonus": 0.1 },
-          { "gelSpeedFactorFloor": 0.8, "wrapDurationMultiplierAsPredator": 0.75, "gripStrengthBonus": 0.2 },
-          { "gelSpeedFactorFloor": 1, "wrapDurationMultiplierAsPredator": 0.65, "gripStrengthBonus": 0.3 }
+          {
+            "gelSpeedFactorFloor": 0.6,
+            "wrapDurationMultiplierAsPredator": 0.85,
+            "gripStrengthBonus": 0.1,
+            "armGrabReachRadii": 0.6175
+          },
+          {
+            "gelSpeedFactorFloor": 0.8,
+            "wrapDurationMultiplierAsPredator": 0.75,
+            "gripStrengthBonus": 0.2,
+            "armGrabReachRadii": 0.6175
+          },
+          {
+            "gelSpeedFactorFloor": 1,
+            "wrapDurationMultiplierAsPredator": 0.65,
+            "gripStrengthBonus": 0.3,
+            "armGrabReachRadii": 0.6175
+          }
         ],
         "visual": "the membrane extrudes 2 / 3 / 4 blunt lobes toward the velocity and any engulfed prey; irregular blob",
         "audioCue": "wet_stretch"
@@ -572,9 +591,24 @@
         { "toxinDrainFractionPerSecond": 0.07 }
       ],
       "amoeba_pseudopods": [
-        { "gelSpeedFactorFloor": 0.6, "wrapDurationMultiplierAsPredator": 0.85, "gripStrengthBonus": 0.1 },
-        { "gelSpeedFactorFloor": 0.8, "wrapDurationMultiplierAsPredator": 0.75, "gripStrengthBonus": 0.2 },
-        { "gelSpeedFactorFloor": 1, "wrapDurationMultiplierAsPredator": 0.65, "gripStrengthBonus": 0.3 }
+        {
+          "gelSpeedFactorFloor": 0.6,
+          "wrapDurationMultiplierAsPredator": 0.85,
+          "gripStrengthBonus": 0.1,
+          "armGrabReachRadii": 0.6175
+        },
+        {
+          "gelSpeedFactorFloor": 0.8,
+          "wrapDurationMultiplierAsPredator": 0.75,
+          "gripStrengthBonus": 0.2,
+          "armGrabReachRadii": 0.6175
+        },
+        {
+          "gelSpeedFactorFloor": 1,
+          "wrapDurationMultiplierAsPredator": 0.65,
+          "gripStrengthBonus": 0.3,
+          "armGrabReachRadii": 0.6175
+        }
       ],
       "paramecium_cilia": [
         { "speedMultiplier": 1.1, "accelerationSecondsMultiplier": 0.9, "struggleSlowdownBonus": 0.1 },
