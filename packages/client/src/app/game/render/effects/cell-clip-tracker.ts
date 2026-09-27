@@ -9,11 +9,12 @@ import {
   MOTION_CLIP,
   MOTION_CLIPS,
   engulfSealProgress,
+  type BalanceConfig,
   type CellView,
   type EngulfPhaseSeconds,
   type EntityId,
 } from '@evolution/shared';
-import { clipDeformation, engulfClipPosition, type CellClipInput } from '../cells/cell-clips';
+import { REST_CLIP_INPUT, clipDeformation, engulfClipPosition, type CellClipInput } from '../cells/cell-clips';
 import type { CellDeformation, CellDeformations } from '../cells/cell-deformation';
 import type { CellClipStart } from '../cells/cell-effects';
 import { MotionClipPlayer } from './motion-clip-player';
@@ -26,21 +27,39 @@ interface CellClipState {
 
 export type CellViewsById = ReadonlyMap<EntityId, CellView>;
 
+/** The `balance.absorption` rows the engulf's look reads: the phase seconds (the seal) and the body's coverage (the hold). */
+export type EngulfLookBalance = EngulfPhaseSeconds & Pick<BalanceConfig['absorption'], 'ENGULF_COVERAGE_FRACTION'>;
+
+type EngulfLookCell = Pick<CellView, 'x' | 'y' | 'radius'>;
+
 /**
- * The engulf terms of a predator: the angle to its prey and where the prey's progress falls on the clip at the room's
- * seal (`absorption` is the live balance's, so a patched phase second moves the arms with the HUD); rest when it is
- * not engulfing.
+ * How far past `predator`'s body an arm must reach to hold `prey` (#753), in the predator's radii: to the prey's centre
+ * and on by the coverage share of its radius, the span the server's `inContact` and `inGrab` measure; 0 once the body
+ * covers it (ecology/absorption.md §6.1).
+ */
+export function armHoldRadii(predator: EngulfLookCell, prey: EngulfLookCell, coverageFraction: number): number {
+  const reach = Math.hypot(prey.x - predator.x, prey.y - predator.y) + prey.radius * coverageFraction;
+  return Math.max(0, reach / predator.radius - 1);
+}
+
+const NOT_ENGULFING = { preyAngle: null, engulfClipPosition: null, armHoldRadii: REST_CLIP_INPUT.armHoldRadii };
+
+/**
+ * The engulf terms of a predator: the angle to its prey, where the prey's progress falls on the clip at the room's
+ * seal and how far an arm must reach to hold it (`absorption` is the live balance's, so a patched phase second moves the
+ * arms with the HUD); rest when it is not engulfing.
  */
 export function engulfClipInput(
   cell: CellView,
   cellsById: CellViewsById,
-  absorption: EngulfPhaseSeconds,
-): Pick<CellClipInput, 'preyAngle' | 'engulfClipPosition'> {
+  absorption: EngulfLookBalance,
+): Pick<CellClipInput, 'preyAngle' | 'engulfClipPosition' | 'armHoldRadii'> {
   const prey = cell.engulfingCellId === null ? undefined : cellsById.get(cell.engulfingCellId);
-  if (prey === undefined) return { preyAngle: null, engulfClipPosition: null };
+  if (prey === undefined) return NOT_ENGULFING;
   return {
     preyAngle: Math.atan2(prey.y - cell.y, prey.x - cell.x),
     engulfClipPosition: engulfClipPosition(prey.engulfProgress, engulfSealProgress(absorption)),
+    armHoldRadii: armHoldRadii(cell, prey, absorption.ENGULF_COVERAGE_FRACTION),
   };
 }
 
@@ -75,7 +94,7 @@ export class CellClipTracker {
     cell: CellView,
     views: CellViewsById,
     nowMs: number,
-    absorption: EngulfPhaseSeconds,
+    absorption: EngulfLookBalance,
   ): CellDeformation | null {
     const state = this.states.get(cell.id);
     const tracks = state?.player.sample(nowMs) ?? {};
@@ -98,7 +117,7 @@ export class CellClipTracker {
   deformations(
     cells: readonly CellView[],
     nowMs: number,
-    absorption: EngulfPhaseSeconds,
+    absorption: EngulfLookBalance,
     views: CellViewsById = cellsById(cells),
   ): CellDeformations {
     for (const cellId of this.states.keys()) if (!views.has(cellId)) this.states.delete(cellId);

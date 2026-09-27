@@ -16,6 +16,11 @@ export interface CellDeformation {
   readonly alpha: number;
   /** Where the prey this cell is engulfing is (cell frame, radians): the amoeba's lobes reach for it. Absent otherwise. */
   readonly preyAngle?: number;
+  /**
+   * How far past the body an arm must reach to hold that prey (#753): to its centre and on by the body's coverage share
+   * of its radius, in this cell's radii; 0 once the body covers it. Absent when not engulfing.
+   */
+  readonly armHoldRadii?: number;
 }
 
 export type CellDeformations = ReadonlyMap<EntityId, CellDeformation>;

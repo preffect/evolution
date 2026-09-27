@@ -3,15 +3,18 @@
 // deformation's bumps, aimed along the heading or round the engulfed prey, and the core's reach.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, createSeededRandom, type TraitId } from '@evolution/shared';
+import { AMOEBA_ARM_GRAB_REACH_RADII, CELL_STAGE, createSeededRandom, type TraitId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { CELL_QUAD_EXTENT_RADII, MAX_SHAPE_BUMPS, PSEUDOPOD_ENGULF_LEAN } from '../constants';
 import { buildNoiseStrip } from '../noise/noise-strip';
+import { REST_CLIP_INPUT, clipDeformation } from './cell-clips';
+import { cullReachRadii } from './cell-cull';
 import { REST_DEFORMATION } from './cell-deformation';
 import { summariseCellTraits } from './cell-traits';
 import { pseudopodBumps } from './forms/amoeba-pseudopods';
 import type { ShapeBump } from './radial-profile';
 import { buildShapeTerms } from './shape-terms';
+import { PROFILE_WALK_TIMEOUT_MS } from '../../../../testing/profile-walk';
 
 const TEST_SEED = 42;
 
@@ -45,7 +48,7 @@ describe('the amoeba’s pseudopods (#192)', () => {
     ] as const) {
       const base = { ...amoeba(tier), timeSeconds: 1.3, phase: 0.2, speedRatio: 0.5, heading: 0.7 };
       const terms = buildShapeTerms(base);
-      const lobes = pseudopodBumps({ count, timeSeconds: 1.3, phase: 0.2, aim: 0.7, lean: 0.5 });
+      const lobes = pseudopodBumps({ count, timeSeconds: 1.3, phase: 0.2, aim: 0.7, lean: 0.5, armHold: 0 });
       expect(terms.bumps.slice(0, count)).toEqual(lobes);
       expect(activeSlots(terms.bumps)).toBe(count);
       expect(terms.form?.peak).toBe(1);
@@ -68,7 +71,7 @@ describe('the amoeba’s pseudopods (#192)', () => {
     const lobesOf = (terms: { bumps: readonly ShapeBump[] }) => terms.bumps.slice(0, count);
     const moment = { timeSeconds: 0.8, phase: 0.1 };
     const swimming = buildShapeTerms({ ...amoeba(3), ...moment, heading: 1, speedRatio: 0.2 });
-    expect(lobesOf(swimming)).toEqual(pseudopodBumps({ count, ...moment, aim: 1, lean: 0.2 }));
+    expect(lobesOf(swimming)).toEqual(pseudopodBumps({ count, ...moment, aim: 1, lean: 0.2, armHold: 0 }));
     const engulfing = buildShapeTerms({
       ...amoeba(3),
       ...moment,
@@ -76,8 +79,48 @@ describe('the amoeba’s pseudopods (#192)', () => {
       speedRatio: 0.2,
       deformation: { ...REST_DEFORMATION, preyAngle: -2 },
     });
-    expect(lobesOf(engulfing)).toEqual(pseudopodBumps({ count, ...moment, aim: -2, lean: PSEUDOPOD_ENGULF_LEAN }));
+    const lean = PSEUDOPOD_ENGULF_LEAN;
+    expect(lobesOf(engulfing)).toEqual(pseudopodBumps({ count, ...moment, aim: -2, lean, armHold: 0 }));
+    const holding = buildShapeTerms({
+      ...amoeba(3),
+      ...moment,
+      deformation: { ...REST_DEFORMATION, preyAngle: -2, armHoldRadii: 0.5 },
+    });
+    expect(lobesOf(holding)).toEqual(pseudopodBumps({ count, ...moment, aim: -2, lean, armHold: 0.5 }));
   });
+
+  /**
+   * The held arm lies at the prey, where the reach table (weighed along the heading) has no lobe (#753): a prey held
+   * at the full grab reach dead ahead of an amoeba swimming flat out still draws inside its cull reach.
+   */
+  it(
+    'keeps an arm holding the prey inside the cull reach, at every tier',
+    () => {
+      for (const tier of [1, 2, 3] as const) {
+        const cull = cullReachRadii(summariseCellTraits(amoeba(tier).view)).drawnRadii;
+        for (const engulfClipPosition of [0, 0.5]) {
+          for (const timeSeconds of [0, 1.4]) {
+            const deformation = clipDeformation({
+              ...REST_CLIP_INPUT,
+              preyAngle: 0,
+              engulfClipPosition,
+              armHoldRadii: AMOEBA_ARM_GRAB_REACH_RADII,
+            });
+            const sprinting = { ...amoeba(tier).view, sprintRemainingTicks: 1 };
+            const terms = buildShapeTerms({
+              ...amoeba(tier),
+              view: sprinting,
+              timeSeconds,
+              speedRatio: 1,
+              deformation,
+            });
+            expect(terms.maxRadii, `tier ${tier}`).toBeLessThanOrEqual(cull);
+          }
+        }
+      }
+    },
+    PROFILE_WALK_TIMEOUT_MS,
+  );
 
   it('draws no lobes on any other form', () => {
     const slipper = buildShapeTerms(withTraits([{ traitId: 'paramecium_cilia', tier: 3 }], CELL_STAGE.specialised));

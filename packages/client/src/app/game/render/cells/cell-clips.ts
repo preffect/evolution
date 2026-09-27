@@ -34,6 +34,8 @@ export interface CellClipInput {
   readonly engulfClipPosition: number | null;
   /** The `absorbed` clip's `seal` from the ghost this cell just absorbed; `null` otherwise. */
   readonly absorbedSeal: number | null;
+  /** How far past the body an arm must reach to hold the prey (`CellDeformation.armHoldRadii`); 0 when not engulfing. */
+  readonly armHoldRadii: number;
 }
 
 export const REST_CLIP_INPUT: CellClipInput = {
@@ -42,6 +44,7 @@ export const REST_CLIP_INPUT: CellClipInput = {
   preyAngle: null,
   engulfClipPosition: null,
   absorbedSeal: null,
+  armHoldRadii: 0,
 };
 
 const EAT_DIMPLE_SIGMA = degreesToRadians(EAT_DIMPLE_SIGMA_DEG);
@@ -118,7 +121,7 @@ export function clipDeformation(input: CellClipInput): CellDeformation {
   };
   return input.preyAngle === null || input.engulfClipPosition === null
     ? deformation
-    : { ...deformation, preyAngle: input.preyAngle };
+    : { ...deformation, preyAngle: input.preyAngle, armHoldRadii: input.armHoldRadii };
 }
 
 /**

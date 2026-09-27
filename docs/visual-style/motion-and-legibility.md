@@ -43,7 +43,9 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    past the ring radius** (`ENGULF_WARNING_RING_RADII` 1.3 r), so at least 1.9 r from the centre, measured at rest on
    the breath's inhale. An appendage that extends and retracts never pulls back to less than
    `APPENDAGE_MIN_RETRACTED_PAST_RING_RADII` 0.15 r past the ring (1.45 r). The amoeba reaches 1.95 r and pulls back
-   to 1.62 r. The paramecium's cilia tufts (#193) are measured radially from the membrane, so the slipper's narrow
+   to 1.62 r. The one arm that holds a prey outside the body (ticket #753, rule 3's grab) is the exception: it stops
+   cycling, reaches to the prey and draws back with it as the pull brings it in, so its tip sits where the prey is,
+   inside the ring at the end, and hands back to its flank and its cycle before the body takes the prey. The paramecium's cilia tufts (#193) are measured radially from the membrane, so the slipper's narrow
    flank is the worst place: `CILIA_TUFT_REACH_RADII` 1.3 r puts a tier-III flank tuft at 2.0 r (1.93 r with the
    breath, the wobble and the rest lobes all pulling that flank in), and beating down to 0.66 of it, 1.49 r. Swimming may squash an appendage (the speed stretch narrows the cell across its heading and tapers its
    rear), but its tip stays past the ring at every speed, measured at the tip itself, not at the widest point of the
@@ -64,7 +66,8 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    amoeba starts and holds an engulf from its arm's reach on a prey that is not steering away, the arm's shortest length past the body
    (`AMOEBA_ARM_GRAB_REACH_RADII` = `PSEUDOPOD_REACH × PSEUDOPOD_RETRACTED_SHARE`, 0.6175 r, shared with the server,
    the same all round), and draws the prey in until the body covers it (`ecology/absorption.md §6.1`, the arm
-   grab). Every other form's appendages stay cosmetic until a ticket of their own decides otherwise.
+   grab). The renderer shows it: the lobe nearest the prey lies across it, its tip as far past the prey's centre as the
+   body's coverage would be (docs/rendering/cells.md §2.1 pseudopods row, #753). Every other form's appendages stay cosmetic until a ticket of their own decides otherwise.
 4. **Rings trace the body and its lobes, not its fringe.** The engulf-warning ring and the relation rings keep their
    gap (1.3 r − r, with their px floors) from the **body and its lobe-type appendages** (the amoeba's pseudopods, an
    engulf's arms), instead of cutting through an arm or a body as a circle (#730): the ring follows the body out

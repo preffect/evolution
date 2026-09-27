@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, MOTION_CLIP, entityId } from '@evolution/shared';
+import { AMOEBA_ARM_GRAB_REACH_RADII, DEFAULT_BALANCE, MOTION_CLIP, entityId } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { CellClipTracker, cellsById, engulfClipInput } from './cell-clip-tracker';
+import { CellClipTracker, armHoldRadii, cellsById, engulfClipInput } from './cell-clip-tracker';
 
 const cell = createTestCellView({ id: entityId('c'), x: 0, y: 0 });
 const absorption = DEFAULT_BALANCE.absorption;
@@ -16,8 +16,9 @@ describe('engulfClipInput', () => {
     expect(engulfClipInput(predator, cellsById([predator, prey]), absorption)).toEqual({
       preyAngle: Math.PI / 2,
       engulfClipPosition: 0.5,
+      armHoldRadii: 2,
     });
-    const rest = { preyAngle: null, engulfClipPosition: null };
+    const rest = { preyAngle: null, engulfClipPosition: null, armHoldRadii: 0 };
     expect(engulfClipInput(cell, cellsById([cell]), absorption)).toEqual(rest);
     expect(engulfClipInput(predator, cellsById([predator]), absorption)).toEqual(rest);
   });
@@ -26,6 +27,39 @@ describe('engulfClipInput', () => {
     const prey = createTestCellView({ id: entityId('prey'), x: 0, y: 10, engulfProgress: 2 / 3 });
     const predator = { ...cell, engulfingCellId: prey.id };
     expect(engulfClipInput(predator, cellsById([predator, prey]), longerWrap).engulfClipPosition).toBeCloseTo(0.5, 12);
+  });
+});
+
+/** The server's two spans (ecology/absorption.md §6.1): the body's reach and the arm's, less the prey's covered share. */
+describe('armHoldRadii (#753)', () => {
+  const predator = { x: 0, y: 0, radius: 40 };
+  const preyRadius = 10;
+  const coverage = absorption.ENGULF_COVERAGE_FRACTION;
+  const preyAt = (distance: number) => ({
+    x: distance * Math.cos(0.7),
+    y: distance * Math.sin(0.7),
+    radius: preyRadius,
+  });
+  const bodyReach = predator.radius - preyRadius * coverage;
+  const armReach = predator.radius * (1 + AMOEBA_ARM_GRAB_REACH_RADII) - preyRadius * coverage;
+
+  it('is the grab reach at the edge of the server’s arm hold and nothing where the body covers the prey', () => {
+    expect(armHoldRadii(predator, preyAt(armReach), coverage)).toBeCloseTo(AMOEBA_ARM_GRAB_REACH_RADII, 12);
+    expect(armHoldRadii(predator, preyAt(bodyReach), coverage)).toBeCloseTo(0, 12);
+    expect(armHoldRadii(predator, preyAt(bodyReach - 5), coverage)).toBe(0);
+  });
+
+  it('shortens by the pull, radius for radius', () => {
+    const drawnIn = 8;
+    const held = armHoldRadii(predator, preyAt(armReach), coverage);
+    expect(held - armHoldRadii(predator, preyAt(armReach - drawnIn), coverage)).toBeCloseTo(
+      drawnIn / predator.radius,
+      12,
+    );
+  });
+
+  it('reads the coverage share it is given', () => {
+    expect(armHoldRadii(predator, preyAt(40), 1)).toBeCloseTo(preyRadius / predator.radius, 12);
   });
 });
 
