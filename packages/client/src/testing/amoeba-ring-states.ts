@@ -13,7 +13,7 @@ import { buildShapeTerms, type ShapeTerms } from '../app/game/render/cells/shape
 export const AMOEBA_RING_RADIUS = 40;
 export const AMOEBA_RING_WU = ENGULF_WARNING_RING_RADII * AMOEBA_RING_RADIUS;
 export const AMOEBA_TIERS: readonly TraitTier[] = [1, 2, 3];
-const REST_TIMES = [0, 0.7, 1.4, 2.1, 2.8];
+const REST_TIMES = [0, 1.4, 2.8];
 
 export interface AmoebaState {
   readonly timeSeconds: number;

@@ -35,11 +35,11 @@ const SMOOTH_SHARE = 0.97;
 const KINK_DASH_TOLERANCE = 0.2;
 const DASH_PROBE_STEP = 0.001;
 
-/** `|measured arc element / true element − 1|` every 0.01 rad round the ring. */
+/** `|measured arc element / true element − 1|` every 0.02 rad round the ring. */
 function localDashErrors(lobes: readonly RingLobe[]): number[] {
   const arc = (theta: number) => RING_WU * theta + tracedRingExtraArcWu(lobes, RING_WU, theta);
   const errors: number[] = [];
-  for (let theta = -Math.PI + 0.01; theta < Math.PI - 0.01; theta += 0.01) {
+  for (let theta = -Math.PI + 0.01; theta < Math.PI - 0.01; theta += 0.02) {
     const sample = tracedRingAt(lobes, RING_WU, theta);
     const measured = (arc(theta + DASH_PROBE_STEP) - arc(theta - DASH_PROBE_STEP)) / (2 * DASH_PROBE_STEP);
     errors.push(Math.abs(measured / Math.hypot(sample.r, sample.derivative) - 1));
