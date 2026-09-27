@@ -2,8 +2,9 @@
 // asks whether a disc of this reach touches the camera extent, with no further margin, so it is exactly as generous
 // as the cell is wide. The reach is the widest thing the cell can draw in **any** frame — its membrane, halo, cilia
 // and a sprinting tail at their peak with the widest clip playing (`cellDrawExtentRadii`), or a ring the cell may
-// carry, whose px floors outgrow its radius on a small far cell. Deriving it from the drawn extent, rather than a
-// constant number of radii, is what keeps a tail tip or a ring from popping in at the screen edge.
+// carry, whose px floors outgrow its radius on a small far cell, traced out round the cell's arms (#730). Deriving it
+// from the drawn extent, rather than a constant number of radii, is what keeps a tail tip or a ring from popping in at
+// the screen edge.
 
 import { MOTION_CLIPS, type MotionClipId } from '@evolution/shared';
 import {
@@ -18,6 +19,7 @@ import { EATING_CLIP_CONTEXT, UNAIMED_CLIP_CONTEXT, clipDeformationPeak, engulfD
 import { NO_EFFECT_REACH, cellDrawExtentRadii, type CellDrawState } from './cell-draw-extent';
 import { relationRingOuterLinePx, relationRingPackingFor, warningRingRadiusPx } from './cell-instance-builder';
 import type { CellTraitSummary } from './cell-traits';
+import { peakRingBodyScale, peakRingLobeRadii } from './traced-ring-reach';
 import { REST_CLIP_PEAK, type ClipDeformationPeak } from './shape-terms';
 import { RELATION_RING } from '../../hud/format/relations-for';
 
@@ -52,21 +54,36 @@ export const CULL_DRAW_STATE: CellDrawState = {
   effectRadii: NO_EFFECT_REACH,
 };
 
-/** The widest a cell of these traits is drawn over any frame, in radii (the far dot's halo included). */
-export function cullReachRadii(traits: CellTraitSummary): number {
-  return Math.max(cellDrawExtentRadii(traits, CULL_DRAW_STATE).drawnRadii, FAR_DOT_HALO_RADII);
+/** A cell's cull reach in radii: a constant of its traits, so the render state keeps it until they change. */
+export interface CullReachRadii {
+  /** The widest the cell is drawn over any frame (the far dot's halo included). */
+  readonly drawnRadii: number;
+  /** The widest its body scales a ring's circle out over any frame (`peakRingBodyScale`), at least 1. */
+  readonly ringBodyScale: number;
+  /** The most a ring on it reaches past that, traced round the arms (`peakRingLobeRadii`). */
+  readonly ringLobeRadii: number;
+}
+
+/** How far a cell of these traits can draw and trace a ring, over any frame. */
+export function cullReachRadii(traits: CellTraitSummary): CullReachRadii {
+  return {
+    drawnRadii: Math.max(cellDrawExtentRadii(traits, CULL_DRAW_STATE).drawnRadii, FAR_DOT_HALO_RADII),
+    ringBodyScale: peakRingBodyScale(traits, CULL_DRAW_STATE),
+    ringLobeRadii: peakRingLobeRadii(traits, CULL_DRAW_STATE),
+  };
 }
 
 /**
- * The cull reach in px for a cell of `screenRadiusPx` whose drawing reaches `reachRadii`: the drawing, or the outer
- * edge of the widest ring it could carry (the warning ring's px floor, the toxic ring's outer line), whichever is wider.
- * `reachRadii` measures the tail's centreline, and its round-capped outer stroke reaches half its width further, in px
- * whatever the zoom, so that half is added on top.
+ * The cull reach in px for a cell of `screenRadiusPx` whose drawing reaches `reach.drawnRadii`: the drawing, or the
+ * outer edge of the widest ring it could carry (the warning ring's px floor, the toxic ring's outer line), scaled
+ * round its body and traced round its arms, whichever is wider. `drawnRadii` measures the tail's centreline, and its round-capped
+ * outer stroke reaches half its width further, in px whatever the zoom, so that half is added on top.
  */
-export function cullReachPx(reachRadii: number, screenRadiusPx: number): number {
+export function cullReachPx(reach: CullReachRadii, screenRadiusPx: number): number {
   const warningPx = warningRingRadiusPx(screenRadiusPx) + WARNING_RING_STROKE_PX;
   const relation = relationRingPackingFor(RELATION_RING.toxic, { hasTells: true, screenRadiusPx }, 0);
   const relationPx = relationRingOuterLinePx(relation) + RELATION_RING_STROKE_PX;
-  const drawingPx = reachRadii * screenRadiusPx + FLAGELLUM_OUTER_PX * HALF;
-  return Math.max(drawingPx, warningPx, relationPx);
+  const drawingPx = reach.drawnRadii * screenRadiusPx + FLAGELLUM_OUTER_PX * HALF;
+  const ringPx = Math.max(warningPx, relationPx) * reach.ringBodyScale + reach.ringLobeRadii * screenRadiusPx;
+  return Math.max(drawingPx, ringPx);
 }

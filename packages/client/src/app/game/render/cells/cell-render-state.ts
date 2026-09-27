@@ -27,7 +27,7 @@ import { wrapUnit } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import { REST_CLIP_INPUT, clipDeformation } from './cell-clips';
 import type { CellDeformation } from './cell-deformation';
-import { cullReachRadii } from './cell-cull';
+import { cullReachRadii, type CullReachRadii } from './cell-cull';
 import { buildCellInstance, warningRingPxFor } from './cell-instance-builder';
 import type { CellInstance } from './cell-instance';
 import { cellLodFor, type CellLod } from './cell-lod';
@@ -115,7 +115,10 @@ export class CellRenderState {
   private ciliaPhase = 0;
   private lastTimeSeconds: number | null = null;
   /** The cull reach in radii and the traits it was worked out for: a trait fold, so kept until the traits change. */
-  private cullReach = { key: '', radii: 0 };
+  private cullReach: { key: string; radii: CullReachRadii } = {
+    key: '',
+    radii: { drawnRadii: 0, ringBodyScale: 1, ringLobeRadii: 0 },
+  };
   /** The view this cell was last drawn with: the ghost's source when the cell is absorbed. */
   private drawnView: CellView | null = null;
 
@@ -140,7 +143,7 @@ export class CellRenderState {
   }
 
   /** How far this cell can draw from its centre, in radii, over any frame (`cell-cull.ts`); the cull reads it. */
-  cullReachRadiiOf(view: CellView): number {
+  cullReachRadiiOf(view: CellView): CullReachRadii {
     const key = traitsKeyOf(view, null);
     if (key !== this.cullReach.key) this.cullReach = { key, radii: cullReachRadii(summariseCellTraits(view, null)) };
     return this.cullReach.radii;
