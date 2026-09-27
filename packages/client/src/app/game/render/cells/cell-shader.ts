@@ -7,6 +7,7 @@ import { CELL_SHADER_BANDS } from './cell-shader-bands';
 import { CELL_SHADER_FRINGE } from './cell-shader-fringe';
 import { CELL_SHADER_MEMBRANE } from './cell-shader-membrane';
 import { CELL_SHADER_PATTERNS } from './cell-shader-patterns';
+import { CELL_SHADER_RINGS } from './cell-shader-rings';
 import { CELL_SHADER_TELLS } from './cell-shader-tells';
 import { HALF } from '../geometry';
 import { CELL_PASS, glslFloat, instanceRead, instanceTexelLocals } from './cell-shader-source';
@@ -46,6 +47,7 @@ precision highp float;
 precision highp int;
 ${CELL_SHADER_PATTERNS}
 ${CELL_SHADER_BANDS}
+${CELL_SHADER_RINGS}
 ${CELL_SHADER_TELLS}
 ${CELL_SHADER_FRINGE}
 ${CELL_SHADER_MEMBRANE}

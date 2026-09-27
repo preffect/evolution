@@ -61,9 +61,16 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    still reads from the body. The body is also exactly the **hit and engulf disc**: contact, the engulf check and
    the engulf reach all use the round body radius `r` (`ecology/absorption.md`), never the appendage. Appendages are
    cosmetic: they add no reach, no collision and no mass. An arm that overlaps another cell does not touch it.
-4. **Rings trace the outline.** The engulf-warning ring and the relation rings keep their gap (1.3 r − r, with their
-   px floors) from the **outline**, appendages included, instead of cutting through an arm as a circle. Round cells'
-   rings are unchanged. Until ticket #730 ships this, the rings are still circles and an appendage crosses them.
+4. **Rings trace the body and its lobes, not its fringe.** The engulf-warning ring and the relation rings keep their
+   gap (1.3 r − r, with their px floors) from the **body and its lobe-type appendages** (the amoeba's pseudopods, an
+   engulf's arms), instead of cutting through an arm or a body as a circle (#730): the ring follows the body out
+   wherever the body passes its circle (a paramecium's slipper nose, a fast swimmer's stretched front), and bulges out
+   round every lobe by its height, widened so its flanks keep the gap too, with a notch between two neighbouring arms
+   (docs/rendering/cells.md §2.2 "Traced rings"). **Fringe-type appendages** (the paramecium's cilia tufts, and later
+   flagella) are not traced and cross the ring: a ring round twenty tufts would be a star, not a ring. The threat
+   ring's 6 / 5 px dash runs along the traced curve, and no label sits on an arm. The gap wins over a round ring: a
+   round cell's ring is unchanged, pixel for pixel, **at rest**; while it swims its ring follows its stretched front,
+   and while an engulf's arms or an eat's wrap push its outline out its ring bulges round them.
 5. **The quad and the preview lens never clip an appendage.** Its reach is counted in the form's reach bounds
    (docs/rendering/cells.md §2.4), and the quad grows past `CELL_QUAD_EXTENT_RADII` when it must.
 6. **Appendages wear the player's colour.** They are the cell's silhouette, so they take its palette, never a shared

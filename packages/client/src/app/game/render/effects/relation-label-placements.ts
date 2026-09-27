@@ -8,6 +8,7 @@ import type { CellView, EntityId } from '@evolution/shared';
 import type { LastViewOf } from '../cells/cell-effects';
 import { relationRingOuterLinePx, relationRingPackingFor } from '../cells/cell-instance-builder';
 import { cellLodFor } from '../cells/cell-lod';
+import { ringLabelReachPx } from '../cells/traced-ring-reach';
 import { LABEL_PILL_HEIGHT_PX, RELATION_RING_STROKE_PX, WARNING_RING_STROKE_PX, WHITE } from '../constants';
 import { HALF, type Disc, type UprightBox } from '../geometry';
 import { labelPillWidthPx } from '../textures/label-pill-bake';
@@ -16,7 +17,7 @@ import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import type { IndicatorLabelPlacement, ThreatAnchor } from './own-cell-indicators';
 import { relationLabelFit } from './relation-label-fit';
 
-/** A drawn relation ring: its cell's centre in world units and its outermost line in px. */
+/** A drawn relation ring: its cell's centre in world units and its outermost line in px, out past any arm it traces. */
 export interface DrawnRelationRing {
   readonly cellId: EntityId;
   readonly x: number;
@@ -54,9 +55,11 @@ function drawnRings(input: RelationSceneInput): DrawnRelationRing[] {
   for (const [cellId, ring] of input.indicators?.relationRings ?? []) {
     const view = input.viewOf(cellId);
     if (view === undefined) continue;
-    const packing = relationRingPackingFor(ring, cellLodFor(view.radius * input.zoom), NO_WARNING_RING);
-    if (packing.relationRingPx > 0)
-      rings.push({ cellId, x: view.x, y: view.y, ringPx: relationRingOuterLinePx(packing) });
+    const screenRadiusPx = view.radius * input.zoom;
+    const packing = relationRingPackingFor(ring, cellLodFor(screenRadiusPx), NO_WARNING_RING);
+    if (packing.relationRingPx <= 0) continue;
+    const ringPx = ringLabelReachPx(view, relationRingOuterLinePx(packing), screenRadiusPx);
+    rings.push({ cellId, x: view.x, y: view.y, ringPx });
   }
   return rings;
 }

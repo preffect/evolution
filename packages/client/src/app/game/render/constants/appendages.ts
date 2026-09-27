@@ -13,3 +13,17 @@ export const APPENDAGE_MIN_RETRACTED_PAST_RING_RADII = 0.15;
  * at half its height), is at least this many radii, whatever its extension.
  */
 export const APPENDAGE_MIN_NECK_WIDTH_RADII = 0.3;
+/**
+ * Rule 4 (#730): the rings trace the outline. A ring lobe is a membrane bump at its full height with its σ widened to
+ * `√(σ² + RING_TRACE_SIGMA_WIDENING · ln(1 + g))`, `g` the ring's gap over the core radius under the bump: fitted so
+ * the ring clears the arm's flanks by the gap as well as its tip (`traced-ring.spec.ts` measures the clearance).
+ */
+export const RING_TRACE_SIGMA_WIDENING = 0.21;
+/** The dash runs along the traced ring: its extra arc length is integrated in this many trapezoids round the turn. */
+export const RING_TRACE_ARC_SAMPLES = 96;
+/** …or this many when the ring has no lobe and only the body shapes it: a smooth curve, a coarser grid is enough. */
+export const RING_TRACE_BODY_ARC_SAMPLES = 24;
+/** Angles the ring's body offset is sampled at for its reach bound, round the turn. */
+export const RING_TRACE_REACH_SAMPLES = 360;
+/** What the sampled body bound adds for the peaks between its samples, as a share. */
+export const RING_TRACE_REACH_MARGIN = 0.01;

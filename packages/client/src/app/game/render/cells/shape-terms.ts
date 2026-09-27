@@ -206,7 +206,7 @@ function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): 
   );
 }
 
-function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
+export function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
   return {
     k: speedRatio,
     along: STRETCH_ALONG,
@@ -216,6 +216,10 @@ function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
     axialAcross: 1,
   };
 }
+
+/** The widest the stretch scales a radius at this speed, sprinting or not (the traced ring's reach bound, #730). */
+export const peakStretchRadii = (speedRatio: number, isSprinting: boolean): number =>
+  stretchReach(stretchTerm(speedRatio, isSprinting));
 
 /**
  * Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter
