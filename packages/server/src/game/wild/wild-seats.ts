@@ -62,6 +62,7 @@ export function createWildSeatRecord(seatNumber: number): WildSeatRecord {
     headingX: AT_REST,
     headingY: AT_REST,
     decideInTicks: AT_REST,
+    huntPreyId: null,
   };
 }
 
@@ -104,6 +105,7 @@ export function seatWildCell(
   seat.grownMass = 0;
   seat.fullMass = baseMass;
   seat.isStarving = false;
+  seat.huntPreyId = null;
   setCellMass(cell, baseMass, balance);
   applyWorldLadder(cell, seat, reference, balance);
   world.cells.push(cell);

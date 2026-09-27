@@ -96,6 +96,8 @@ export interface WildSeatRecord {
   headingX: number;
   headingY: number;
   decideInTicks: number;
+  /** The cell the last decision hunts, re-aimed at every tick (`wild/wild-hunt-aim.ts`); `null` for any other rule. */
+  huntPreyId: EntityId | null;
 }
 
 export interface TraitOffer extends TraitOfferView {

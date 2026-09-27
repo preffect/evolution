@@ -38,6 +38,12 @@ const W12_PREDATOR_SEAT = 1;
 const W12_PREDATOR_SIZE = 2;
 const W12_PREY_EAST_WU = 10;
 const W12_SEAL_TICK = 23;
+/**
+ * Seat 1 covers seat 0 on tick 1, so its hunt holds (ticket #738, wild-hunt-aim.ts): the 10 wu gap over the 0.25 s
+ * steer time is 40 wu/s, 18.2 % of its ≈ 219.8 wu/s cap, which the steer ramp places 0.5 + 1.5 × 0.182 = 0.773 radii
+ * (19.56 wu) east of its centre.
+ */
+const W12_HOLD_TARGET_EAST_WU = 19.557;
 const W12_PAYOUT_TICK = 45;
 /** "Seat 1's mass = 41.50 + 0.8 × 20.75 = 58.10 (± 0.01)"; after 46, growth 16.5987 (± 0.0001), full 58.132 (± 0.001). */
 const W12_MASS_AT_PAYOUT = 58.1;
@@ -120,12 +126,18 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       )
       .atTick(ONE_TICK)
       .toBeCloseTo(1 / W12_PAYOUT_TICK, PROGRESS_TOLERANCE)
-      .expect("seat 1's hunt targets seat 0's centre on tick 1 and does not sprint", (view) => [
-        seatTarget(W12_PREDATOR_SEAT)(view),
-        seatCell(W12_PREDATOR_SEAT)(view)?.sprintRemainingTicks,
-      ])
+      .expect("seat 1's hunt holds over seat 0 on tick 1 and does not sprint", (view) => ({
+        target: seatTarget(W12_PREDATOR_SEAT)(view),
+        sprintTicks: seatCell(W12_PREDATOR_SEAT)(view)?.sprintRemainingTicks,
+      }))
       .atTick(ONE_TICK)
-      .toEqual([preyAt, 0])
+      .toSatisfy(
+        ({ target, sprintTicks }) =>
+          sprintTicks === 0 &&
+          target?.y === BROTH_POINT.y &&
+          Math.abs((target.x ?? Number.NaN) - (BROTH_POINT.x + W12_HOLD_TARGET_EAST_WU)) <= OFFSET_TOLERANCE_WU,
+        `[(${BROTH_POINT.x + W12_HOLD_TARGET_EAST_WU}, 0), 0]`,
+      )
       .expect('seat 0 sealed on tick 23', (view) => seatCell(PLACED_SEAT)(view)?.engulfProgress)
       .atTick(W12_SEAL_TICK)
       .toBeAtLeast(ENGULF_SEAL_PROGRESS)

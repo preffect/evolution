@@ -124,44 +124,13 @@ describe('hunter strategy', () => {
   });
 });
 
-describe('hunter strategy: aimPastInContactRadii (#738)', () => {
-  const aimPastInContactRadii = 2;
-  const preyRadius = 6;
-  /** `smallPrey` due east with its centre `gap` wu past touching `self` (centres `self.radius + preyRadius` apart). */
-  const preyAtGap = (gap: number) => ({ ...smallPrey, radius: preyRadius, x: self.radius + preyRadius + gap, y: 0 });
-  const decideOn = (prey: ReturnType<typeof preyAtGap>) =>
-    createHunterStrategy(perception, { aimPastInContactRadii, isSprintWorthwhile: () => false })().decide(
-      contextWith([self, prey]),
-    );
-
-  it('aims past a prey it touches, centres exactly the sum of the radii apart', () => {
-    const touching = preyAtGap(0);
-    expect(decideOn(touching)).toEqual({ targetX: touching.x + aimPastInContactRadii * self.radius, targetY: 0 });
-  });
-
-  it('aims at the centre of the same prey one wu out of contact', () => {
-    const apart = preyAtGap(1);
-    expect(decideOn(apart)).toEqual({ targetX: apart.x, targetY: 0 });
-  });
-
-  it('aims at the centre of a prey it touches when isChargeWorthwhile says no', () => {
-    const touching = preyAtGap(0);
-    const strategy = createHunterStrategy(perception, {
-      aimPastInContactRadii,
-      isChargeWorthwhile: (hunter, prey) => hunter.id !== self.id || prey.id !== touching.id,
-    })();
-    expect(strategy.decide(contextWith([self, touching]))).toEqual({
-      targetX: touching.x,
-      targetY: 0,
-      isSprinting: true,
-    });
-  });
-
-  it('leaves the catalogue hunter aiming past its prey both in and out of contact', () => {
-    const catalogue = createGrazingHunterStrategy(perception, { isSprintWorthwhile: () => false });
-    for (const prey of [preyAtGap(0), preyAtGap(1)]) {
-      expect(catalogue().decide(contextWith([self, prey]))).toEqual(aimPastEast(prey));
-    }
+describe('hunter strategy: onHunt (#738)', () => {
+  it('is told the prey each decision hunts, and nothing when there is none', () => {
+    const hunted: string[] = [];
+    const strategy = createHunterStrategy(perception, { onHunt: (prey) => hunted.push(prey.id) })();
+    strategy.decide(contextWith([self, smallPrey, biggerPrey]));
+    strategy.decide(contextWith([self, tooBig]));
+    expect(hunted).toEqual([biggerPrey.id]);
   });
 });
 

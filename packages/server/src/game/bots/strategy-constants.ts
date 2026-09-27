@@ -21,9 +21,9 @@ export const HUNTER_SPRINT_WITHIN_RADII = 4;
  */
 export const HUNTER_AIM_PAST_PREY_RADII = STEER_FULL_THROTTLE_RADII;
 /**
- * How far past its prey's centre a wild hunter aims while the two touch and it is not yet engulfing, in own radii
- * (#738, docs/ecology/wild-cells.md §3.3.3): the catalogue hunter's full-throttle distance, so it charges through to
- * start the engulf instead of slowing to ride alongside its prey; out of contact or once engulfing it aims at the centre.
+ * How far past its prey's centre a wild hunter aims while the two touch and it neither engulfs nor covers the prey's
+ * centre, in own radii (#738, docs/ecology/wild-cells.md §3.3.3, `wild/wild-hunt-aim.ts`): the catalogue hunter's
+ * full-throttle distance, so it charges in to start the engulf instead of slowing to ride alongside its prey.
  */
 export const WILD_HUNT_AIM_PAST_IN_CONTACT_RADII = STEER_FULL_THROTTLE_RADII;
 /** A fleeing bot reacts to a threat within this many of its own radii. */

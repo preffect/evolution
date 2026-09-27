@@ -25,10 +25,8 @@ import {
 import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { TEST_PLAYER, createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
-import { beginEngulf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import { findCell } from '../world/lookups.js';
-import { WILD_HUNT_AIM_PAST_IN_CONTACT_RADII } from '../bots/strategy-constants.js';
 import type { StepContext } from '../world/world-state.js';
 import { wildSightRange } from './wild-perception.js';
 import { decideWildTargets, decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
@@ -152,63 +150,6 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 5, y: 0 }, mass: LUNCH_MASS }).cell;
     decideWildTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: lunch.y });
-  });
-
-  it('charges through a wild prey it touches: WILD_HUNT_AIM_PAST_IN_CONTACT_RADII own radii past its centre (ticket #738)', () => {
-    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
-    const touching = wild.radius + radiusForMass(LUNCH_MASS, growth);
-    const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: touching, y: 0 }, mass: LUNCH_MASS }).cell;
-    const radiusAtDecision = wild.radius; // the sprint it starts in range shrinks it after the aim is set
-    decideWildTargets(world, context);
-    expect(targetOf(wild)).toEqual({ x: lunch.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * radiusAtDecision, y: 0 });
-  });
-
-  it('aims at the centre of a wild prey it touches once it is engulfing it, or anything else (ticket #738)', () => {
-    const touching = (world: ReturnType<typeof arena>['world'], wild: ReturnType<typeof arena>['wild']) =>
-      seatTestWildCell(world, {
-        seatNumber: 1,
-        at: { x: wild.radius + radiusForMass(LUNCH_MASS, growth), y: 0 },
-        mass: LUNCH_MASS,
-      }).cell;
-    const onIt = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
-    const lunch = touching(onIt.world, onIt.wild);
-    beginEngulf({ predator: onIt.wild, prey: lunch });
-    decideWildTargets(onIt.world, onIt.context);
-    expect(targetOf(onIt.wild)).toEqual({ x: lunch.x, y: 0 });
-    const onOther = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 20 });
-    const nextLunch = touching(onOther.world, onOther.wild);
-    beginEngulf({ predator: onOther.wild, prey: onOther.player });
-    decideWildTargets(onOther.world, onOther.context);
-    expect(targetOf(onOther.wild)).toEqual({ x: nextLunch.x, y: 0 });
-  });
-
-  it('aims at the centre of a wild prey its membrane already covers: the engulf starts this tick (ticket #738)', () => {
-    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
-    const reach = wild.radius - radiusForMass(LUNCH_MASS, growth) * DEFAULT_BALANCE.absorption.ENGULF_COVERAGE_FRACTION;
-    const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: reach, y: 0 }, mass: LUNCH_MASS }).cell;
-    decideWildTargets(world, context);
-    expect(targetOf(wild)).toEqual({ x: lunch.x, y: 0 });
-  });
-
-  it('charges a wild prey whose centre sits one wu past its membrane (ticket #738)', () => {
-    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
-    const reach = wild.radius - radiusForMass(LUNCH_MASS, growth) * DEFAULT_BALANCE.absorption.ENGULF_COVERAGE_FRACTION;
-    const lunch = seatTestWildCell(world, {
-      seatNumber: 1,
-      at: { x: reach + JUST_PAST_WU, y: 0 },
-      mass: LUNCH_MASS,
-    }).cell;
-    const radiusAtDecision = wild.radius;
-    decideWildTargets(world, context);
-    expect(targetOf(wild)).toEqual({ x: lunch.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * radiusAtDecision, y: 0 });
-  });
-
-  it('aims at the centre of the same wild prey one wu out of contact (ticket #738)', () => {
-    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
-    const apart = wild.radius + radiusForMass(LUNCH_MASS, growth) + JUST_PAST_WU;
-    const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: apart, y: 0 }, mass: LUNCH_MASS }).cell;
-    decideWildTargets(world, context);
-    expect(targetOf(wild)).toEqual({ x: lunch.x, y: 0 });
   });
 
   it('leaves the nearest lunch to a closer rival that can swallow it and hunts the next one (ticket #737)', () => {

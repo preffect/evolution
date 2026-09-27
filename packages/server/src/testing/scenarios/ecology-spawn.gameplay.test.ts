@@ -17,16 +17,16 @@ const SOLO_FRAGMENT_CAP = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_C
 /** E2 and E14 count over 610 ticks so that no count lands on the final tick. */
 const COUNT_WINDOW_TICKS = 610;
 /**
- * E14 on the pinned seed: since ticket #738 (a wild hunter charges a prey it touches until its engulf starts) a wild
- * cell eats the idle player on tick 28 820, in the window, and its whole 182-tick spectate takes the per-player rates
- * off the budget: food 106.75 − 182 / 60 × 1 × 1.5 = 102.2 → "between 102 and 106", fragments 8.13 − 182 / 60 × 0.1
- * × 2 = 7.53 → 7. From #710 (nothing rides past the rim) to #738 no death, budgets whole: 106–110 and 8. From #677 to #710 a wild cell ate it
+ * E14 on the pinned seed: since ticket #738 (the hunt aim follows the prey every tick) wild cells eat the idle player
+ * on tick 28 706, 87 of whose spectate ticks fall in the window, and on tick 29 148, whose whole spectate does: food
+ * 106.75 − (87 + 182) / 60 × 1 × 1.5 = 100.0 → "between 100 and 104", fragments 8.13 − (87 + 182) / 60 × 0.1 × 2 =
+ * 7.23 → 7; one death counted in the window. From #710 (nothing rides past the rim) to #738 no death, budgets whole: 106–110 and 8. From #677 to #710 a wild cell ate it
  * once (tick 29 023), and its 182-tick spectate took the per-player rates off the budget: food 106.75 − 182 / 60 × 1 ×
  * 1.5 = 102.2 → 102–106, fragments 8.13 − 182 / 60 × 0.1 × 2 = 7.53 → 7; before #677 no death, 106–110 and 8.
  */
 const E14_DEATHS_IN_WINDOW = 1;
-const E14_SPAWNED_LOW = 102;
-const E14_SPAWNED_HIGH = 106;
+const E14_SPAWNED_LOW = 100;
+const E14_SPAWNED_HIGH = 104;
 const E14_FRAGMENTS_SPAWNED = 7;
 
 function algaeShare(view: EvolutionView): number {
