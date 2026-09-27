@@ -25,6 +25,7 @@ import { paletteFor } from '../palette';
 import type { SpritePaint } from '../sprite-pool';
 import type { LastViewOf } from '../cells/cell-effects';
 import { warningRingPxFor } from '../cells/cell-instance-builder';
+import { ringLabelReachPx } from '../cells/traced-ring-reach';
 import { cellLodFor } from '../cells/cell-lod';
 import { escapeLabelFor, type OwnCellEscape, type OwnCellIndicators } from '../../state/own-cell-indicators';
 import { LADDER_SILHOUETTE } from '../../state/own-cell-ladder';
@@ -53,6 +54,7 @@ const RUNG_GHOST_KEYS: readonly string[] = Object.values(LADDER_SILHOUETTE);
 export interface ThreatAnchor {
   readonly x: number;
   readonly y: number;
+  /** The ring's reach in px: its circle round the body, out past the farthest arm it can trace (`ringLabelReachPx`, #730). */
   readonly warningRingPx: number;
 }
 
@@ -122,8 +124,10 @@ export function threatAnchorFor(input: ThreatAnchorInput): ThreatAnchor | null {
   const nearest = input.indicators?.nearestThreat ?? null;
   const view = nearest === null ? undefined : input.viewOf(nearest.cellId);
   if (view === undefined || ownCell === null) return null;
-  const warningRingPx = warningRingPxFor(view, ownCell, input.balance, cellLodFor(view.radius * zoom));
-  return warningRingPx > 0 ? { x: view.x, y: view.y, warningRingPx } : null;
+  const screenRadiusPx = view.radius * zoom;
+  const warningRingPx = warningRingPxFor(view, ownCell, input.balance, cellLodFor(screenRadiusPx));
+  if (warningRingPx <= 0) return null;
+  return { x: view.x, y: view.y, warningRingPx: ringLabelReachPx(view, warningRingPx, screenRadiusPx) };
 }
 
 /** A round-capped ring or arc from 12 o'clock: the DNA track and fill, the escape track and arc, an unlock ring. */
