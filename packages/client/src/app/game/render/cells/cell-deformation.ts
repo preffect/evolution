@@ -18,9 +18,19 @@ export interface CellDeformation {
   readonly preyAngle?: number;
   /**
    * How far past the body an arm must reach to hold that prey (#753): to its centre and on by the body's coverage share
-   * of its radius, in this cell's radii; 0 once the body covers it. Absent when not engulfing.
+   * of its radius, in this cell's radii; 0 once the body covers it. Absent when not engulfing and not letting go (#768).
    */
   readonly armHoldRadii?: number;
+  /** How far the held arm has swung onto the prey (#768); absent when the grip is full, at the prey angle. */
+  readonly armGrip?: ArmGrip;
+}
+
+/** The held arm's grip, eased on the render clock at the grab and after an escape (#768). */
+export interface ArmGrip {
+  /** Where the prey is, or was when it escaped (cell frame, radians). */
+  readonly angle: number;
+  /** 0 → the arm in its fan place, 1 → on the prey. */
+  readonly share: number;
 }
 
 export type CellDeformations = ReadonlyMap<EntityId, CellDeformation>;

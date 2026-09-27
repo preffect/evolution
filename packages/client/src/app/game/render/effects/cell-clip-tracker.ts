@@ -17,12 +17,15 @@ import {
 import { REST_CLIP_INPUT, clipDeformation, engulfClipPosition, type CellClipInput } from '../cells/cell-clips';
 import type { CellDeformation, CellDeformations } from '../cells/cell-deformation';
 import type { CellClipStart } from '../cells/cell-effects';
+import { ArmGripEasing, type ArmLetGo } from './arm-grip-easing';
 import { MotionClipPlayer } from './motion-clip-player';
 
 interface CellClipState {
   readonly player: MotionClipPlayer;
   /** Where the last eaten mote was (cell frame, radians), held while the `eat` clip plays. */
   moteAngle: number | null;
+  /** The held arm's grip on the prey, eased at the grab and after an escape (#768). */
+  readonly grip: ArmGripEasing;
 }
 
 export type CellViewsById = ReadonlyMap<EntityId, CellView>;
@@ -42,6 +45,8 @@ export function armHoldRadii(predator: EngulfLookCell, prey: EngulfLookCell, cov
   return Math.max(0, reach / predator.radius - 1);
 }
 
+type EngulfInput = Pick<CellClipInput, 'preyAngle' | 'engulfClipPosition' | 'armHoldRadii'>;
+
 const NOT_ENGULFING = { preyAngle: null, engulfClipPosition: null, armHoldRadii: REST_CLIP_INPUT.armHoldRadii };
 
 /**
@@ -49,11 +54,7 @@ const NOT_ENGULFING = { preyAngle: null, engulfClipPosition: null, armHoldRadii:
  * seal and how far an arm must reach to hold it (`absorption` is the live balance's, so a patched phase second moves the
  * arms with the HUD); rest when it is not engulfing.
  */
-export function engulfClipInput(
-  cell: CellView,
-  cellsById: CellViewsById,
-  absorption: EngulfLookBalance,
-): Pick<CellClipInput, 'preyAngle' | 'engulfClipPosition' | 'armHoldRadii'> {
+export function engulfClipInput(cell: CellView, cellsById: CellViewsById, absorption: EngulfLookBalance): EngulfInput {
   const prey = cell.engulfingCellId === null ? undefined : cellsById.get(cell.engulfingCellId);
   if (prey === undefined) return NOT_ENGULFING;
   return {
@@ -73,7 +74,7 @@ export class CellClipTracker {
   private stateFor(cellId: EntityId): CellClipState {
     const existing = this.states.get(cellId);
     if (existing !== undefined) return existing;
-    const state: CellClipState = { player: new MotionClipPlayer(), moteAngle: null };
+    const state: CellClipState = { player: new MotionClipPlayer(), moteAngle: null, grip: new ArmGripEasing() };
     this.states.set(cellId, state);
     return state;
   }
@@ -90,23 +91,32 @@ export class CellClipTracker {
     return started;
   }
 
+  /** The held arm's grip while engulfing (never `null` then), or its let-go once the engulf has ended; else `null`. */
+  private gripOf(cellId: EntityId, engulf: EngulfInput, nowMs: number): Partial<ArmLetGo> | null {
+    if (engulf.preyAngle === null) return this.states.get(cellId)?.grip.letGo(nowMs) ?? null;
+    return { armGrip: this.stateFor(cellId).grip.hold(engulf.preyAngle, engulf.armHoldRadii, nowMs) };
+  }
+
+  /** The cell's running clips: their tracks and, while it eats, where the mote was. */
+  private clipsOf(cellId: EntityId, nowMs: number): Pick<CellClipInput, 'tracks' | 'moteAngle'> {
+    const state = this.states.get(cellId);
+    if (state === undefined) return REST_CLIP_INPUT;
+    const isEating = state.player.isPlaying(MOTION_CLIP.eat, nowMs);
+    return { tracks: state.player.sample(nowMs), moteAngle: isEating ? state.moteAngle : null };
+  }
+
   private deformationOf(
     cell: CellView,
     views: CellViewsById,
     nowMs: number,
     absorption: EngulfLookBalance,
   ): CellDeformation | null {
-    const state = this.states.get(cell.id);
-    const tracks = state?.player.sample(nowMs) ?? {};
-    const isEating = state?.player.isPlaying(MOTION_CLIP.eat, nowMs) ?? false;
     const engulf = engulfClipInput(cell, views, absorption);
-    if (Object.keys(tracks).length === 0 && engulf.preyAngle === null) return null;
-    return clipDeformation({
-      tracks,
-      moteAngle: isEating ? (state?.moteAngle ?? null) : null,
-      absorbedSeal: null,
-      ...engulf,
-    });
+    const grip = this.gripOf(cell.id, engulf, nowMs);
+    const clips = this.clipsOf(cell.id, nowMs);
+    if (Object.keys(clips.tracks).length === 0 && grip === null) return null;
+    const deformation = clipDeformation({ ...clips, absorbedSeal: null, ...engulf });
+    return grip === null ? deformation : { ...deformation, ...grip };
   }
 
   /**
