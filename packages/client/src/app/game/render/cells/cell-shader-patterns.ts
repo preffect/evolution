@@ -34,6 +34,7 @@ import {
   TEXEL_FLOATS,
   instanceScalarFields,
 } from './cell-instance';
+import { CELL_SHADER_SLIPPER } from './cell-shader-slipper';
 import { glslFloat, instanceRead, instanceTexelLocals } from './cell-shader-source';
 
 /** The levels of one byte channel, so a hi byte weighs `BYTE_LEVELS` lo bytes. */
@@ -94,7 +95,7 @@ struct Instance {
   float tintMix; float warningRingPx; float formId; float passBAlpha;
   float rimDash; float ciliaPhase; float nucleusDiscRadii; float speckleSeed;
   float selfRingFill; float selfRingBrightness; float relationRingPx; float relationRingLines;
-  float wither; float wrinkleAmplitude;
+  float wither; float wrinkleAmplitude; float formTier;
 };
 
 Instance readInstance() {
@@ -123,6 +124,7 @@ Instance readInstance() {
   inst.selfRingFill = ${instanceRead('selfRingFill')}; inst.selfRingBrightness = ${instanceRead('selfRingBrightness')};
   inst.relationRingPx = ${instanceRead('relationRingPx')}; inst.relationRingLines = ${instanceRead('relationRingLines')};
   inst.wither = ${instanceRead('wither')}; inst.wrinkleAmplitude = ${instanceRead('wrinkleAmplitude')};
+  inst.formTier = ${instanceRead('formTier')};
   return inst;
 }
 
@@ -185,9 +187,11 @@ vec4 stripSample(Instance inst, float unit) {
               (jitterB - jitterA) * perRadian, (lobesB - lobesA) * perRadian);
 }
 
-/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the amoeba's core (#192); the blob for the rest until #193–#196. */
+${CELL_SHADER_SLIPPER}
+/** 'B(Δ)' per form with dB/dΔ (radial-profile.ts FormProfile): the amoeba's core (#192), the slipper (#193); the blob for the rest until #194–#196. */
 vec2 formAt(Instance inst, float delta) {
   if (abs(inst.formId - ${glslFloat(FORM_ID.amoeba)}) < HALF) return vec2(${glslFloat(AMOEBA_CORE_SCALE)}, 0.0);
+  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) < HALF) return slipperAt(inst.formTier, delta);
   return vec2(1.0, 0.0);
 }
 

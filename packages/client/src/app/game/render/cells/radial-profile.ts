@@ -20,6 +20,19 @@ export interface ShapeBump {
 /** An unused bump slot: no amplitude, a unit sigma so the Gaussian stays finite. */
 export const ZERO_BUMP: ShapeBump = { amplitude: 0, centre: 0, sigma: 1 };
 
+/** The largest positive bump sum, evaluated at every bump centre (neighbouring bumps overlap). */
+export function bumpPeak(bumps: readonly ShapeBump[]): number {
+  let peak = 0;
+  for (const centreBump of bumps) {
+    if (centreBump.amplitude <= 0) continue;
+    let sum = 0;
+    for (const other of bumps)
+      sum += gaussianBump(other.amplitude, wrapAngle(centreBump.centre - other.centre), other.sigma).value;
+    peak = Math.max(peak, sum);
+  }
+  return peak;
+}
+
 export interface WobbleTerm {
   readonly amplitude: number;
   readonly mode: number;

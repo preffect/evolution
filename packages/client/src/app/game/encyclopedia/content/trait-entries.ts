@@ -171,7 +171,7 @@ export const TRAIT_ENTRY_ROWS = [
   {
     traitId: 'paramecium_cilia',
     summary:
-      'A slipper-shaped body covered in cilia. Its speed stacks on the [[trait:cilia]] it grows from, and it twists hard against a wrap. One form per cell.',
+      'A slipper-shaped body fringed with long cilia. Its speed stacks on the [[trait:cilia]] it grows from, and it twists hard against a wrap. One form per cell.',
     tierBodies: ['A short slipper.', 'A longer slipper.', 'The longest slipper.'],
     seeAlso: ['trait:cilia'],
   },

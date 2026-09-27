@@ -23,14 +23,15 @@ import {
   TRAIT_HALO_OUTER_RADII,
   WOBBLE_TAUT_SCALE,
 } from '../constants';
-import { gaussianBump, wrapAngle } from '../geometry';
 import type { NoiseStrip } from '../noise/noise-strip';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
+import { reachWithCiliaTufts } from './forms/paramecium-cilia';
 import {
   ZERO_BUMP,
+  bumpPeak,
   stretchAt,
   type RadialProfileTerms,
   type FormProfile,
@@ -75,7 +76,7 @@ export interface ShapeTerms extends RadialProfileTerms {
   readonly bumps: readonly ShapeBump[];
   /** The halo's outer radius for this cell's halo kind. */
   readonly haloOuterRadii: number;
-  /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2). */
+  /** The per-instance maximum reach in radii: pulse × stretch × surface × halo (§2), or the paramecium's tuft tips. */
   readonly maxRadii: number;
   readonly isSprinting: boolean;
 }
@@ -90,19 +91,6 @@ const HALO_OUTER_BY_KIND: Readonly<Record<number, number>> = {
 /** The bumps padded (or cut) to exactly `MAX_SHAPE_BUMPS` slots. */
 export function assignBumpSlots(bumps: readonly ShapeBump[]): ShapeBump[] {
   return Array.from({ length: MAX_SHAPE_BUMPS }, (_unused, slot) => bumps[slot] ?? ZERO_BUMP);
-}
-
-/** The largest positive bump sum, evaluated at every bump centre (neighbouring bumps overlap). */
-export function bumpPeak(bumps: readonly ShapeBump[]): number {
-  let peak = 0;
-  for (const centreBump of bumps) {
-    if (centreBump.amplitude <= 0) continue;
-    let sum = 0;
-    for (const other of bumps)
-      sum += gaussianBump(other.amplitude, wrapAngle(centreBump.centre - other.centre), other.sigma).value;
-    peak = Math.max(peak, sum);
-  }
-  return peak;
 }
 
 /** `atan2(velocityY, velocityX)` while moving; the held heading at rest. */
@@ -296,5 +284,7 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     stretch: stretchTerm(input.speedRatio, isSprinting),
     bumps: assignBumpSlots(formBumps(input)),
   };
-  return { ...terms, haloOuterRadii, maxRadii: maxReachRadii(terms, haloOuterRadii), isSprinting };
+  const withHalo = maxReachRadii(terms, haloOuterRadii);
+  const maxRadii = reachWithCiliaTufts(traits.form, withHalo, withHalo / haloOuterRadii);
+  return { ...terms, haloOuterRadii, maxRadii, isSprinting };
 }

@@ -203,7 +203,14 @@ and a form keeps growing, so every `B` is **normalised to unit area** (`∫ B² 
 area equals the blob's `π r²` and mass ∝ area holds for forms exactly as for the blob. Sheet 04's wu sizes are
 therefore **aspects at the sheet's mass**, never absolute sizes: slipper 60 × 24 wu → aspect 1.6 / 1.8 / 2.0 per
 tier (visual-style/cells-and-organelles.md §4 resolves the 2.5), spindle 50 × 16 wu → 3.1, trumpet 70 wu tall with a 36 wu mouth →
-mouth : height 0.51, diatom valve r 26 wu → a circle. Forms: slipper (ellipse, oral-groove dent), spindle (pointed
+mouth : height 0.51, diatom valve r 26 wu → a circle. Forms: slipper (#193: the polar ellipse of the tier's aspect,
+× `1 + SLIPPER_FRONT_BLUNTNESS` 0.06 `cos Δ` for the blunt front, notched by the oral groove, a Gaussian
+`SLIPPER_ORAL_GROOVE_DEPTH` 0.14 deep at `SLIPPER_ORAL_GROOVE_DEG` 43° off the heading, σ 12°, then scaled to unit area;
+the instance's `formTier` picks the tier's baked aspect and scale in the GLSL; plus `CILIA_TUFT_COUNT` 16 cilia tufts, the
+form's **appendage** (visual-style/motion-and-legibility.md §5.1), drawn in pass B outside the membrane: each is measured
+radially from the membrane, `CILIA_TUFT_REACH_RADII` 1.3 r at full extension, beating down to 0.66 of it in a metachronal
+wave nose to tail, bent back toward the tail, `CILIA_TUFT_ROOT_WIDTH_RADII` 0.40 r tapering to a 0.26 r round tip; the
+reach bounds and the quad add the tufts past the widest membrane), spindle (pointed
 ends), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
 §2.1's perpendicular distance stops being optional), diatom (rigid: wobble, jitter, lobes **and breathing** zero,
 a silica valve does not breathe; 36 striae in pass A, 8 / 12 / 16 spine rays with bright tips in pass B), amoeba
@@ -219,4 +226,4 @@ organelles do not (seat marks are frame-fixed, visual-style/principles-and-palet
 `SPINDLE_ASPECT`, `TRUMPET_MOUTH_TO_HEIGHT`, `DIATOM_ASPECT`, `PSEUDOPOD_COUNT_BY_TIER`, the rigid flag that stills
 the diatom's rest terms, and `normalisedArea` for the §9 pin); `radial-profile.ts` carries `B` as the `form` term
 and the GLSL's `formAt` mirrors it. #216 ships the registry with every profile at the blob (`B ≡ 1`); #192–#196
-register the silhouettes (the amoeba with #192).
+register the silhouettes (the amoeba with #192, the slipper with #193).

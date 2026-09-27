@@ -6,6 +6,9 @@ import { catalogCards } from '../format/catalog-cards';
 import { isCardSheetRouteEnabled } from './card-sheet-route';
 import { TraitCardSheetComponent } from './card-sheet.component';
 
+/** Renders every catalog card through the real component: about 3 s alone, over 5 s on a loaded box (#747). */
+const EVERY_CARD_TIMEOUT_MS = 30_000;
+
 describe('isCardSheetRouteEnabled', () => {
   it('opens only on ?cards in a development build', () => {
     expect(isCardSheetRouteEnabled(true, '?cards')).toBe(true);
@@ -17,18 +20,22 @@ describe('isCardSheetRouteEnabled', () => {
 });
 
 describe('TraitCardSheetComponent', () => {
-  it('draws every catalog card through the real trait card, each named for the height guard, under the HUD variables', () => {
-    TestBed.configureTestingModule({ imports: [TraitCardSheetComponent] });
-    const fixture = TestBed.createComponent(TraitCardSheetComponent);
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-    const sheet = root.querySelector<HTMLElement>(`[data-testid="${HUD_TEST_ID.traitCardSheet}"]`);
-    // The card reads its size from these; without them every card would be a zero box and every guard would pass.
-    expect(sheet?.style.getPropertyValue('--hud-picker-card-height')).not.toBe('');
-    const drawn = [...root.querySelectorAll<HTMLElement>('app-trait-card[data-card-id]')].map(
-      (card) => card.dataset['cardId'],
-    );
-    expect(drawn).toEqual(catalogCards(DEFAULT_BALANCE.traits).map((card) => card.cardId));
-    expect(root.querySelectorAll('app-trait-card .card .rarity')).toHaveLength(drawn.length);
-  });
+  it(
+    'draws every catalog card through the real trait card, each named for the height guard, under the HUD variables',
+    { timeout: EVERY_CARD_TIMEOUT_MS },
+    () => {
+      TestBed.configureTestingModule({ imports: [TraitCardSheetComponent] });
+      const fixture = TestBed.createComponent(TraitCardSheetComponent);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      const sheet = root.querySelector<HTMLElement>(`[data-testid="${HUD_TEST_ID.traitCardSheet}"]`);
+      // The card reads its size from these; without them every card would be a zero box and every guard would pass.
+      expect(sheet?.style.getPropertyValue('--hud-picker-card-height')).not.toBe('');
+      const drawn = [...root.querySelectorAll<HTMLElement>('app-trait-card[data-card-id]')].map(
+        (card) => card.dataset['cardId'],
+      );
+      expect(drawn).toEqual(catalogCards(DEFAULT_BALANCE.traits).map((card) => card.cardId));
+      expect(root.querySelectorAll('app-trait-card .card .rarity')).toHaveLength(drawn.length);
+    },
+  );
 });
