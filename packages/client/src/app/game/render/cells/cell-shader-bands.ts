@@ -1,10 +1,11 @@
 // Pass A of the cell shader (docs/rendering/cells.md §2.2, back → front): the halo (flat under the
 // body, "lit from inside"; the chloroplast / toxin trait halo replaces it), the far dot, the
-// four-stop body ramp and the two pools in the undeformed frame, the cytoplasm noise in world
-// units, the ribosome speckle on a hashed grid, the cytoskeleton filaments from the nucleus and,
-// last, the nucleus ramp (#231): the disc under the nucleus sprite as a three-stop radial ramp.
-// Everything under the organelle sprites. The pools, the noise and the interior tells fade with
-// `lodBlend`; the trait halo and the nucleus ramp do not (the mid-LOD tells, visual-style/cells-and-organelles.md §4, visual-style/motion-and-legibility.md §6).
+// four-stop body ramp and the two pools in the body frame (the undeformed frame over the form's B,
+// body-frame.ts), the cytoplasm noise in world units, the ribosome speckle on a hashed grid, the
+// cytoskeleton filaments from the nucleus and, last, the nucleus ramp (#231): the disc under the
+// nucleus sprite as a three-stop radial ramp. Everything under the organelle sprites. The pools, the
+// noise and the interior tells fade with `lodBlend`; the trait halo and the nucleus ramp do not (the
+// mid-LOD tells, visual-style/cells-and-organelles.md §4, visual-style/motion-and-legibility.md §6).
 
 import {
   BODY_RAMP_ALPHAS,
@@ -65,9 +66,9 @@ const SPECKLE_ANNULUS_AREA =
 
 export const CELL_SHADER_BANDS = /* glsl */ `
 /** The one halo shape: flat under the body to the peak stop, a soft ramp to 0 at 'outer' (undeformed radii). */
-float haloAlpha(float rhoU, float outer, float flatStop, float peak) {
+float haloAlpha(float radiusShare, float outer, float flatStop, float peak) {
   float rampSpan = outer * (1.0 - flatStop);
-  float ramp = (outer - rhoU) / rampSpan;
+  float ramp = (outer - radiusShare) / rampSpan;
   float blur = ${glslFloat(HALO_BLUR_RADII)} / rampSpan;
   return peak * smoothstep(0.0, 1.0, ramp / (1.0 + blur));
 }
@@ -77,13 +78,13 @@ vec4 haloBand(Instance inst, Frame frame, vec4 acc) {
     return over(acc, rimColour(inst), haloAlpha(frame.rhoU, ${glslFloat(FAR_DOT_HALO_RADII)}, ${glslFloat(HALO_FLAT_STOP)}, ${glslFloat(HALO_PEAK_ALPHA)}));
   }
   if (inst.haloKind == ${glslFloat(HALO_KIND.protocell)}) {
-    return over(acc, rimColour(inst), haloAlpha(frame.rhoU, ${glslFloat(PROTOCELL_HALO_OUTER_RADII)}, ${glslFloat(HALO_FLAT_STOP)}, ${glslFloat(PROTOCELL_HALO_PEAK_ALPHA)}));
+    return over(acc, rimColour(inst), haloAlpha(frame.rhoF, ${glslFloat(PROTOCELL_HALO_OUTER_RADII)}, ${glslFloat(HALO_FLAT_STOP)}, ${glslFloat(PROTOCELL_HALO_PEAK_ALPHA)}));
   }
   if (inst.haloKind == ${glslFloat(HALO_KIND.chloroplast)} || inst.haloKind == ${glslFloat(HALO_KIND.toxin)}) {
     vec3 glow = inst.haloKind == ${glslFloat(HALO_KIND.chloroplast)} ? uChloroLight : uToxinGlow;
-    return over(acc, glow, haloAlpha(frame.rhoU, ${glslFloat(TRAIT_HALO_OUTER_RADII)}, ${glslFloat(TRAIT_HALO_FLAT_STOP)}, ${glslFloat(TRAIT_HALO_PEAK_ALPHA)}));
+    return over(acc, glow, haloAlpha(frame.rhoF, ${glslFloat(TRAIT_HALO_OUTER_RADII)}, ${glslFloat(TRAIT_HALO_FLAT_STOP)}, ${glslFloat(TRAIT_HALO_PEAK_ALPHA)}));
   }
-  return over(acc, rimColour(inst), haloAlpha(frame.rhoU, ${glslFloat(HALO_OUTER_RADII)}, ${glslFloat(HALO_FLAT_STOP)}, ${glslFloat(HALO_PEAK_ALPHA)}));
+  return over(acc, rimColour(inst), haloAlpha(frame.rhoF, ${glslFloat(HALO_OUTER_RADII)}, ${glslFloat(HALO_FLAT_STOP)}, ${glslFloat(HALO_PEAK_ALPHA)}));
 }
 
 /** The far dot: a rim-colour disc with a px floor; nothing else is drawn at that LOD. */
@@ -93,10 +94,10 @@ vec4 farDot(Instance inst, Frame frame, vec4 acc) {
   return over(acc, rimColour(inst), alpha);
 }
 
-/** Four-stop ramp in the undeformed frame from a centre 0.30 r toward the light, radius 1.36 r (sheet 01 panel A). */
+/** Four-stop ramp in the body frame from a centre 0.30 r toward the light, radius 1.36 r (sheet 01 panel A). */
 vec4 bodyRamp(Instance inst, Frame frame, float inside, vec4 acc) {
   vec2 centre = vec2(cos(${glslFloat(RAMP_CENTRE)}), sin(${glslFloat(RAMP_CENTRE)})) * ${glslFloat(BODY_RAMP_CENTRE_OFFSET_RADII)};
-  vec2 q = frame.p / (inst.r * inst.pulse) - centre;
+  vec2 q = frame.pF - centre;
   float t = length(q) / ${glslFloat(BODY_RAMP_RADIUS_RADII)};
   bool proto = inst.isProtocell > HALF;
   vec4 stops[4];
@@ -109,9 +110,9 @@ vec4 bodyRamp(Instance inst, Frame frame, float inside, vec4 acc) {
   return over(acc, colour.rgb, colour.a * inside);
 }
 
-/** 1 inside a soft ellipse of 'radiusX' × 'radiusY' r at 'offset' r along 'angle', undeformed frame. */
-float poolMask(Frame frame, Instance inst, vec2 centre, vec2 radii) {
-  vec2 q = (frame.p / (inst.r * inst.pulse) - centre) / radii;
+/** 1 inside a soft ellipse of 'radiusX' × 'radiusY' r at 'offset' r along 'angle', body frame. */
+float poolMask(Frame frame, vec2 centre, vec2 radii) {
+  vec2 q = (frame.pF - centre) / radii;
   float blur = ${glslFloat(POOL_BLUR_RADII)} / min(radii.x, radii.y);
   return 1.0 - smoothstep(1.0 - blur, 1.0 + blur, length(q));
 }
@@ -120,8 +121,8 @@ float poolMask(Frame frame, Instance inst, vec2 centre, vec2 radii) {
 vec4 bodyPools(Instance inst, Frame frame, float inside, vec4 acc) {
   vec2 lightCentre = vec2(cos(${glslFloat(LIGHT_POOL_ANGLE)}), sin(${glslFloat(LIGHT_POOL_ANGLE)})) * ${glslFloat(LIGHT_POOL.offset)};
   vec2 darkCentre = vec2(cos(${glslFloat(DARK_POOL_ANGLE)}), sin(${glslFloat(DARK_POOL_ANGLE)})) * ${glslFloat(DARK_POOL.offset)};
-  float light = poolMask(frame, inst, lightCentre, vec2(${glslFloat(LIGHT_POOL.radiusX)}, ${glslFloat(LIGHT_POOL.radiusY)}));
-  float dark = poolMask(frame, inst, darkCentre, vec2(${glslFloat(DARK_POOL.radiusX)}, ${glslFloat(DARK_POOL.radiusY)}));
+  float light = poolMask(frame, lightCentre, vec2(${glslFloat(LIGHT_POOL.radiusX)}, ${glslFloat(LIGHT_POOL.radiusY)}));
+  float dark = poolMask(frame, darkCentre, vec2(${glslFloat(DARK_POOL.radiusX)}, ${glslFloat(DARK_POOL.radiusY)}));
   float fade = inside * inst.lodBlend;
   acc = over(acc, rimColour(inst), light * ${glslFloat(LIGHT_POOL.alpha)} * fade);
   return over(acc, shade(inst, SHADE_CYTO_DARK), dark * ${glslFloat(DARK_POOL.alpha)} * fade);

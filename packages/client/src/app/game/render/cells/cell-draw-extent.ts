@@ -1,6 +1,6 @@
 // How far from its centre a cell is drawn (docs/rendering/cells.md §2, docs/architecture/encyclopedia.md §12.7):
 // the membrane at its widest, and the widest anything reaches — the halo, the cilia hairs, the paramecium's cilia
-// tufts (#193), or a flagellum's tip
+// tufts (#193), the euglena's leading whip (#194), or a flagellum's tip
 // (rooted at the rear membrane, as the renderer roots it).
 //
 // Two readers, and they are deliberately not the same reader. The encyclopedia preview **frames its lens** by the
@@ -20,7 +20,7 @@ import {
 } from '../constants';
 import type { CellTraitSummary } from './cell-traits';
 import { FLAGELLUM_TRAIT } from './flagellum-lines';
-import { reachWithCiliaTufts } from './forms/paramecium-cilia';
+import { reachWithFormAppendages } from './forms/appendage-reach';
 import {
   REST_CLIP_PEAK,
   haloOuterRadiiOf,
@@ -65,12 +65,12 @@ export function appendageReachRadii(
   pulse: number,
 ): number {
   const hairReach = traits.ciliaCount > 0 ? membrane.widestRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
-  const ciliaReach = reachWithCiliaTufts(traits.form, hairReach, membrane.widestRadii);
+  const formAppendageReach = reachWithFormAppendages(traits.form, hairReach, membrane.widestRadii);
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
-  if (flagellumTier === 0) return ciliaReach;
+  if (flagellumTier === 0) return formAppendageReach;
   const alongRadii = membrane.rearRadii + FLAGELLUM_LENGTH_RADII * pulse;
   const acrossRadii = waveAmplitudeRadii(flagellumTier, isSprinting) * pulse;
-  return Math.max(ciliaReach, Math.hypot(alongRadii, acrossRadii));
+  return Math.max(formAppendageReach, Math.hypot(alongRadii, acrossRadii));
 }
 
 /** The tail wave's peak in radii at this tier, doubled while sprinting (`flagellum-lines.ts`'s `amplitudeWu`). */

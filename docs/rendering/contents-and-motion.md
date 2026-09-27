@@ -6,7 +6,8 @@
 
 Organelles are **sprites from one code-baked atlas** (`textures/organelle-atlas.ts`: mitochondrion with cristae,
 chloroplast with six lit granules, food vacuole, toxin bladder, lipid droplet, protocell granule, nucleus +
-nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores, eyespot), baked at
+nucleolus, nucleoid 1 / 2 / 3 loops, envelope with 16 / 20 / 24 pores; the euglena's eyespot rides the heading, so the shader paints it,
+rendering/cells.md §2.4), baked at
 `ORGANELLE_ATLAS_PX_PER_R` 128 px per r (sheet 01 panel A's 4 px/wu at r 32) × `min(ceil(devicePixelRatio), 2)`
 at startup, so the own cell at its 1080p cap (128 px under Z1) never upsamples at DPR 1 or 2. **Every atlas sprite bakes its own soft halo**
 (`ASSET-GENERATION.md §1.5`'s core + soft + wide + glint, for organelles): the nucleus entry is sheet 01 layer 6

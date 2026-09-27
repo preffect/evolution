@@ -3,9 +3,8 @@
 // scaled to unit area so mass ∝ area holds. The GLSL twin (`slipperAt`, `cell-shader-slipper.ts`) reads the same
 // aspect and scale per tier.
 
-import { RADIANS_PER_FULL_TURN, tierEntryOf, type TraitTier } from '@evolution/shared';
+import { tierEntryOf, type TraitTier } from '@evolution/shared';
 import {
-  FORM_AREA_SAMPLES,
   SLIPPER_ASPECT_BY_TIER,
   SLIPPER_FRONT_BLUNTNESS,
   SLIPPER_ORAL_GROOVE_DEG,
@@ -14,6 +13,7 @@ import {
 } from '../../constants';
 import { degreesToRadians, gaussianBump, wrapAngle } from '../../geometry';
 import type { FormProfile } from '../radial-profile';
+import { unitAreaScale } from './unit-area';
 
 const GROOVE_CENTRE = degreesToRadians(SLIPPER_ORAL_GROOVE_DEG);
 const GROOVE_SIGMA = degreesToRadians(SLIPPER_ORAL_GROOVE_SIGMA_DEG);
@@ -41,20 +41,10 @@ function rawSlipperAt(aspect: number, delta: number): { readonly value: number; 
   };
 }
 
-/** `1 / sqrt(∫ raw² dΔ / 2π)`: the scale that gives the slipper the unit disc's area. */
-function areaScaleOf(aspect: number): number {
-  let sum = 0;
-  for (let index = 0; index < FORM_AREA_SAMPLES; index += 1) {
-    const value = rawSlipperAt(aspect, (index / FORM_AREA_SAMPLES) * RADIANS_PER_FULL_TURN - Math.PI).value;
-    sum += value * value;
-  }
-  return 1 / Math.sqrt(sum / FORM_AREA_SAMPLES);
-}
-
 /** The three tiers' slippers, in tier order. */
 export const SLIPPER_SHAPES: readonly SlipperShape[] = SLIPPER_ASPECT_BY_TIER.map((aspect) => ({
   aspect,
-  areaScale: areaScaleOf(aspect),
+  areaScale: unitAreaScale((delta) => rawSlipperAt(aspect, delta).value),
 }));
 
 const [SLIPPER_TIER_I_SHAPE] = SLIPPER_SHAPES as [SlipperShape];
