@@ -26,6 +26,7 @@ const ENGULF_HOOKS = [
   'spitOutChancePerSecond',
   'spikeDrainFractionPerSecond',
   'engulfMassYieldBonus',
+  'armGrabReachRadii',
 ] as const satisfies readonly (keyof CellModifiers)[];
 
 /** The eight traits T20 lists as setting no engulf hook. */

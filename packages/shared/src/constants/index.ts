@@ -24,3 +24,4 @@ export * from './interest.js';
 export * from './balance.js';
 export * from './audio.js';
 export * from './motion.js';
+export * from './pseudopods.js';

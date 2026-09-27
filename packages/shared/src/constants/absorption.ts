@@ -24,6 +24,11 @@ export const ENGULF_MIN_DURATION_FACTOR = 0.5;
  */
 export const ENGULF_ESCAPE_DECAY_MULTIPLIER = 2;
 /**
+ * The arm grab (#735): while an amoeba holds a prey by its arm alone, before the seal, the arm draws the prey toward
+ * the body at this many predator radii per second, never past body contact; the seal waits for the body to cover it.
+ */
+export const ENGULF_ARM_PULL_RADII_PER_SECOND = 1.5;
+/**
  * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
  * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
  */

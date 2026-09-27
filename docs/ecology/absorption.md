@@ -20,7 +20,11 @@ releaseRatio  = ENGULF_RELEASE_RATIO + prey.membraneRatioBonus         (hysteres
 canStart      = predator.mass ≥ prey.mass × requiredRatio
 canContinue   = predator.mass ≥ prey.mass × releaseRatio
 inContact     = |predator.centre − prey.centre| ≤ predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION
+inGrab        = |predator.centre − prey.centre| ≤ predator.radius × (1 + predator.armGrabReachRadii) − prey.radius × ENGULF_COVERAGE_FRACTION
 ```
+
+`inGrab` is `inContact` for every cell without arms (`armGrabReachRadii` 0); the amoeba's arms widen it (the arm grab,
+below).
 
 `canStart` is the pure predicate `canEngulf(predator, prey, balance.absorption)` in
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
@@ -101,12 +105,12 @@ phaseRatePerTick = baseRatePerTick / phaseMultiplier
    absorb  phaseMultiplier = prey.absorbDurationMultiplierAsPrey × predator.absorbDurationMultiplierAsPredator   (Cell Wall, Diatom Shell / Food Vacuole)
 ```
 
-| Phase      | Band                                                 | What it is                                                                                | Prey speed cap ×                                                                                                                                        | Predator speed cap ×                  | How the prey gets out                                                                                                                                                                                                                                                                                            |
-| ---------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cover**  | `[0, ENGULF_WRAP_START_PROGRESS)`                    | The predator's membrane lies over the prey's centre (`inContact`). The grab: a mild hold. | `clamp(ENGULF_PREY_SPEED_FACTOR_COVER − predator.gripStrengthBonus + prey.gripResistanceBonus, ENGULF_PREY_SPEED_FACTOR_FLOOR, 1)` (the grab, below)    | `ENGULF_PREDATOR_SPEED_FACTOR`        | **Break contact:** progress drains by `ENGULF_ESCAPE_DECAY_MULTIPLIER × baseRatePerTick` per tick and the prey is released the tick it reaches 0; contact regained before then resumes from what is left (#634: a slip drains, it no longer cancels). Steering away also slows the cover (struggle, below).      |
-| **Wrap**   | `[ENGULF_WRAP_START_PROGRESS, ENGULF_SEAL_PROGRESS)` | Pseudopods close around the prey. Grip.                                                   | `clamp(ENGULF_PREY_SPEED_FACTOR − predator.gripStrengthBonus + prey.gripResistanceBonus, ENGULF_PREY_SPEED_FACTOR_FLOOR, 1)` (Amoeba grips, Cilia slip) | `ENGULF_PREDATOR_SPEED_FACTOR`        | **Break contact:** progress drains as in cover, back through the cover band, and the prey is released the tick it reaches 0. **Struggle:** steering away slows the wrap. **Spit-out** rolls (spines). **Ratio** release (toxin, spikes, decay).                                                                  |
-| **Seal**   | the tick progress reaches `ENGULF_SEAL_PROGRESS`     | The membrane closes: the prey is inside.                                                  | —                                                                                                                                                       | —                                     | The prey's `carriedOffset` = prey.centre − predator.centre is recorded and its velocity zeroed. From here the prey rides with the predator: movement no longer helps. Chip goes solid, bar locks ([`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)). |
-| **Absorb** | `[ENGULF_SEAL_PROGRESS, 1]`                          | Digestion. `inContact` holds by construction (carried).                                   | 0 (carried: `prey.centre = predator.centre + carriedOffset` after the movement step, velocity = the predator's)                                         | `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` | **Spit-out** rolls (spines). **Ratio** release: swallowed toxin and spikes drain the predator until `canContinue` fails, then the prey is ejected at its offset. Nothing else.                                                                                                                                   |
+| Phase      | Band                                                 | What it is                                                                                                 | Prey speed cap ×                                                                                                                                        | Predator speed cap ×                  | How the prey gets out                                                                                                                                                                                                                                                                                            |
+| ---------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cover**  | `[0, ENGULF_WRAP_START_PROGRESS)`                    | The predator's membrane (or an amoeba's arm, `inGrab`) lies over the prey's centre. The grab: a mild hold. | `clamp(ENGULF_PREY_SPEED_FACTOR_COVER − predator.gripStrengthBonus + prey.gripResistanceBonus, ENGULF_PREY_SPEED_FACTOR_FLOOR, 1)` (the grab, below)    | `ENGULF_PREDATOR_SPEED_FACTOR`        | **Break contact:** progress drains by `ENGULF_ESCAPE_DECAY_MULTIPLIER × baseRatePerTick` per tick and the prey is released the tick it reaches 0; contact regained before then resumes from what is left (#634: a slip drains, it no longer cancels). Steering away also slows the cover (struggle, below).      |
+| **Wrap**   | `[ENGULF_WRAP_START_PROGRESS, ENGULF_SEAL_PROGRESS)` | Pseudopods close around the prey. Grip.                                                                    | `clamp(ENGULF_PREY_SPEED_FACTOR − predator.gripStrengthBonus + prey.gripResistanceBonus, ENGULF_PREY_SPEED_FACTOR_FLOOR, 1)` (Amoeba grips, Cilia slip) | `ENGULF_PREDATOR_SPEED_FACTOR`        | **Break contact:** progress drains as in cover, back through the cover band, and the prey is released the tick it reaches 0. **Struggle:** steering away slows the wrap. **Spit-out** rolls (spines). **Ratio** release (toxin, spikes, decay).                                                                  |
+| **Seal**   | the tick progress reaches `ENGULF_SEAL_PROGRESS`     | The membrane closes: the prey is inside.                                                                   | —                                                                                                                                                       | —                                     | The prey's `carriedOffset` = prey.centre − predator.centre is recorded and its velocity zeroed. From here the prey rides with the predator: movement no longer helps. Chip goes solid, bar locks ([`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)). |
+| **Absorb** | `[ENGULF_SEAL_PROGRESS, 1]`                          | Digestion. `inContact` holds by construction (carried).                                                    | 0 (carried: `prey.centre = predator.centre + carriedOffset` after the movement step, velocity = the predator's)                                         | `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` | **Spit-out** rolls (spines). **Ratio** release: swallowed toxin and spikes drain the predator until `canContinue` fails, then the prey is ejected at its offset. Nothing else.                                                                                                                                   |
 
 **The grab (#634).** The human's call on ticket #634, after a playtest found the engulf clumsy and a chase along
 the rim impossible to finish: a slip drains instead of cancelling, and a grab, "but not too strong". Three numbers:
@@ -126,7 +130,31 @@ the rim impossible to finish: a slip drains instead of cancelling, and a grab, "
   line. Escape is unchanged in kind: a sprint, a speed trait or the cilia still break contact and stay clear (E18b,
   E18c, E11), each a few ticks later than when the cover cancelled outright.
 
-**Struggle (cover and wrap, while `inContact`).** The prey's steer command of this tick — the one the
+**The arm grab (#735).** The human's call on ticket #735, after #646 made the amoeba's arms reach far past the
+rings: an arm that lies across a cell grabs it. Amoeba Pseudopods sets `armGrabReachRadii` to
+`AMOEBA_ARM_GRAB_REACH_RADII` = `PSEUDOPOD_REACH × PSEUDOPOD_RETRACTED_SHARE` = 0.95 × 0.65 = **0.6175** at every tier
+(`shared/constants/pseudopods.ts`, the numbers the renderer draws the arms with): the shortest an arm ever is past
+the body, so the prey is under an arm's tip at every moment of its cycle. The reach is the same all round, because
+the arms' angles are the renderer's (its clock, its smoothed heading, the cosmetic phase) and the server cannot know
+where an arm points; taking the arm's shortest length, and the same coverage of the prey's radius the body needs, is
+what keeps an all-round reach honest. Three rules, and nothing else changes:
+
+- **Start and hold by the arm:** step 1 starts on `inGrab` instead of `inContact`, and step 5 counts `inGrab` as
+  contact in cover and wrap, so a prey the arm holds advances the engulf like one under the body. A prey that gets
+  past the arm drains and escapes as before. The mass ratio, the refractory and the separation are untouched:
+  contact, the dent and the push stay the body's.
+- **The pull:** before step 5, an unsealed prey held by the arm alone (outside `inContact`, inside `inGrab`) is drawn
+  toward the predator's centre by `ENGULF_ARM_PULL_RADII_PER_SECOND` **1.5** predator radii a second (1 wu a tick
+  for E9's 40 wu predator; the last tick may carry it up to one step inside `inContact`), then the dish wall. It moves
+  the prey only, and adds to whatever the prey's own steering does: a prey sprinting away still outruns it.
+- **Only the body seals:** progress that would cross `ENGULF_SEAL_PROGRESS` while the prey is held by the arm alone
+  stays where it was, at the lip of the seal, until the pull (or the predator) brings the body over the prey; the
+  seal then records the carried offset as usual, so a carried prey is always under the body.
+
+The rows it moves are T13's (a sprint at tick 7 no longer gets clear of Amoeba III; the escapes that remain drain
+later, held out on the arm), and T23 is the grab itself ([`traits/constants-and-acceptance.md §6`](../traits/constants-and-acceptance.md#6-acceptance-scenarios)).
+
+**Struggle (cover and wrap, while `inGrab`).** The prey's steer command of this tick — the one the
 movement step took from its start-of-tick pose and moved on, kept on the record as
 `CellRecord.steerCommand` (`steerCommand` of the shared movement kernel, §5.2) rather than taken a
 second time after the centres have moved — is projected away from the predator:
@@ -175,16 +203,17 @@ alone (above), so the toxin's effect is read on the predator, not promised on th
 **Order inside the engulf step, per pair** (stable id order, #74; the numbers the scenarios quote come
 from this order):
 
-1. No engulf: start when `inContact` ∧ `canStart` ∧ the predator has no live refractory on this prey
+1. No engulf: start when `inGrab` ∧ `canStart` ∧ the predator has no live refractory on this prey
    ∧ the prey was not released `aborted` this tick (below). Progress 0, then continue below on the same tick.
 2. `¬canContinue` → release, reason `ratio`.
 3. `phase` = `engulfPhaseOf(progress, balance.absorption)` from the progress at the start of the step.
 4. Wrap or absorb with a positive chance: draw and compare → release, reason `spat_out`, refractory.
-5. Cover or wrap: in contact → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
+5. Cover or wrap: the arm's pull first (a prey in `inGrab` but not `inContact`, the arm grab above); then in contact
+   (`inGrab`) → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
    `progress −= ENGULF_ESCAPE_DECAY_MULTIPLIER × baseRatePerTick`, release (`escaped`) when it is ≤ ε (drained to 0;
    a wrap drains back through the cover band first). Absorb: `progress += phaseRatePerTick`.
 6. Progress ≥ 1 − ε → payout. Progress crossed `ENGULF_SEAL_PROGRESS` this tick → seal (offset recorded,
-   prey velocity zeroed). A tick that crosses a band boundary runs entirely at the rate of the phase it
+   prey velocity zeroed) when the prey is `inContact`; held by the arm alone, the progress stays where it was. A tick that crosses a band boundary runs entirely at the rate of the phase it
    started in; the overshoot (under one tick) is spent in the next phase.
 
 **A cell the world freed waits a tick.** A prey released with reason `aborted` — the chain payout

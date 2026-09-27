@@ -20,6 +20,7 @@ import {
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
+import { isGrabContact, pullPreyByArm } from './engulf-arm-grab.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
   hasSpitOutRefractory,
@@ -55,7 +56,8 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
 }
 
 /**
- * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact, no refractory,
+ * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact (the body's, or the arm's for a cell
+ * with arms, #735), no refractory,
  * and the prey was not freed by an abort this tick (docs/ecology/absorption.md §6.3, the chain row: a cell the
  * world dropped inside its next predator may be started on "next tick", never on this one).
  */
@@ -71,7 +73,7 @@ export function canStartEngulf(
     canEngulf(predator, prey, balance.absorption) &&
     !wasAbortedThisTick(prey, world.tick) &&
     !hasSpitOutRefractory(predator, prey.id, world.tick) &&
-    isEngulfContact(predator, prey, balance)
+    isGrabContact(predator, prey, balance)
   );
 }
 
@@ -120,12 +122,33 @@ function resolveHold(pairing: EngulfPairing, phase: EngulfPhase, world: WorldSta
   return false;
 }
 
-/** Steps 5 and 6: progress, then the escape, the seal or the payout the new progress implies. */
+/** Where the prey is held this tick: the body's engulf contact, or the arm's (#735). */
+interface HoldContact {
+  readonly isBodyContact: boolean;
+  readonly isInContact: boolean;
+}
+
+/** A sealed prey is carried, so in body contact; before the seal the arm first draws a prey it holds in (#735). */
+function holdContactOf(pairing: EngulfPairing, isSealed: boolean, balance: BalanceConfig): HoldContact {
+  if (isSealed) {
+    return { isBodyContact: true, isInContact: true };
+  }
+  pullPreyByArm(pairing, balance);
+  const isBodyContact = isEngulfContact(pairing.predator, pairing.prey, balance);
+  return { isBodyContact, isInContact: isBodyContact || isGrabContact(pairing.predator, pairing.prey, balance) };
+}
+
+/**
+ * Steps 5 and 6: progress, then the escape, the seal or the payout the new progress implies. An arm hold (#735) counts
+ * as contact, but only the body seals: progress that would seal while the prey is held by the arm alone stays where
+ * it was until the body covers the prey.
+ */
 function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: WorldState, context: StepContext): void {
   const absorption = context.balance.absorption;
   const { predator, prey } = pairing;
   const isSealed = phase === ENGULF_PHASE.absorb;
-  const isInContact = isSealed || isEngulfContact(predator, prey, context.balance);
+  const { isBodyContact, isInContact } = holdContactOf(pairing, isSealed, context.balance);
+  const progressBefore = prey.engulfProgress;
   prey.engulfProgress += engulfProgressDelta(
     {
       phase,
@@ -150,7 +173,11 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
     return;
   }
   if (!isSealed && engulfPhaseOf(prey.engulfProgress, absorption) === ENGULF_PHASE.absorb) {
-    sealEngulf(pairing);
+    if (isBodyContact) {
+      sealEngulf(pairing);
+    } else {
+      prey.engulfProgress = progressBefore;
+    }
   }
 }
 
