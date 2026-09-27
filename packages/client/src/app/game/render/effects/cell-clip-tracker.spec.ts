@@ -75,7 +75,7 @@ describe('CellClipTracker', () => {
       traits: [{ traitId: 'amoeba_pseudopods', tier: 1 }],
     });
     const preyAngle = -0.6;
-    const distance = 50;
+    const distance = 56;
     const prey = createTestCellView({
       id: entityId('prey'),
       x: distance * Math.cos(preyAngle),

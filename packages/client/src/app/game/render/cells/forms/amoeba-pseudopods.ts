@@ -50,6 +50,8 @@ const SWAY = degreesToRadians(PSEUDOPOD_SWAY_DEG);
 const REACHING_SHARE = 1 - PSEUDOPOD_RETRACTED_SHARE;
 const FAN_SIGMA = degreesToRadians(PSEUDOPOD_FAN_SIGMA_DEG);
 const MAX_SIGMA = degreesToRadians(PSEUDOPOD_MAX_SIGMA_DEG);
+/** `lobesAt`'s holding index when no prey is held. */
+const NO_HOLDING_LOBE = -1;
 
 /** Each of `count` lobes' width, radians: `PSEUDOPOD_FAN_SIGMA_DEG / count` up to the cap, so fewer lobes are fatter. */
 export function pseudopodSigma(count: number): number {
@@ -96,15 +98,15 @@ function holdingLobe(count: number, share: number): number {
   return nearest;
 }
 
-/**
- * How far the holding lobe has left its fan place for the prey: all the way once the hold is the blend or longer. It
- * reaches no further than the server holds from (`AMOEBA_ARM_GRAB_REACH_RADII`), whatever an interpolated frame says.
- */
+/** How far the holding lobe has left its fan place for the prey: all the way once the hold is the blend or longer. */
 function holdShare(armHold: number): number {
   return Math.min(1, armHold / PSEUDOPOD_HOLD_BLEND_RADII);
 }
 
-/** The lobes at one moment of the fan, the holding lobe moved from its place toward the prey by the hold share. */
+/**
+ * The lobes at one moment of the fan, the holding lobe moved from its place toward the prey by the hold share. The held
+ * arm reaches no further than the server holds from (`AMOEBA_ARM_GRAB_REACH_RADII`), whatever an interpolated frame says.
+ */
 function lobesAt(count: number, moment: FanMoment): ShapeBump[] {
   const sigma = pseudopodSigma(count);
   const share = flankShare(moment.lean);
@@ -121,8 +123,6 @@ function lobesAt(count: number, moment: FanMoment): ShapeBump[] {
     };
   });
 }
-
-const NO_HOLDING_LOBE = -1;
 
 /** The frame's lobes: `count` bumps about `aim`, moving to the flanks and their sway fading with `lean`. */
 export function pseudopodBumps(input: PseudopodInput): ShapeBump[] {

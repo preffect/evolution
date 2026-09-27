@@ -4,7 +4,7 @@
 // it in, then hands back to its flank and its cycle before the body takes the prey, with no snap.
 
 import { describe, expect, it } from 'vitest';
-import { AMOEBA_ARM_GRAB_REACH_RADII } from '@evolution/shared';
+import { AMOEBA_ARM_GRAB_REACH_RADII, ENGULF_ARM_PULL_RADII_PER_SECOND, TICK_INTERVAL_S } from '@evolution/shared';
 import { PSEUDOPOD_COUNT_BY_TIER, PSEUDOPOD_ENGULF_LEAN, PSEUDOPOD_HOLD_BLEND_RADII } from '../../constants';
 import { gaussianBump, wrapAngle } from '../../geometry';
 import type { ShapeBump } from '../radial-profile';
@@ -19,7 +19,10 @@ const ENGULFING: PseudopodInput = {
   lean: PSEUDOPOD_ENGULF_LEAN,
   armHold: 0,
 };
-const HOLDS = [AMOEBA_ARM_GRAB_REACH_RADII, 0.4, PSEUDOPOD_HOLD_BLEND_RADII];
+/** Twice the 150 ms motion-and-legibility.md §5 calls a snap. */
+const HAND_BACK_MIN_MS = 300;
+const MS_PER_SECOND = 1000;
+const HOLDS = [AMOEBA_ARM_GRAB_REACH_RADII, PSEUDOPOD_HOLD_BLEND_RADII];
 
 function surfaceAt(bumps: readonly ShapeBump[], theta: number): number {
   return bumps.reduce(
@@ -82,20 +85,31 @@ describe('the arm hold (#753)', () => {
     expect(moved[0]?.amplitude).toBeCloseTo(AMOEBA_ARM_GRAB_REACH_RADII, 12);
   });
 
-  /** The pull draws the prey in a little every frame: no step in it may jump the arm. */
-  it('hands back to the fan with no snap as the body takes the prey', () => {
+  /**
+   * The pull draws the prey in `ENGULF_ARM_PULL_RADII_PER_SECOND` a second at most, so the hand-back is measured in real
+   * ticks at that pull: the holding lobe leaves the prey and regains its fan place over at least `HAND_BACK_MIN_MS`
+   * (twice §5's 150 ms snap), at every tier, and no tick moves it more than an even share of the swing.
+   */
+  it('hands back to the fan over at least 300 ms at the fastest pull, at every tier', () => {
+    const pullPerTick = ENGULF_ARM_PULL_RADII_PER_SECOND * TICK_INTERVAL_S;
+    const minTicks = HAND_BACK_MIN_MS / (TICK_INTERVAL_S * MS_PER_SECOND);
     expect(pseudopodBumps({ ...ENGULFING, armHold: 0 })).toEqual(pseudopodBumps(ENGULFING));
-    const steps = 200;
-    const step = AMOEBA_ARM_GRAB_REACH_RADII / steps;
-    let previous = pseudopodBumps({ ...ENGULFING, armHold: 0 });
-    for (let index = 1; index <= steps; index += 1) {
-      const lobes = pseudopodBumps({ ...ENGULFING, armHold: index * step });
-      lobes.forEach((lobe, lobeIndex) => {
-        const before = previous[lobeIndex];
-        expect(Math.abs(lobe.amplitude - (before?.amplitude ?? 0))).toBeLessThan(0.05);
-        expect(Math.abs(wrapAngle(lobe.centre - (before?.centre ?? 0)))).toBeLessThan(0.1);
-      });
-      previous = lobes;
+    for (const count of PSEUDOPOD_COUNT_BY_TIER) {
+      const fan = pseudopodBumps({ ...ENGULFING, count });
+      let previous = pseudopodBumps({ ...ENGULFING, count, armHold: AMOEBA_ARM_GRAB_REACH_RADII });
+      let swingingTicks = 0;
+      for (let hold = AMOEBA_ARM_GRAB_REACH_RADII - pullPerTick; hold > -pullPerTick; hold -= pullPerTick) {
+        const lobes = pseudopodBumps({ ...ENGULFING, count, armHold: Math.max(0, hold) });
+        const index = lobes.findIndex((lobe, lobeIndex) => lobe.centre !== previous[lobeIndex]?.centre);
+        if (index >= 0) {
+          swingingTicks += 1;
+          const swing = Math.abs(wrapAngle((fan[index]?.centre ?? 0) - PREY_ANGLE));
+          const step = Math.abs(wrapAngle((lobes[index]?.centre ?? 0) - (previous[index]?.centre ?? 0)));
+          expect(step, `${count} lobes`).toBeLessThanOrEqual(swing / minTicks + 1e-9);
+        }
+        previous = lobes;
+      }
+      expect(swingingTicks, `${count} lobes`).toBeGreaterThanOrEqual(minTicks);
     }
   });
 });
