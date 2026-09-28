@@ -4,7 +4,7 @@
 //
 //   DRAG=<share> pnpm --filter @evolution/server bench:engulf-pass      (DRAG patches ENGULF_DRAG_SHARE first; unset: the default)
 
-import { EFFECT_KIND, ENGULF_RELEASE_REASON, playerId, secondsToTicks } from '@evolution/shared';
+import { DEFAULT_BALANCE, EFFECT_KIND, ENGULF_RELEASE_REASON, playerId, secondsToTicks } from '@evolution/shared';
 import { setBalanceForDebug } from '../src/game/debug/debug-operations.js';
 import { setCellMass } from '../src/game/simulation/cell-mass.js';
 import { stepWorld } from '../src/game/simulation/step.js';
@@ -115,7 +115,7 @@ function row(predatorMass: number, preyMass: number, aim: Aim, style: PreyStyle)
   return total;
 }
 
-console.log(`drag ${process.env.DRAG ?? 'none (main)'}`);
+console.log(`drag ${process.env.DRAG ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_DRAG_SHARE})`}`);
 console.log('| aim | prey | predator/prey mass | trials | starts | finished | dropped (escaped) | first pass eats |');
 for (const aim of AIMS) {
   for (const style of PREY_STYLES) {

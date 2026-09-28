@@ -141,8 +141,9 @@ interface HoldContact {
 
 /**
  * A sealed prey is carried, so in body contact. Before the seal the predator first drags the prey after its own move
- * (#772), then the arm draws a prey it holds in (#735); the arm alone then counts as contact only while the prey is not steering away: a prey that fights the arm drains, as out of
- * contact, until the pull brings the body over it or it drains out.
+ * (#772), then the arm draws a prey it holds in (#735); the arm alone then counts as contact only while the prey is
+ * not steering away: a prey that fights the arm drains, as out of contact, until the pull brings the body over it or
+ * it drains out.
  */
 function holdContactOf(
   pairing: EngulfPairing,

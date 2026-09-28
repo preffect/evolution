@@ -4,18 +4,30 @@
 // `engulf-drag.integration.test.ts`; the pass at speed as a design row is E19 (`ecology-engulf-drag.gameplay.test.ts`).
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_INTERVAL_S, distanceBetween } from '@evolution/shared';
+import {
+  AMOEBA_ARM_GRAB_REACH_RADII,
+  DEFAULT_BALANCE,
+  ENGULF_RELEASE_REASON,
+  TICK_INTERVAL_S,
+  distanceBetween,
+  foldModifiers,
+  radiusForMass,
+} from '@evolution/shared';
 import {
   E9_SEAL_TICK,
   ENGULF_CENTRE_DISTANCE_WU,
+  ENGULF_PREDATOR_MASS,
   ENGULF_SEAL_PROGRESS,
   createEngulfFixture,
+  releaseReasonsOf,
   stepEngulf,
   type EngulfFixture,
 } from '../../testing/engulf-builders.js';
 import { createTestStepContext } from '../../testing/world-builders.js';
 import { setBalanceForDebug } from '../debug/debug-operations.js';
-import { dragPreyAlong, gapOpenedByPredator } from './engulf-drag.js';
+import { engulfContactGap } from './contact.js';
+import { armPullPerTick } from './engulf-arm-grab.js';
+import { dragPreyAlong, drawPreyTowardPredator, gapOpenedByPredator } from './engulf-drag.js';
 
 /** A's speed in the rows below (wu/s): 3 wu a tick. */
 const PREDATOR_SPEED = 3 / TICK_INTERVAL_S;
@@ -26,6 +38,27 @@ const HALF_DRAG = 0.5;
 const DISTANCE_DIGITS = 9;
 /** Enough ticks for E9's engulf to have sealed, or for A at 3 wu a tick to have left its 31 wu reach and drained. */
 const PAST_THE_SEAL_TICKS = 20;
+
+const AMOEBA_I = [{ traitId: 'amoeba_pseudopods', tier: 1 }] as const;
+/** Inside A's body reach by this much before A moves, so A's 3 wu move leaves B to the arm alone (wu). */
+const INSIDE_THE_BODY_WU = 1;
+/** Half way out A's arm past its body reach (wu): the arm-grab tests' layout. */
+const HALF_WAY_OUT_THE_ARM_WU =
+  0.5 * radiusForMass(ENGULF_PREDATOR_MASS, DEFAULT_BALANCE.growth) * AMOEBA_ARM_GRAB_REACH_RADII;
+/** A at full speed, 220 wu/s: 3.67 wu a tick. */
+const FULL_SPEED = DEFAULT_BALANCE.growth.CELL_BASE_SPEED;
+/** Long enough for A's arm to draw B under the body and seal, or for B to drain out at full speed. */
+const ARM_HOLD_TICKS = 60;
+
+/** The E9 pair with A an amoeba (Amoeba Pseudopods I) and B `bodyReachOffsetWu` past A's body reach, on the line. */
+function armPair(bodyReachOffsetWu: number): EngulfFixture {
+  const fixture = createEngulfFixture();
+  const { predator, prey } = fixture;
+  predator.modifiers = foldModifiers(AMOEBA_I, DEFAULT_BALANCE.traits.TRAIT_TIERS);
+  prey.x = predator.x + predator.radius - prey.radius * DEFAULT_BALANCE.absorption.ENGULF_COVERAGE_FRACTION;
+  prey.x += bodyReachOffsetWu;
+  return fixture;
+}
 
 /** A as the movement step leaves it after one tick at `velocity`: moved by it, the velocity kept on the record. */
 function movePredator(fixture: EngulfFixture, velocityX: number, velocityY = 0): void {
@@ -136,5 +169,48 @@ describe('the drag in the engulf step (#772)', () => {
     const before = { x: fixture.prey.x, y: fixture.prey.y };
     stepEngulf(fixture);
     expect({ x: fixture.prey.x, y: fixture.prey.y }).toEqual(before);
+  });
+});
+
+describe('drawing the prey in (#772)', () => {
+  it('leaves a prey on the predator centre where it is', () => {
+    const fixture = createEngulfFixture();
+    fixture.prey.x = fixture.predator.x;
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    expect({ x: fixture.prey.x, y: fixture.prey.y }).toEqual({ x: fixture.predator.x, y: fixture.predator.y });
+  });
+});
+
+describe('the drag and the arm (#772, #735)', () => {
+  it('drags before the arm pulls: a prey the drag puts back under the body is not pulled as well', () => {
+    const fixture = armPair(-INSIDE_THE_BODY_WU);
+    stepEngulf(fixture);
+    const before = distanceBetween(fixture.predator, fixture.prey);
+    movePredator(fixture, -PREDATOR_SPEED);
+    expect(engulfContactGap(fixture.predator, fixture.prey, fixture.world.balance)).toBeGreaterThan(0);
+    const pull = armPullPerTick(fixture, fixture.world, fixture.world.balance);
+    stepEngulf(fixture);
+    // Arm first would pull B `pull` wu in from out of body contact, and the drag would then close the gap on top.
+    expect(pull).toBeGreaterThan(0);
+    expect(distanceBetween(fixture.predator, fixture.prey)).toBeCloseTo(before, DISTANCE_DIGITS);
+  });
+
+  it('tows a still prey the arm alone holds behind an amoeba swimming off at full speed, which then seals', () => {
+    const fixture = armPair(HALF_WAY_OUT_THE_ARM_WU);
+    for (let tick = 0; tick < ARM_HOLD_TICKS && fixture.prey.carriedOffsetX === null; tick += 1) {
+      movePredator(fixture, -FULL_SPEED);
+      stepEngulf(fixture);
+    }
+    expect(fixture.prey.carriedOffsetX).not.toBeNull();
+    expect(releaseReasonsOf(fixture.context.effects)).toEqual([]);
+  });
+
+  it('without the drag the same amoeba swims out of its arm hold and the prey drains out', () => {
+    const fixture = withDrag(armPair(HALF_WAY_OUT_THE_ARM_WU), 0);
+    for (let tick = 0; tick < ARM_HOLD_TICKS; tick += 1) {
+      movePredator(fixture, -FULL_SPEED);
+      stepEngulf(fixture);
+    }
+    expect(releaseReasonsOf(fixture.context.effects)).toEqual([ENGULF_RELEASE_REASON.escaped]);
   });
 });
