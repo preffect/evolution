@@ -35,6 +35,12 @@ export const ENGULF_ARM_PULL_RADII_PER_SECOND = 1.5;
  */
 export const ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE = 0.5;
 /**
+ * The drag (#772): before the seal, the share of the gap the predator's own move opened from its prey this tick that
+ * is closed again by drawing the prey after it, so a predator passing over a prey at speed carries it instead of
+ * coasting off it. It never answers the prey's own swimming, so a prey swims out as it would from a still predator.
+ */
+export const ENGULF_DRAG_SHARE = 1;
+/**
  * After a prey escapes an amoeba, that amoeba cannot grab it by the arm alone for this long (s), one entry per prey
  * (#735 review: without it a prey wobbling around "away" was grabbed and dropped several times a second). The body
  * can still catch it meanwhile.

@@ -4,11 +4,11 @@
 // the arm's shortest reach past the body, which every arm holds at every moment of its cycle. Contact and separation
 // stay the body's, and so does the seal: the body must cover the prey before it closes.
 
-import { TICK_INTERVAL_S, distanceBetween, secondsToTicks, type BalanceConfig, type EntityId } from '@evolution/shared';
+import { TICK_INTERVAL_S, secondsToTicks, type BalanceConfig, type EntityId } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { engulfContactGap, type CellFootprint } from './contact.js';
-import { keepInsideDish } from './dish-wall.js';
+import { drawPreyTowardPredator } from './engulf-drag.js';
 import type { EngulfPairing } from './engulf-state.js';
 import { hasLiveRefractory, rememberRefractory } from './engulf-spit-out.js';
 import { speedCapOf } from './movement.js';
@@ -52,11 +52,7 @@ export function pullPreyByArm(pairing: EngulfPairing, world: WorldState, balance
   if (engulfContactGap(predator, prey, balance) <= 0 || !isGrabContact(predator, prey, balance)) {
     return;
   }
-  const distance = distanceBetween(predator, prey);
-  const share = Math.min(armPullPerTick(pairing, world, balance), distance) / distance;
-  prey.x -= (prey.x - predator.x) * share;
-  prey.y -= (prey.y - predator.y) * share;
-  keepInsideDish(prey, balance.world.DISH_RADIUS);
+  drawPreyTowardPredator(pairing, armPullPerTick(pairing, world, balance), balance);
 }
 
 /** The re-grab cooldown (#735): this predator may not grab this prey by the arm alone yet; the body still may. */
