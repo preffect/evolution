@@ -21,6 +21,7 @@ import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
 import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
+import { dragPreyAlong } from './engulf-drag.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
   hasSpitOutRefractory,
@@ -139,8 +140,8 @@ interface HoldContact {
 }
 
 /**
- * A sealed prey is carried, so in body contact. Before the seal the arm first draws a prey it holds in (#735); the arm
- * alone then counts as contact only while the prey is not steering away: a prey that fights the arm drains, as out of
+ * A sealed prey is carried, so in body contact. Before the seal the predator first drags the prey after its own move
+ * (#772), then the arm draws a prey it holds in (#735); the arm alone then counts as contact only while the prey is not steering away: a prey that fights the arm drains, as out of
  * contact, until the pull brings the body over it or it drains out.
  */
 function holdContactOf(
@@ -152,6 +153,7 @@ function holdContactOf(
   if (isSealed) {
     return { isBodyContact: true, isInContact: true };
   }
+  dragPreyAlong(pairing, balance);
   pullPreyByArm(pairing, world, balance);
   const isBodyContact = isEngulfContact(pairing.predator, pairing.prey, balance);
   return { isBodyContact, isInContact: isBodyContact || isArmHold(pairing.predator, pairing.prey, balance) };

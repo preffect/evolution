@@ -71,10 +71,10 @@ export const E10_DECAY_GAP_WU = [E10_UNDER_RATIO_MASS, PREY_MASS].reduce(
   0,
 );
 /**
- * E9b: A steers away from B at `E9B_THROTTLE` from tick 1 and drags it along; the numbers the row states. Grabbing costs A no
- * speed since #634, so the seal no longer changes its cap: ticks 18 and 19 differ only by one tick's blend.
+ * E9b: A steers away from B at `E9B_THROTTLE` from tick 1 and drags it along, 10 wu behind it to the seal since #772
+ * (29.66 wu before); the numbers the row states. Grabbing costs A no speed since #634, so the seal no longer changes
+ * its cap: ticks 18 and 19 differ only by one tick's blend.
  */
-export const E9B_SEAL_DISTANCE_WU = 29.66;
 export const E9B_SEAL_WESTING_WU = 19.66;
 export const E9B_SPEED_TICK_1 = 9.8;
 export const E9B_SPEED_TICK_18 = 104.3;
@@ -166,10 +166,10 @@ export const sprintsAwayFrom = (tick: number) => (builder: ReturnType<typeof eng
     .atTick(tick, player(1).does(combineScripts([awayFromPredator, sprint()])))
     .from(tick + 1, player(1).does(awayFromPredator));
 /**
- * E9b's throttle: two thirds of the top speed. Every cell has the same top speed since #677, so a predator swimming
- * away faster drops an idle prey before the seal (gameplay-qa on PR #678: at 0.8 throttle progress falls back to 0.33
- * by tick 18, 33.6 wu apart; at full throttle to 0.17, 39.5 wu, both past the 31.05 wu reach; before #677 it held at
- * full throttle, 29.72 wu). At 2/3 it drags its cover along as the row means.
+ * E9b's throttle: two thirds of the top speed. From #677 to #772 a predator swimming away faster dropped an idle prey
+ * before the seal (gameplay-qa on PR #678: at 0.8 throttle progress fell back to 0.33 by tick 18, 33.6 wu apart; at full
+ * throttle to 0.17, 39.5 wu, both past the 31.05 wu reach; before #677 it held at full throttle, 29.72 wu). The drag
+ * (#772) holds it at any throttle; the row keeps 2/3 so its speeds stay the ones it has always stated.
  */
 export const E9B_THROTTLE = 2 / 3;
 /** The steer distance that throttle takes: `STEER_DEAD_ZONE_RADII + throttle × (full − dead)` own radii. */
