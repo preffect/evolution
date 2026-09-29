@@ -49,6 +49,8 @@ const HALF_WAY_OUT_THE_ARM_WU =
 const FULL_SPEED = DEFAULT_BALANCE.growth.CELL_BASE_SPEED;
 /** Long enough for A's arm to draw B under the body and seal, or for B to drain out at full speed. */
 const ARM_HOLD_TICKS = 60;
+/** B placed past its rim by more than one drag step, so the dish wall moves it further than the drag does (wu). */
+const PAST_THE_RIM_WU = 5;
 
 /** The E9 pair with A an amoeba (Amoeba Pseudopods I) and B `bodyReachOffsetWu` past A's body reach, on the line. */
 function armPair(bodyReachOffsetWu: number): EngulfFixture {
@@ -212,5 +214,47 @@ describe('the drag and the arm (#772, #735)', () => {
       stepEngulf(fixture);
     }
     expect(releaseReasonsOf(fixture.context.effects)).toEqual([ENGULF_RELEASE_REASON.escaped]);
+  });
+});
+
+describe('the held displacement the wire reports (#774)', () => {
+  it("records the drag's move on the prey, never on its velocity", () => {
+    const fixture = createEngulfFixture();
+    movePredator(fixture, -PREDATOR_SPEED);
+    stepEngulf(fixture);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(-STEP_WU, DISTANCE_DIGITS);
+    expect(fixture.prey.heldDisplacementY).toBe(0);
+    expect({ x: fixture.prey.velocityX, y: fixture.prey.velocityY }).toEqual({ x: 0, y: 0 });
+  });
+
+  it('adds every draw of one tick, as the drag and the arm pull both draw', () => {
+    const fixture = createEngulfFixture();
+    const start = fixture.prey.x;
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(fixture.prey.x - start, DISTANCE_DIGITS);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(-2 * STEP_WU, DISTANCE_DIGITS);
+  });
+
+  it("is the prey's move after the dish wall: a prey the wall pushes further in reports the whole of it", () => {
+    const fixture = createEngulfFixture();
+    const { predator, prey } = fixture;
+    const rimX = fixture.world.balance.world.DISH_RADIUS - prey.radius;
+    prey.x = rimX + PAST_THE_RIM_WU;
+    prey.y = 0;
+    predator.x = prey.x - ENGULF_CENTRE_DISTANCE_WU;
+    predator.y = 0;
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    expect(prey.x).toBeCloseTo(rimX, DISTANCE_DIGITS);
+    expect(prey.heldDisplacementX).toBeCloseTo(-PAST_THE_RIM_WU, DISTANCE_DIGITS);
+  });
+
+  it('starts over each engulf step: a tick without a drag reports none', () => {
+    const fixture = createEngulfFixture();
+    movePredator(fixture, -PREDATOR_SPEED);
+    stepEngulf(fixture);
+    movePredator(fixture, 0);
+    stepEngulf(fixture);
+    expect({ x: fixture.prey.heldDisplacementX, y: fixture.prey.heldDisplacementY }).toEqual({ x: 0, y: 0 });
   });
 });
