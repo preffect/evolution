@@ -49,6 +49,8 @@ const HALF_WAY_OUT_THE_ARM_WU =
 const FULL_SPEED = DEFAULT_BALANCE.growth.CELL_BASE_SPEED;
 /** Long enough for A's arm to draw B under the body and seal, or for B to drain out at full speed. */
 const ARM_HOLD_TICKS = 60;
+/** B placed past its rim by more than one drag step, so the dish wall moves it further than the drag does (wu). */
+const PAST_THE_RIM_WU = 5;
 
 /** The E9 pair with A an amoeba (Amoeba Pseudopods I) and B `bodyReachOffsetWu` past A's body reach, on the line. */
 function armPair(bodyReachOffsetWu: number): EngulfFixture {
@@ -232,6 +234,19 @@ describe('the held displacement the wire reports (#774)', () => {
     drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
     expect(fixture.prey.heldDisplacementX).toBeCloseTo(fixture.prey.x - start, DISTANCE_DIGITS);
     expect(fixture.prey.heldDisplacementX).toBeCloseTo(-2 * STEP_WU, DISTANCE_DIGITS);
+  });
+
+  it("is the prey's move after the dish wall: a prey the wall pushes further in reports the whole of it", () => {
+    const fixture = createEngulfFixture();
+    const { predator, prey } = fixture;
+    const rimX = fixture.world.balance.world.DISH_RADIUS - prey.radius;
+    prey.x = rimX + PAST_THE_RIM_WU;
+    prey.y = 0;
+    predator.x = prey.x - ENGULF_CENTRE_DISTANCE_WU;
+    predator.y = 0;
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    expect(prey.x).toBeCloseTo(rimX, DISTANCE_DIGITS);
+    expect(prey.heldDisplacementX).toBeCloseTo(-PAST_THE_RIM_WU, DISTANCE_DIGITS);
   });
 
   it('starts over each engulf step: a tick without a drag reports none', () => {

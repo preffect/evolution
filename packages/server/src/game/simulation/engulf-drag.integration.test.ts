@@ -39,6 +39,8 @@ const ESCAPE_CENTRE_DISTANCE_WU = 10;
 const DRAG_LEAF = 'ENGULF_DRAG_SHARE';
 /** Where a late snapshot's extrapolation may leave the prey from where the server puts it (wu): the wire's rounding. */
 const EXTRAPOLATION_TOLERANCE_WU = 0.1;
+/** How far B's reported speed may be from its true speed (wu/s): the wire's rounding of each axis. */
+const SPEED_TOLERANCE_WU_PER_SECOND = 0.1;
 
 interface Pair {
   readonly world: WorldState;
@@ -125,6 +127,14 @@ function preyTicksOfPass(): PreyTick[] {
   return ticks;
 }
 
+/** |B's reported speed − the speed it really moved at this tick| (wu/s): its true move is from the previous tick. */
+function reportedSpeedMissWuPerSecond(ticks: readonly PreyTick[], index: number): number {
+  const now = ticks[index]!;
+  const before = ticks[index - 1]!;
+  const trueSpeed = Math.hypot(now.x - before.x, now.y - before.y) / TICK_INTERVAL_S;
+  return Math.abs(Math.hypot(now.view.velocityX, now.view.velocityY) - trueSpeed);
+}
+
 /** How far the client's late-snapshot extrapolation (`extrapolateCell`) leaves B from where the server put it (wu). */
 function extrapolationMissWu(ticks: readonly PreyTick[], index: number): number {
   const from = ticks[index]!;
@@ -183,8 +193,11 @@ describe('a dragged prey on the wire (#774)', () => {
     return isDragged && index + MAX_EXTRAPOLATION_TICKS < ticks.length ? [index] : [];
   });
 
-  it('is reported moving with its predator while the record keeps the kernel velocity of a still prey', () => {
+  it('is reported moving as fast as it really moves, while the record keeps the kernel velocity of a still prey', () => {
     expect(draggedIndices.length).toBeGreaterThan(MAX_EXTRAPOLATION_TICKS);
+    expect(
+      draggedIndices.map((index) => reportedSpeedMissWuPerSecond(ticks, index) < SPEED_TOLERANCE_WU_PER_SECOND),
+    ).toEqual(draggedIndices.map(() => true));
     expect(draggedIndices.map((index) => ticks[index]!.kernelSpeed)).toEqual(draggedIndices.map(() => 0));
   });
 
