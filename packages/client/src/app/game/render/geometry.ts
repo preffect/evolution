@@ -26,6 +26,11 @@ export function wrapAngle(radians: number): number {
 }
 
 /** A position in turns (or any unit period) folded into [0, 1). */
+/** `radians` moved by whole turns to within a half turn of `near`: an angle kept continuous with the last frame's. */
+export function angleNear(radians: number, near: number): number {
+  return near + wrapAngle(radians - near);
+}
+
 export function wrapUnit(unit: number): number {
   return ((unit % 1) + 1) % 1;
 }

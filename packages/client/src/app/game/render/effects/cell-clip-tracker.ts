@@ -24,7 +24,7 @@ interface CellClipState {
   readonly player: MotionClipPlayer;
   /** Where the last eaten mote was (cell frame, radians), held while the `eat` clip plays. */
   moteAngle: number | null;
-  /** The held arm's grip on the prey, eased at the grab and after an escape (#768). */
+  /** The held arm's grip on the prey and the fan's turn to it, eased at the grab, the end and a switch (#768, #771). */
   readonly grip: ArmGripEasing;
 }
 
@@ -92,9 +92,10 @@ export class CellClipTracker {
   }
 
   /** The held arm's grip while engulfing (never `null` then), or its let-go once the engulf has ended; else `null`. */
-  private gripOf(cellId: EntityId, engulf: EngulfInput, nowMs: number): Partial<ArmLetGo> | null {
-    if (engulf.preyAngle === null) return this.states.get(cellId)?.grip.letGo(nowMs) ?? null;
-    return { armGrip: this.stateFor(cellId).grip.hold(engulf.preyAngle, engulf.armHoldRadii, nowMs) };
+  private gripOf(cell: CellView, engulf: EngulfInput, nowMs: number): ArmLetGo | null {
+    if (engulf.preyAngle === null || cell.engulfingCellId === null)
+      return this.states.get(cell.id)?.grip.letGo(nowMs) ?? null;
+    return this.stateFor(cell.id).grip.hold(cell.engulfingCellId, engulf.preyAngle, engulf.armHoldRadii, nowMs);
   }
 
   /** The cell's running clips: their tracks and, while it eats, where the mote was. */
@@ -112,7 +113,7 @@ export class CellClipTracker {
     absorption: EngulfLookBalance,
   ): CellDeformation | null {
     const engulf = engulfClipInput(cell, views, absorption);
-    const grip = this.gripOf(cell.id, engulf, nowMs);
+    const grip = this.gripOf(cell, engulf, nowMs);
     const clips = this.clipsOf(cell.id, nowMs);
     if (Object.keys(clips.tracks).length === 0 && grip === null) return null;
     const deformation = clipDeformation({ ...clips, absorbedSeal: null, ...engulf });
