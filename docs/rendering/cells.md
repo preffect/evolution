@@ -238,8 +238,21 @@ down its centre at full LOD; the reach bounds and the quad add the tip past the 
 The **eyespot** is painted in pass B over the organelle sprites, not from the atlas, because it rides the heading and the slots
 do not: an `EYESPOT` dot 0.15 r at (0.8, 0.16) r in the heading frame under the pulse and the stretch, an `EYESPOT` halo to
 0.26 r at 40 % × 1 / 1.25 / 1.5 per tier and an `EYESPOT_RIM` ring at full LOD; it stays at mid LOD as the form's red dot), trumpet (profile from a centre near the mouth; the stalk seen from there is ±3° wide at the far end, where
-§2.1's perpendicular distance stops being optional), diatom (rigid: wobble, jitter, lobes **and breathing** zero,
-a silica valve does not breathe; 36 striae in pass A, 8 / 12 / 16 spine rays with bright tips in pass B), amoeba
+§2.1's perpendicular distance stops being optional), diatom (#195: `B ≡ 1`, the round valve, and
+rigid: wobble, jitter, lobes **and breathing** zero, a silica valve does not breathe, and **no stretch**: `body-stretch.ts`
+`bodyStretchTerm` gives a rigid form neither the speed stretch nor the sprint's, so the glass stays a circle flat out and the
+instance carries its speed ratio as 0. The valve's pattern turns with the heading, in the body frame turned by `h`, so the
+shell turns as one piece with its spines: in pass A, under the sprites and faded out at mid LOD, `DIATOM_STRIA_COUNT` 36
+striae from 0.28 r to 0.9 r in `SILICA_LIGHT`, alternating an 18-spoke bold rib (1.6 px @55 %) and a fine stria (1 px @30 %)
+half a spoke round, with `DIATOM_PORE_ROWS` 5 pores (0.022 r, 1 px floor, @60 %) from 0.36 r every 0.12 r along each fine
+one; in pass B the girdle, a `SILICA_BASE` line at 0.86 r and a `SILICA_LIGHT` line at 0.94 r, px wide, at full LOD. Its
+**appendage** is `DIATOM_SPINE_COUNT_BY_TIER` 8 / 12 / 16 straight radial spines, the first on the heading
+(visual-style/motion-and-legibility.md §5.1), drawn in pass B outside the membrane over the cell wall: each rooted
+`DIATOM_SPINE_ROOT_INSET_RADII` 0.1 r inside the membrane, its tip `DIATOM_SPINE_REACH_RADII` 1 r past it (2 r out), 0.44 r
+wide at the root tapering to a 0.2 r round tip, in `rimColour(inst)` denser down the middle with a `SILICA_LIGHT` highlight
+down its centre at full LOD, and a white tip dot in a glow to 0.2 r; the spines neither beat nor retract. Kept at mid LOD
+(the star). `forms/diatom-pattern.ts` and `forms/diatom-spines.ts` are the references, `cell-shader-diatom.ts` the GLSL; the
+reach bounds and the quad add the tip glow past the widest membrane (`forms/appendage-reach.ts`)), amoeba
 (#192, #646: `B ≡ AMOEBA_CORE_SCALE` 1, the round unit body, plus the pseudopod bumps of §2.1, long arms reaching 1.95 r
 that are **appendages**: cosmetic, outside the unit-area rule and the hit disc, visual-style/motion-and-legibility.md
 §5.1; a `VAC_RIM` ectoplasm band 0.15 r deep at 14 % in pass B). Every `FormProfile` carries its `peak`, which `maxReachRadii` multiplies in. For the amoeba,
@@ -250,6 +263,6 @@ rings at every tier and speed (visual-style/motion-and-legibility.md §5.1). Val
 organelles do not (seat marks are frame-fixed, visual-style/principles-and-palette.md §2). `cells/forms/form-profiles.ts` is the registry
 (`FORM_PROFILES` keyed by the form trait, `FORM_ID` per silhouette, the aspects `SLIPPER_ASPECT_BY_TIER`,
 `SPINDLE_ASPECT`, `TRUMPET_MOUTH_TO_HEIGHT`, `DIATOM_ASPECT`, `PSEUDOPOD_COUNT_BY_TIER`, the rigid flag that stills
-the diatom's rest terms, and `normalisedArea` for the §9 pin); `radial-profile.ts` carries `B` as the `form` term
+the diatom's rest terms and its stretch, and `normalisedArea` for the §9 pin); `radial-profile.ts` carries `B` as the `form` term
 and the GLSL's `formAt` mirrors it. #216 ships the registry with every profile at the blob (`B ≡ 1`); #192–#196
-register the silhouettes (the amoeba with #192, the slipper with #193, the spindle with #194).
+register the silhouettes (the amoeba with #192, the slipper with #193, the spindle with #194, the diatom's valve and spines with #195).

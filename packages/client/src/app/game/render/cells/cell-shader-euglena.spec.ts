@@ -5,6 +5,7 @@
 // gates, the colours and the order in the pass.
 
 import { describe, expect, it } from 'vitest';
+import { glslFunction } from '../../../../testing/cell-glsl';
 import {
   EUGLENA_FLAGELLUM_ROOT_WIDTH_RADII,
   EUGLENA_FLAGELLUM_TIP_WIDTH_RADII,
@@ -12,17 +13,9 @@ import {
   FORM_ID,
   HALO_OUTER_RADII,
 } from '../constants';
-import { CELL_FRAGMENT_SOURCE } from './cell-shader';
 import { CELL_UNIFORM, glslFloat } from './cell-shader-source';
 import { EUGLENA_FLAGELLUM_LENGTH_RADII } from './forms/euglena-flagellum';
 import { SPINDLE_AREA_SCALE, SPINDLE_EXPONENT_SWING, SPINDLE_HALF_LENGTH } from './forms/spindle-profile';
-
-/** The source of the GLSL function whose signature starts `signature`, to its closing brace. */
-function glslFunction(signature: string): string {
-  const start = CELL_FRAGMENT_SOURCE.indexOf(signature);
-  if (start < 0) throw new Error(`${signature} is not in the fragment source`);
-  return CELL_FRAGMENT_SOURCE.slice(start, CELL_FRAGMENT_SOURCE.indexOf('\n}', start));
-}
 
 describe('the euglena in the cell shader', () => {
   it('draws the spindle in formAt', () => {

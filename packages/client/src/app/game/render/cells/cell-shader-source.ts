@@ -60,6 +60,8 @@ export const CELL_UNIFORM = {
   ectoplasm: 'uEctoplasm',
   eyespot: 'uEyespot',
   eyespotRim: 'uEyespotRim',
+  silica: 'uSilica',
+  silicaLight: 'uSilicaLight',
   danger: 'uDanger',
   gain: 'uGain',
   sallow: 'uSallow',

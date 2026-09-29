@@ -56,7 +56,6 @@ function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
     traits,
     terms,
     lod: cellLodFor(40),
-    speedRatio: 0,
     nucleusOffset: { x: -0.1, y: -0.1 },
     isOwn: false,
     cosmetic: { stripRow: 2, phase: 0.25, speckleSeed: 0.6 },

@@ -3,6 +3,7 @@
 // what a string can prove: both rings band on the traced curve, never the circle, the lobes are built and stacked as
 // `traced-ring.ts` builds them, and the dash is measured along the curve with the circle's arc untouched.
 import { describe, expect, it } from 'vitest';
+import { glslFunction } from '../../../../testing/cell-glsl';
 import {
   RING_TRACE_ARC_SAMPLES,
   RING_TRACE_SIGMA_WIDENING,
@@ -20,13 +21,6 @@ function functionBody(name: string): string {
   );
   if (match === null) throw new Error(`${name} is not in the fragment source`);
   return match[1]!;
-}
-
-/** The body of the GLSL function whose signature starts `signature`, to its closing brace. */
-function glslFunction(signature: string): string {
-  const from = CELL_FRAGMENT_SOURCE.indexOf(signature);
-  if (from < 0) throw new Error(`${signature} is not in the fragment source`);
-  return CELL_FRAGMENT_SOURCE.slice(from, CELL_FRAGMENT_SOURCE.indexOf('\n}', from));
 }
 
 describe('the traced rings in the cell shader (#730)', () => {

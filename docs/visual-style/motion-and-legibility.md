@@ -50,7 +50,8 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    flank is the worst place: `CILIA_TUFT_REACH_RADII` 1.3 r puts a tier-III flank tuft at 2.0 r (1.93 r with the
    breath, the wobble and the rest lobes all pulling that flank in), and beating down to 0.66 of it, 1.49 r. The euglena's
    leading whip (#194) reaches `EUGLENA_FLAGELLUM_REACH_RADII` 2.2 r past its nose (1.85 r out), so its tip is past 3.9 r at rest
-   and further when swimming stretches the nose, and it never retracts. Swimming may squash an appendage (the speed stretch narrows the cell across its heading and tapers its
+   and further when swimming stretches the nose, and it never retracts. The diatom's spines (#195) reach
+   `DIATOM_SPINE_REACH_RADII` 1 r past the membrane, 2 r out, at every speed (the valve is rigid and never stretches), and never retract. Swimming may squash an appendage (the speed stretch narrows the cell across its heading and tapers its
    rear), but its tip stays past the ring at every speed, measured at the tip itself, not at the widest point of the
    outline. "The ring" here is the 1.3 r radius; on a small cell the rings' px floors can sit further out (ticket
    #736).
@@ -63,7 +64,8 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    tufts are 0.40 r at the root tapering to a 0.26 r round tip, 0.33 r at the neck measured **square across** the tuft,
    since a tuft bent back toward the tail is wider along the arc it crosses than across itself. The euglena's whip is
    0.44 r at the root tapering to a 0.2 r round tip, 0.31 r at its neck (halfway along the part past the nose), square
-   across its wave.
+   across its wave. The diatom's spines are 0.44 r at the root tapering to a 0.2 r round tip, 0.31 r at the neck; at tier III
+   their sixteen roots meet just outside the membrane, a collar the points rise from.
 3. **Appendages are not body.** The body `B(Δ)` alone keeps unit area (docs/rendering/cells.md §2.4), so mass ∝ area
    still reads from the body. The body is also exactly the **hit disc**: contact, separation and the seal all use the
    round body radius `r` (`ecology/absorption.md`), never the appendage. Appendages add no collision and no mass, and
@@ -79,14 +81,14 @@ euglena's flagellum (#194), the diatom's spines (#195) and the stentor's stalk a
    wherever the body passes its circle (a paramecium's slipper nose, a fast swimmer's stretched front), and bulges out
    round every lobe by its height, widened so its flanks keep the gap too, with a notch between two neighbouring arms
    (docs/rendering/cells.md §2.2 "Traced rings"). **Fringe-type appendages** (the paramecium's cilia tufts, the euglena's
-   whip) are not traced and cross the ring: a ring round twenty tufts would be a star, not a ring. The threat
+   whip, the diatom's spines) are not traced and cross the ring: a ring round twenty tufts would be a star, not a ring. The threat
    ring's 6 / 5 px dash runs along the traced curve, and no label sits on an arm. The gap wins over a round ring: a
    round cell's ring is unchanged, pixel for pixel, **at rest**; while it swims its ring follows its stretched front,
    and while an engulf's arms or an eat's wrap push its outline out its ring bulges round them.
 5. **The quad and the preview lens never clip an appendage.** Its reach is counted in the form's reach bounds
    (docs/rendering/cells.md §2.4), and the quad grows past `CELL_QUAD_EXTENT_RADII` when it must.
 6. **Appendages wear the player's colour.** They are the cell's silhouette, so they take its palette, never a shared
-   organelle colour: the amoeba's arms are membrane, the paramecium's tufts and the euglena's whip the player's rim colour (ticket #745;
+   organelle colour: the amoeba's arms are membrane, the paramecium's tufts, the euglena's whip and the diatom's spines the player's rim colour (ticket #745;
    the exception to the organelle rule, visual-style/principles-and-palette.md §2).
 
 ## 6. Legibility at play scale
