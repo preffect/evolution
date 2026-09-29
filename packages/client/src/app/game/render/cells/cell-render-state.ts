@@ -244,7 +244,6 @@ export class CellRenderState {
       traits,
       terms,
       lod,
-      speedRatio,
       nucleusOffset: nucleusOffsetOf(organelles, view.radius),
       isOwn: context.ownCell?.id === view.id,
       cosmetic: { stripRow: this.stripRow, phase: this.phase, speckleSeed: this.speckleSeed },
