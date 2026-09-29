@@ -64,6 +64,15 @@ describe('FanTurnMemory (#771)', () => {
     expect(turnOf(memory, HEADING + 0.01, 0)).toBeCloseTo(Math.PI - 0.01, 12);
   });
 
+  it('forgets the last engulf once nothing is held, so the next grab first seen mid-ease turns the short way', () => {
+    const memory = new FanTurnMemory();
+    const left = HEADING + 2.5;
+    const right = HEADING - 2.5;
+    for (const share of [0, 0.5, 1, 0.5]) memory.apply(HEADING, gripped(share, left));
+    memory.apply(HEADING, REST_DEFORMATION);
+    expect(memory.apply(HEADING, gripped(0.5, right)).armGrip?.turn).toBeCloseTo(-2.5, 12);
+  });
+
   it('passes a record with no grip through', () => {
     expect(new FanTurnMemory().apply(HEADING, REST_DEFORMATION)).toBe(REST_DEFORMATION);
   });

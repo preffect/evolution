@@ -41,18 +41,27 @@ export function pseudopodFan(heading: number, speedRatio: number, deformation: C
   };
 }
 
+/** No turn remembered: `angleNear` against it is the short way. */
+const NO_TURN = 0;
+
 /**
  * One cell's fan turn across frames: the short way to the prey whenever the fan is all the way on the heading or on the
  * prey, and otherwise the way round nearest the last frame's, so a heading that wobbles across the line behind the prey
  * never flips the fan a half turn mid-ease (#771).
  */
 export class FanTurnMemory {
-  private turn = 0;
+  private turn = NO_TURN;
 
-  /** The deformation with its grip's turn from `heading` fixed; a record without a grip passes through. */
+  /**
+   * The deformation with its grip's turn from `heading` fixed; a record without a grip passes through and forgets the
+   * last engulf's turn, so a grab first seen mid-ease (the cell was off screen at the grab) starts the short way.
+   */
   apply(heading: number, deformation: CellDeformation): CellDeformation {
     const grip = deformation.armGrip;
-    if (grip === undefined) return deformation;
+    if (grip === undefined) {
+      this.turn = NO_TURN;
+      return deformation;
+    }
     const shortWay = wrapAngle(grip.angle - heading);
     const isEasing = grip.share > NO_GRIP_SHARE && grip.share < FULL_GRIP_SHARE;
     this.turn = isEasing ? angleNear(shortWay, this.turn) : shortWay;
