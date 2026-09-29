@@ -21,7 +21,7 @@ import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
 import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
-import { dragPreyAlong } from './engulf-drag.js';
+import { clearHeldDisplacements, dragPreyAlong } from './engulf-drag.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
   hasSpitOutRefractory,
@@ -242,6 +242,7 @@ export function isPairInWorld(pair: CellPair, world: WorldState): boolean {
 /** Step 6 of the tick. */
 export function runEngulfs(world: WorldState, context: StepContext): void {
   pruneSpitOutRefractories(world);
+  clearHeldDisplacements(world.cells);
   for (const pair of cellPairs(world.cells)) {
     if (isPairInWorld(pair, world)) {
       stepEngulfPair(pair, world, context);

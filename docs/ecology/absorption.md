@@ -188,7 +188,11 @@ drag          = ENGULF_DRAG_SHARE × gapOpened, toward the predator's centre, th
 - **Velocity is the kernel's.** The predator's start is read back from the velocity the movement step left on its
   record, so a push from separation is not counted; at the dish wall, whose clamp removes the outward velocity, it is
   an approximation of under one tick's move. The prey's own velocity is not changed: the drag moves it, as the arm's
-  pull does.
+  pull does. The wire still shows it moving (#774): the tick's drag and arm pull are kept on the prey
+  (`heldDisplacementX/Y`, cleared at the top of the engulf step), and while it is held its view's velocity adds them ÷
+  the tick, so the client draws it heading and stretching with its predator and extrapolates a late snapshot with it.
+  The next tick's kernel reads the record's velocity, which never includes them; a prey released this tick reports the
+  kernel's alone, the velocity its own client's prediction replays from.
 - **Order:** step 5 drags first, then the arm pulls, then contact is read (below). A sealed prey is carried and never
   dragged. Dragging first matters for an amoeba: a prey the drag puts back under the body is not pulled on top of it.
 - **The arm hold is dragged too.** The drag reads the hold, not how it holds: an amoeba swimming off a still prey it

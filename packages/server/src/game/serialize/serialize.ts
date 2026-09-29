@@ -11,6 +11,7 @@ import {
   SNAPSHOT_SCORE_DECIMALS,
   SNAPSHOT_VELOCITY_DECIMALS,
   PLAYER_LIFE_STATE,
+  TICK_INTERVAL_S,
   type CellView,
   type DnaFragmentView,
   type FoodMoteView,
@@ -32,6 +33,15 @@ import { toEffectView, toMassFlowView } from './mass-flow-view.js';
 import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
 import type { BroadcastSnapshot } from './viewer-snapshot-keys.js';
 
+/**
+ * One axis of the velocity a cell is seen to move at: the kernel's, plus, while it is held as prey, the tick's drag and
+ * arm pull (#774), so a dragged prey is drawn heading and stretching with its predator and extrapolates with it. A cell
+ * released this tick reports the kernel's alone: that is what its own client's prediction replays from.
+ */
+function reportedVelocity(cell: CellRecord, kernelVelocity: number, heldDisplacement: number): number {
+  return cell.engulfedByCellId === null ? kernelVelocity : kernelVelocity + heldDisplacement / TICK_INTERVAL_S;
+}
+
 export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES): CellView {
   return {
     id: cell.id,
@@ -41,8 +51,16 @@ export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE
     avatarIndex: cell.avatarIndex,
     x: snapshotValue(cell.x, SNAPSHOT_POSITION_DECIMALS, precision),
     y: snapshotValue(cell.y, SNAPSHOT_POSITION_DECIMALS, precision),
-    velocityX: snapshotValue(cell.velocityX, SNAPSHOT_VELOCITY_DECIMALS, precision),
-    velocityY: snapshotValue(cell.velocityY, SNAPSHOT_VELOCITY_DECIMALS, precision),
+    velocityX: snapshotValue(
+      reportedVelocity(cell, cell.velocityX, cell.heldDisplacementX),
+      SNAPSHOT_VELOCITY_DECIMALS,
+      precision,
+    ),
+    velocityY: snapshotValue(
+      reportedVelocity(cell, cell.velocityY, cell.heldDisplacementY),
+      SNAPSHOT_VELOCITY_DECIMALS,
+      precision,
+    ),
     mass: snapshotValue(cell.mass, SNAPSHOT_MASS_DECIMALS, precision),
     radius: snapshotValue(cell.radius, SNAPSHOT_RADIUS_DECIMALS, precision),
     level: cell.level,

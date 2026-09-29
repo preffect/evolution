@@ -61,7 +61,7 @@ export interface CellView {
   avatarIndex: number;
   x: number;
   y: number;
-  velocityX: number;
+  velocityX: number; // the record's (the kernel's); a held prey's view adds its tick's drag and arm pull (#774)
   velocityY: number;
   mass: number;
   radius: number;
@@ -180,6 +180,8 @@ export interface CellRecord extends CellView {
   modifiers: CellModifiers; // folded at step 1 of the tick (traits/model.md §2); the simulation reads only this
   carriedOffsetX: number | null; // set at the seal (ecology/absorption.md §6.1): the prey rides at this offset from its predator's centre until payout or release
   carriedOffsetY: number | null;
+  heldDisplacementX: number; // this tick's drag and arm pull on a held prey (ecology/absorption.md §6.1, #774), cleared at step 6; the serializer adds it ÷ the tick to the view's velocity, the kernel never reads it; unhashed
+  heldDisplacementY: number;
   spitOutRefractoryUntilTickByPreyId: Map<EntityId, number>; // ecology/absorption.md §6.1: one entry per spat-out prey (no restart on it until that tick; separation applies to the pair meanwhile); expired entries pruned at step 1
 }
 export interface PlayerRecord extends PlayerProgressView {

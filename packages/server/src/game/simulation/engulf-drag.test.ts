@@ -214,3 +214,32 @@ describe('the drag and the arm (#772, #735)', () => {
     expect(releaseReasonsOf(fixture.context.effects)).toEqual([ENGULF_RELEASE_REASON.escaped]);
   });
 });
+
+describe('the held displacement the wire reports (#774)', () => {
+  it("records the drag's move on the prey, never on its velocity", () => {
+    const fixture = createEngulfFixture();
+    movePredator(fixture, -PREDATOR_SPEED);
+    stepEngulf(fixture);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(-STEP_WU, DISTANCE_DIGITS);
+    expect(fixture.prey.heldDisplacementY).toBe(0);
+    expect({ x: fixture.prey.velocityX, y: fixture.prey.velocityY }).toEqual({ x: 0, y: 0 });
+  });
+
+  it('adds every draw of one tick, as the drag and the arm pull both draw', () => {
+    const fixture = createEngulfFixture();
+    const start = fixture.prey.x;
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    drawPreyTowardPredator(fixture, STEP_WU, fixture.world.balance);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(fixture.prey.x - start, DISTANCE_DIGITS);
+    expect(fixture.prey.heldDisplacementX).toBeCloseTo(-2 * STEP_WU, DISTANCE_DIGITS);
+  });
+
+  it('starts over each engulf step: a tick without a drag reports none', () => {
+    const fixture = createEngulfFixture();
+    movePredator(fixture, -PREDATOR_SPEED);
+    stepEngulf(fixture);
+    movePredator(fixture, 0);
+    stepEngulf(fixture);
+    expect({ x: fixture.prey.heldDisplacementX, y: fixture.prey.heldDisplacementY }).toEqual({ x: 0, y: 0 });
+  });
+});

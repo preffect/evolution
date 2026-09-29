@@ -7,6 +7,7 @@ import {
   SNAPSHOT_RADIUS_DECIMALS,
   SNAPSHOT_SCORE_DECIMALS,
   SNAPSHOT_VELOCITY_DECIMALS,
+  TICK_INTERVAL_S,
   type GameEffect,
   type LeaderboardRow,
   EFFECT_KIND,
@@ -37,6 +38,9 @@ const MOVING_CELL = {
   mass: 117.91111692892059,
   radius: 43.43472678624837,
 };
+
+/** A drag of 3 wu east and 1 wu south in one tick: 180 and 60 wu/s on top of the kernel's velocity. */
+const HELD_THIS_TICK = { heldDisplacementX: 3, heldDisplacementY: 1 };
 
 describe('view projections', () => {
   it('projects a cell onto exactly the view fields with quantised positions and copied arrays', () => {
@@ -86,6 +90,25 @@ describe('view projections', () => {
     expect([SNAPSHOT_VELOCITY_DECIMALS, SNAPSHOT_MASS_DECIMALS, SNAPSHOT_RADIUS_DECIMALS]).toEqual([1, 1, 1]);
     expect(toCellView(cell)).toMatchObject({ velocityX: 154.1, velocityY: -12.3, mass: 117.9, radius: 43.4 });
     expect(cell).toMatchObject(MOVING_CELL);
+  });
+
+  it('reports a held prey moving with its tick’s drag and arm pull on top of the kernel’s velocity (#774)', () => {
+    const world = createTestWorld();
+    const cell = Object.assign(world.cells[0]!, MOVING_CELL, HELD_THIS_TICK, { engulfedByCellId: world.cells[0]!.id });
+    expect(toCellView(cell, EXACT_SNAPSHOT_VALUES)).toMatchObject({
+      velocityX: MOVING_CELL.velocityX + HELD_THIS_TICK.heldDisplacementX / TICK_INTERVAL_S,
+      velocityY: MOVING_CELL.velocityY + HELD_THIS_TICK.heldDisplacementY / TICK_INTERVAL_S,
+    });
+    expect(cell).toMatchObject({ velocityX: MOVING_CELL.velocityX, velocityY: MOVING_CELL.velocityY });
+  });
+
+  it('reports the kernel’s velocity alone for a cell released this tick, which its own prediction replays from', () => {
+    const world = createTestWorld();
+    const cell = Object.assign(world.cells[0]!, MOVING_CELL, HELD_THIS_TICK, { engulfedByCellId: null });
+    expect(toCellView(cell, EXACT_SNAPSHOT_VALUES)).toMatchObject({
+      velocityX: MOVING_CELL.velocityX,
+      velocityY: MOVING_CELL.velocityY,
+    });
   });
 
   it('writes every number exact with EXACT_SNAPSHOT_VALUES', () => {
