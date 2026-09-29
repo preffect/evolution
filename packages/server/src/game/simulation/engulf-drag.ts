@@ -5,6 +5,7 @@
 // exactly as it would from a still predator (decision #139).
 
 import { TICK_INTERVAL_S, distanceBetween, type BalanceConfig } from '@evolution/shared';
+import type { CellRecord } from '../world/entities.js';
 import { keepInsideDish } from './dish-wall.js';
 import type { EngulfPairing } from './engulf-state.js';
 
@@ -25,6 +26,7 @@ export function gapOpenedByPredator(pairing: EngulfPairing): number {
 /**
  * Moves the held prey `distanceWu` toward its predator's centre, never past it, then the dish wall: the one way a hold
  * draws a prey in, shared by the drag and the amoeba's arm (`engulf-arm-grab.ts`). A prey on the centre stays there.
+ * The move is added to the prey's held displacement, which the wire reports and the kernel never reads (#774).
  */
 export function drawPreyTowardPredator(pairing: EngulfPairing, distanceWu: number, balance: BalanceConfig): void {
   const { predator, prey } = pairing;
@@ -32,10 +34,22 @@ export function drawPreyTowardPredator(pairing: EngulfPairing, distanceWu: numbe
   if (distanceWu <= 0 || distance === 0) {
     return;
   }
+  const startX = prey.x;
+  const startY = prey.y;
   const share = Math.min(distanceWu, distance) / distance;
   prey.x -= (prey.x - predator.x) * share;
   prey.y -= (prey.y - predator.y) * share;
   keepInsideDish(prey, balance.world.DISH_RADIUS);
+  prey.heldDisplacementX += prey.x - startX;
+  prey.heldDisplacementY += prey.y - startY;
+}
+
+/** Step 6 starts every cell's held displacement over: only this tick's drag and arm pull are reported (#774). */
+export function clearHeldDisplacements(cells: readonly CellRecord[]): void {
+  for (const cell of cells) {
+    cell.heldDisplacementX = 0;
+    cell.heldDisplacementY = 0;
+  }
 }
 
 /**

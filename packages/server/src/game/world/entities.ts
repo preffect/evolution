@@ -59,6 +59,13 @@ export interface CellRecord extends CellView {
    */
   carriedOffsetX: number | null;
   carriedOffsetY: number | null;
+  /**
+   * How far the engulf hold moved this prey this tick outside the movement kernel (wu): the drag (#772) and the arm's
+   * pull (#735). Cleared at the top of step 6 and read only by the serializer, which reports it in the view's velocity
+   * (#774); the kernel never reads it, so the prey's own velocity, and the physics, stay as they were.
+   */
+  heldDisplacementX: number;
+  heldDisplacementY: number;
   /** This cell's spit-out memories as a predator; empty for everything that never spat anything out. */
   spitOutRefractories: SpitOutRefractoryRecord[];
   /** This cell's arm re-grab cooldowns as a predator (#735): the prey it may not grab by the arm alone yet. */
