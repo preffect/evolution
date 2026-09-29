@@ -12,7 +12,6 @@ import {
   HALO_OUTER_RADII,
   JITTER_AMPLITUDE,
   MAX_SHAPE_BUMPS,
-  PSEUDOPOD_ENGULF_LEAN,
   PROTOCELL_HALO_OUTER_RADII,
   REST_LOBE_AMPLITUDE_MAX,
   STARVING_WRINKLE_AMPLITUDE,
@@ -28,6 +27,7 @@ import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
+import { pseudopodFan } from './forms/pseudopod-fan';
 import { reachWithFormAppendages } from './forms/appendage-reach';
 import {
   ZERO_BUMP,
@@ -258,11 +258,8 @@ function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
     count,
     timeSeconds: input.timeSeconds,
     phase: input.phase,
-    aim: input.deformation.preyAngle ?? input.heading,
-    lean:
-      input.deformation.preyAngle === undefined ? input.speedRatio : Math.max(input.speedRatio, PSEUDOPOD_ENGULF_LEAN),
+    ...pseudopodFan(input.heading, input.speedRatio, input.deformation),
     armHold: input.deformation.armHoldRadii ?? NO_ARM_HOLD,
-    grip: input.deformation.armGrip,
   });
   return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
 }

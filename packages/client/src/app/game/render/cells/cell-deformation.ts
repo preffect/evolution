@@ -21,17 +21,23 @@ export interface CellDeformation {
    * of its radius, in this cell's radii; 0 once the body covers it. Absent when not engulfing and not letting go (#768).
    */
   readonly armHoldRadii?: number;
-  /** How far the held arm has swung onto the prey (#768); absent when the grip is full, at the prey angle. */
+  /**
+   * How far the held arm has swung onto the prey and the fan turned to flank it (#768, #771). The clip tracker attaches
+   * it on every engulfing and letting-go frame; absent while engulfing, the grip is full at `preyAngle`.
+   */
   readonly armGrip?: ArmGrip;
 }
 
-/** The held arm's grip, eased on the render clock at the grab and after an escape (#768). */
+/** The engulf grip, eased on the render clock at the grab, when the engulf ends and when the prey changes (#768, #771). */
 export interface ArmGrip {
-  /** Where the prey is, or was when it escaped (cell frame, radians). */
+  /** Where the prey is, or was when the engulf ended, or on the way from the previous prey (cell frame, radians). */
   readonly angle: number;
-  /** 0 → the arm in its fan place, 1 → on the prey. */
+  /** `NO_GRIP_SHARE` → the arm in its fan place and the fan on the heading, `FULL_GRIP_SHARE` → on the prey. */
   readonly share: number;
 }
+
+export const NO_GRIP_SHARE = 0;
+export const FULL_GRIP_SHARE = 1;
 
 export type CellDeformations = ReadonlyMap<EntityId, CellDeformation>;
 
