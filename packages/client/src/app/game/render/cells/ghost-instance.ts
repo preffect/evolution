@@ -52,7 +52,6 @@ export function ghostFrame(ghost: Ghost, zoom: number, starvedOutMass: number): 
     traits,
     terms,
     lod,
-    speedRatio: AT_REST,
     nucleusOffset: nucleusOffsetOf(organelles, view.radius),
     isOwn: false,
     cosmetic: { ...NO_STRIP, speckleSeed: ghost.speckleSeed },

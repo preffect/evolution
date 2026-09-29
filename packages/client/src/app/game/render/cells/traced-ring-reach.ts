@@ -8,7 +8,8 @@ import { NO_EFFECT_REACH, type CellDrawState } from './cell-draw-extent';
 import { summariseCellTraits, type CellTraitSummary } from './cell-traits';
 import { pseudopodCount } from './forms/form-profiles';
 import type { RadialProfileTerms } from './radial-profile';
-import { REST_CLIP_PEAK, peakStretchRadii, stretchTerm } from './shape-terms';
+import { bodyStretchTerm, peakStretchRadii } from './body-stretch';
+import { REST_CLIP_PEAK } from './shape-terms';
 import { coreRadiusWu, ringBodyScaleAt, type RingBody } from './traced-ring';
 
 /** How far this frame's ring lobes can reach past the scaled circle, in radii: the tallest stack of full lobe heights. */
@@ -55,7 +56,7 @@ export function peakRingBodyScale(traits: CellTraitSummary, state: CellDrawState
     radius: 1,
     heading: 0,
     form: traits.form.profileAt(traits.formTier),
-    stretch: stretchTerm(state.speedRatio, state.isSprinting),
+    stretch: bodyStretchTerm(traits.form, state.speedRatio, state.isSprinting),
     pulse: state.clip.pulse,
   });
   bodyPeakCache.set(key, peak);
@@ -70,7 +71,12 @@ export function peakRingLobeRadii(traits: CellTraitSummary, state: CellDrawState
   const lobeReach = pseudopodCount(traits.form, traits.formTier) > 0 ? PSEUDOPOD_REACH : 0;
   const bumpReach = lobeReach + state.clip.bumpRadii;
   if (bumpReach === 0) return 0;
-  return state.clip.pulse * formPeakOf(traits) * peakStretchRadii(state.speedRatio, state.isSprinting) * bumpReach;
+  return (
+    state.clip.pulse *
+    formPeakOf(traits) *
+    peakStretchRadii(traits.form, state.speedRatio, state.isSprinting) *
+    bumpReach
+  );
 }
 
 /**

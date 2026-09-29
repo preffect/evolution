@@ -34,7 +34,6 @@ export interface CellInstanceInput {
   readonly traits: CellTraitSummary;
   readonly terms: ShapeTerms;
   readonly lod: CellLod;
-  readonly speedRatio: number;
   /** The mapped nucleus slot, fractions of `r`; the origin when the cell has no nucleus sprite. */
   readonly nucleusOffset: { readonly x: number; readonly y: number };
   readonly isOwn: boolean;
@@ -140,10 +139,9 @@ export function quadExtentRadii(terms: ShapeTerms, lod: CellLod, rings: CellRing
   return Math.max(CELL_QUAD_EXTENT_RADII, terms.maxRadii, lod.isFarDot ? FAR_DOT_HALO_RADII : 0, ringRadii);
 }
 
-/** The membrane's terms: heading, stretch, pulse, breathing, wobble and the bump slots. */
+/** The membrane's terms: heading, stretch (its speed ratio, 0 on a rigid form), pulse, breathing, wobble and the bump slots. */
 function surfaceFields(
   terms: ShapeTerms,
-  speedRatio: number,
 ): Pick<
   CellInstance,
   | 'heading'
@@ -159,7 +157,7 @@ function surfaceFields(
 > {
   return {
     heading: terms.heading,
-    speedRatio,
+    speedRatio: terms.stretch.k,
     breathing: terms.breathing,
     wobbleAmplitude: terms.wobble.amplitude,
     wobbleMode: terms.wobble.mode,
@@ -235,7 +233,7 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
   const { view, traits, lod, terms } = input;
   const relation = relationRingPackingFor(input.relationRing, lod, input.warningRingPx);
   return {
-    ...surfaceFields(terms, input.speedRatio),
+    ...surfaceFields(terms),
     ...tellFields(traits, lod),
     ...filmFields(input),
     ...selfRingFields(input),

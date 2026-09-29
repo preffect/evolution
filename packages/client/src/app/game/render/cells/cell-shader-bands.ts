@@ -2,7 +2,7 @@
 // body, "lit from inside"; the chloroplast / toxin trait halo replaces it), the far dot, the
 // four-stop body ramp and the two pools in the body frame (the undeformed frame over the form's B,
 // body-frame.ts), the cytoplasm noise in world units, the ribosome speckle on a hashed body-frame grid, the
-// cytoskeleton filaments from the nucleus and, last, the nucleus ramp (#231): the disc under the
+// cytoskeleton filaments from the nucleus, the diatom's valve (cell-shader-diatom.ts) and, last, the nucleus ramp (#231): the disc under the
 // nucleus sprite as a three-stop radial ramp. Everything under the organelle sprites. The pools, the
 // noise and the interior tells fade with `lodBlend`; the trait halo and the nucleus ramp do not (the
 // mid-LOD tells, visual-style/cells-and-organelles.md §4, visual-style/motion-and-legibility.md §6).
@@ -198,6 +198,7 @@ vec4 bodyPass(Instance inst, Frame frame) {
   acc = cytoplasmNoise(inst, frame, acc);
   acc = ribosomeSpeckle(inst, frame, inside, acc);
   acc = cytoskeletonFilaments(inst, frame, acc);
+  acc = diatomValve(inst, frame, inside, acc);
   return nucleusRamp(inst, frame, acc);
 }
 `;

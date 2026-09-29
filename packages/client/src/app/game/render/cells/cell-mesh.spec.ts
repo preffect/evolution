@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { hexToRgb } from '../colour';
-import { EYESPOT, EYESPOT_RIM, VAC_RIM } from '../constants';
+import { EYESPOT, EYESPOT_RIM, SILICA_BASE, SILICA_LIGHT, VAC_RIM } from '../constants';
 import { CELL_INSTANCE_FLOATS } from './cell-instance';
 import { CellMesh } from './cell-mesh';
 import { CELL_FRAGMENT_SOURCE, CELL_VERTEX_SOURCE } from './cell-shader';
@@ -64,6 +64,15 @@ describe('CellMesh', () => {
     const group = subject.membranePass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
     expect(group.uniforms[CELL_UNIFORM.eyespot]).toEqual(hexToRgb(EYESPOT));
     expect(group.uniforms[CELL_UNIFORM.eyespotRim]).toEqual(hexToRgb(EYESPOT_RIM));
+    subject.destroy();
+  });
+
+  /** The diatom's valve and girdle are `SILICA_BASE` and `SILICA_LIGHT` (visual-style/cells-and-organelles.md §4, #195). */
+  it('paints the diatom’s silica in SILICA_BASE and SILICA_LIGHT', () => {
+    const subject = mesh(1);
+    const group = subject.bodyPass.shader?.resources[CELL_UNIFORM_GROUP] as { uniforms: Record<string, unknown> };
+    expect(group.uniforms[CELL_UNIFORM.silica]).toEqual(hexToRgb(SILICA_BASE));
+    expect(group.uniforms[CELL_UNIFORM.silicaLight]).toEqual(hexToRgb(SILICA_LIGHT));
     subject.destroy();
   });
 

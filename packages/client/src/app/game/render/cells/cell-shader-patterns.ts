@@ -76,6 +76,8 @@ uniform vec3 uCilia;
 uniform vec3 uEctoplasm;
 uniform vec3 uEyespot;
 uniform vec3 uEyespotRim;
+uniform vec3 uSilica;
+uniform vec3 uSilicaLight;
 uniform vec3 uDanger;
 uniform vec3 uGain;
 uniform vec3 uSallow;

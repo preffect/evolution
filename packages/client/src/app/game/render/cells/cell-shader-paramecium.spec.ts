@@ -5,6 +5,7 @@
 
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
+import { glslFunction } from '../../../../testing/cell-glsl';
 import {
   CILIA_TUFT_COUNT,
   CILIA_TUFT_REACH_RADII,
@@ -12,16 +13,8 @@ import {
   CILIA_TUFT_TIP_WIDTH_RADII,
   FORM_ID,
 } from '../constants';
-import { CELL_FRAGMENT_SOURCE } from './cell-shader';
 import { glslFloat } from './cell-shader-source';
 import { SLIPPER_SHAPES } from './forms/slipper-profile';
-
-/** The source of the GLSL function whose signature starts `signature`, to its closing brace. */
-function glslFunction(signature: string): string {
-  const start = CELL_FRAGMENT_SOURCE.indexOf(signature);
-  if (start < 0) throw new Error(`${signature} is not in the fragment source`);
-  return CELL_FRAGMENT_SOURCE.slice(start, CELL_FRAGMENT_SOURCE.indexOf('\n}', start));
-}
 
 describe('the paramecium in the cell shader', () => {
   it('draws the slipper in formAt at the instance’s form tier', () => {
