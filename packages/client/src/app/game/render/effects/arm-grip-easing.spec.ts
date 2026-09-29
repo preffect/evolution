@@ -49,6 +49,17 @@ describe('ArmGripEasing', () => {
     });
   });
 
+  it('keeps sliding the way it started when the new prey crosses the line opposite the old grip (#771)', () => {
+    const grip = new ArmGripEasing();
+    grip.hold(PREY_A, 0, 0.4, 0);
+    const switched = 2 * PSEUDOPOD_GRIP_EASE_MS;
+    grip.hold(PREY_B, Math.PI - 0.1, 0.4, switched);
+    const crossed = -(Math.PI - 0.1);
+    const halfway = grip.hold(PREY_B, crossed, 0.4, switched + PSEUDOPOD_GRIP_EASE_MS / 2).armGrip.angle;
+    expect(halfway).toBeCloseTo((Math.PI + 0.1) / 2, 12);
+    expect(wrapAngle(grip.hold(PREY_B, crossed, 0.4, switched + PSEUDOPOD_GRIP_EASE_MS).armGrip.angle)).toBe(crossed);
+  });
+
   it('slides the short way round and only while it still grips', () => {
     const grip = new ArmGripEasing();
     grip.hold(PREY_A, 3, 0.4, 0);

@@ -34,6 +34,11 @@ export interface ArmGrip {
   readonly angle: number;
   /** `NO_GRIP_SHARE` → the arm in its fan place and the fan on the heading, `FULL_GRIP_SHARE` → on the prey. */
   readonly share: number;
+  /**
+   * The signed turn from the held heading to `angle` the fan takes, kept the same way round from frame to frame through
+   * an ease by the cell's render state (`FanTurnMemory`, #771); absent → the short way.
+   */
+  readonly turn?: number;
 }
 
 export const NO_GRIP_SHARE = 0;

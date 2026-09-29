@@ -1,6 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { boxIntersectsDisc, clamp01, degreesToRadians, gaussianBump, smoothstep, wrapAngle } from './geometry';
+import {
+  angleNear,
+  boxIntersectsDisc,
+  clamp01,
+  degreesToRadians,
+  gaussianBump,
+  smoothstep,
+  wrapAngle,
+} from './geometry';
 
 describe('geometry helpers', () => {
   it('wraps angles into (−π, π]', () => {
@@ -28,6 +36,14 @@ describe('geometry helpers', () => {
     const flank = gaussianBump(0.5, 0.3, 0.3);
     expect(flank.value).toBeCloseTo(0.5 * Math.exp(-0.5), 9);
     expect(flank.derivative).toBeCloseTo(-flank.value / 0.3, 9);
+  });
+});
+
+describe('angleNear', () => {
+  it('moves an angle by whole turns to within a half turn of another', () => {
+    expect(angleNear(-3, 3)).toBeCloseTo(-3 + 2 * Math.PI, 12);
+    expect(angleNear(0.5, 7)).toBeCloseTo(0.5 + 2 * Math.PI, 12);
+    expect(angleNear(0.5, 0)).toBe(0.5);
   });
 });
 

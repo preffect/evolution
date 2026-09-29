@@ -8,7 +8,7 @@
 import type { EntityId } from '@evolution/shared';
 import { PSEUDOPOD_GRIP_EASE_MS } from '../constants';
 import { FULL_GRIP_SHARE, NO_GRIP_SHARE, type ArmGrip } from '../cells/cell-deformation';
-import { wrapAngle } from '../geometry';
+import { angleNear } from '../geometry';
 
 /** What a letting-go arm hands the deformation once the engulf has ended: the last hold and the fading grip. */
 export interface ArmLetGo {
@@ -32,6 +32,8 @@ export class ArmGripEasing {
   private shareAtTurn = NO_GRIP_SHARE;
   private turnMs = 0;
   private preySwitch: PreySwitch | null = null;
+  /** The slide's signed turn from the old prey to the new, kept the same way round while the new prey moves (#771). */
+  private slideTurn = 0;
 
   private shareAt(nowMs: number): number {
     const eased = Math.max(0, nowMs - this.turnMs) / PSEUDOPOD_GRIP_EASE_MS;
@@ -45,15 +47,16 @@ export class ArmGripEasing {
     return Math.min(FULL_GRIP_SHARE, Math.max(0, nowMs - this.preySwitch.atMs) / PSEUDOPOD_GRIP_EASE_MS);
   }
 
-  /** Where the grip is at `nowMs`: the prey, or on its way there from the previous one. */
-  private gripAt(nowMs: number): { readonly angle: number; readonly radii: number } {
+  /**
+   * Where the grip is at `nowMs`: the prey, or on its way there from the previous one, turning the way the slide started
+   * even if the new prey crosses the line opposite the old grip (#771).
+   */
+  private advanceGrip(nowMs: number): { readonly angle: number; readonly radii: number } {
     const from = this.preySwitch;
     const slide = this.slideAt(nowMs);
     if (from === null || slide >= FULL_GRIP_SHARE) return { angle: this.angle, radii: this.radii };
-    return {
-      angle: wrapAngle(from.angle + wrapAngle(this.angle - from.angle) * slide),
-      radii: from.radii + (this.radii - from.radii) * slide,
-    };
+    this.slideTurn = angleNear(this.angle - from.angle, this.slideTurn);
+    return { angle: from.angle + this.slideTurn * slide, radii: from.radii + (this.radii - from.radii) * slide };
   }
 
   /** Turns the ease at `nowMs` from wherever the grip is, so a re-grab mid let-go never jumps. */
@@ -68,7 +71,8 @@ export class ArmGripEasing {
   private switchPrey(preyId: EntityId, nowMs: number): void {
     if (this.preyId === preyId) return;
     const isGripping = this.preyId !== null && this.shareAt(nowMs) > NO_GRIP_SHARE;
-    this.preySwitch = isGripping ? { ...this.gripAt(nowMs), atMs: nowMs } : null;
+    this.preySwitch = isGripping ? { ...this.advanceGrip(nowMs), atMs: nowMs } : null;
+    this.slideTurn = 0;
     this.preyId = preyId;
   }
 
@@ -78,7 +82,7 @@ export class ArmGripEasing {
     this.turn(true, nowMs);
     this.angle = angle;
     this.radii = radii;
-    const grip = this.gripAt(nowMs);
+    const grip = this.advanceGrip(nowMs);
     return { armHoldRadii: grip.radii, armGrip: { angle: grip.angle, share: this.shareAt(nowMs) } };
   }
 
@@ -90,7 +94,7 @@ export class ArmGripEasing {
     this.turn(false, nowMs);
     const share = this.shareAt(nowMs);
     if (share <= NO_GRIP_SHARE || this.preyId === null) return null;
-    const grip = this.gripAt(nowMs);
+    const grip = this.advanceGrip(nowMs);
     return { armHoldRadii: grip.radii, armGrip: { angle: grip.angle, share } };
   }
 }

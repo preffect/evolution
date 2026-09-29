@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { PSEUDOPOD_ENGULF_LEAN } from '../../constants';
 import { REST_DEFORMATION } from '../cell-deformation';
 import { flankShare } from './amoeba-pseudopods';
-import { pseudopodFan } from './pseudopod-fan';
+import { FanTurnMemory, pseudopodFan } from './pseudopod-fan';
 
 const HEADING = 1;
 const PREY_ANGLE = -2;
@@ -42,5 +42,38 @@ describe('pseudopodFan', () => {
     expect(fans.map((fan) => flankShare(fan.lean))).toEqual(
       [0, 0.25, 0.5].map((share) => expect.closeTo(from + (1 - from) * share, 12)),
     );
+  });
+});
+
+describe('FanTurnMemory (#771)', () => {
+  const behind = HEADING + Math.PI;
+  const turnOf = (memory: FanTurnMemory, heading: number, share: number) =>
+    memory.apply(heading, gripped(share, behind)).armGrip?.turn;
+
+  it('keeps the way round it started through an ease while the heading wobbles across the line behind the prey', () => {
+    const memory = new FanTurnMemory();
+    expect(turnOf(memory, HEADING + 0.01, 0)).toBeCloseTo(Math.PI - 0.01, 12);
+    expect(turnOf(memory, HEADING - 0.01, 0.5)).toBeCloseTo(Math.PI + 0.01, 12);
+    expect(turnOf(memory, HEADING + 0.01, 0.9)).toBeCloseTo(Math.PI - 0.01, 12);
+  });
+
+  it('takes the short way again once the fan is all the way on the prey or the heading', () => {
+    const memory = new FanTurnMemory();
+    turnOf(memory, HEADING + 0.01, 0.5);
+    expect(turnOf(memory, HEADING - 0.01, 1)).toBeCloseTo(-(Math.PI - 0.01), 12);
+    expect(turnOf(memory, HEADING + 0.01, 0)).toBeCloseTo(Math.PI - 0.01, 12);
+  });
+
+  it('passes a record with no grip through', () => {
+    expect(new FanTurnMemory().apply(HEADING, REST_DEFORMATION)).toBe(REST_DEFORMATION);
+  });
+
+  it('turns the fan by the remembered way, the held arm swinging the same way (unwrapped)', () => {
+    const fan = pseudopodFan(HEADING, SLOW, {
+      ...gripped(0.5, behind),
+      armGrip: { angle: behind, share: 0.5, turn: 4 },
+    });
+    expect(fan.aim).toBeCloseTo(HEADING + 2, 12);
+    expect(fan.grip).toEqual({ angle: HEADING + 4, share: 0.5 });
   });
 });

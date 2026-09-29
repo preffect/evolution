@@ -44,7 +44,10 @@ export interface PseudopodInput {
   readonly lean: number;
   /** How far past the body the arm holding the prey reaches (`CellDeformation.armHoldRadii`), in radii; 0 for none. */
   readonly armHold: number;
-  /** The held arm's grip (`CellDeformation.armGrip`, #768); absent → full, at the aim. */
+  /**
+   * The held arm's grip (`CellDeformation.armGrip`, #768); absent → full, at the aim. Its angle is unwrapped against the
+   * aim: the arm swings by `angle − aim`, so the caller decides the way round (`pseudopodFan`, #771).
+   */
   readonly grip?: ArmGrip;
 }
 
@@ -102,7 +105,7 @@ interface FanMoment {
  * `PSEUDOPOD_ENGULF_LEAN`, is nearest it. Fixed per count, so it never hands the prey to a neighbour while the grip
  * turns the fan to the prey or back (#771).
  */
-function holdingLobe(count: number): number {
+export function pseudopodHoldingLobe(count: number): number {
   const share = flankShare(PSEUDOPOD_ENGULF_LEAN);
   const miss = (index: number) => Math.abs(wrapAngle(lobeOffset(index, count, share)));
   let nearest = 0;
@@ -125,7 +128,7 @@ function holdShare(armHold: number): number {
 function lobesAt(count: number, moment: FanMoment): ShapeBump[] {
   const sigma = pseudopodSigma(count);
   const share = flankShare(moment.lean);
-  const holding = moment.armHold > 0 ? holdingLobe(count) : NO_HOLDING_LOBE;
+  const holding = moment.armHold > 0 ? pseudopodHoldingLobe(count) : NO_HOLDING_LOBE;
   const held = Math.min(holdShare(moment.armHold), moment.gripShare);
   return Array.from({ length: count }, (_unused, index) => {
     const fanReach = PSEUDOPOD_REACH * extensionShare(moment.cycleTurns, index, count);
@@ -145,7 +148,7 @@ export function pseudopodBumps(input: PseudopodInput): ShapeBump[] {
   const swayTurns = PSEUDOPOD_SWAY_HZ * input.timeSeconds + input.phase;
   const sway = SWAY * (1 - flankShare(input.lean)) * Math.sin(RADIANS_PER_FULL_TURN * swayTurns);
   const cycleTurns = PSEUDOPOD_CYCLE_HZ * input.timeSeconds + input.phase;
-  const gripOffset = input.grip === undefined ? 0 : wrapAngle(input.grip.angle - input.aim - sway);
+  const gripOffset = input.grip === undefined ? 0 : input.grip.angle - input.aim - sway;
   const gripShare = input.grip?.share ?? FULL_GRIP_SHARE;
   return lobesAt(input.count, {
     aim: input.aim,
