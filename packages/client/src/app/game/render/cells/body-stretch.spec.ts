@@ -13,6 +13,8 @@ import { cellLodFor } from './cell-lod';
 import { summariseCellTraits } from './cell-traits';
 import { formFor } from './forms/form-profiles';
 import { buildShapeTerms } from './shape-terms';
+import { restingDrawState } from './cell-draw-extent';
+import { peakRingBodyScale } from './traced-ring-reach';
 import { REST_OWN_CELL_RING } from './self-ring';
 import { RELATION_RING } from '../../hud/format/relations-for';
 
@@ -75,5 +77,16 @@ describe('the body stretch', () => {
     const slipper = sprinting('paramecium_cilia');
     expect(slipper.terms.stretch).toMatchObject({ k: 1, axialAlong: SPRINT_STRETCH_SCALE });
     expect(slipper.instance).toMatchObject({ speedRatio: 1, axialAlong: SPRINT_STRETCH_SCALE });
+  });
+
+  /** §5.1 rule 4: the rings trace the body, so a valve that never stretches keeps round rings flat out and sprinting. */
+  it('keeps a diatom’s traced rings round while it swims and sprints; a blob’s bulge ahead', () => {
+    const swimming = { ...restingDrawState(1), isSprinting: true };
+    const diatom = summariseCellTraits(
+      createTestCellView({ radius: 40, stage: CELL_STAGE.specialised, traits: [{ traitId: 'diatom_shell', tier: 1 }] }),
+    );
+    expect(peakRingBodyScale(diatom, swimming)).toBe(peakRingBodyScale(diatom, restingDrawState(0)));
+    const blob = summariseCellTraits(createTestCellView({ radius: 40, stage: CELL_STAGE.specialised }));
+    expect(peakRingBodyScale(blob, swimming)).toBeGreaterThan(peakRingBodyScale(blob, restingDrawState(0)));
   });
 });
