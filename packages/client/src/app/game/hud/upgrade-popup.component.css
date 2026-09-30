@@ -1,0 +1,223 @@
+/* The upgrade and form popups (docs/ui/overlays.md §3.8). Every size and duration is a `--hud-…` published from
+   `hud-constants.ts` (`format/hud-css-variables.ts`); the type and colour roles are the kit's. */
+
+:host {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Hangs above the centre by the picker band's offset below it: clear of the exclusion box and the cap orbit. */
+  bottom: calc(50% + var(--hud-picker-band-offset));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Dead or spectating (overlays.md §3.3): the box does not apply, and the death text must stay readable above it. */
+:host([data-placement='below-death-text']) {
+  top: calc(var(--hud-popup-death-text-bottom) * var(--ui-scale));
+  bottom: auto;
+}
+
+.live {
+  display: flex;
+  justify-content: center;
+  max-width: calc(100% - 2 * var(--hud-margin) * var(--ui-scale));
+}
+
+.popup {
+  box-sizing: border-box;
+  max-width: calc(var(--hud-upgrade-popup-max-width) * var(--ui-scale));
+  padding: calc(var(--ui-space-s) * var(--ui-scale)) calc(var(--ui-space-m) * var(--ui-scale));
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  background: var(--ui-callout-backing);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: var(--ui-body-line-height);
+  color: var(--ui-text);
+  text-align: center;
+  transform-origin: 50% 100%;
+  animation:
+    upgrade-popup-in var(--hud-upgrade-popup-in) ease-out both,
+    popup-rise-out var(--hud-upgrade-popup-out) ease-in
+      calc(var(--hud-upgrade-popup-life) - var(--hud-upgrade-popup-out)) forwards;
+}
+
+.popup p {
+  margin: 0;
+}
+
+.title {
+  font-size: calc(var(--ui-type-card-name) * var(--ui-scale));
+  font-weight: 600;
+}
+
+.effect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- the form popup: kicker, display name, overshoot, one glow flare and one ring ---- */
+
+.popup.form {
+  --form-glow-rest: 0 0 calc(var(--hud-form-popup-glow) * var(--ui-scale)) var(--popup-seat-colour);
+  --form-glow-flare: 0 0 calc(var(--hud-form-popup-glow) * var(--hud-form-popup-glow-flare) * var(--ui-scale))
+    var(--popup-seat-colour);
+
+  position: relative;
+  max-width: calc(var(--hud-form-popup-max-width) * var(--ui-scale));
+  /* The resting glow's reach is kept clear on both sides: off the exclusion box, and off the death text. */
+  margin-block: calc(var(--hud-form-popup-glow) * var(--ui-scale));
+  padding: calc(var(--ui-space-m) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale));
+  border: calc(var(--hud-form-popup-rim) * var(--ui-scale)) solid var(--popup-seat-colour);
+  box-shadow: var(--form-glow-rest);
+  /* Grown about its bottom edge, like the upgrade popup, so the overshoot never reaches down toward the cell. */
+  transform-origin: 50% 100%;
+  animation:
+    form-popup-grow var(--hud-form-popup-in) ease-out both,
+    form-popup-settle var(--hud-form-popup-settle) ease-in-out var(--hud-form-popup-in) forwards,
+    form-glow-flare var(--hud-form-popup-in) ease-out both,
+    form-glow-settle var(--hud-form-popup-settle) ease-in-out var(--hud-form-popup-in) forwards,
+    popup-fade-out var(--hud-form-popup-out) ease-in calc(var(--hud-form-popup-life) - var(--hud-form-popup-out))
+      forwards;
+}
+
+/* The ring: the rim's outline, expanding once behind the box about its centre as it fades; at its widest it stays
+   inside the resting glow's margin, so it reaches neither the cell's box nor the death text. */
+.popup.form::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--hud-form-popup-rim) * var(--ui-scale));
+  z-index: -1;
+  border: calc(var(--hud-form-popup-rim) * var(--ui-scale)) solid var(--popup-seat-colour);
+  border-radius: inherit;
+  opacity: 0;
+  animation: form-popup-ring var(--hud-form-popup-ring) ease-out var(--hud-form-popup-in) both;
+}
+
+.kicker {
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: var(--ui-label-tracking);
+  color: var(--popup-seat-colour);
+}
+
+.form .title {
+  font-size: calc(var(--ui-type-headline) * var(--hud-form-popup-title-scale) * var(--ui-scale));
+  font-weight: 700;
+  /* One line: a wrapped display name doubles the popup's height. */
+  white-space: nowrap;
+}
+
+/* The form's effects read along one wrapping row, so the real-life line stays near the name. */
+.form .effect {
+  display: inline-flex;
+  margin-inline: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.popup .real-life {
+  margin-top: calc(var(--ui-space-s) * var(--ui-scale));
+  font-style: italic;
+  color: var(--ui-text-muted);
+}
+
+@keyframes upgrade-popup-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--hud-upgrade-popup-from-scale));
+  }
+}
+
+@keyframes form-popup-grow {
+  from {
+    opacity: 0;
+    transform: scale(var(--hud-form-popup-from-scale));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(var(--hud-form-popup-overshoot-scale));
+  }
+}
+
+@keyframes form-popup-settle {
+  from {
+    transform: scale(var(--hud-form-popup-overshoot-scale));
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes form-glow-flare {
+  from {
+    box-shadow: 0 0 0 var(--popup-seat-colour);
+  }
+
+  to {
+    box-shadow: var(--form-glow-flare);
+  }
+}
+
+@keyframes form-glow-settle {
+  from {
+    box-shadow: var(--form-glow-flare);
+  }
+
+  to {
+    box-shadow: var(--form-glow-rest);
+  }
+}
+
+@keyframes form-popup-ring {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(var(--hud-form-popup-ring-scale));
+  }
+}
+
+@keyframes popup-rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--hud-upgrade-popup-rise) * var(--ui-scale)));
+  }
+}
+
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes popup-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: fade only, no scale, rise, flare or ring; the timings stay. */
+@media (prefers-reduced-motion: reduce) {
+  .popup {
+    animation-name: popup-fade-in, popup-fade-out;
+    animation-duration: var(--hud-upgrade-popup-in), var(--hud-upgrade-popup-out);
+    animation-delay: 0s, calc(var(--hud-upgrade-popup-life) - var(--hud-upgrade-popup-out));
+    animation-fill-mode: both, forwards;
+  }
+
+  .popup.form {
+    animation-name: popup-fade-in, popup-fade-out;
+    animation-duration: var(--hud-form-popup-in), var(--hud-form-popup-out);
+    animation-delay: 0s, calc(var(--hud-form-popup-life) - var(--hud-form-popup-out));
+    animation-fill-mode: both, forwards;
+  }
+
+  .popup.form::before {
+    animation: none;
+  }
+}
