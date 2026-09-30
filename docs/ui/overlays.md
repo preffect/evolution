@@ -402,7 +402,7 @@ width) wide: title in `cardName`, effect lines in `body`, one per row, on the ca
 `FORM_POPUP_MAX_WIDTH_PX` wide: title in `headline`, the effect lines along one wrapping row, the real-life line under
 them in muted italic `body`, with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat's rim colour
 (`paletteFor(avatarIndex).rim`). The tallest, Amoeba Pseudopods with the catalog's four effect lines on three rows, is 126 px at 1024 × 640 with its
-top at y 85, below the scaled notice stack (`NOTICE_STACK_MAX_Y_PX` × 0.8 = y 77), measured on PR #783's evidence.
+top at y 85, below the scaled notice stack (`NOTICE_STACK_MAX_Y_PX` × 0.8 = y 77), measured on PR #789's evidence (`qa/evidence/pr-789/`).
 
 **Motion.** An upgrade popup pops in from `UPGRADE_POPUP_FROM_SCALE` over `UPGRADE_POPUP_IN_MS`, holds, and rises
 `UPGRADE_POPUP_RISE_PX` as it fades over the last `UPGRADE_POPUP_OUT_MS` of its life. A form popup scales in from
