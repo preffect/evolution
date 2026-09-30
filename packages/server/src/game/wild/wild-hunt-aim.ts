@@ -3,8 +3,8 @@
 // again from the prey's current place and the contact, instead of a point latched at the decision:
 //
 //   out of contact                                  the prey's centre
-//   touching, not engulfing, not covering its centre  `WILD_HUNT_AIM_PAST_IN_CONTACT_RADII` own radii past it (the
-//                                                   charge: full throttle through the contact, so the engulf starts)
+//   touching, not engulfing, not covering its centre  `WILD_CELL_HUNT_CHARGE_RADII` own radii past it (the charge:
+//                                                   it keeps moving in through the contact, so the engulf starts)
 //   touching and engulfing, or covering its centre  the hold: the target that steers the cell onto the prey at the
 //                                                   prey's own velocity, critically damped, so it neither coasts out
 //                                                   the far side (aiming at the centre would: the steer dead zone
@@ -14,7 +14,6 @@
 
 import { distanceBetween, type BalanceConfig, type Vec2 } from '@evolution/shared';
 import { huntTargetFrom } from '../bots/strategies/hunter.js';
-import { WILD_HUNT_AIM_PAST_IN_CONTACT_RADII } from '../bots/strategy-constants.js';
 import { isEngulfContact } from '../simulation/contact.js';
 import { isEngulfing } from '../simulation/engulf-state.js';
 import { speedCapOf } from '../simulation/movement.js';
@@ -76,7 +75,7 @@ export function huntTargetThisTick(self: CellRecord, prey: CellRecord, world: Wo
     return huntTargetFrom(self, prey, AIM_AT_CENTRE_RADII);
   }
   if (isHuntCharging(self, prey, balance)) {
-    return huntTargetFrom(self, prey, WILD_HUNT_AIM_PAST_IN_CONTACT_RADII);
+    return huntTargetFrom(self, prey, balance.wildCells.WILD_CELL_HUNT_CHARGE_RADII);
   }
   return targetCommanding(self, holdVelocityOf(self, prey, balance), speedCapOf(self, world, balance), balance);
 }

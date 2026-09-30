@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, radiusForMass, secondsToTicks } from '@evolution/shared';
 import { JUST_PAST_WU, LUNCH_MASS, THREAT_MASS, arena, targetOf } from '../../testing/wild-arena.js';
 import { seatTestWildCell } from '../../testing/wild-builders.js';
-import { WILD_HUNT_AIM_PAST_IN_CONTACT_RADII } from '../bots/strategy-constants.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
 import { huntTargetThisTick } from './wild-hunt-aim.js';
 import { decideWildTargets } from './wild-strategy.js';
@@ -37,11 +36,11 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
   const holdTarget = ({ wild, lunch, world }: ReturnType<typeof hunting>) =>
     huntTargetThisTick(wild, lunch, world, DEFAULT_BALANCE);
   const chargeTarget = (hunter: { radius: number }, lunch: { x: number }) => ({
-    x: lunch.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * hunter.radius,
+    x: lunch.x + wildCells.WILD_CELL_HUNT_CHARGE_RADII * hunter.radius,
     y: 0,
   });
 
-  it('charges a prey it touches but does not cover: WILD_HUNT_AIM_PAST_IN_CONTACT_RADII own radii past its centre', () => {
+  it('charges a prey it touches but does not cover: WILD_CELL_HUNT_CHARGE_RADII own radii past its centre', () => {
     const { world, context, wild, lunch } = hunting(touchingNotCovered);
     decideWildTargets(world, context);
     expect(world.wildSeats[0]!.huntPreyId).toBe(lunch.id);

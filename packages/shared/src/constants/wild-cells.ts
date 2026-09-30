@@ -61,5 +61,13 @@ export const WILD_CELL_CARRYING_CAPACITY_MULTIPLE = 1.5;
 export const WILD_CELL_STARVATION_FRACTION_PER_SECOND = 0.1;
 /** A starved wild cell bursts into a feast: this share of its mass as detritus (a normal death drops 0.2). */
 export const WILD_CELL_FEAST_MASS_FRACTION = 0.8;
+/**
+ * The charge (ticket #738, docs/ecology/wild-cells.md §3.3.3): while a hunting wild cell touches its prey, engulfs
+ * nothing and does not cover the prey's centre, it aims this many own radii past the prey's centre, so it keeps
+ * moving in to start the engulf instead of stopping to ride alongside. At the steer kernel's full-throttle distance
+ * (2) nearly every catch finished and wild cells swallowed about 1.8× the option-B danger the human chose; at this
+ * value the charge runs at part throttle and the dish is back at option B's numbers.
+ */
+export const WILD_CELL_HUNT_CHARGE_RADII = 0.72;
 /** Wild cells hunt players from this stage on (they hunt each other from tick 0). */
 export const WILD_CELL_HUNTS_PLAYERS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;

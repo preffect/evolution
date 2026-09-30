@@ -2,13 +2,12 @@
 // boundaries (touching exactly, covering exactly), over a hunter at the origin and a lunch due east of it.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
-import { WILD_HUNT_AIM_PAST_IN_CONTACT_RADII } from '../bots/strategy-constants.js';
 import { LUNCH_MASS, THREAT_MASS, arena, targetOf } from '../../testing/wild-arena.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
 import { speedCapOf } from '../simulation/movement.js';
 import { aimWildHunt, holdVelocityOf, huntTargetThisTick, isHuntCharging, isInContact } from './wild-hunt-aim.js';
 
-const { absorption } = DEFAULT_BALANCE;
+const { absorption, wildCells } = DEFAULT_BALANCE;
 const ONE_WU = 1;
 /** Faster than the speed cap, so the hold brakes at full throttle. */
 const CROSSING_SPEED = 400;
@@ -76,7 +75,7 @@ describe('holdVelocityOf', () => {
 describe('huntTargetThisTick and aimWildHunt', () => {
   const { controls } = DEFAULT_BALANCE;
 
-  it('aims at the centre out of contact, and WILD_HUNT_AIM_PAST_IN_CONTACT_RADII past a prey it charges', () => {
+  it('aims at the centre out of contact, and WILD_CELL_HUNT_CHARGE_RADII past a prey it charges', () => {
     const apart = pair((hunter, lunch) => touching(hunter, lunch) + ONE_WU);
     expect(huntTargetThisTick(apart.wild, apart.player, apart.world, DEFAULT_BALANCE)).toEqual({
       x: apart.player.x,
@@ -84,7 +83,7 @@ describe('huntTargetThisTick and aimWildHunt', () => {
     });
     const charging = pair(touching);
     expect(huntTargetThisTick(charging.wild, charging.player, charging.world, DEFAULT_BALANCE)).toEqual({
-      x: charging.player.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * charging.wild.radius,
+      x: charging.player.x + wildCells.WILD_CELL_HUNT_CHARGE_RADII * charging.wild.radius,
       y: 0,
     });
   });
@@ -116,10 +115,10 @@ describe('huntTargetThisTick and aimWildHunt', () => {
     expect(targetOf(wild)).toEqual({ x: null, y: null });
     seat.huntPreyId = player.id;
     aimWildHunt(seat, wild, world, DEFAULT_BALANCE);
-    expect(targetOf(wild)).toEqual({ x: player.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * wild.radius, y: 0 });
+    expect(targetOf(wild)).toEqual({ x: player.x + wildCells.WILD_CELL_HUNT_CHARGE_RADII * wild.radius, y: 0 });
     world.cells = world.cells.filter((cell) => cell.id !== player.id);
     aimWildHunt(seat, wild, world, DEFAULT_BALANCE);
     expect(seat.huntPreyId).toBeNull();
-    expect(targetOf(wild)).toEqual({ x: player.x + WILD_HUNT_AIM_PAST_IN_CONTACT_RADII * wild.radius, y: 0 });
+    expect(targetOf(wild)).toEqual({ x: player.x + wildCells.WILD_CELL_HUNT_CHARGE_RADII * wild.radius, y: 0 });
   });
 });
