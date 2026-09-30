@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import { MILLISECONDS_PER_SECOND } from '@evolution/shared';
 import { DNA_RING_STROKE_PX, GAIN, OUTLINE, TREND_GLYPH_PX } from '../../render/constants';
 import { uiStyleVariables } from '../../../ui-kit/format/ui-css-variables';
 import {
@@ -8,6 +9,13 @@ import {
   AFFECTING_SPARKLINE_STROKE_PX,
   AFFECTING_SPARKLINE_WIDTH_PX,
   CONNECTION_LOST_DIM_ALPHA,
+  FORM_POPUP_DURATION_SECONDS,
+  FORM_POPUP_FROM_SCALE,
+  FORM_POPUP_GLOW_PX,
+  FORM_POPUP_IN_MS,
+  FORM_POPUP_MAX_WIDTH_PX,
+  FORM_POPUP_OUT_MS,
+  FORM_POPUP_RIM_PX,
   HUD_MARGIN_PX,
   NOTICE_GAP_PX,
   NOTICE_PADDING_INLINE_PX,
@@ -59,6 +67,12 @@ import {
   PICKER_ROW_GAP_PX,
   PICKER_TIMER_BAR_WIDTH_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
+  UPGRADE_POPUP_DURATION_SECONDS,
+  UPGRADE_POPUP_FROM_SCALE,
+  UPGRADE_POPUP_IN_MS,
+  UPGRADE_POPUP_MAX_WIDTH_PX,
+  UPGRADE_POPUP_OUT_MS,
+  UPGRADE_POPUP_RISE_PX,
 } from '../hud-constants';
 import {
   HUD_NOTICE_ROWS_VARIABLE,
@@ -156,6 +170,20 @@ const PUBLISHED_VARIABLES: readonly (readonly [string, string])[] = [
   ['--hud-notice-rim', `${NOTICE_RIM_PX}px`],
   ['--hud-hint-rim', `${HINT_RIM_PX}px`],
   ['--hud-connection-lost-dim-alpha', String(CONNECTION_LOST_DIM_ALPHA)],
+
+  ['--hud-upgrade-popup-life', `${UPGRADE_POPUP_DURATION_SECONDS * MILLISECONDS_PER_SECOND}ms`],
+  ['--hud-upgrade-popup-in', `${UPGRADE_POPUP_IN_MS}ms`],
+  ['--hud-upgrade-popup-out', `${UPGRADE_POPUP_OUT_MS}ms`],
+  ['--hud-upgrade-popup-rise', `${UPGRADE_POPUP_RISE_PX}px`],
+  ['--hud-upgrade-popup-from-scale', String(UPGRADE_POPUP_FROM_SCALE)],
+  ['--hud-upgrade-popup-max-width', `${UPGRADE_POPUP_MAX_WIDTH_PX}px`],
+  ['--hud-form-popup-life', `${FORM_POPUP_DURATION_SECONDS * MILLISECONDS_PER_SECOND}ms`],
+  ['--hud-form-popup-in', `${FORM_POPUP_IN_MS}ms`],
+  ['--hud-form-popup-out', `${FORM_POPUP_OUT_MS}ms`],
+  ['--hud-form-popup-from-scale', String(FORM_POPUP_FROM_SCALE)],
+  ['--hud-form-popup-max-width', `${FORM_POPUP_MAX_WIDTH_PX}px`],
+  ['--hud-form-popup-glow', `${FORM_POPUP_GLOW_PX}px`],
+  ['--hud-form-popup-rim', `${FORM_POPUP_RIM_PX}px`],
 
   ['--hud-respawn-dim-alpha', String(RESPAWN_DIM_ALPHA)],
   ['--hud-respawn-top', `${RESPAWN_TEXT_TOP_PX}px`],

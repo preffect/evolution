@@ -15,8 +15,8 @@ hit-testing, focus rings and the exclusion check below all happen in real pixels
 with `HUD_MARGIN_PX` × scale; centre-relative elements (the picker band, §3.2) are placed as offsets from the
 viewport centre, never at absolute y. The canvas fills the viewport; the player's cell is at the screen centre
 (game-design/controls-and-scope.md §7; the follow smoothing keeps it within a few px of it), so the **exclusion box** is the central
-square of half-side `HUD_PLAYER_EXCLUSION_PX` = 120 px (scaled): **no DOM element** (chrome, hint, toast or card)
-may enter it while the player is alive and the round is `playing`. The rule holds at and above the viewport the
+square of half-side `HUD_PLAYER_EXCLUSION_PX` = 120 px (scaled): **no DOM element** (chrome, hint, toast, card or
+popup) may enter it while the player is alive and the round is `playing`. The rule holds at and above the viewport the
 `UI_SCALE_MIN` floor implies (1024 × 640); below that the floor stops shrinking the chrome while the box keeps its
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the
@@ -34,6 +34,7 @@ is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md
  (0,0) ────────────────────────────────────────────────────────────────── 1280
  │ [connection banner when shown]      [toast]        leaderboard 240×162 (16,16 from right)
  │ [hold-Tab panel, overlays.md §3.7]
+ │                                  [upgrade / form popup, overlays.md §3.8]
  │                                   ┌── 240 × 240 ──┐
  │                                   │  rate tags    │   no DOM element enters;
  │                                   │  mass chip    │   the renderer draws the
@@ -62,6 +63,19 @@ Client-only layout constants are declared by #100 in `packages/client/src/app/ga
 | `ROUND_LENGTH_CHOICES_SECONDS`     | 60, 300, 600, 900, 1800 | s     | Round-length `<select>` options (§2); every value is inside the session bounds.                                         |
 | `HINT_DURATION_SECONDS`            | 4                       | s     | Timed onboarding hints (§5).                                                                                            |
 | `TOAST_DURATION_SECONDS`           | 6                       | s     | Toasts (§3.6).                                                                                                          |
+| `UPGRADE_POPUP_DURATION_SECONDS`   | 2.5                     | s     | An upgrade popup's whole life, in room ticks (overlays.md §3.8).                                                        |
+| `UPGRADE_POPUP_IN_MS`              | 200                     | ms    | Its pop-in.                                                                                                             |
+| `UPGRADE_POPUP_OUT_MS`             | 700                     | ms    | Its rise and fade, at the end of its life.                                                                              |
+| `UPGRADE_POPUP_RISE_PX`            | 24                      | px    | How far it rises as it fades.                                                                                           |
+| `UPGRADE_POPUP_FROM_SCALE`         | 0.85                    | ×     | The scale it pops in from.                                                                                              |
+| `UPGRADE_POPUP_MAX_WIDTH_PX`       | 240                     | px    | Its widest: `PICKER_CARD_WIDTH_PX`, so a card's effect lines fit.                                                       |
+| `FORM_POPUP_DURATION_SECONDS`      | 6                       | s     | A form popup's whole life: about 5 s held between its scale-in and fade.                                                |
+| `FORM_POPUP_IN_MS`                 | 400                     | ms    | Its scale-in with the glow.                                                                                             |
+| `FORM_POPUP_OUT_MS`                | 700                     | ms    | Its fade.                                                                                                               |
+| `FORM_POPUP_FROM_SCALE`            | 0.6                     | ×     | The scale it grows from.                                                                                                |
+| `FORM_POPUP_MAX_WIDTH_PX`          | 440                     | px    | Its widest: the real-life line fits on one row.                                                                         |
+| `FORM_POPUP_GLOW_PX`               | 24                      | px    | Its glow in the seat's rim colour.                                                                                      |
+| `FORM_POPUP_RIM_PX`                | 2                       | px    | Its rim in the seat's rim colour.                                                                                       |
 | `STEER_HINT_DISTANCE_WU`           | 200                     | wu    | Distance travelled that dismisses the steer hint.                                                                       |
 | `SPRINT_HINT_AT_SECONDS`           | 30                      | s     | Round time at which the sprint hint shows if never sprinted.                                                            |
 | `STATUS_ANNOUNCE_DNA_STEP_PERCENT` | 25                      | %     | The status mirror (§3.1.4) re-announces DNA only at multiples of this.                                                  |

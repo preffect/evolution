@@ -203,6 +203,35 @@ export const NOTICE_RIM_PX = 2;
 /** A toast's time on screen, counted in room ticks; a newer toast replaces it sooner. */
 export const TOAST_DURATION_SECONDS = 6;
 
+// ---- upgrade and form popups (docs/ui/overlays.md §3.8, docs/ui/layout.md §1, #783) ----
+
+/** An upgrade popup's whole life, pop-in to faded, counted in room ticks; the next queued one starts after it. */
+export const UPGRADE_POPUP_DURATION_SECONDS = 2.5;
+/** Its pop-in at the start of that life. */
+export const UPGRADE_POPUP_IN_MS = 200;
+/** Its rise and fade at the end of that life. */
+export const UPGRADE_POPUP_OUT_MS = 700;
+/** How far it rises while it fades, at scale 1. */
+export const UPGRADE_POPUP_RISE_PX = 24;
+/** The scale it pops in from. */
+export const UPGRADE_POPUP_FROM_SCALE = 0.85;
+/** Its widest, at scale 1: a card's width, so a card's effect lines fit on theirs. */
+export const UPGRADE_POPUP_MAX_WIDTH_PX = PICKER_CARD_WIDTH_PX;
+/** A form popup's whole life: about five seconds held between its scale-in and its fade. */
+export const FORM_POPUP_DURATION_SECONDS = 6;
+/** Its scale-in. */
+export const FORM_POPUP_IN_MS = 400;
+/** Its fade. */
+export const FORM_POPUP_OUT_MS = 700;
+/** The scale it grows from. */
+export const FORM_POPUP_FROM_SCALE = 0.6;
+/** Its widest, at scale 1: the real-life line fits on one row. */
+export const FORM_POPUP_MAX_WIDTH_PX = 440;
+/** The glow in the player's seat colour around it, at scale 1. */
+export const FORM_POPUP_GLOW_PX = 24;
+/** Its rim in the seat colour. */
+export const FORM_POPUP_RIM_PX = 2;
+
 // ---- onboarding (docs/ui/input-and-onboarding.md §5, docs/ui/layout.md §1) ----
 
 /** A timed hint's time on screen; the pill's size is the notice row's (`NOTICE_ROW_HEIGHT_PX`, its inline padding). */

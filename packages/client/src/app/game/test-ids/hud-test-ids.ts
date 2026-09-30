@@ -79,6 +79,10 @@ export const HUD_TEST_ID = {
   hint: 'hint',
   /** The toast, top-centre, with `data-toast-kind` (docs/ui/overlays.md §3.6, #190). */
   toast: 'toast',
+  /** A trait gained or a tier up, above the own cell, with `data-trait-id` (docs/ui/overlays.md §3.8, #783). */
+  upgradePopup: 'upgrade-popup',
+  /** A form gained (rung 5): the larger popup with its real-life line, with `data-trait-id`. */
+  formPopup: 'form-popup',
   /** The picker's extra footer line while the `offer` onboarding beat is up. */
   traitOfferOnboarding: 'trait-offer-onboarding',
   /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */

@@ -1,0 +1,122 @@
+/* The upgrade and form popups (docs/ui/overlays.md §3.8). Every size and duration is a `--hud-…` published from
+   `hud-constants.ts` (`format/hud-css-variables.ts`); the type and colour roles are the kit's. */
+
+:host {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Hangs above the centre by the picker band's offset below it: clear of the exclusion box and the cap orbit. */
+  bottom: calc(50% + var(--hud-picker-band-offset));
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.live {
+  display: flex;
+  justify-content: center;
+  max-width: calc(100% - 2 * var(--hud-margin) * var(--ui-scale));
+}
+
+.popup {
+  box-sizing: border-box;
+  max-width: calc(var(--hud-upgrade-popup-max-width) * var(--ui-scale));
+  padding: calc(var(--ui-space-s) * var(--ui-scale)) calc(var(--ui-space-m) * var(--ui-scale));
+  border-radius: calc(var(--ui-radius-panel) * var(--ui-scale));
+  background: var(--ui-callout-backing);
+  font-family: var(--ui-font-sans);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: var(--ui-body-line-height);
+  color: var(--ui-text);
+  text-align: center;
+  transform-origin: 50% 100%;
+  animation:
+    upgrade-popup-in var(--hud-upgrade-popup-in) ease-out both,
+    popup-rise-out var(--hud-upgrade-popup-out) ease-in
+      calc(var(--hud-upgrade-popup-life) - var(--hud-upgrade-popup-out)) forwards;
+}
+
+.popup p {
+  margin: 0;
+}
+
+.title {
+  font-size: calc(var(--ui-type-card-name) * var(--ui-scale));
+  font-weight: 600;
+}
+
+.effect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup.form {
+  max-width: calc(var(--hud-form-popup-max-width) * var(--ui-scale));
+  padding: calc(var(--ui-space-m) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale));
+  border: calc(var(--hud-form-popup-rim) * var(--ui-scale)) solid var(--popup-seat-colour);
+  box-shadow: 0 0 calc(var(--hud-form-popup-glow) * var(--ui-scale)) var(--popup-seat-colour);
+  transform-origin: 50% 50%;
+  animation:
+    form-popup-in var(--hud-form-popup-in) ease-out both,
+    popup-fade-out var(--hud-form-popup-out) ease-in calc(var(--hud-form-popup-life) - var(--hud-form-popup-out))
+      forwards;
+}
+
+.form .title {
+  font-size: calc(var(--ui-type-headline) * var(--ui-scale));
+}
+
+/* The form's effects read along one wrapping row, so the real-life line stays near the name. */
+.form .effect {
+  display: inline-flex;
+  margin-inline: calc(var(--ui-space-s) * var(--ui-scale));
+}
+
+.popup .real-life {
+  margin-top: calc(var(--ui-space-s) * var(--ui-scale));
+  font-style: italic;
+  color: var(--ui-text-muted);
+}
+
+@keyframes upgrade-popup-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--hud-upgrade-popup-from-scale));
+  }
+}
+
+@keyframes form-popup-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--hud-form-popup-from-scale));
+    box-shadow: 0 0 0 var(--popup-seat-colour);
+  }
+}
+
+@keyframes popup-rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--hud-upgrade-popup-rise) * var(--ui-scale)));
+  }
+}
+
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes popup-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: fade only, no scale and no rise; the timings stay. */
+@media (prefers-reduced-motion: reduce) {
+  .popup,
+  .popup.form {
+    animation-name: popup-fade-in, popup-fade-out;
+  }
+}

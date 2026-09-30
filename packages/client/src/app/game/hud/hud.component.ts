@@ -9,7 +9,7 @@
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
 // onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189),
-// the round results (§3.4, #637) and the toasts (§3.6, #190).
+// the round results (§3.4, #637), the toasts (§3.6, #190) and the upgrade popups (§3.8, #783).
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -28,6 +28,7 @@ import { ResultsOverlayComponent } from './results-overlay.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { ToastComponent } from './toast.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
+import { UpgradePopupComponent } from './upgrade-popup.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
@@ -55,6 +56,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     ServerErrorNoticeComponent,
     ToastComponent,
     TraitOfferOverlayComponent,
+    UpgradePopupComponent,
   ],
   template: `
     @if (isRoundPlaying()) {
@@ -62,6 +64,9 @@ import { HUD_OVERLAY } from './hud-state.service';
       <app-respawn-overlay />
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
+      <!-- Over the picker's dim, above the own cell (docs/ui/overlays.md §3.8); its service keeps stepping between
+           rounds, and a rematch gains nothing, so a round's last popup never shows in the next. -->
+      <app-upgrade-popup />
       <!-- The board and the clock stand down under the encyclopedia (docs/ui/encyclopedia.md §11.1): the panel would
            cut both into slivers, and what a reader must not miss is on its alert strip instead. -->
       @if (!isEncyclopediaOpen()) {

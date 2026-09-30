@@ -14,6 +14,7 @@
 // unit at scale 1; a stylesheet scales one with `calc(var(--hud-…) * var(--ui-scale))`, so hit-testing stays in real
 // pixels (docs/ui/layout.md §1).
 
+import { MILLISECONDS_PER_SECOND } from '@evolution/shared';
 import { DNA_RING_STROKE_PX, GAIN, OUTLINE, TREND_GLYPH_PX } from '../../render/constants';
 import {
   AFFECTING_MASS_ROW_GAP_PX,
@@ -21,6 +22,13 @@ import {
   AFFECTING_SPARKLINE_STROKE_PX,
   AFFECTING_SPARKLINE_WIDTH_PX,
   CONNECTION_LOST_DIM_ALPHA,
+  FORM_POPUP_DURATION_SECONDS,
+  FORM_POPUP_FROM_SCALE,
+  FORM_POPUP_GLOW_PX,
+  FORM_POPUP_IN_MS,
+  FORM_POPUP_MAX_WIDTH_PX,
+  FORM_POPUP_OUT_MS,
+  FORM_POPUP_RIM_PX,
   HINT_RIM_PX,
   HUD_MARGIN_PX,
   NOTICE_GAP_PX,
@@ -72,6 +80,12 @@ import {
   PICKER_ROW_GAP_PX,
   PICKER_TIMER_BAR_WIDTH_PX,
   ROUND_CLOCK_PULSE_PERIOD_MS,
+  UPGRADE_POPUP_DURATION_SECONDS,
+  UPGRADE_POPUP_FROM_SCALE,
+  UPGRADE_POPUP_IN_MS,
+  UPGRADE_POPUP_MAX_WIDTH_PX,
+  UPGRADE_POPUP_OUT_MS,
+  UPGRADE_POPUP_RISE_PX,
 } from '../hud-constants';
 import { TRAIT_GLYPH_LIST_PX } from '../../glyphs/glyph-constants';
 import type { ViewportPx } from '../../render/camera';
@@ -175,6 +189,28 @@ function noticeVariables(): StyleVariables {
   };
 }
 
+/**
+ * The upgrade and form popups (docs/ui/overlays.md §3.8). Each life is published whole, so a stylesheet starts the
+ * fade at `life − out` and the element has faded by the tick the service takes it down.
+ */
+function popupVariables(): StyleVariables {
+  return {
+    '--hud-upgrade-popup-life': `${UPGRADE_POPUP_DURATION_SECONDS * MILLISECONDS_PER_SECOND}ms`,
+    '--hud-upgrade-popup-in': `${UPGRADE_POPUP_IN_MS}ms`,
+    '--hud-upgrade-popup-out': `${UPGRADE_POPUP_OUT_MS}ms`,
+    '--hud-upgrade-popup-rise': `${UPGRADE_POPUP_RISE_PX}px`,
+    '--hud-upgrade-popup-from-scale': String(UPGRADE_POPUP_FROM_SCALE),
+    '--hud-upgrade-popup-max-width': `${UPGRADE_POPUP_MAX_WIDTH_PX}px`,
+    '--hud-form-popup-life': `${FORM_POPUP_DURATION_SECONDS * MILLISECONDS_PER_SECOND}ms`,
+    '--hud-form-popup-in': `${FORM_POPUP_IN_MS}ms`,
+    '--hud-form-popup-out': `${FORM_POPUP_OUT_MS}ms`,
+    '--hud-form-popup-from-scale': String(FORM_POPUP_FROM_SCALE),
+    '--hud-form-popup-max-width': `${FORM_POPUP_MAX_WIDTH_PX}px`,
+    '--hud-form-popup-glow': `${FORM_POPUP_GLOW_PX}px`,
+    '--hud-form-popup-rim': `${FORM_POPUP_RIM_PX}px`,
+  };
+}
+
 /** The death overlay's dim and its text block (docs/ui/overlays.md §3.3). */
 function respawnVariables(): StyleVariables {
   return {
@@ -237,6 +273,7 @@ export function hudStyleVariables(): StyleVariables {
     ...affectingPanelVariables(),
     ...menuVariables(),
     ...noticeVariables(),
+    ...popupVariables(),
     ...respawnVariables(),
     ...resultsVariables(),
     ...hudColourVariables(),
