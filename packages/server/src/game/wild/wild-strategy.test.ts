@@ -200,3 +200,41 @@ describe('decideWildTargets: randomness', () => {
     expect({ ...after, [RANDOM_STREAM.wildCells]: untouched[RANDOM_STREAM.wildCells] }).toEqual(untouched);
   });
 });
+
+describe('decideWildTargets: a seat resting after a give-up (ticket #738)', () => {
+  /** Keeps seat 0 resting through the decision under test. */
+  const rest = (world: ReturnType<typeof arena>['world']) => {
+    world.wildSeats[0]!.huntRestUntilTick = world.tick + INTERVAL_TICKS;
+  };
+
+  it('grazes the mote rather than hunt the nearer lunch, and hunts the lunch once rested', () => {
+    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
+    const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 3, y: 0 }, mass: LUNCH_MASS }).cell;
+    const algae = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 0, y: wild.radius * 5 } });
+    rest(world);
+    decideWildTargets(world, context);
+    expect(targetOf(wild)).toEqual({ x: algae.x, y: algae.y });
+    const rested = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
+    const later = seatTestWildCell(rested.world, { seatNumber: 1, at: { x: lunch.x, y: 0 }, mass: LUNCH_MASS }).cell;
+    decideWildTargets(rested.world, rested.context);
+    expect(targetOf(rested.wild)).toEqual({ x: later.x, y: later.y });
+  });
+
+  it('still flees a threat in range', () => {
+    const { world, context, wild } = arena({
+      wildMass: THREAT_MASS,
+      playerMass: LUNCH_MASS,
+      playerAtRadii: 3,
+      tick: HUNTING_TICK,
+      players: [TEST_PLAYER, SECOND_PLAYER],
+    });
+    const threat = world.cells[1]!;
+    setCellMass(threat, THREAT_MASS * 2, world.balance);
+    threat.x = 0;
+    threat.y = -wild.radius * 5;
+    spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: wild.radius * 2, y: 0 } });
+    rest(world);
+    decideWildTargets(world, context);
+    expect(targetOf(wild)).toEqual({ x: 0, y: controls.STEER_FULL_THROTTLE_RADII * wild.radius });
+  });
+});

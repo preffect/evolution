@@ -80,6 +80,14 @@ export function createWildHuntPerception(
   return perceptionOver(sight, cells, balance);
 }
 
+/** `perception` without the prey the hunter last gave up on (`wild-hunt-give-up.ts`); unchanged for none. */
+export function withoutGivenUpPrey(perception: WildPerception, givenUpPreyId: EntityId | null): WildPerception {
+  if (givenUpPreyId === null) {
+    return perception;
+  }
+  return { ...perception, cellsOf: (world) => perception.cellsOf(world).filter((cell) => cell.id !== givenUpPreyId) };
+}
+
 function perceptionOver(sight: WildSight, cells: readonly CellRecord[], balance: BalanceConfig): WildPerception {
   return {
     ownCellOf: (world, cellId) => findCell(world, cellId),

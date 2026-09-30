@@ -6,7 +6,8 @@
 // wild, that can engulf it, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`), a nearest-first `hunter` (wild prey from
 // tick 0, players from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, leaving a prey to any cell in sight that could swallow it
 // from strictly closer, sprinting within `WILD_CELL_SPRINT_HUNT_RADII` only when
-// the sprint can land, `wild-hunt-sprint.ts`) and the
+// the sprint can land, `wild-hunt-sprint.ts`, its aim re-resolved every tick from the prey's current place and the
+// contact, `wild-hunt-aim.ts`, #738) and the
 // `grazer` over algae and detritus; the wander rule keeps its heading in the seat (`wild-wander.ts`). A cell being
 // engulfed before the seal flees its predator and sprints, the player's engulf-escape tool.
 //
@@ -22,6 +23,7 @@
 // placed at tick 21 599 by a fixture decides on tick 21 600 (W6); a fresh, respawned or placed seat sits still until then.
 
 import {
+  entityId,
   hasReachedStage,
   RANDOM_STREAM,
   secondsToTicks,
@@ -41,8 +43,16 @@ import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
+import { aimWildHunt } from './wild-hunt-aim.js';
+import { giveUpStaleHunt, isHuntResting, latchHunt } from './wild-hunt-give-up.js';
 import { isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
-import { createWildHuntPerception, createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
+import {
+  createWildHuntPerception,
+  createWildPerception,
+  wildSightOf,
+  withoutGivenUpPrey,
+  type WildSight,
+} from './wild-perception.js';
 import { wanderTargetOf } from './wild-wander.js';
 
 export function decisionIntervalTicks(balance: BalanceConfig): number {
@@ -66,16 +76,22 @@ export interface WildDecisionContext {
   readonly isHuntingStage: boolean;
 }
 
-/** One decision's outcome: the target to latch and whether the rule asked for a sprint. */
+/** One decision's outcome: the target to latch, whether the rule asked for a sprint, and the prey a hunt chases. */
 export interface WildCommand {
   readonly target: Vec2;
   readonly isSprinting: boolean;
+  /** The hunted cell, which `aimWildHunt` re-aims at every tick until the next decision; `null` for any other rule. */
+  readonly huntPreyId: EntityId | null;
 }
 
 function wildCommandOf(command: PlayerCommand | null): WildCommand | null {
   return command === null || command.targetX === undefined || command.targetY === undefined
     ? null
-    : { target: { x: command.targetX, y: command.targetY }, isSprinting: command.isSprinting === true };
+    : {
+        target: { x: command.targetX, y: command.targetY },
+        isSprinting: command.isSprinting === true,
+        huntPreyId: null,
+      };
 }
 
 function scriptContextFor(seat: WildSeatRecord, cell: CellRecord, decision: WildDecisionContext) {
@@ -100,7 +116,7 @@ function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCom
     return null;
   }
   const target = fleeTargetFrom(cell, predator, decision.step.balance.controls.STEER_FULL_THROTTLE_RADII);
-  return { target, isSprinting: true };
+  return { target, isSprinting: true, huntPreyId: null };
 }
 
 /** What a sprint test reads: the two cells as records of this world, the deciding cell first. */
@@ -120,14 +136,18 @@ function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: S
   };
 }
 
-/** Flee, then hunt, then graze, over what `cell` sees; `null` when none applies. */
+/**
+ * Flee, then hunt (never the seat's `givenUpPreyId`, nor at all while it rests), then graze, over what `cell` sees;
+ * `null` when none applies.
+ */
 function sightedCommand(
   context: ScriptContext<WorldState, EntityId>,
+  seat: WildSeatRecord,
   cell: CellRecord,
-  sight: WildSight,
   decision: WildDecisionContext,
 ): WildCommand | null {
   const { balance } = decision.step;
+  const sight = wildSightOf(decision.world, cell, balance);
   const { wildCells, controls } = balance;
   const everything = createWildPerception(sight, balance);
   const fleeOptions = {
@@ -136,15 +156,27 @@ function sightedCommand(
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_FLEE_RADII,
     isSprintWorthwhile: sprintTestOver(sight, decision, isFleeSprintWorthwhile),
   };
+  let huntPreyId: EntityId | null = null;
   const huntOptions = {
     preference: HUNT_PREFERENCE.nearest,
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_HUNT_RADII,
     isSprintWorthwhile: sprintTestOver(sight, decision, isHuntSprintWorthwhile),
+    onHunt: (hunted: BotCellView) => {
+      huntPreyId = entityId(hunted.id);
+    },
   };
-  const prey = createWildHuntPerception(sight, balance, cell, decision.isHuntingStage);
+  const prey = withoutGivenUpPrey(
+    createWildHuntPerception(sight, balance, cell, decision.isHuntingStage),
+    seat.givenUpPreyId,
+  );
+  const hunt = () => {
+    const isResting = isHuntResting(seat, decision.world.tick);
+    const command = isResting ? null : wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(context));
+    return command === null ? null : { ...command, huntPreyId };
+  };
   return (
     wildCommandOf(createFleeStrategy(everything, fleeOptions)().decide(context)) ??
-    wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(context)) ??
+    hunt() ??
     wildCommandOf(createGrazerStrategy(everything)().decide(context))
   );
 }
@@ -155,10 +187,16 @@ export function decideWildCommand(seat: WildSeatRecord, cell: CellRecord, decisi
   if (escape !== null) {
     return escape;
   }
-  const { world, step } = decision;
+  const { step } = decision;
   const context = scriptContextFor(seat, cell, decision);
-  const sighted = sightedCommand(context, cell, wildSightOf(world, cell, step.balance), decision);
-  return sighted ?? { target: wanderTargetOf(seat, cell, context.random, step.balance), isSprinting: false };
+  const sighted = sightedCommand(context, seat, cell, decision);
+  return (
+    sighted ?? {
+      target: wanderTargetOf(seat, cell, context.random, step.balance),
+      isSprinting: false,
+      huntPreyId: null,
+    }
+  );
 }
 
 /**
@@ -187,9 +225,11 @@ function advanceSeat(seat: WildSeatRecord, cell: CellRecord, decision: WildDecis
     return;
   }
   seat.decideInTicks = decisionIntervalTicks(decision.step.balance);
+  giveUpStaleHunt(seat, cell, decision.world.tick, decision.step.balance);
   const command = decideWildCommand(seat, cell, decision);
   cell.targetX = command.target.x;
   cell.targetY = command.target.y;
+  latchHunt(seat, command.huntPreyId, decision.world.tick);
   if (command.isSprinting) {
     startWildSprint(seat, cell, decision.step.balance);
   }
@@ -205,5 +245,6 @@ export function decideWildTargets(world: WorldState, step: StepContext): void {
   };
   for (const { seat, cell } of seatedWildCells(world)) {
     advanceSeat(seat, cell, decision);
+    aimWildHunt(seat, cell, world, step.balance);
   }
 }

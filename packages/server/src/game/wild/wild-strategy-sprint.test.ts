@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, secondsToTicks } from '@evolution/shared';
 import { HUNTING_TICK, JUST_PAST_RADII, LUNCH_MASS, THREAT_MASS, arena, targetOf } from '../../testing/wild-arena.js';
 import { beginEngulf, sealEngulf } from '../simulation/engulf-state.js';
+import { huntTargetThisTick } from './wild-hunt-aim.js';
 import { decideWildTargets } from './wild-strategy.js';
 
 const { wildCells, controls } = DEFAULT_BALANCE;
@@ -59,10 +60,12 @@ describe('decideWildTargets: sprint (W14)', () => {
     expect(engulfing.wild.sprintRemainingTicks).toBe(0);
   });
 
-  it('does not sprint at a prey it already covers: the engulf starts this tick, there is no gap to close', () => {
+  it('does not sprint or charge at a prey it already covers: the engulf starts this tick, there is no gap to close', () => {
     const covering = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 0.25, tick: HUNTING_TICK });
     decideWildTargets(covering.world, covering.context);
-    expect(targetOf(covering.wild)).toEqual({ x: covering.player.x, y: covering.player.y });
+    // It holds over the prey (ticket #738, wild-hunt-aim.ts) rather than charging past it.
+    const { wild, player, world } = covering;
+    expect(targetOf(wild)).toEqual(huntTargetThisTick(wild, player, world, DEFAULT_BALANCE));
     expect(covering.wild.sprintRemainingTicks).toBe(0);
   });
 

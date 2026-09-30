@@ -66,6 +66,9 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `WILD_CELL_SIGHT_VIEW_MULTIPLE`            | 1.0                     | × `viewHalfHeightFor`             |
 | `WILD_CELL_SPRINT_FLEE_RADII`              | 4                       | own radii                         |
 | `WILD_CELL_SPRINT_HUNT_RADII`              | 3                       | own radii                         |
+| `WILD_CELL_HUNT_CHARGE_RADII`              | 2                       | own radii past the prey           |
+| `WILD_CELL_HUNT_GIVE_UP_SECONDS`           | 5                       | s                                 |
+| `WILD_CELL_HUNT_REST_SECONDS`              | 15                      | s                                 |
 | `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                     | × `WILD_CELL_COUNT` × `worldMass` |
 | `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                     | of full size per second           |
 | `WILD_CELL_FEAST_MASS_FRACTION`            | 0.8                     | of the burst cell's mass          |
