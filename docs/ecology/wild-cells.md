@@ -219,7 +219,9 @@ the target stays where it was until the next decision.
 
 Measured on top of the engulf drag (ticket #772; one idle player, a default round, seeds 1–3; one bot alone, idle
 seeds 1–10, grazing seeds 1–20), main → the charge alone → with the give-up (4.5 s, no rest) → the shipped give-up
-(5 s) and rest (15 s): wild cells swallowed 68 → 298 → 173 → 158 a round (option B as the human chose it: 166); riding
+(5 s) and rest (15 s): cells swallowed by wild cells, the idle player included, 68 → 298 → 173 → 158 a round (option B
+as the human chose it, on the same count: 166; at the shipped values the idle player is about 19 of them, so wild cells
+eat 139 wild cells a round); riding
 alongside (a wild cell touching another wild cell it could swallow, neither in an engulf) 683 → 477 → 326 → 246
 pair-seconds a round; an idle player eaten 1.16 → 1.83 → 2.15 → 1.77 a minute (B: 1.52); a grazing one 0.03 → 0.54 →
 0.78 → 0.40 a minute (B: 0.63). No rest brings the idle player down to B's: 30 s gives 1.71. One hunter of mass 100 on

@@ -108,6 +108,11 @@ describe('the wild hunt through the step (ticket #738)', () => {
     stepWithPreyAt(world, player, giveUpTicks, ahead);
     expect(seat.huntPreyId).toBeNull();
     expect(seat.givenUpPreyId).toBe(player.id);
+    // Past the rest, with the given-up prey the only one in sight, it still does not hunt it.
+    const decisionAfterTheRest =
+      seat.huntRestUntilTick + secondsToTicks(DEFAULT_BALANCE.wildCells.WILD_CELL_DECISION_INTERVAL_SECONDS);
+    stepWithPreyAt(world, player, decisionAfterTheRest - world.tick, ahead);
+    expect(seat.huntPreyId).toBeNull();
   });
 
   it('keeps hunting that prey while the give-up is longer than the chase', () => {
