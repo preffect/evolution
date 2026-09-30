@@ -112,6 +112,8 @@ export interface WildSeatRecord {
   huntStartTick: number;
   /** The last prey this seat gave up on, left out of its hunts until it gives up on another; `null` for none. */
   givenUpPreyId: EntityId | null;
+  /** The seat hunts nothing before this tick: the rest after a give-up (`wild/wild-hunt-give-up.ts`). */
+  huntRestUntilTick: number;
 }
 
 export interface TraitOffer extends TraitOfferView {

@@ -1,13 +1,14 @@
 // docs/ecology/wild-cells.md §3.3.3, ticket #738: the hunt's give-up at its boundary (exactly
 // `WILD_CELL_HUNT_GIVE_UP_SECONDS` after the hunt began, one tick earlier), never while engulfing, and the hunt's clock
-// kept for the same prey and restarted for a new one.
+// kept for the same prey and restarted for a new one; the rest after a give-up, to the tick.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, entityId, secondsToTicks } from '@evolution/shared';
 import { LUNCH_MASS, THREAT_MASS, arena } from '../../testing/wild-arena.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
-import { giveUpStaleHunt, isHuntStale, latchHunt } from './wild-hunt-give-up.js';
+import { giveUpStaleHunt, isHuntResting, isHuntStale, latchHunt } from './wild-hunt-give-up.js';
 
 const GIVE_UP_TICKS = secondsToTicks(DEFAULT_BALANCE.wildCells.WILD_CELL_HUNT_GIVE_UP_SECONDS);
+const REST_TICKS = secondsToTicks(DEFAULT_BALANCE.wildCells.WILD_CELL_HUNT_REST_SECONDS);
 const HUNT_START_TICK = 100;
 const OTHER_PREY = entityId('c-other');
 
@@ -46,6 +47,24 @@ describe('giveUpStaleHunt', () => {
     giveUpStaleHunt(stale.seat, stale.wild, HUNT_START_TICK + GIVE_UP_TICKS, DEFAULT_BALANCE);
     expect(stale.seat.huntPreyId).toBeNull();
     expect(stale.seat.givenUpPreyId).toBe(stale.player.id);
+  });
+});
+
+describe('isHuntResting', () => {
+  it('rests from the give-up for WILD_CELL_HUNT_REST_SECONDS, and not one tick longer', () => {
+    const { seat, wild } = hunting();
+    const giveUpTick = HUNT_START_TICK + GIVE_UP_TICKS;
+    expect(isHuntResting(seat, giveUpTick)).toBe(false);
+    giveUpStaleHunt(seat, wild, giveUpTick, DEFAULT_BALANCE);
+    expect(isHuntResting(seat, giveUpTick)).toBe(true);
+    expect(isHuntResting(seat, giveUpTick + REST_TICKS - 1)).toBe(true);
+    expect(isHuntResting(seat, giveUpTick + REST_TICKS)).toBe(false);
+  });
+
+  it('never rests after a fresh hunt that was not given up', () => {
+    const { seat, wild } = hunting();
+    giveUpStaleHunt(seat, wild, HUNT_START_TICK + GIVE_UP_TICKS - 1, DEFAULT_BALANCE);
+    expect(isHuntResting(seat, HUNT_START_TICK + GIVE_UP_TICKS - 1)).toBe(false);
   });
 });
 

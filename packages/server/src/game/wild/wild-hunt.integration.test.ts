@@ -1,9 +1,13 @@
 // The wild hunt through the whole step (docs/ecology/wild-cells.md §3.3.3, ticket #738): a hunter touching a prey that
 // drifts away charges in and starts the engulf, where aiming at the prey's centre rides alongside it; and a hunter that
-// cannot land its prey gives it up after `WILD_CELL_HUNT_GIVE_UP_SECONDS` and leaves it alone.
+// cannot land its prey gives it up after `WILD_CELL_HUNT_GIVE_UP_SECONDS`, leaves it alone, and rests
+// `WILD_CELL_HUNT_REST_SECONDS` before it hunts the next prey in sight.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, secondsToTicks, type BalanceConfig } from '@evolution/shared';
-import { HUNTING_TICK, LUNCH_MASS, THREAT_MASS, arena } from '../../testing/wild-arena.js';
+import { HUNTING_TICK, LUNCH_MASS, SECOND_PLAYER, THREAT_MASS, arena } from '../../testing/wild-arena.js';
+import { TEST_PLAYER } from '../../testing/world-builders.js';
+import type { PlayerIdentity } from '../session/players.js';
+import { setCellMass } from '../simulation/cell-mass.js';
 import { speedCapOf } from '../simulation/movement.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import { runStep } from '../simulation/step.js';
@@ -21,6 +25,8 @@ const TOUCHING_GAP_RADII = 1.1;
 const CHARGE_WINDOW_SECONDS = 1;
 /** The give-up row keeps its prey this many hunter radii ahead, out of reach. */
 const OUT_OF_REACH_RADII = 4;
+/** The rest row's second prey, kept this many hunter radii behind it: in sight, but farther than the first. */
+const FARTHER_PREY_RADII = 6;
 const TICKS_PER_DRIFT_STEP = 1;
 
 function withChargeRadii(radii: number): BalanceConfig {
@@ -39,8 +45,14 @@ function withGiveUpSeconds(seconds: number): BalanceConfig {
  * Seat 0 (mass 100) at the origin hunting the player (mass 20) east of it, in the hunting era; its size factor is set
  * so the settle keeps it at 100 (its base size is the world's mass times the factor).
  */
-function chase(balance: BalanceConfig, gapRadii: number) {
-  const setup = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: gapRadii, tick: HUNTING_TICK });
+function chase(balance: BalanceConfig, gapRadii: number, players?: readonly PlayerIdentity[]) {
+  const setup = arena({
+    wildMass: THREAT_MASS,
+    playerMass: LUNCH_MASS,
+    playerAtRadii: gapRadii,
+    tick: HUNTING_TICK,
+    players,
+  });
   const seat = setup.world.wildSeats[0]!;
   seat.sizeFactor = THREAT_MASS / worldReferenceAt(setup.world, HUNTING_TICK).worldMass;
   seat.fullMass = THREAT_MASS;
@@ -108,5 +120,28 @@ describe('the wild hunt through the step (ticket #738)', () => {
     stepWithPreyAt(world, player, 2 * secondsToTicks(DEFAULT_BALANCE.wildCells.WILD_CELL_HUNT_GIVE_UP_SECONDS), ahead);
     expect(world.wildSeats[0]!.huntPreyId).toBe(player.id);
     expect(world.wildSeats[0]!.givenUpPreyId).toBeNull();
+  });
+
+  it('rests WILD_CELL_HUNT_REST_SECONDS after a give-up before it hunts the next prey in sight', () => {
+    const { world, wild, player } = chase(DEFAULT_BALANCE, OUT_OF_REACH_RADII, [TEST_PLAYER, SECOND_PLAYER]);
+    const second = world.cells[1]!;
+    setCellMass(second, LUNCH_MASS, world.balance);
+    const bothOutOfReach = () => {
+      player.x = wild.x + wild.radius * OUT_OF_REACH_RADII;
+      player.y = wild.y;
+      second.x = wild.x - wild.radius * FARTHER_PREY_RADII;
+      second.y = wild.y;
+    };
+    bothOutOfReach();
+    const seat = world.wildSeats[0]!;
+    const { wildCells } = DEFAULT_BALANCE;
+    const giveUpTicks = secondsToTicks(wildCells.WILD_CELL_HUNT_GIVE_UP_SECONDS);
+    const restTicks = secondsToTicks(wildCells.WILD_CELL_HUNT_REST_SECONDS);
+    // The first decision (tick 1 here) hunts the nearer prey; it is given up on that tick + giveUpTicks.
+    stepWithPreyAt(world, player, 1 + giveUpTicks + restTicks - 1, bothOutOfReach);
+    expect(seat.givenUpPreyId).toBe(player.id);
+    expect(seat.huntPreyId).toBeNull();
+    stepWithPreyAt(world, player, 1, bothOutOfReach);
+    expect(seat.huntPreyId).toBe(second.id);
   });
 });

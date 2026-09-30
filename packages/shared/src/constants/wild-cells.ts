@@ -73,6 +73,11 @@ export const WILD_CELL_HUNT_CHARGE_RADII = 2;
  * gives up on another (ticket #738, `wild/wild-hunt-give-up.ts`): option B's "give up sooner", which brings the wild
  * swallows down to the danger the human chose without weakening the charge.
  */
-export const WILD_CELL_HUNT_GIVE_UP_SECONDS = 4.5;
+export const WILD_CELL_HUNT_GIVE_UP_SECONDS = 5;
+/**
+ * After giving up a hunt, a wild cell hunts nothing for this long (s) (ticket #738, `wild/wild-hunt-give-up.ts`), so a
+ * hunter that drops a wild cell does not turn straight to the next prey in sight, often a player.
+ */
+export const WILD_CELL_HUNT_REST_SECONDS = 15;
 /** Wild cells hunt players from this stage on (they hunt each other from tick 0). */
 export const WILD_CELL_HUNTS_PLAYERS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;
