@@ -48,7 +48,8 @@ is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md
 ```
 
 Client-only layout constants are declared by #100 in `packages/client/src/app/game/hud/hud-constants.ts`
-(CODE-STANDARDS §2), except the scale's four, which #369 moved into the UI kit's `ui-kit/ui-kit-constants.ts`:
+(CODE-STANDARDS §2), except the scale's four, which #369 moved into the UI kit's `ui-kit/ui-kit-constants.ts`, and the popups' (overlays.md §3.8), which
+live beside it in `hud/upgrade-popup-constants.ts`:
 
 | Constant                           | Value                   | Unit  | Meaning                                                                                                                 |
 | ---------------------------------- | ----------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -70,12 +71,20 @@ Client-only layout constants are declared by #100 in `packages/client/src/app/ga
 | `UPGRADE_POPUP_FROM_SCALE`         | 0.85                    | ×     | The scale it pops in from.                                                                                              |
 | `UPGRADE_POPUP_MAX_WIDTH_PX`       | 240                     | px    | Its widest: `PICKER_CARD_WIDTH_PX`, so a card's effect lines fit.                                                       |
 | `FORM_POPUP_DURATION_SECONDS`      | 6                       | s     | A form popup's whole life: about 5 s held between its scale-in and fade.                                                |
-| `FORM_POPUP_IN_MS`                 | 400                     | ms    | Its scale-in with the glow.                                                                                             |
+| `FORM_POPUP_IN_MS`                 | 350                     | ms    | Its entrance's grow to the overshoot, while the glow flares.                                                            |
+| `FORM_POPUP_SETTLE_MS`             | 250                     | ms    | Its settle to full size and the resting glow.                                                                           |
 | `FORM_POPUP_OUT_MS`                | 700                     | ms    | Its fade.                                                                                                               |
 | `FORM_POPUP_FROM_SCALE`            | 0.6                     | ×     | The scale it grows from.                                                                                                |
-| `FORM_POPUP_MAX_WIDTH_PX`          | 440                     | px    | Its widest: the real-life line fits on one row.                                                                         |
-| `FORM_POPUP_GLOW_PX`               | 24                      | px    | Its glow in the seat's rim colour.                                                                                      |
-| `FORM_POPUP_RIM_PX`                | 2                       | px    | Its rim in the seat's rim colour.                                                                                       |
+| `FORM_POPUP_OVERSHOOT_SCALE`       | 1.06                    | ×     | The scale its entrance overshoots to.                                                                                   |
+| `FORM_POPUP_MAX_WIDTH_PX`          | 640                     | px    | Its widest: the name on one line, the effects on at most two rows.                                                      |
+| `FORM_POPUP_GLOW_PX`               | 24                      | px    | Its resting glow in the seat's rim colour; kept clear of the exclusion box.                                             |
+| `FORM_POPUP_GLOW_FLARE`            | 2.5                     | ×     | The glow's one flare at the top of the entrance.                                                                        |
+| `FORM_POPUP_RIM_PX`                | 2                       | px    | Its rim in the seat's rim colour, and the ring's width.                                                                 |
+| `FORM_POPUP_TITLE_SCALE`           | 1.5                     | ×     | Its name's size over `headline`.                                                                                        |
+| `FORM_POPUP_RING_MS`               | 900                     | ms    | The ring that expands once from its rim.                                                                                |
+| `FORM_POPUP_RING_SCALE`            | 1.25                    | ×     | The scale the ring expands to, inside the glow's margin.                                                                |
+| `RESPAWN_TEXT_HEIGHT_PX`           | 80                      | px    | The death text's three lines (overlays.md §3.3), measured 77 px.                                                        |
+| `UPGRADE_POPUP_DEATH_TEXT_GAP_PX`  | 16                      | px    | Gap between the death text and a popup under it while dead.                                                             |
 | `STEER_HINT_DISTANCE_WU`           | 200                     | wu    | Distance travelled that dismisses the steer hint.                                                                       |
 | `SPRINT_HINT_AT_SECONDS`           | 30                      | s     | Round time at which the sprint hint shows if never sprinted.                                                            |
 | `STATUS_ANNOUNCE_DNA_STEP_PERCENT` | 25                      | %     | The status mirror (§3.1.4) re-announces DNA only at multiples of this.                                                  |

@@ -3,19 +3,22 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
+  PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
   gameId,
   playerId,
   type OwnedTrait,
+  type PlayerLifeState,
   type TraitId,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { paletteFor } from '../render/palette';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { formRealLifeLine } from './format/form-facts';
-import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './hud-constants';
+import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_PLACEMENT } from './format/upgrade-popups';
+import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './upgrade-popup-constants';
 import { UpgradePopupComponent } from './upgrade-popup.component';
 
 const OWN_PLAYER_ID = playerId('player-me');
@@ -31,11 +34,16 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
   let fixture: ComponentFixture<UpgradePopupComponent>;
   let multiplayer: MultiplayerService;
 
-  function receive(tick: number, ownedTraits: OwnedTrait[]): void {
+  function receive(
+    tick: number,
+    ownedTraits: OwnedTrait[],
+    lifeState: PlayerLifeState = PLAYER_LIFE_STATE.alive,
+  ): void {
     const ownProgress = createTestPlayerProgressView({
       playerId: OWN_PLAYER_ID,
       stage: CELL_STAGE.eukaryote,
       ownedTraits,
+      lifeState,
     });
     multiplayer.snapshot.set(createTestSnapshot({ tick, ownProgress }));
     fixture.detectChanges();
@@ -75,6 +83,7 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(effects.length).toBeGreaterThan(0);
     expect(shown?.querySelectorAll('ui-effect-mark[data-effect]').length).toBe(effects.length);
     expect(shown?.querySelector('.real-life')).toBeNull();
+    expect(shown?.querySelector('.kicker')).toBeNull();
 
     receive(gainTick + UPGRADE_TICKS - 1, [FLAGELLUM]);
     expect(popup(HUD_TEST_ID.upgradePopup)).not.toBeNull();
@@ -104,6 +113,7 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     receive(gainTick, [CILIA, PARAMECIUM]);
     const shown = popup(HUD_TEST_ID.formPopup);
     expect(popup(HUD_TEST_ID.upgradePopup)).toBeNull();
+    expect(shown?.querySelector('.kicker')?.textContent?.trim()).toBe(FORM_POPUP_KICKER_TEXT);
     expect(shown?.querySelector('.title')?.textContent?.trim()).toBe('Paramecium Cilia I');
     expect(shown?.querySelector('.real-life')?.textContent?.trim()).toBe(formRealLifeLine(PARAMECIUM.traitId));
     expect(host().style.getPropertyValue('--popup-seat-colour')).toBe(paletteFor(OWN_AVATAR_INDEX).rim);
@@ -112,5 +122,15 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(popup(HUD_TEST_ID.formPopup)).not.toBeNull();
     receive(gainTick + FORM_TICKS, [CILIA, PARAMECIUM]);
     expect(popup(HUD_TEST_ID.formPopup)).toBeNull();
+  });
+
+  it('hangs under the death text while the player is dead, and back above the cell once alive', () => {
+    expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+    // A pick made while spectating (overlays.md §3.3): the offer stays pickable while dead.
+    receive(START_TICK + 1, [PARAMECIUM], PLAYER_LIFE_STATE.spectating);
+    expect(popup(HUD_TEST_ID.formPopup)).not.toBeNull();
+    expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.belowDeathText);
+    receive(START_TICK + 2, [PARAMECIUM]);
+    expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
   });
 });

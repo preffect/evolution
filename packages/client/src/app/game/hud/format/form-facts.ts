@@ -20,7 +20,7 @@ export interface FormRealLifeLine {
 export const FORM_REAL_LIFE_LINES: readonly FormRealLifeLine[] = [
   { traitId: 'amoeba_pseudopods', line: 'Real amoebae crawl and engulf food with pseudopods' },
   { traitId: 'paramecium_cilia', line: 'Real paramecia swim with thousands of beating cilia' },
-  { traitId: 'euglena_eyespot', line: 'Real euglenas steer toward light with a red eyespot' },
+  { traitId: 'euglena_eyespot', line: 'Real euglenas use a red eyespot to swim toward light' },
   { traitId: 'diatom_shell', line: 'Real diatoms live in glass shells made of silica' },
   { traitId: 'stentor_trumpet', line: 'Real stentors can regrow a whole cell from a small piece' },
 ];

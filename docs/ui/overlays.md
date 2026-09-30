@@ -389,7 +389,7 @@ always agree. A form popup adds its one real-life line, in the coach pill's styl
 | ----------------- | ---------------------------------------------------------- |
 | Amoeba Pseudopods | `Real amoebae crawl and engulf food with pseudopods`       |
 | Paramecium Cilia  | `Real paramecia swim with thousands of beating cilia`      |
-| Euglena Eyespot   | `Real euglenas steer toward light with a red eyespot`      |
+| Euglena Eyespot   | `Real euglenas use a red eyespot to swim toward light`     |
 | Diatom Shell      | `Real diatoms live in glass shells made of silica`         |
 | Stentor Trumpet   | `Real stentors can regrow a whole cell from a small piece` |
 
@@ -397,17 +397,30 @@ Ordinary traits have no real-life line; a later ticket may add them if the human
 
 **Place.** Centred horizontally, its bottom edge `--hud-picker-band-offset` above the viewport centre: the mirror of
 the picker band's top edge below it (§3.2), so it clears the exclusion box and the cap orbit exactly as the band does
-(layout.md §1). It paints over the picker's dim. An upgrade popup is at most `UPGRADE_POPUP_MAX_WIDTH_PX` (a card's
-width) wide: title in `cardName`, effect lines in `body`, one per row, on the callout backing. A form popup is at most
-`FORM_POPUP_MAX_WIDTH_PX` wide: title in `headline`, the effect lines along one wrapping row, the real-life line under
-them in muted italic `body`, with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat's rim colour
-(`paletteFor(avatarIndex).rim`). The tallest, Amoeba Pseudopods with the catalog's four effect lines on three rows, is 126 px at 1024 × 640 with its
-top at y 85, below the scaled notice stack (`NOTICE_STACK_MAX_Y_PX` × 0.8 = y 77), measured on PR #789's evidence (`qa/evidence/pr-789/`).
+(layout.md §1); a form popup also keeps its resting glow's reach (`FORM_POPUP_GLOW_PX`) clear of it. It paints over
+the picker's dim. **While the player is dead or spectating** the box does not apply and the death text (§3.3) must
+stay readable, so the popups hang under it instead: their top edge at `RESPAWN_TEXT_TOP_PX + RESPAWN_TEXT_HEIGHT_PX +
+UPGRADE_POPUP_DEATH_TEXT_GAP_PX` (scaled), over the killer's side of the dish (`upgradePopupPlacementFor`,
+`data-placement` on the host). An upgrade popup is at most `UPGRADE_POPUP_MAX_WIDTH_PX` (a card's width) wide: title
+in `cardName`, effect lines in `body`, one per row, on the callout backing. A form popup is at most
+`FORM_POPUP_MAX_WIDTH_PX` wide: a `NEW FORM` kicker in `label` capitals in the seat's rim colour
+(`paletteFor(avatarIndex).rim`), the name at `FORM_POPUP_TITLE_SCALE` × `headline` (a display size for this moment,
+not a new type role), the effect lines along one wrapping row, the real-life line under them in muted italic `body`,
+with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat colour. The tallest, Amoeba Pseudopods (the catalog's
+four effect lines on two rows), measures 174 px at 1280 × 800 (top at y 66) and 138 px at 1024 × 640 (top at y 54):
+above the notice stack's lowest edge but inside the HUD margin and clear of the leaderboard, so a notice row or a
+toast up at that moment paints over its top (both come later in the HUD). While dead it starts at y 216 and y 173,
+under the death text's last line at y 173 and y 139 (`qa/evidence/pr-789/`).
 
 **Motion.** An upgrade popup pops in from `UPGRADE_POPUP_FROM_SCALE` over `UPGRADE_POPUP_IN_MS`, holds, and rises
-`UPGRADE_POPUP_RISE_PX` as it fades over the last `UPGRADE_POPUP_OUT_MS` of its life. A form popup scales in from
-`FORM_POPUP_FROM_SCALE` with its glow over `FORM_POPUP_IN_MS`, holds about five seconds, and fades over the last
-`FORM_POPUP_OUT_MS`. Under `prefers-reduced-motion` both only fade, with the same timings.
+`UPGRADE_POPUP_RISE_PX` as it fades over the last `UPGRADE_POPUP_OUT_MS` of its life. A form popup enters in two
+beats about its bottom edge: it grows from `FORM_POPUP_FROM_SCALE` to `FORM_POPUP_OVERSHOOT_SCALE` over
+`FORM_POPUP_IN_MS` while its glow flares to `FORM_POPUP_GLOW_FLARE` × its rest, then settles to full size and the
+resting glow over `FORM_POPUP_SETTLE_MS`; as it settles, one ring in the seat colour expands from its rim about its
+centre to `FORM_POPUP_RING_SCALE` and fades over `FORM_POPUP_RING_MS`, behind it, staying inside the glow's margin.
+The flare is the only paint that reaches past that margin toward the cell, for well under a second. It holds about five seconds and fades
+over the last `FORM_POPUP_OUT_MS`. Under `prefers-reduced-motion` both only fade, with the same timings: no scale,
+rise, flare or ring (the kicker and the name's size still carry the moment).
 
 **Queue.** One popup at a time. Popups fired together (two picks close together, or two gains in one snapshot, in
 the snapshot's trait order) queue: each starts when the one before it ends, and one fired with nothing up starts at
