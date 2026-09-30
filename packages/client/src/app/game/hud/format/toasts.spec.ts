@@ -104,6 +104,16 @@ describe('toastStepFor: the changes', () => {
     expect(STAGE_TOAST_TEXT.eukaryote).toBe('You are a eukaryote');
   });
 
+  it('leaves the climb to a form’s rung to the form popup (§3.8): one line per event', () => {
+    const eukaryote = seenOnce({ ownProgress: progress({ stage: CELL_STAGE.eukaryote }) });
+    const memory = toastStepFor(
+      eukaryote,
+      sample(START_TICK + 1, { ownProgress: progress({ stage: CELL_STAGE.specialised }) }),
+    );
+    expect(memory.toast).toBeNull();
+    expect(memory.stage).toBe(CELL_STAGE.specialised);
+  });
+
   it('fires endosymbiont_unlocked the snapshot a tally reaches its count, naming the organelle', () => {
     const before = seenOnce({
       ownProgress: progress({ bacteriaEatenByVariant: aerobicEaten(ENDOSYMBIOSIS_BACTERIA_REQUIRED - 1) }),

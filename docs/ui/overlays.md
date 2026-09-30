@@ -1,6 +1,6 @@
 # Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices
 
-§3.2–§3.7 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+§3.2–§3.8 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
 
 ### 3.2 Trait pick overlay (`ownProgress.offer !== null`)
 
@@ -213,7 +213,8 @@ full stop.
 | `stage`                 | `ownProgress.stage` climbs a rung (`STAGE_ORDER`)                                                     | per rung, below                                              |
 
 The `stage` line per rung climbed to: `You are a prokaryote`, `Endosymbiosis · an organelle lives inside you`,
-`You are a eukaryote`, `You are a specialised cell`. A rematch returns every cell to a protocell (game-design/session.md
+`You are a eukaryote`. The climb to the specialised rung has no toast: gaining a form is that climb, and the form
+popup (§3.8) announces it, so two lines never say the same thing at the same moment. A rematch returns every cell to a protocell (game-design/session.md
 §5.4), which is no climb and fires nothing. The level, the DNA and the organelle's name are the facts of the moment,
 never typed. The bloom has no toast: its coach beat (input-and-onboarding.md §5) and the clock's `BLOOM · FOOD ×1.5 ·
 DNA DROPS ×2` caption (hud.md §3.1.1) already announce it, and a third line would say the same thing at the same moment.
@@ -366,3 +367,68 @@ The toxin row names the **nearest cell whose folded `toxinDrainFractionPerSecond
 own `toxic` predicate — rather than `relationsFor`, which #385's relation-ring slice has not built yet; the reach
 rule stays on the server and is never re-derived on the client, and the rate itself is always the wire's. When no
 such cell is on the snapshot the row still shows its rate, without a name.
+
+### 3.8 Upgrade and form popups (#783)
+
+The human's request (2026-09-29): a pick should teach what it just did. Every trait the own cell gains, and every
+tier up, raises a popup above the cell with the trait's name and tier and its effects; gaining a form is the bigger
+moment and gets a bigger popup with one real-life line.
+
+| Popup     | Test id         | Fires when                                                                        | Life                                                   |
+| --------- | --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `upgrade` | `upgrade-popup` | a trait not held before, or a higher tier of one held, including a form's tier up | `UPGRADE_POPUP_DURATION_SECONDS` (2.5 s) of room ticks |
+| `form`    | `form-popup`    | a form (the specialised rung's gates, `STAGE_GATE_TRAITS`) not held before        | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
+
+Both carry `data-trait-id`. **Text.** The title is the catalog's name and the tier numeral (`Paramecium Cilia II`),
+under it the tier row's effect lines, each after its `ui-effect-mark` (▲ gain, ▼ drawback): the picker card's own
+record (`traitCardViewFor`, §3.2), so the numbers are the live balance's and never typed, and a card and its popup
+always agree. A form popup adds its one real-life line, in the coach pill's style (no full stop), from
+`hud/format/form-facts.ts` (`FORM_REAL_LIFE_LINES`):
+
+| Form              | Real-life line                                             |
+| ----------------- | ---------------------------------------------------------- |
+| Amoeba Pseudopods | `Real amoebae crawl and engulf food with pseudopods`       |
+| Paramecium Cilia  | `Real paramecia swim with thousands of beating cilia`      |
+| Euglena Eyespot   | `Real euglenas use a red eyespot to swim toward light`     |
+| Diatom Shell      | `Real diatoms live in glass shells made of silica`         |
+| Stentor Trumpet   | `Real stentors can regrow a whole cell from a small piece` |
+
+Ordinary traits have no real-life line; a later ticket may add them if the human wants them.
+
+**Place.** Centred horizontally, its bottom edge `--hud-picker-band-offset` above the viewport centre: the mirror of
+the picker band's top edge below it (§3.2), so it clears the exclusion box and the cap orbit exactly as the band does
+(layout.md §1); a form popup also keeps its resting glow's reach (`FORM_POPUP_GLOW_PX`) clear of it. It paints over
+the picker's dim. **While the player is dead or spectating** the box does not apply and the death text (§3.3) must
+stay readable, so the popups hang under it instead: their top edge at `RESPAWN_TEXT_TOP_PX + RESPAWN_TEXT_HEIGHT_PX +
+UPGRADE_POPUP_DEATH_TEXT_GAP_PX` (scaled), over the killer's side of the dish (`upgradePopupPlacementFor`,
+`data-placement` on the host). An upgrade popup is at most `UPGRADE_POPUP_MAX_WIDTH_PX` (a card's width) wide: title
+in `cardName`, effect lines in `body`, one per row, on the callout backing. A form popup is at most
+`FORM_POPUP_MAX_WIDTH_PX` wide: a `NEW FORM` kicker in `label` capitals in the seat's rim colour
+(`paletteFor(avatarIndex).rim`), the name at `FORM_POPUP_TITLE_SCALE` × `headline` (a display size for this moment,
+not a new type role), the effect lines along one wrapping row, the real-life line under them in muted italic `body`,
+with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat colour. The tallest, Amoeba Pseudopods (the catalog's
+four effect lines on two rows), measures 174 px at 1280 × 800 (top at y 66) and 138 px at 1024 × 640 (top at y 54):
+above the notice stack's lowest edge but inside the HUD margin and clear of the leaderboard, so a notice row or a
+toast up at that moment paints over its top (both come later in the HUD). While dead it starts at y 216 and y 173,
+under the death text's last line at y 173 and y 139 (`qa/evidence/pr-789/`).
+
+**Motion.** An upgrade popup pops in from `UPGRADE_POPUP_FROM_SCALE` over `UPGRADE_POPUP_IN_MS`, holds, and rises
+`UPGRADE_POPUP_RISE_PX` as it fades over the last `UPGRADE_POPUP_OUT_MS` of its life. A form popup enters in two
+beats about its bottom edge: it grows from `FORM_POPUP_FROM_SCALE` to `FORM_POPUP_OVERSHOOT_SCALE` over
+`FORM_POPUP_IN_MS` while its glow flares to `FORM_POPUP_GLOW_FLARE` × its rest, then settles to full size and the
+resting glow over `FORM_POPUP_SETTLE_MS`; as it settles, one ring in the seat colour expands from its rim about its
+centre to `FORM_POPUP_RING_SCALE` and fades over `FORM_POPUP_RING_MS`, behind it, staying inside the glow's margin.
+The flare is the only paint that reaches past that margin toward the cell, for well under a second. It holds about five seconds and fades
+over the last `FORM_POPUP_OUT_MS`. Under `prefers-reduced-motion` both only fade, with the same timings: no scale,
+rise, flare or ring (the kicker and the name's size still carry the moment).
+
+**Queue.** One popup at a time. Popups fired together (two picks close together, or two gains in one snapshot, in
+the snapshot's trait order) queue: each starts when the one before it ends, and one fired with nothing up starts at
+once. The life is counted in room ticks, like a toast's, and the CSS fade is timed to end with it.
+
+**Trigger.** A change between two snapshots of the same seat, like the toasts (§3.6): the first snapshot of a seat
+only remembers, so a late joiner's traits and a reconnect fire nothing; a rematch empties the traits, which gains
+nothing; the clock going back or a new seat starts the memory over. A snapshot before the live balance only
+remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). The step is pure
+(`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
+binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.

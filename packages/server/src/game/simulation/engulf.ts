@@ -20,6 +20,8 @@ import {
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
+import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
+import { clearHeldDisplacements, dragPreyAlong } from './engulf-drag.js';
 import { payOutEngulf } from './engulf-payout.js';
 import {
   hasSpitOutRefractory,
@@ -55,7 +57,8 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
 }
 
 /**
- * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact, no refractory,
+ * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact (the body's, or the arm's hold for
+ * a cell with arms, #735, outside its re-grab cooldown on this prey), no refractory,
  * and the prey was not freed by an abort this tick (docs/ecology/absorption.md §6.3, the chain row: a cell the
  * world dropped inside its next predator may be started on "next tick", never on this one).
  */
@@ -71,8 +74,18 @@ export function canStartEngulf(
     canEngulf(predator, prey, balance.absorption) &&
     !wasAbortedThisTick(prey, world.tick) &&
     !hasSpitOutRefractory(predator, prey.id, world.tick) &&
-    isEngulfContact(predator, prey, balance)
+    (isEngulfContact(predator, prey, balance) ||
+      (isArmHold(predator, prey, balance) && !hasArmRegrabRefractory(predator, prey.id, world.tick)))
   );
+}
+
+/**
+ * The arm alone holds the prey (docs/ecology/absorption.md §6.1, #735): inside the arm's reach and not steering away.
+ * A prey that fights the arm is never held by it, so it drains out rather than hovering at arm's length, and a prey
+ * swimming through the arm's reach is not grabbed.
+ */
+function isArmHold(predator: CellRecord, prey: CellRecord, balance: BalanceConfig): boolean {
+  return awayEffortOf(predator, prey) <= NO_AWAY_EFFORT && isGrabContact(predator, prey, balance);
 }
 
 /** The engulf already running between the two cells of a pair, in either direction. */
@@ -120,28 +133,73 @@ function resolveHold(pairing: EngulfPairing, phase: EngulfPhase, world: WorldSta
   return false;
 }
 
-/** Steps 5 and 6: progress, then the escape, the seal or the payout the new progress implies. */
-function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: WorldState, context: StepContext): void {
-  const absorption = context.balance.absorption;
+/** Where the prey is held this tick: the body's engulf contact, or the arm's (#735). */
+interface HoldContact {
+  readonly isBodyContact: boolean;
+  readonly isInContact: boolean;
+}
+
+/**
+ * A sealed prey is carried, so in body contact. Before the seal the predator first drags the prey after its own move
+ * (#772), then the arm draws a prey it holds in (#735); the arm alone then counts as contact only while the prey is
+ * not steering away: a prey that fights the arm drains, as out of contact, until the pull brings the body over it or
+ * it drains out.
+ */
+function holdContactOf(
+  pairing: EngulfPairing,
+  isSealed: boolean,
+  world: WorldState,
+  balance: BalanceConfig,
+): HoldContact {
+  if (isSealed) {
+    return { isBodyContact: true, isInContact: true };
+  }
+  dragPreyAlong(pairing, balance);
+  pullPreyByArm(pairing, world, balance);
+  const isBodyContact = isEngulfContact(pairing.predator, pairing.prey, balance);
+  return { isBodyContact, isInContact: isBodyContact || isArmHold(pairing.predator, pairing.prey, balance) };
+}
+
+/** This tick's signed progress change for the pair (docs/ecology/absorption.md §6.1 step 5). */
+function progressDeltaOf(
+  pairing: EngulfPairing,
+  phase: EngulfPhase,
+  hold: { readonly isInContact: boolean; readonly awayEffort: number },
+  balance: BalanceConfig,
+): number {
   const { predator, prey } = pairing;
-  const isSealed = phase === ENGULF_PHASE.absorb;
-  const isInContact = isSealed || isEngulfContact(predator, prey, context.balance);
-  prey.engulfProgress += engulfProgressDelta(
+  return engulfProgressDelta(
     {
       phase,
       predatorMass: predator.mass,
       preyMass: prey.mass,
-      isInContact,
-      awayEffort: isSealed ? NO_AWAY_EFFORT : awayEffortOf(predator, prey),
+      isInContact: hold.isInContact,
+      awayEffort: hold.awayEffort,
       predator: predator.modifiers,
       prey: prey.modifiers,
     },
-    absorption,
+    balance.absorption,
   );
+}
+
+/**
+ * Steps 5 and 6: progress, then the escape, the seal or the payout the new progress implies. An arm hold (#735) counts
+ * as contact, but only the body seals: progress that would seal while the prey is held by the arm alone stays at the
+ * lip until the body covers the prey.
+ */
+function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: WorldState, context: StepContext): void {
+  const absorption = context.balance.absorption;
+  const { predator, prey } = pairing;
+  const isSealed = phase === ENGULF_PHASE.absorb;
+  const { isBodyContact, isInContact } = holdContactOf(pairing, isSealed, world, context.balance);
+  const awayEffort = isSealed ? NO_AWAY_EFFORT : awayEffortOf(predator, prey);
+  const progressBefore = prey.engulfProgress;
+  prey.engulfProgress += progressDeltaOf(pairing, phase, { isInContact, awayEffort }, context.balance);
   if (!isInContact) {
     // A slip drains, it does not cancel (#634): the prey is out only once the progress has drained to 0.
     if (prey.engulfProgress <= START_PROGRESS + absorption.ENGULF_PROGRESS_EPSILON) {
       releaseEngulf(world, pairing, ENGULF_RELEASE_REASON.escaped);
+      recordArmRegrabRefractory(world, pairing, context.balance);
     }
     return;
   }
@@ -150,7 +208,11 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
     return;
   }
   if (!isSealed && engulfPhaseOf(prey.engulfProgress, absorption) === ENGULF_PHASE.absorb) {
-    sealEngulf(pairing);
+    if (isBodyContact) {
+      sealEngulf(pairing);
+    } else {
+      prey.engulfProgress = progressBefore;
+    }
   }
 }
 
@@ -180,6 +242,7 @@ export function isPairInWorld(pair: CellPair, world: WorldState): boolean {
 /** Step 6 of the tick. */
 export function runEngulfs(world: WorldState, context: StepContext): void {
   pruneSpitOutRefractories(world);
+  clearHeldDisplacements(world.cells);
   for (const pair of cellPairs(world.cells)) {
     if (isPairInWorld(pair, world)) {
       stepEngulfPair(pair, world, context);

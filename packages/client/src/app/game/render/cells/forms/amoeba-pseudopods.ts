@@ -1,18 +1,22 @@
 // The amoeba's silhouette and motion (docs/rendering/cells.md §2.1 pseudopods row, §2.4; docs/visual-style/
 // motion-and-legibility.md §5 / §5.1; sheet 04): the round core (`AMOEBA_CORE_SCALE`) and 2 / 3 / 4 long pseudopod
-// arms reaching well past the 1.3 r rings (#646). The arms are appendages, not body: cosmetic, outside the unit-area
-// rule and the hit disc. At rest the lobes fan out irregularly about the held heading and sway; with speed they move
+// arms reaching well past the 1.3 r rings (#646). The arms are appendages, not body: outside the unit-area rule and the
+// hit disc, though the server's engulf grabs from their shortest reach (#735, the shared `PSEUDOPOD_*` lengths). At rest the lobes fan out irregularly about the held heading and sway; with speed they move
 // out of the stretched front to the flanks (round the engulfed prey while it engulfs). Each lobe extends and retracts
-// on its own staggered sine, so one arm reaches while its neighbour pulls back. Pure over time and the cosmetic phase,
-// like every rest term.
+// on its own staggered sine, so one arm reaches while its neighbour pulls back; while the prey is held outside the body,
+// the lobe nearest it reaches to it instead and draws back with it (#753), swinging there at the grab and back after an
+// escape on the grip the clip tracker eases (#768), which turns the whole fan too (#771, `pseudopod-fan.ts`). Pure over
+// time and the cosmetic phase, like every rest term.
 
-import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { AMOEBA_ARM_GRAB_REACH_RADII, RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {
   AMOEBA_CORE_SCALE,
   PSEUDOPOD_CYCLE_HZ,
+  PSEUDOPOD_ENGULF_LEAN,
   PSEUDOPOD_FAN_SIGMA_DEG,
   PSEUDOPOD_FLANK_DEG,
   PSEUDOPOD_FLANK_SPREAD,
+  PSEUDOPOD_HOLD_BLEND_RADII,
   PSEUDOPOD_LEAN_GAIN,
   PSEUDOPOD_MAX_SIGMA_DEG,
   PSEUDOPOD_PEAK_ANGLE_SAMPLES,
@@ -25,6 +29,7 @@ import {
   PSEUDOPOD_SWAY_HZ,
 } from '../../constants';
 import { HALF, degreesToRadians, gaussianBump, wrapAngle } from '../../geometry';
+import { FULL_GRIP_SHARE, NO_GRIP_SHARE, type ArmGrip } from '../cell-deformation';
 import { stretchAt, type FormProfile, type ShapeBump, type StretchTerm } from '../radial-profile';
 
 export interface PseudopodInput {
@@ -33,10 +38,17 @@ export interface PseudopodInput {
   readonly timeSeconds: number;
   /** The cell's cosmetic phase, turns. */
   readonly phase: number;
-  /** Where the fan points: the engulfed prey's angle, else the resolved heading (radians, cell frame). */
+  /** Where the fan points: turned from the resolved heading to the engulfed prey by the grip (`pseudopodFan`), radians. */
   readonly aim: number;
-  /** 0 → the rest fan, 1 → full speed: the speed ratio, or at least `PSEUDOPOD_ENGULF_LEAN` while engulfing. */
+  /** 0 → the rest fan, 1 → full speed: the speed ratio, eased up to `PSEUDOPOD_ENGULF_LEAN` by the grip (`pseudopodFan`). */
   readonly lean: number;
+  /** How far past the body the arm holding the prey reaches (`CellDeformation.armHoldRadii`), in radii; 0 for none. */
+  readonly armHold: number;
+  /**
+   * The held arm's grip (`CellDeformation.armGrip`, #768); absent → full, at the aim. Its angle is unwrapped against the
+   * aim: the arm swings by `angle − aim`, so the caller decides the way round (`pseudopodFan`, #771).
+   */
+  readonly grip?: ArmGrip;
 }
 
 const REST_STEP = degreesToRadians(PSEUDOPOD_REST_STEP_DEG);
@@ -46,6 +58,8 @@ const SWAY = degreesToRadians(PSEUDOPOD_SWAY_DEG);
 const REACHING_SHARE = 1 - PSEUDOPOD_RETRACTED_SHARE;
 const FAN_SIGMA = degreesToRadians(PSEUDOPOD_FAN_SIGMA_DEG);
 const MAX_SIGMA = degreesToRadians(PSEUDOPOD_MAX_SIGMA_DEG);
+/** `lobesAt`'s holding index when no prey is held. */
+const NO_HOLDING_LOBE = -1;
 
 /** Each of `count` lobes' width, radians: `PSEUDOPOD_FAN_SIGMA_DEG / count` up to the cap, so fewer lobes are fatter. */
 export function pseudopodSigma(count: number): number {
@@ -63,7 +77,7 @@ function extensionShare(cycleTurns: number, index: number, count: number): numbe
 }
 
 /** How far the lobes have moved from the rest fan to the flanks: all the way by `1 / PSEUDOPOD_LEAN_GAIN` of `lean`. */
-function flankShare(lean: number): number {
+export function flankShare(lean: number): number {
   return Math.min(1, lean * PSEUDOPOD_LEAN_GAIN);
 }
 
@@ -80,17 +94,52 @@ interface FanMoment {
   readonly lean: number;
   readonly cycleTurns: number;
   readonly sway: number;
+  readonly armHold: number;
+  /** Where the held arm grips, as an angle off `aim + sway`, and how far it has swung there (#768). */
+  readonly gripOffset: number;
+  readonly gripShare: number;
 }
 
-/** The lobes at one moment of the fan. */
+/**
+ * The lobe that reaches for a prey: the one whose place in the engulfing fan, turned to the prey at
+ * `PSEUDOPOD_ENGULF_LEAN`, is nearest it. Fixed per count, so it never hands the prey to a neighbour while the grip
+ * turns the fan to the prey or back (#771).
+ */
+export function pseudopodHoldingLobe(count: number): number {
+  const share = flankShare(PSEUDOPOD_ENGULF_LEAN);
+  const miss = (index: number) => Math.abs(wrapAngle(lobeOffset(index, count, share)));
+  let nearest = 0;
+  for (let index = 1; index < count; index += 1) if (miss(index) < miss(nearest)) nearest = index;
+  return nearest;
+}
+
+/** How far the holding lobe has left its fan place for the prey: all the way once the hold is the blend or longer. */
+function holdShare(armHold: number): number {
+  return Math.min(1, armHold / PSEUDOPOD_HOLD_BLEND_RADII);
+}
+
+/**
+ * The lobes at one moment of the fan, the holding lobe moved from its place toward the prey by the lesser of the hold
+ * share and the grip (#768), so neither the pull nor the grab swings it faster than its own ease. The held arm reaches no
+ * further than the server holds from (`AMOEBA_ARM_GRAB_REACH_RADII`), whatever an interpolated frame says. Its turn is
+ * the grip's offset less its own, unwrapped: both stay within a half turn of the aim, and wrapping their difference
+ * would flip the arm to the other way round mid-swing when the fan turns to the prey (#771).
+ */
 function lobesAt(count: number, moment: FanMoment): ShapeBump[] {
   const sigma = pseudopodSigma(count);
   const share = flankShare(moment.lean);
-  return Array.from({ length: count }, (_unused, index) => ({
-    amplitude: PSEUDOPOD_REACH * extensionShare(moment.cycleTurns, index, count),
-    centre: wrapAngle(moment.aim + moment.sway + lobeOffset(index, count, share)),
-    sigma,
-  }));
+  const holding = moment.armHold > 0 ? pseudopodHoldingLobe(count) : NO_HOLDING_LOBE;
+  const held = Math.min(holdShare(moment.armHold), moment.gripShare);
+  return Array.from({ length: count }, (_unused, index) => {
+    const fanReach = PSEUDOPOD_REACH * extensionShare(moment.cycleTurns, index, count);
+    const offset = lobeOffset(index, count, share);
+    const toPrey = index === holding ? held : 0;
+    return {
+      amplitude: fanReach + (Math.min(moment.armHold, AMOEBA_ARM_GRAB_REACH_RADII) - fanReach) * toPrey,
+      centre: wrapAngle(moment.aim + moment.sway + offset + (moment.gripOffset - offset) * toPrey),
+      sigma,
+    };
+  });
 }
 
 /** The frame's lobes: `count` bumps about `aim`, moving to the flanks and their sway fading with `lean`. */
@@ -99,7 +148,17 @@ export function pseudopodBumps(input: PseudopodInput): ShapeBump[] {
   const swayTurns = PSEUDOPOD_SWAY_HZ * input.timeSeconds + input.phase;
   const sway = SWAY * (1 - flankShare(input.lean)) * Math.sin(RADIANS_PER_FULL_TURN * swayTurns);
   const cycleTurns = PSEUDOPOD_CYCLE_HZ * input.timeSeconds + input.phase;
-  return lobesAt(input.count, { aim: input.aim, lean: input.lean, cycleTurns, sway });
+  const gripOffset = input.grip === undefined ? 0 : input.grip.angle - input.aim - sway;
+  const gripShare = input.grip?.share ?? FULL_GRIP_SHARE;
+  return lobesAt(input.count, {
+    aim: input.aim,
+    lean: input.lean,
+    cycleTurns,
+    sway,
+    armHold: input.armHold,
+    gripOffset,
+    gripShare,
+  });
 }
 
 /** The table's angles: `Δ_k = k · 2π / N` off the aim, so `N / 2` is the rear. */
@@ -141,13 +200,17 @@ function dilate(values: readonly number[], reach: number): number[] {
   });
 }
 
+const UNGRIPPED = { gripOffset: 0, gripShare: NO_GRIP_SHARE } as const;
 const tableCache = new Map<string, readonly number[]>();
 const NO_LOBES: readonly number[] = new Array<number>(PSEUDOPOD_PEAK_ANGLE_SAMPLES).fill(0);
 
 /**
  * The widest the lobes push the surface out at each table angle off the aim, over any frame at this `lean`, in
  * radii of the core: one extension cycle walked, the fan's sway taken as its whole swing (the phase only shifts the
- * cycle), with what the samples could miss in time and in angle added so it stays a bound. The reach bounds weigh it
+ * cycle), with what the samples could miss in time and in angle added so it stays a bound. It leaves out the arm
+ * holding a prey (#753), which lies at the aim no longer than one lobe: the hold is at most the grab reach, the short
+ * end of the cycle, and the widest the flanks' full-length lobes push is further (`shape-terms-amoeba.spec.ts` pins a
+ * held frame inside the cull). The reach bounds weigh it
  * against the speed stretch angle by angle (`shape-terms.ts`), which is what lets a lobe on the flank count for less
  * than one at the stretched front. Memoised, since the preview and the cull ask for the same few leans every frame.
  */
@@ -159,7 +222,7 @@ export function pseudopodReachTable(count: number, lean: number): readonly numbe
   let widest: number[] = new Array<number>(PSEUDOPOD_PEAK_ANGLE_SAMPLES).fill(0);
   for (let sample = 0; sample < PSEUDOPOD_PEAK_TIME_SAMPLES; sample += 1) {
     const cycleTurns = sample / PSEUDOPOD_PEAK_TIME_SAMPLES;
-    const sums = sumAtTableAngles(lobesAt(count, { aim: 0, lean, cycleTurns, sway: 0 }));
+    const sums = sumAtTableAngles(lobesAt(count, { aim: 0, lean, cycleTurns, sway: 0, armHold: 0, ...UNGRIPPED }));
     widest = widest.map((value, index) => Math.max(value, sums[index] ?? 0));
   }
   const sigma = pseudopodSigma(count);

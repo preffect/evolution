@@ -20,7 +20,8 @@ import type {
 /**
  * One predator's memory of a prey it spat out (docs/ecology/absorption.md §6.1): it cannot restart on that
  * prey until `untilTick`, and separation pushes the pair apart meanwhile (§5.3). One entry per
- * spat-out prey, in the order they were spat out; expired entries are pruned by the engulf step.
+ * spat-out prey, in the order they were spat out; expired entries are pruned by the engulf step. The arm's
+ * re-grab cooldown (#735) keeps the same record: an amoeba cannot grab that prey by the arm until `untilTick`.
  */
 export interface SpitOutRefractoryRecord {
   preyCellId: EntityId;
@@ -58,8 +59,17 @@ export interface CellRecord extends CellView {
    */
   carriedOffsetX: number | null;
   carriedOffsetY: number | null;
+  /**
+   * How far the engulf hold moved this prey this tick outside the movement kernel (wu): the drag (#772) and the arm's
+   * pull (#735). Cleared at the top of step 6 and read only by the serializer, which reports it in the view's velocity
+   * (#774); the kernel never reads it, so the prey's own velocity, and the physics, stay as they were.
+   */
+  heldDisplacementX: number;
+  heldDisplacementY: number;
   /** This cell's spit-out memories as a predator; empty for everything that never spat anything out. */
   spitOutRefractories: SpitOutRefractoryRecord[];
+  /** This cell's arm re-grab cooldowns as a predator (#735): the prey it may not grab by the arm alone yet. */
+  armRegrabRefractories: SpitOutRefractoryRecord[];
   /**
    * This tick's steer command, taken from the start-of-tick pose at the top of the movement step
    * and kept so the engulf struggle reads the command the movement actually used, not a second one

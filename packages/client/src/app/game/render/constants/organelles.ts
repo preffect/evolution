@@ -110,7 +110,6 @@ export const PROTOCELL_GRANULE_RADIUS_MIN = 0.045;
 export const PROTOCELL_GRANULE_RADIUS_MAX = 0.06;
 export const PROTOCELL_GRANULE_DRIFT_RADII = 0.06;
 export const PROTOCELL_GRANULE_DRIFT_HZ = 0.15;
-export const EYESPOT_RADIUS = 0.08;
 
 /** Count per tier for the tiered organelles (visual-style/cells-and-organelles.md §4). */
 export const NUCLEOID_LOOPS_BY_TIER = [1, 2, 3] as const;

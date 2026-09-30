@@ -37,7 +37,7 @@ import {
   type FlagellumSpec,
 } from '../app/game/render/cells/flagellum-lines';
 import { evaluateProfile } from '../app/game/render/cells/radial-profile';
-import { buildShapeTerms, headingOf, type ShapeTerms } from '../app/game/render/cells/shape-terms';
+import { buildShapeTerms, headingOf, maxReachRadii, type ShapeTerms } from '../app/game/render/cells/shape-terms';
 import {
   CILIA_OUTER_RADII,
   NOISE_STRIP_ROWS,
@@ -90,7 +90,7 @@ const ALONE: CellViewsById = new Map();
 const AIMED_AT_THE_APPROACH = PREVIEW_EAT_APPROACH_TURNS * RADIANS_PER_FULL_TURN;
 
 export interface CellExtentsWu {
-  /** The membrane at its widest: `maxRadii` with the halo taken back out. */
+  /** The membrane at its widest: its own reach bound, without the halo or a form's appendages (#195's spines). */
   readonly bodyWu: number;
   /** The widest anything is drawn: the halo, the flagellum's tip past the membrane, the cilia, or an effect sprite. */
   readonly drawnWu: number;
@@ -125,7 +125,7 @@ export function cellExtents(
     strip: PREVIEW_STRIP,
     deformation: drawnDeformation(cell, tracks, cellsById),
   });
-  const bodyRadii = terms.maxRadii / terms.haloOuterRadii;
+  const bodyRadii = maxReachRadii(terms, 1); // a halo of 1: the body's own reach
   return {
     bodyWu: bodyRadii * cell.radius,
     // The renderer's own reach, tail and sprites (the file comment): the drawing, never the bound the scene framed by.

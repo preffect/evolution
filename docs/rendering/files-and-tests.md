@@ -22,13 +22,21 @@ cells/{cell-instance,cell-instance-builder,cell-mesh}.ts       the instance-text
 cells/self-ring.ts                                 the sprint ring's input to the cell layer, its clockwise-from-12 arc coordinate (the GLSL's reference) and the escape's warning-ring rule (§10, #295)
 cells/{cell-shader,cell-shader-source,cell-shader-patterns,cell-shader-bands,cell-shader-tells,cell-shader-membrane}.ts   GLSL as template strings: the two stages, the shared helpers, the profile, pass A (with the interior tells), the pass-B tells (wall, cilia, warning ring, rim dash), pass B (#215, #216)
 cells/{cell-shader-slipper,cell-shader-fringe}.ts   the paramecium's GLSL: the slipper `B(Δ)` spliced before `formAt`, its cilia tufts in pass B (#193)
+cells/{cell-shader-forms,cell-shader-spindle,cell-shader-euglena}.ts   `formAt` over the spliced silhouettes; the euglena's GLSL: the spindle `B(Δ)`, its eyespot and leading whip in pass B (#194)
+cells/cell-shader-diatom.ts                        the diatom's GLSL: the valve in pass A, the girdle and the spines in pass B (#195)
 cells/{radial-profile,shape-terms,contact-dents}.ts            r(θ) in TypeScript; terms from views + clips + t (dents: #216)
+cells/body-stretch.ts                              the speed and sprint stretch a body wears, none on a rigid form (§2.4 diatom, #195)
+cells/body-frame.ts                                the body frame the ramp, pools, glint and halo sit in: the undeformed frame over the form's `B` (§2.2, #194)
 cells/cell-draw-extent.ts                          how far a cell reaches: the membrane's time-independent bound (`peakReachRadii`), the appendages hanging off it, and what its running clips and their effect sprites add — which the encyclopedia preview frames its lens from and `preview-framing.spec.ts` measures against (#364)
 cells/{cell-clips,cell-effects,ghost-cells,ghost-instance}.ts  the clip hooks (tracks → deformation), effects → clip starts and ghosts, the absorbed-prey ghosts and their instance rows (#216; #207 drives the first two)
 cells/{organelle-kinds,organelle-layout,organelle-mapper,organelle-motion,organelle-sprites,flagellum-lines}.ts   counts, seeded slots, the mapping through the profile, sprite motion, the pooled sprites (#215); flagella #216
-cells/forms/{form-profiles,diatom-pattern,stentor-anchor}.ts   the registry and aspects (#216); the silhouettes (#192–#196, #121)
+cells/forms/{form-profiles,stentor-anchor}.ts   the registry and aspects (#216); the silhouettes (#192–#196, #121)
+cells/forms/{diatom-pattern,diatom-spines}.ts   the diatom's valve (striae, pores) and its spines (count per tier, taper, reach), the GLSL's references (#195)
 cells/forms/amoeba-pseudopods.ts                   the amoeba's core, its lobes' width, fan and cycle, their reach table and the body bound (#192)
 cells/forms/{slipper-profile,paramecium-cilia}.ts  the paramecium's slipper (aspect, blunt front, oral groove, unit area) and its cilia tufts (spacing, beat, bend, taper, reach), the GLSL's references (#193)
+cells/forms/{spindle-profile,euglena-flagellum,euglena-eyespot}.ts  the euglena's spindle (aspect, round nose, pointed rear, unit area), its leading whip (wave, taper, reach) and its eyespot (place, halo per tier), the GLSL's references (#194)
+cells/forms/appendage-reach.ts                    what a form's drawn appendages (tufts, whip, spines) add to the quad's and the lens's reach (§5.1 rule 5)
+cells/forms/unit-area.ts                          `∫ B² dΔ / 2π` and the scale every silhouette is brought to unit area by
 food/{food-layer,mote-sprites,dna-fragment-sprites,bacterium-heading}.ts   one `ParticleContainer` over the mote atlas and the fragment sprites above it, one render state per mote (cosmetic draws, held heading) in a `ViewRegistry`; the pure appearance rules (#207)
 dish/{dish-layer,depth-particles,vent-shimmer}.ts
 dish/dish-details.ts                              the field's mire strands and stage scratches as world-scale lines, redrawn per zoom band (§6, #223)
@@ -83,10 +91,16 @@ list is the one home of the `render/` file plan; `architecture/constants-files-t
   beats and some frame reaches); `slipper-profile.spec.ts` (the tier's aspect, unit area, the blunt front, the groove on one flank, `B′` against a central
   difference, a peak within 1 % of the widest); `paramecium-cilia.spec.ts` (§5.1 for the tufts: every tip 0.6 r past the rings at full extension and 0.15 r
   at its shortest, every neck 0.3 r square across, the nose-to-tail wave, the bend toward the tail growing with speed, near-even spacing);
+  `spindle-profile.spec.ts` (the sheet's aspect, unit area, a round nose and a pointed rear, `B′` against a central difference near the tips, an exact peak);
+  `euglena-flagellum.spec.ts` (§5.1 for the whip: every tip 0.6 r past the rings at every speed and beat, measured at the tip, the neck 0.3 r square across,
+  the root-to-tip wave, the quad and the lens reaching the tip); `euglena-eyespot.spec.ts` (the dot and its halo inside the spindle at every speed, the halo per tier);
+  `diatom-spines.spec.ts` (§5.1 for the spines: 8 / 12 / 16 by tier, every tip 0.6 r past the rings over the narrowest membrane at every speed
+  and in a sprint, the neck 0.3 r, the quad and the lens reaching the tip glow); `diatom-pattern.spec.ts` (36 alternating striae between the
+  central area and the margin, five pores on each fine one); `body-stretch.spec.ts` (no stretch on the rigid valve, down to the instance row);
   `cell-draw-extent.spec.ts` walks every form's drawn membrane against the body bound and has the
   amoeba's arm tips (measured at each lobe's centre) and the paramecium's tuft tips past the 1.3 r rings at every tier and speed, the tufts inside the
   quad and the lens; `cell-shader.spec.ts` pins the GLSL amoeba core to the TypeScript profile and the
-  ectoplasm band in pass B, and `cell-shader-paramecium.spec.ts` the baked slipper table and the tufts' gate, order and numbers; `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
+  ectoplasm band in pass B, and `cell-shader-paramecium.spec.ts` the baked slipper table and the tufts' gate, order and numbers, `body-frame.spec.ts` no form's body at rest on the ramp's last stop, `cell-shader-euglena.spec.ts` the baked spindle, the body-frame bands, the eyespot's and the whip's gates, colours, order and numbers; `organelle-layout.spec.ts` (slot centres inside 0.92 and outside `DNA_RING_KEEP_OUT_FRACTION`, every sprite body inside the membrane, the
   toxin bladder on the keep-out ring (#243), outside the nucleus disc, gap held, append-only across tiers, seeded); `ghost-instance.spec.ts` (the ghost's sprites at the rest slots mapped through its own profile, the shader's
   nucleus disc anchored on the mapped nucleus sprite, none below the far threshold; `cell-layer.spec.ts` queues them before the predator's at the ghost's alpha and `organelle-sprites.spec.ts` freezes their idle motion, #243); `organelle-mapper.spec.ts` (lag 0.20 r at k = 1; mapping equals the profile
   on the rim); `cell-lod.spec.ts` (thresholds and the fade window); `cell-instance.spec.ts` (the §2.3 row is seventeen texels, 272 B a cell,

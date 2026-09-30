@@ -81,15 +81,19 @@ export const FORM_ID = { blob: 0, slipper: 1, spindle: 2, trumpet: 3, diatom: 4,
 export const PSEUDOPOD_COUNT_BY_TIER = [2, 3, 4] as const;
 /**
  * The amoeba's core (#192, #646): the whole round body, `B ≡` this. Appendages are not body (visual-style/motion-and-
- * legibility.md §5.1): the core alone keeps unit area and is the hit and engulf disc, and the lobes ride on top of it.
+ * legibility.md §5.1): the core alone keeps unit area and is the hit and contact disc, and the lobes ride on top of it;
+ * the one exception is the arm grab (#735), which starts and holds an engulf from the arm's reach.
  */
 export const AMOEBA_CORE_SCALE = 1;
 /**
- * A lobe at full extension, in core radii: the tip at 1.95 r, an arm almost as long as the body's radius, 0.65 r past
- * the 1.3 r rings (§5.1's `APPENDAGE_MIN_REACH_PAST_RING_RADII`), and the full-speed quad still inside
- * `CELL_QUAD_EXTENT_RADII`.
+ * A lobe at full extension, in core radii (`PSEUDOPOD_REACH`, shared since the arms grab, #735): the tip at 1.95 r, an
+ * arm almost as long as the body's radius, 0.65 r past the 1.3 r rings (§5.1's `APPENDAGE_MIN_REACH_PAST_RING_RADII`),
+ * and the full-speed quad still inside `CELL_QUAD_EXTENT_RADII`. A lobe extends and retracts on a sine between
+ * `PSEUDOPOD_RETRACTED_SHARE` of its reach and all of it, neighbours 1/n turn apart; at its shortest it still reaches
+ * 1.62 r at rest, and past the rings on the swimming cell's squashed flanks (§5.1's
+ * `APPENDAGE_MIN_RETRACTED_PAST_RING_RADII`), which is the reach the server's arm grab reads.
  */
-export const PSEUDOPOD_REACH = 0.95;
+export { PSEUDOPOD_REACH, PSEUDOPOD_RETRACTED_SHARE } from '@evolution/shared';
 /**
  * Every lobe's σ is `PSEUDOPOD_FAN_SIGMA_DEG` over the lobe count, capped at `PSEUDOPOD_MAX_SIGMA_DEG` so even two lobes
  * taper into limbs rather than bulging into a rounded triangle: 12 ° / 10 ° / 7.5 ° at tiers I / II / III.
@@ -110,11 +114,14 @@ export const PSEUDOPOD_FLANK_SPREAD = 0.3;
 export const PSEUDOPOD_LEAN_GAIN = 3;
 export const PSEUDOPOD_ENGULF_LEAN = 1;
 /**
- * A lobe extends and retracts on a sine between this share of its reach and all of it, neighbours 1/n turn apart; at
- * its shortest it still reaches 1.62 r at rest, and past the rings on the swimming cell's squashed flanks
- * (§5.1's `APPENDAGE_MIN_RETRACTED_PAST_RING_RADII`).
+ * The arm hold (#753, ecology/absorption.md §6.1): the lobe nearest a prey held outside the body lies across it and draws
+ * back with it, handing back to its flank over the last this-many radii of the hold. A distance, so the pull sets the
+ * time: 300 ms (18 ticks) at the fastest, 1.5 r/s at every tier, twice §5's 150 ms snap; the arm swings ~4 ° a tick.
  */
-export const PSEUDOPOD_RETRACTED_SHARE = 0.65;
+export const PSEUDOPOD_HOLD_BLEND_RADII = 0.45;
+/** The held arm's linear swing at the grab and after an escape, on the render clock: 2 × §5's snap (#768, §5.1). */
+export const PSEUDOPOD_GRIP_EASE_MS = 300;
+/** The extension cycle's rate. */
 export const PSEUDOPOD_CYCLE_HZ = 0.35;
 /** At rest the fan sways about the held heading by ± this; the sway fades out as the lobes move to the flanks. */
 export const PSEUDOPOD_SWAY_DEG = 15;

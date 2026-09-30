@@ -16,7 +16,33 @@ export interface CellDeformation {
   readonly alpha: number;
   /** Where the prey this cell is engulfing is (cell frame, radians): the amoeba's lobes reach for it. Absent otherwise. */
   readonly preyAngle?: number;
+  /**
+   * How far past the body an arm must reach to hold that prey (#753): to its centre and on by the body's coverage share
+   * of its radius, in this cell's radii; 0 once the body covers it. Absent when not engulfing and not letting go (#768).
+   */
+  readonly armHoldRadii?: number;
+  /**
+   * How far the held arm has swung onto the prey and the fan turned to flank it (#768, #771). The clip tracker attaches
+   * it on every engulfing and letting-go frame; absent while engulfing, the grip is full at `preyAngle`.
+   */
+  readonly armGrip?: ArmGrip;
 }
+
+/** The engulf grip, eased on the render clock at the grab, when the engulf ends and when the prey changes (#768, #771). */
+export interface ArmGrip {
+  /** Where the prey is, or was when the engulf ended, or on the way from the previous prey (cell frame, radians). */
+  readonly angle: number;
+  /** `NO_GRIP_SHARE` → the arm in its fan place and the fan on the heading, `FULL_GRIP_SHARE` → on the prey. */
+  readonly share: number;
+  /**
+   * The signed turn from the held heading to `angle` the fan takes, kept the same way round from frame to frame through
+   * an ease by the cell's render state (`FanTurnMemory`, #771); absent → the short way.
+   */
+  readonly turn?: number;
+}
+
+export const NO_GRIP_SHARE = 0;
+export const FULL_GRIP_SHARE = 1;
 
 export type CellDeformations = ReadonlyMap<EntityId, CellDeformation>;
 

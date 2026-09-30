@@ -1,5 +1,5 @@
 // View + t → the profile terms of docs/rendering/cells.md §2.1 and the eight bump slots: the resolved
-// heading, the form, the speed stretch, the sprint's axial stretch, breathing, the stage wobble,
+// heading, the form, the speed stretch, the sprint's axial stretch (neither on a rigid form), breathing, the stage wobble,
 // the strip's jitter and lobes (halved by `cytoskeleton`, zero on a rigid form), and the cell's
 // deformation record (its bumps padded to `MAX_SHAPE_BUMPS`, its pulse) with the amoeba's pseudopods in the
 // reserved slots (§2.4, #192). Also the per-instance maximum reach the quad extent needs (§2).
@@ -12,23 +12,20 @@ import {
   HALO_OUTER_RADII,
   JITTER_AMPLITUDE,
   MAX_SHAPE_BUMPS,
-  PSEUDOPOD_ENGULF_LEAN,
   PROTOCELL_HALO_OUTER_RADII,
   REST_LOBE_AMPLITUDE_MAX,
   STARVING_WRINKLE_AMPLITUDE,
-  SPRINT_STRETCH_SCALE,
-  STRETCH_ACROSS_PER_ALONG,
-  STRETCH_ALONG,
-  STRETCH_TAPER,
   TRAIT_HALO_OUTER_RADII,
   WOBBLE_TAUT_SCALE,
 } from '../constants';
 import type { NoiseStrip } from '../noise/noise-strip';
+import { bodyStretchTerm, stretchReach } from './body-stretch';
 import type { CellDeformation } from './cell-deformation';
 import type { CellTraitSummary } from './cell-traits';
 import { amoebaBodyReach, pseudopodBumps, type BodyReach } from './forms/amoeba-pseudopods';
 import { pseudopodCount } from './forms/form-profiles';
-import { reachWithCiliaTufts } from './forms/paramecium-cilia';
+import { pseudopodFan } from './forms/pseudopod-fan';
+import { reachWithFormAppendages } from './forms/appendage-reach';
 import {
   ZERO_BUMP,
   bumpPeak,
@@ -36,10 +33,12 @@ import {
   type RadialProfileTerms,
   type FormProfile,
   type ShapeBump,
-  type StretchTerm,
   type StripTerm,
 } from './radial-profile';
 import { NOT_WITHERED } from './starving-wither';
+
+/** No prey held outside the body: every lobe keeps its fan place and cycle. */
+const NO_ARM_HOLD = 0;
 
 /** The rest motion at full amplitude; `cytoskeleton` halves breathing and lobes, a rigid form zeroes all three. */
 const FULL = 1;
@@ -101,11 +100,6 @@ export function headingOf(view: Pick<CellView, 'velocityX' | 'velocityY'>, speed
 /** The halo's outer radius for a cell's halo kind, in radii. */
 export function haloOuterRadiiOf(traits: CellTraitSummary): number {
   return HALO_OUTER_BY_KIND[traits.haloKind] ?? HALO_OUTER_RADII;
-}
-
-/** The widest the stretch scales a radius: the speed stretch along the heading, times the sprint's axial scale. */
-function stretchReach(stretch: StretchTerm): number {
-  return Math.max(1, 1 + stretch.k * (stretch.along - 1)) * Math.max(1, stretch.axialAlong, stretch.axialAcross);
 }
 
 /** The most the noise strip can push the surface out, in radii: its jitter, a starving cell's wrinkle, its deepest rest lobe. */
@@ -187,7 +181,7 @@ export function peakRearMembraneRadii(...query: PeakReachQuery): number {
  * times the surface, or for the amoeba the same product taken angle by angle with its lobes (`amoebaBodyReach`).
  */
 function peakBodyReach(...[traits, speedRatio, isSprinting, clip]: PeakReachQuery): BodyReach {
-  const stretch = stretchTerm(speedRatio, isSprinting);
+  const stretch = bodyStretchTerm(traits.form, speedRatio, isSprinting);
   const surface = peakSurfaceReach(traits, clip);
   const count = pseudopodCount(traits.form, traits.formTier);
   if (count > 0) return amoebaBodyReach(count, speedRatio, stretch, surface);
@@ -205,21 +199,6 @@ function peakSurfaceReach(traits: CellTraitSummary, clip: ClipDeformationPeak): 
     clip.bumpRadii,
   );
 }
-
-export function stretchTerm(speedRatio: number, isSprinting: boolean): StretchTerm {
-  return {
-    k: speedRatio,
-    along: STRETCH_ALONG,
-    taper: STRETCH_TAPER,
-    acrossPerAlong: STRETCH_ACROSS_PER_ALONG,
-    axialAlong: isSprinting ? SPRINT_STRETCH_SCALE : 1,
-    axialAcross: 1,
-  };
-}
-
-/** The widest the stretch scales a radius at this speed, sprinting or not (the traced ring's reach bound, #730). */
-export const peakStretchRadii = (speedRatio: number, isSprinting: boolean): number =>
-  stretchReach(stretchTerm(speedRatio, isSprinting));
 
 /**
  * Breathing and lobes halve when taut (visual-style/motion-and-legibility.md §5); a rigid valve does not breathe, jitter
@@ -255,9 +234,8 @@ function formBumps(input: ShapeTermsInput): readonly ShapeBump[] {
     count,
     timeSeconds: input.timeSeconds,
     phase: input.phase,
-    aim: input.deformation.preyAngle ?? input.heading,
-    lean:
-      input.deformation.preyAngle === undefined ? input.speedRatio : Math.max(input.speedRatio, PSEUDOPOD_ENGULF_LEAN),
+    ...pseudopodFan(input.heading, input.speedRatio, input.deformation),
+    armHold: input.deformation.armHoldRadii ?? NO_ARM_HOLD,
   });
   return [...input.deformation.bumps.slice(0, MAX_SHAPE_BUMPS - count), ...lobes];
 }
@@ -281,10 +259,10 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
       phase: RADIANS_PER_FULL_TURN * (traits.wobble.hz * timeSeconds + input.phase),
     },
     strip: stripTerm(input, scales),
-    stretch: stretchTerm(input.speedRatio, isSprinting),
+    stretch: bodyStretchTerm(traits.form, input.speedRatio, isSprinting),
     bumps: assignBumpSlots(formBumps(input)),
   };
   const withHalo = maxReachRadii(terms, haloOuterRadii);
-  const maxRadii = reachWithCiliaTufts(traits.form, withHalo, withHalo / haloOuterRadii);
+  const maxRadii = reachWithFormAppendages(traits.form, withHalo, withHalo / haloOuterRadii);
   return { ...terms, haloOuterRadii, maxRadii, isSprinting };
 }

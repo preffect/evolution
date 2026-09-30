@@ -17,7 +17,6 @@ import {
   E10_PAYOUT_MASS,
   E10_PAYOUT_TICK,
   DISTANCE_TOLERANCE_WU,
-  E9B_SEAL_DISTANCE_WU,
   E9B_SEAL_WESTING_WU,
   E9B_SPEED_TICK_1,
   E9B_SPEED_TICK_18,
@@ -166,7 +165,7 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .runDeterministic();
   });
 
-  it('E9b: a predator steering away drags its cover, and grabbing costs it no speed (#634)', async () => {
+  it('E9b: a predator steering away drags its prey along (#772), and grabbing costs it no speed (#634)', async () => {
     await engulfPair('E9b')
       .from(1, player(0).does(awayFromPrey))
       .advance(E9_PAYOUT_TICK)
@@ -176,11 +175,11 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .expect('sealed on tick 18 although the centres have drifted', progressOfPrey)
       .atTick(E9_SEAL_TICK)
       .toBeCloseTo(ENGULF_SEAL_PROGRESS, PROGRESS_TOLERANCE)
-      .expect('centres 29.66 wu apart at the seal, inside the predator reach', (view) =>
+      .expect('centres still 10 wu apart at the seal: A dragged B the whole way', (view) =>
         distanceBetweenCells(view, 0, 1),
       )
       .atTick(E9_SEAL_TICK)
-      .toBeCloseTo(E9B_SEAL_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
+      .toBeCloseTo(CENTRE_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
       .expect('predator 19.66 wu west of its start on tick 18', (view) => (cellOf(view, 0)?.x ?? 0) - BROTH_POINT.x)
       .atTick(E9_SEAL_TICK)
       .toBeCloseTo(-E9B_SEAL_WESTING_WU, APPROXIMATE_DISTANCE_TOLERANCE_WU)
@@ -198,7 +197,7 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .toBeCloseTo(E9B_SPEED_TICK_35, SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('the carried offset held to the end of the engulf', (view) => distanceBetweenCells(view, 0, 1))
       .atTick(E9_PAYOUT_TICK - 1)
-      .toBeCloseTo(E9B_SEAL_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
+      .toBeCloseTo(CENTRE_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
       .expect("the payout is E9's: A mass ≈ 115.90", massOfPredator)
       .atTick(E9_PAYOUT_TICK)
       .toBeCloseTo(E9_PAYOUT_MASS, MASS_TOLERANCE)

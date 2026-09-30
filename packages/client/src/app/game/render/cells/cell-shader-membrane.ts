@@ -1,6 +1,8 @@
 // Pass B of the cell shader (docs/rendering/cells.md §2.2, over the organelle sprites): the inner
 // edge, the soft rim, the rim light with the outline through it (or the protocell double film),
-// the cell wall and the cilia (cell-shader-tells.ts), the paramecium's cilia tufts (cell-shader-fringe.ts), the glint, the prey-under-film alpha, and
+// the diatom's girdle, the euglena's eyespot, the cell wall and the cilia (cell-shader-tells.ts), the paramecium's
+// cilia tufts (cell-shader-fringe.ts), the euglena's whip (cell-shader-euglena.ts), the diatom's spines
+// (cell-shader-diatom.ts), the glint, the prey-under-film alpha, and
 // the tells that snap with the LOD: seat-mark beads on the deformed outline, the own cell's self
 // ring (drawn as the sprint ring, #295) and the engulf-warning ring in the undeformed frame. Every
 // membrane band is a band of `d`.
@@ -109,10 +111,10 @@ vec4 doubleFilm(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uOutline, band(frame.d, 0.0, outlineHalfWidth(inst), halfPx) * ${glslFloat(PROTOCELL_OUTLINE_ALPHA)});
 }
 
-/** The specular glint just inside the membrane toward the light, undeformed frame like the pools; a starving cell's dims with its wither. */
+/** The specular glint just inside the membrane toward the light, body frame like the pools; a starving cell's dims with its wither. */
 vec4 glint(Instance inst, Frame frame, vec4 acc) {
   vec2 centre = vec2(cos(${glslFloat(GLINT_ANGLE)}), sin(${glslFloat(GLINT_ANGLE)})) * ${glslFloat(GLINT_OFFSET_RADII)};
-  vec2 q = frame.p / (inst.r * inst.pulse) - centre;
+  vec2 q = frame.pF - centre;
   float rotation = ${glslFloat(GLINT_ROTATION)};
   vec2 local = vec2(cos(rotation) * q.x + sin(rotation) * q.y, -sin(rotation) * q.x + cos(rotation) * q.y);
   float e = length(local / vec2(${glslFloat(GLINT_RADII_X)}, ${glslFloat(GLINT_RADII_Y)}));
@@ -172,9 +174,13 @@ vec4 membranePass(Instance inst, Frame frame) {
     acc = softRim(inst, frame, acc);
     acc = rimLight(inst, frame, acc);
   }
+  acc = diatomGirdle(inst, frame, acc);
+  acc = eyespot(inst, frame, acc);
   acc = cellWall(inst, frame, acc);
   acc = cilia(inst, frame, acc);
   acc = ciliaTufts(inst, frame, acc);
+  acc = euglenaFlagellum(inst, frame, acc);
+  acc = diatomSpines(inst, frame, acc);
   acc = glint(inst, frame, acc);
   acc *= inst.passBAlpha;
   acc = seatMark(inst, frame, acc);

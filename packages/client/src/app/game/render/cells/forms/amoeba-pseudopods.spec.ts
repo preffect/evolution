@@ -30,7 +30,7 @@ import {
 } from './amoeba-pseudopods';
 import { PROFILE_WALK_TIMEOUT_MS } from '../../../../../testing/profile-walk';
 
-const REST: PseudopodInput = { count: 4, timeSeconds: 0, phase: 0, aim: 0, lean: 0 };
+const REST: PseudopodInput = { count: 4, timeSeconds: 0, phase: 0, aim: 0, lean: 0, armHold: 0 };
 const CYCLE_SECONDS = 1 / PSEUDOPOD_CYCLE_HZ;
 
 /** Each lobe's offset from `from`, wrapped. */

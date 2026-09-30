@@ -104,6 +104,7 @@ describe('EvolutionDebugHandle', () => {
       carriedOffsetX: null,
       carriedOffsetY: null,
       spitOutRefractories: [],
+      armRegrabRefractories: [],
       lastRelease: null,
     });
     expect(handle.getPlayerDebugState(playerId('nobody'))).toBeUndefined();

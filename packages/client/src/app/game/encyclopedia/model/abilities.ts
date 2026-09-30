@@ -45,4 +45,5 @@ export const ABILITY_BY_MODIFIER: Readonly<Record<keyof CellModifiers, AbilityId
   dnaGainMultiplier: ABILITY.genome,
   dnaKeptOnDeathFraction: ABILITY.genome,
   gelSpeedFactorFloor: ABILITY.gelResistance,
+  armGrabReachRadii: ABILITY.engulfGrip,
 };

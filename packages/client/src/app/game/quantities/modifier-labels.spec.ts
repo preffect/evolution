@@ -61,6 +61,7 @@ describe('modifierLine', () => {
     expect(modifierLine('dnaKeptOnDeathFraction', 0.75)).toBe('Keeps 75 % DNA on death');
     expect(modifierLine('gelSpeedFactorFloor', 0.6)).toBe('Gel slows you to no less than 60 %');
     expect(modifierLine('gelSpeedFactorFloor', 1)).toBe('Gel no longer slows you');
+    expect(modifierLine('armGrabReachRadii', 0.6)).toBe('Arms grab 0.6 radii past the body');
   });
 });
 
@@ -177,6 +178,7 @@ const EXPECTED_BETTER_WHEN: Readonly<Record<keyof CellModifiers, ModifierBetterW
   dnaGainMultiplier: HIGHER,
   dnaKeptOnDeathFraction: HIGHER,
   gelSpeedFactorFloor: HIGHER,
+  armGrabReachRadii: HIGHER,
 };
 
 describe('MODIFIER_LABELS betterWhen, the direction table', () => {

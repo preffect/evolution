@@ -35,7 +35,10 @@ export function bornCellRecord(identity: CellIdentity, centre: Vec2, mass: numbe
     pinnedY: null,
     carriedOffsetX: null,
     carriedOffsetY: null,
+    heldDisplacementX: 0,
+    heldDisplacementY: 0,
     spitOutRefractories: [],
+    armRegrabRefractories: [],
     steerCommand: NO_STEER_COMMAND,
     lastRelease: null,
   };

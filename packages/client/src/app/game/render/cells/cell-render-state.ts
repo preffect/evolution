@@ -40,6 +40,7 @@ import { laggedSlot, mapSlot, type MappedPoint } from './organelle-mapper';
 import { isWarningRingHidden, type OwnCellRing } from './self-ring';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
 import { buildShapeTerms, headingOf, type ShapeTerms } from './shape-terms';
+import { FanTurnMemory } from './forms/pseudopod-fan';
 import { witherOf } from './starving-wither';
 
 /** What the frame hands every cell: time, zoom, the live balance, the own cell, the strip, the dents and the seals. */
@@ -109,6 +110,8 @@ export class CellRenderState {
   private readonly stripRow: number;
   private readonly speckleSeed: number;
   private heldHeading = 0;
+  /** Which way round the amoeba's fan turns to its prey through an ease (#771). */
+  private readonly fanTurn = new FanTurnMemory();
   private slots: OrganelleSlot[] = [];
   private traitsKey = '';
   /** The cilia beat's phase in turns, integrated so the rate can change without a jump. */
@@ -166,7 +169,10 @@ export class CellRenderState {
     return this.ciliaPhase;
   }
 
-  /** The frame's deformation plus the seal owed to a ghost and the contact dent (docs/rendering/cells.md §2.1). */
+  /**
+   * The frame's deformation plus the seal owed to a ghost and the contact dent (docs/rendering/cells.md §2.1), its engulf
+   * grip turning the way round the fan started (#771); reads the frame's held heading, so it runs after `headingOf`.
+   */
   private deformationFor(
     view: CellView,
     traits: CellTraitSummary,
@@ -185,7 +191,8 @@ export class CellRenderState {
             ],
           };
     const isEngulfing = view.engulfingCellId !== null;
-    return withContactDent(sealed, context.contactDents.get(view.id), { isTaut: traits.isTaut, isEngulfing });
+    const dented = withContactDent(sealed, context.contactDents.get(view.id), { isTaut: traits.isTaut, isEngulfing });
+    return this.fanTurn.apply(this.heldHeading, dented);
   }
 
   /** `‖velocity‖ / CELL_BASE_SPEED` (every mass's top speed, #677) clamped to 1, and 0 under the hold threshold so the heading holds. */
@@ -244,7 +251,6 @@ export class CellRenderState {
       traits,
       terms,
       lod,
-      speedRatio,
       nucleusOffset: nucleusOffsetOf(organelles, view.radius),
       isOwn: context.ownCell?.id === view.id,
       cosmetic: { stripRow: this.stripRow, phase: this.phase, speckleSeed: this.speckleSeed },

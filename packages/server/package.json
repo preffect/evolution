@@ -15,6 +15,7 @@
     "bench:bots": "tsx bench/in-process-bots.ts",
     "bench:broadcast": "tsx bench/viewer-broadcast.ts",
     "bench:predation": "tsx bench/predation.ts",
+    "bench:engulf-pass": "tsx bench/engulf-pass.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
