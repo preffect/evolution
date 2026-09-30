@@ -44,8 +44,15 @@ import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { aimWildHunt } from './wild-hunt-aim.js';
+import { giveUpStaleHunt, latchHunt } from './wild-hunt-give-up.js';
 import { isFleeSprintWorthwhile, isHuntSprintWorthwhile } from './wild-hunt-sprint.js';
-import { createWildHuntPerception, createWildPerception, wildSightOf, type WildSight } from './wild-perception.js';
+import {
+  createWildHuntPerception,
+  createWildPerception,
+  wildSightOf,
+  withoutGivenUpPrey,
+  type WildSight,
+} from './wild-perception.js';
 import { wanderTargetOf } from './wild-wander.js';
 
 export function decisionIntervalTicks(balance: BalanceConfig): number {
@@ -129,14 +136,15 @@ function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: S
   };
 }
 
-/** Flee, then hunt, then graze, over what `cell` sees; `null` when none applies. */
+/** Flee, then hunt (never `givenUpPreyId`), then graze, over what `cell` sees; `null` when none applies. */
 function sightedCommand(
   context: ScriptContext<WorldState, EntityId>,
   cell: CellRecord,
-  sight: WildSight,
   decision: WildDecisionContext,
+  givenUpPreyId: EntityId | null,
 ): WildCommand | null {
   const { balance } = decision.step;
+  const sight = wildSightOf(decision.world, cell, balance);
   const { wildCells, controls } = balance;
   const everything = createWildPerception(sight, balance);
   const fleeOptions = {
@@ -154,7 +162,10 @@ function sightedCommand(
       huntPreyId = entityId(hunted.id);
     },
   };
-  const prey = createWildHuntPerception(sight, balance, cell, decision.isHuntingStage);
+  const prey = withoutGivenUpPrey(
+    createWildHuntPerception(sight, balance, cell, decision.isHuntingStage),
+    givenUpPreyId,
+  );
   const hunt = () => {
     const command = wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(context));
     return command === null ? null : { ...command, huntPreyId };
@@ -172,9 +183,9 @@ export function decideWildCommand(seat: WildSeatRecord, cell: CellRecord, decisi
   if (escape !== null) {
     return escape;
   }
-  const { world, step } = decision;
+  const { step } = decision;
   const context = scriptContextFor(seat, cell, decision);
-  const sighted = sightedCommand(context, cell, wildSightOf(world, cell, step.balance), decision);
+  const sighted = sightedCommand(context, cell, decision, seat.givenUpPreyId);
   return (
     sighted ?? {
       target: wanderTargetOf(seat, cell, context.random, step.balance),
@@ -210,10 +221,11 @@ function advanceSeat(seat: WildSeatRecord, cell: CellRecord, decision: WildDecis
     return;
   }
   seat.decideInTicks = decisionIntervalTicks(decision.step.balance);
+  giveUpStaleHunt(seat, cell, decision.world.tick, decision.step.balance);
   const command = decideWildCommand(seat, cell, decision);
   cell.targetX = command.target.x;
   cell.targetY = command.target.y;
-  seat.huntPreyId = command.huntPreyId;
+  latchHunt(seat, command.huntPreyId, decision.world.tick);
   if (command.isSprinting) {
     startWildSprint(seat, cell, decision.step.balance);
   }

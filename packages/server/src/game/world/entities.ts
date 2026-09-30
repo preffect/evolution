@@ -108,6 +108,10 @@ export interface WildSeatRecord {
   decideInTicks: number;
   /** The cell the last decision hunts, re-aimed at every tick (`wild/wild-hunt-aim.ts`); `null` for any other rule. */
   huntPreyId: EntityId | null;
+  /** The tick the hunt on `huntPreyId` began (`wild/wild-hunt-give-up.ts`); meaningless while it is `null`. */
+  huntStartTick: number;
+  /** The last prey this seat gave up on, left out of its hunts until it gives up on another; `null` for none. */
+  givenUpPreyId: EntityId | null;
 }
 
 export interface TraitOffer extends TraitOfferView {

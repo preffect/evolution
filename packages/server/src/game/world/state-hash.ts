@@ -217,6 +217,8 @@ export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
   'headingY',
   'decideInTicks',
   'huntPreyId',
+  'huntStartTick',
+  'givenUpPreyId',
 ];
 
 function hashRecords<Record>(

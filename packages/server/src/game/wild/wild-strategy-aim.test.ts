@@ -32,7 +32,10 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
   const holdLunch = (world: ReturnType<typeof arena>['world']) => {
     world.wildSeats[1]!.decideInTicks = INTERVAL_TICKS * 10;
   };
-  /** The hold's target for the pair as it stands (its arithmetic is wild-hunt-aim.test.ts'). */
+  /**
+   * The hold's target for the pair as it stands (its arithmetic is wild-hunt-aim.test.ts'); each hold row also checks
+   * it is neither the centre aim nor the charge, so the row holds on its own.
+   */
   const holdTarget = ({ wild, lunch, world }: ReturnType<typeof hunting>) =>
     huntTargetThisTick(wild, lunch, world, DEFAULT_BALANCE);
   const chargeTarget = (hunter: { radius: number }, lunch: { x: number }) => ({
@@ -51,6 +54,7 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
     const covered = hunting(reachOf);
     decideWildTargets(covered.world, covered.context);
     expect(targetOf(covered.wild)).toEqual(holdTarget(covered));
+    expect(targetOf(covered.wild)).not.toEqual({ x: covered.lunch.x, y: 0 });
     const apart = hunting((radius) => radius + lunchRadius + JUST_PAST_WU);
     decideWildTargets(apart.world, apart.context);
     expect(targetOf(apart.wild)).toEqual({ x: apart.lunch.x, y: 0 });
@@ -62,11 +66,13 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
     decideWildTargets(onIt.world, onIt.context);
     expect(targetOf(onIt.wild)).toEqual(holdTarget(onIt));
     expect(targetOf(onIt.wild)).not.toEqual(chargeTarget(onIt.wild, onIt.lunch));
+    expect(targetOf(onIt.wild)).not.toEqual({ x: onIt.lunch.x, y: 0 });
     const onOther = hunting(touchingNotCovered);
     beginEngulf({ predator: onOther.wild, prey: onOther.player });
     decideWildTargets(onOther.world, onOther.context);
     expect(targetOf(onOther.wild)).toEqual(holdTarget(onOther));
     expect(targetOf(onOther.wild)).not.toEqual(chargeTarget(onOther.wild, onOther.lunch));
+    expect(targetOf(onOther.wild)).not.toEqual({ x: onOther.lunch.x, y: 0 });
   });
 
   it('stops charging and holds the tick the engulf starts, between decisions', () => {
@@ -79,6 +85,7 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
     decideWildTargets(world, context);
     expect(world.wildSeats[0]!.decideInTicks).toBe(INTERVAL_TICKS - 1);
     expect(targetOf(wild)).toEqual(holdTarget(setup));
+    expect(targetOf(wild)).not.toEqual({ x: lunch.x, y: 0 });
   });
 
   it('follows the prey between decisions, and charges once it comes into contact', () => {
