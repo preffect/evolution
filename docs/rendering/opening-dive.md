@@ -7,8 +7,9 @@ controls. This file says how the client draws it. The numbers are `render/consta
 
 ## 1. Where it lives
 
-- **Panel:** `game/dive/dive-panel.component.ts` sits under the lobby header (`app.component.html`). It is DOM only:
-  the readout, labels, scale bar, phase flag and controls. It gets a `DiveHandle` through the `OPENING_DIVE` token
+- **Panel:** `game/dive/dive-panel.component.ts` is last in the lobby's column (`app.component.html`), so every step
+  to play (Connect, Create, Join) comes first and stays above the fold at every size. It is DOM only: the readout,
+  labels, scale bar, flag and controls. It gets a `DiveHandle` through the `OPENING_DIVE` token
   (`render/dive/dive-host.ts`), the same seam shape as the encyclopedia preview's (`preview/preview-host.ts`). A
   component spec provides `testing/fake-dive-handle.ts` and never touches Pixi.
 - **Session:** `render/dive/dive-session.ts` is the fourth `FrameLoopSession`, beside a room's, the bench's and the
@@ -17,8 +18,12 @@ controls. This file says how the client draws it. The numbers are `render/consta
   - the session's Pixi app, which clears to transparent (`PixiAppOptions.isTransparent`). Its stage holds
     `gameRoot`, with a real `GameRenderer` in it (`FrameLoopSession.rendererStage` puts the renderer's layers
     there), and the dish clip mask.
-- **Start:** the renderer's textures bake across frames (ticket #479), and the upper bands draw on their own
-  meanwhile, so the lobby never freezes on the bake. A failed bake leaves the dive on its upper bands.
+- **Start:** the app and the upper bands load in parallel. If either fails (no WebGL, a missing coastline, the
+  chunk), or the panel closes first, the half that arrived is given back at once and `start` answers `false`; the
+  stage then says "The opening dive could not load." and the lobby works on. The renderer's textures bake across
+  frames (ticket #479) while the upper bands already draw, so the lobby never freezes on the bake. A failed bake
+  leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
+  (`DIVE_BAKE_DEVICE_PIXEL_RATIO`).
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
   `RenderSession` builds. `destroy` runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app)
   and gives the planet's WebGL context back. The mockup's canvas and its baked tiles stay for the page, so a return
@@ -30,13 +35,19 @@ controls. This file says how the client draws it. The numbers are `render/consta
 `render/dive/dive-camera.ts` keeps one focus and one zoom.
 
 - **Focus:** the rocky point where Victoria will be (`DIVE_FOCUS_DEGREES`).
-- **Zoom:** log10 of the view's width in metres, from `DIVE_ZOOM_TOP` 7.4 (orbit) to `DIVE_ZOOM_BOTTOM` −6.2
-  (inside your cell).
+- **Zoom:** log10 of the view's width in metres, from `DIVE_ZOOM_TOP` 7.4 (orbit) to `DIVE_ZOOM_BOTTOM` −5.6 (your
+  cell filling the view). The mockup went on to −6.2, inside your cell; the game's cell holds its detail only to
+  about −5.6, where it is drawn at about the organelle atlas's resolution, and past it the textures are magnified
+  several times.
 - **Upper bands:** they draw in metres round the focus (x east, y south), at `pixelsPerMetre = width / 10^zoom`.
 - **Game renderer:** it takes the same scale as a fixed zoom, `pixelsPerMetre × DIVE_METRES_PER_WU` px per world
   unit, parked on the dish centre. `DIVE_METRES_PER_WU` makes the game's `DISH_RADIUS` the mockup's 40 µm pocket.
 - **Planet turn:** the planet turns from Eurasia to the focus between zoom 7.3 and 6.75 (`diveGlobeRotation`).
-- **Labels:** the panel's place names use the same rotation (`dive-labels.ts`).
+- **Labels:** an amber dot and a text on a dark box, faded over each label's zoom range (`dive-labels.ts`). The
+  script writes them in capitals with the units in lower case: CSS capitals would turn µ into a capital mu that
+  reads as M. A label that would sit on the readout moves down below it (`DIVE_READOUT_KEEP_OUT_PX`).
+- **Slider:** its `aria-valuetext` is the field of view. Under 560 px the tick row shows every second power of
+  ten.
 
 ## 3. The bands
 
@@ -72,29 +83,40 @@ so nothing the renderer draws is forked. It holds:
 - **The field:** the dark field, the dish wall and its glass, the light pool and the vignette.
 - **Your cell:** in the first seat's colour (Cyan) at the dish centre, with its self ring. The own-cell record is
   built by the encyclopedia lens's `actionSubjectOwnCellIndicators`.
-- **Bacteria:** seeded wild cells in the cell shader.
+- **Bacteria:** seeded wild cells in the cell shader. The dive turns the far dot off (`RenderInputs.isFarDotShown`):
+  a cell under 8 px stays at mid LOD instead of a rim dot with a ×3 halo, a play-zoom legibility rule the dive does
+  not need, so the bacteria grow from specks into cells with no bright orb between.
 - **Food:** algae and detritus specks as the food layer's motes.
 - **Sizes:** your cell is drawn at the mockup's 1.6 µm and each bacterium at 1.1–1.6 µm. Their masses are derived
   through the live growth curve. Bacteria stop at your size, so none can engulf you and none wears the warning
   ring. The specks keep the food layer's own size in world units.
 - **Randomness:** the scene is seeded through `cosmetic:dive` (`DIVE_SEED`).
 - **Reduced motion:** the scene's time stands still.
-- **The vent:** the game's dish centre is the warm vent, so the vent glows under your cell.
+- **The vent:** the game's dish centre is the warm vent, under your cell. The dive hides the vent sprite
+  (`RenderInputs.isVentShown`), so the end of the dive is your cell and not an orange glow.
 
 **The upper bands are the mockup's drawing for now.**
 
 - **The module:** `render/dive/mockup/dive-mockup-bands.js` is the mockup's `src/*.js` made into one module. Its
-  page globals became module state, its bake timer became the injected `SCHEDULER` (an 8 ms slice
-  every 10 ms until every tile is made, as the mockup's `pump`), and its UI went to the panel.
+  page globals became module state, its bake timer became the injected `SCHEDULER` (an 8 ms slice every 10 ms until
+  every tile is made, as the mockup's `pump`), and its UI went to the panel. The world's and the region's coastline
+  bakes go in the same sliced queue rather than being drained on the spot; until the world's lands the planet draws
+  as the flat fallback globe. Its header and each section name the follow-up that deletes them: ticket #800 the
+  planet, #801 the coast and shore, #802 the kelp and drop, #803 the slime.
 - **What it draws:** one Canvas 2D canvas, with the planet's WebGL canvas drawn into it.
   `render/dive/dive-macro-band.ts` puts that canvas first in the stage, under the game's.
 - **Not a texture:** the ticket allowed uploading the canvas as a Pixi texture, and that was built first. It was
   dropped: the upload reads the canvas back every frame, and the bands' drawing then took 1,498 ms a frame at zoom
   3.3, against 16 ms on a canvas of their own (§6). The browser compositing two canvases costs no script time.
 - **Resolution:** the canvas draws at up to 2× when still and 1.5× while the dive falls.
-- **Code standards:** it is JavaScript, outside eslint, prettier and jscpd (`.prettierignore`, `.jscpd.json`). It
-  is never brought up to `CODE-STANDARDS.md`: epic #795's follow-ups move each band onto the game's renderer
-  (shaders, baked textures, render-to-texture layers) and delete its part of the file.
+- **Code standards:** it is JavaScript, outside eslint, prettier, jscpd and coverage (`.prettierignore`,
+  `.jscpd.json`, `angular.json`). It is never brought up to `CODE-STANDARDS.md`: tickets #800–#803 move each band
+  onto the game's renderer (shaders, baked textures, render-to-texture layers) and delete its part of the file.
+- **Memory:** `release` gives back the planet's WebGL context and shrinks the screen-sized canvases (the view, the
+  layers, the zone layers, the sea grids) to nothing; each is made again at its size on the next draw. The tile and
+  coastline bakes stay for the page, so a return to the lobby does not bake them again.
+- **The lazy chunk:** `dive-bundle.spec.ts` pins on the sources that no static import chain from `main.ts` reaches
+  the module or names `d3-geo`.
 - **Coastline data:** `assets/dive/world-rings.json` and `assets/dive/salish-rings.json` (Natural Earth rings,
   200 KB) and `d3-geo` load with the dive. The module is a dynamic `import()` (its own chunk), and the JSON is
   fetched. None of it is in the game bundle.
@@ -109,16 +131,20 @@ so nothing the renderer draws is forked. It holds:
 - **Pause:** pauses and resumes. The paused span never plays.
 - **Scrub:** the slider runs from Earth (left) to the cell (right), with a tick per power of ten and a mark per
   stop. Dragging stops the opening where the hand is and lowers the flag.
-- **Skip:** Space or Esc jumps a playing opening to its stop. A paused or still dive ignores them, and so does any
-  key typed into a field.
+- **Skip:** Space or Esc jumps a playing opening to its stop, only when the dive owns the key: nothing handled it
+  first and it was aimed at the page itself or at the dive's stage. A key on a lobby control (a button, a field,
+  the slider) is that control's, and the encyclopedia's Esc closes the encyclopedia without skipping the dive. A
+  paused or still dive ignores them.
 - **Readout:** the field of view, its power of ten and the ladder's line for it (`dive-readout.ts`).
 - **Scale bar:** the longest 5, 2 or 1 × 10ⁿ inside 18 % of the view.
 - **Labels:** an amber dot and a text on a dark box, faded over each label's zoom range (`dive-labels.ts`).
-- **Autoplay:** the lobby plays phase 1's opening `DIVE_AUTOPLAY_DELAY_MS` after it opens, once. It does not
-  when the reader moved first, or when motion is reduced.
+- **Autoplay:** the lobby plays phase 1's opening `DIVE_AUTOPLAY_DELAY_MS` after it opens, once, and not before
+  the upper bands' tiles have baked, so it never falls into a band still drawing its placeholder. It does not when
+  the reader moved first, or when motion is reduced.
 - **Reduced motion:** a button jumps straight to the stop, the ambient motion stands still, and a still dive
-  draws a frame only when something changed.
-- **Off screen:** the panel stops the ticker while its stage is scrolled out of view.
+  draws a frame only when something changed. Asked for mid-fall, the opening jumps to its stop at once.
+- **Off screen:** the panel stops the ticker while its stage is scrolled out of view, including a report that
+  comes before the app exists.
 
 ## 6. Frame budget and measurement
 
@@ -154,6 +180,10 @@ so nothing the renderer draws is forked. It holds:
   - a still reduced-motion dive draws nothing
   - autoplay plays once
   - `destroy` unbinds and releases
+- `dive-bundle.spec.ts`: the mockup's module and `d3-geo` out of every static import chain from `main.ts`.
+- `dive-session.spec.ts` also: each half failing at start (the other given back), visibility reported before the
+  app, reduced motion mid-fall, the autoplay held until the tiles bake.
+- `app.integration.spec.ts`: a room starting closes the dive.
 - `dive-panel.component.spec.ts`: over the recording handle: the buttons, the slider, pause, the readout, the
   labels, the flag, Space and Esc but not while typing.
 

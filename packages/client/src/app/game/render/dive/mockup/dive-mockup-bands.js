@@ -6,9 +6,15 @@
 // (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu, src/00-core.js … 72-scene.js) made into one module: its page
 // globals became module state set by `createMockupBands`, its timers became the dive's frame loop, and the parts the
 // game draws itself (the dish wall, the bacteria in the dish, the light, you) hand over to the game's renderer. It
-// is plain JavaScript on purpose and sits outside eslint, prettier and jscpd (.prettierignore, .jscpd.json): the
-// follow-up tickets of epic #795 move each band onto the game's GPU renderer and delete its part of this file, so it
-// is never brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is the contract.
+// is plain JavaScript on purpose and sits outside eslint, prettier, jscpd and coverage (.prettierignore, .jscpd.json,
+// angular.json): the follow-up tickets of epic #795 move each band onto the game's GPU renderer and delete its part of
+// this file, so it is never brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is
+// the contract. Which ticket deletes what (each section's header names its ticket too):
+//   ticket #800, the planet: the signed distance bakes, the WebGL globe, `drawGlobeFallback`
+//   ticket #801, the coast and shore: the coast in metres, the shore's tiles and layers, kelp beds, pools, boulders
+//   ticket #802, the kelp and drop: the boulder and the bull kelp, the spray beads and the drop's lens
+//   ticket #803, the slime: inside the drop (the kelp's cells, slime, diatoms, ciliates, the mockup's own pocket)
+// The core helpers, the tile pump and `drawFrame` go with the last of them.
 //
 // Units: world metres around the focus (x east, y south); z is log10 of the view's width in metres; T is seconds.
 import { geoArea, geoEquirectangular, geoOrthographic, geoPath } from 'd3-geo';
@@ -25,30 +31,6 @@ const CENTER = [-123.357, 48.4006];
 const Z_TOP = 7.4, Z_BOTTOM = -6.2;
 const RAD = Math.PI / 180, TAU = Math.PI * 2;
 
-const PHASES = [
-  { n: 1, name: 'The dish', z: -4.3, color: '#6fd6e6', future: false, note: 'a 40 µm pocket in the slime on a kelp blade' },
-  { n: 2, name: 'The drop', z: -2.7, color: '#8fd49a', future: false, note: 'the edge of the drop, 2 mm across' },
-  { n: 3, name: 'Colonies', z: -2.0, color: '#c9e07a', future: false, note: 'the whole drop, 1 cm across' },
-  { n: 4, name: 'Tide pool', z: -0.6, color: '#e8b04b', future: true, note: 'the kelp blade, 25 cm across' },
-  { n: 5, name: 'The shore', z: 1.1, color: '#e98a6b', future: true, note: 'the boulder at low tide, 12 m across' },
-];
-
-const LADDER = [
-  { p: 7, fov: '10,000 km', what: 'Earth, over Eurasia. The planet turns to bring North America’s Pacific coast round.', real: 'Earth 12,742 km across', game: '' },
-  { p: 6, fov: '1,000 km', what: 'The Pacific Northwest. Vancouver Island and the Salish Sea.', real: 'Vancouver Island 460 km long', game: '' },
-  { p: 5, fov: '100 km', what: 'Southern Vancouver Island and the Juan de Fuca Strait.', real: 'Strait about 20–30 km wide', game: '' },
-  { p: 4, fov: '10 km', what: 'Where Victoria will be. Forest runs down to a rocky coast; no town, no people.', real: 'Douglas-fir 50–70 m tall', game: '' },
-  { p: 3, fov: '1 km', what: 'A rocky point. Kelp beds show as brown patches offshore.', real: 'A kelp bed 50–200 m across', game: '' },
-  { p: 2, fov: '100 m', what: 'The shore at low tide: bare rock, tide pools, boulders.', real: 'Tide pools 2–10 m', game: '' },
-  { p: 1, fov: '10 m', what: 'Boulders. One has a bull kelp washed over it.', real: 'Boulders 1–4 m; bull kelp stipe up to 30 m', game: 5 },
-  { p: 0, fov: '1 m', what: 'The boulder and the kelp: a gas-filled bulb and long strap blades.', real: 'Bulb about 13 cm; blades 1–4 m long', game: '' },
-  { p: -1, fov: '10 cm', what: 'The blade’s surface, beaded with drops of spray.', real: 'Snails 1 cm; amphipods 0.5–2 cm', game: 4 },
-  { p: -2, fov: '1 cm', what: 'One drop of sea spray, 5 mm across, sitting on the blade.', real: 'Colonies 0.1–1 mm', game: 3 },
-  { p: -3, fov: '1 mm', what: 'Inside the drop, near its edge. The blade is the floor.', real: 'Copepod larva 0.25 mm; ciliates 0.1 mm', game: 2 },
-  { p: -4, fov: '100 µm', what: 'The slime on the kelp’s cells. A pocket of clear water 40 µm across: the dish.', real: 'Kelp surface cells ~12 µm; diatoms 30–100 µm', game: 1 },
-  { p: -5, fov: '10 µm', what: 'Inside the dish: bacteria and specks of food.', real: 'Bacteria 1–3 µm', game: '' },
-  { p: -6, fov: '1 µm', what: 'One bacterium: you, at the start of the game.', real: 'You: 1.6 µm long', game: '' },
-];
 
 // Palette. The micro end reuses the game's own constants (docs/visual-style/principles-and-palette.md §2,
 // packages/client/src/app/game/render/constants/colours.ts); the upper bands add a natural-history ramp per material.
@@ -143,19 +125,6 @@ function vnoise(x, y, k) {
   const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
   return lerp(lerp(hash(ix, iy, k), hash(ix + 1, iy, k), ux), lerp(hash(ix, iy + 1, k), hash(ix + 1, iy + 1, k), ux), uy);
 }
-const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-const sup = n => (n < 0 ? '⁻' : '') + String(Math.abs(n)).split('').map(d => SUP[+d]).join('');
-function fmtLen(m) {
-  const u = [[1e3, 'km'], [1, 'm'], [1e-2, 'cm'], [1e-3, 'mm'], [1e-6, 'µm'], [1e-9, 'nm']];
-  for (const [f, name] of u) {
-    if (m >= f * 0.999) {
-      const v = m / f;
-      const txt = v >= 100 ? Math.round(v).toLocaleString('en-US') : v >= 10 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, '');
-      return txt + ' ' + name;
-    }
-  }
-  return m.toExponential(1) + ' m';
-}
 function runSync(gen) { let r; do r = gen.next(); while (!r.done); return r.value; }
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
@@ -205,7 +174,7 @@ const regionBox = () => {
   return [a, b, c, d];
 };
 
-// ---------- signed distance bakes ----------
+// ---------- signed distance bakes (ticket #800) ----------
 // Felzenszwalb & Huttenlocher squared distance transform, one row or column
 function edt1d(f, n, d, v, zz) {
   let k = 0; v[0] = 0; zz[0] = -1e20; zz[1] = 1e20;
@@ -306,7 +275,7 @@ function* bakeRegional() {
   });
 }
 
-// ---------- WebGL: the planet, the map and the forest (z 7.4 → 1.4) ----------
+// ---------- WebGL: the planet, the map and the forest (z 7.4 → 1.4; ticket #800) ----------
 // One full-screen fragment shader. Far out it ray-casts an orthographic sphere that matches d3.geoOrthographic, so the
 // 2D labels sit on it; close in it switches to plane metres around the focus. Land comes from signed-distance bakes of
 // the Natural Earth coastlines, relief and forest are procedural, and the light is the game's: from the top-left.
@@ -602,7 +571,11 @@ function createGlobe() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   };
-  tex(0, GS_W, GS_H, GLOBAL_SDF || (GLOBAL_SDF = runSync(bakeGlobal())), true);
+  // The world's coastline bake is sliced like every other tile (the pump's EXTRA_JOBS), never drained on the spot: the
+  // lobby would freeze for it. Until it lands the planet draws as the flat fallback globe.
+  let globalReady = !!GLOBAL_SDF, globalJob = null;
+  if (GLOBAL_SDF) tex(0, GS_W, GS_H, GLOBAL_SDF, true);
+  else { globalJob = { gen: bakeGlobal(), done: data => { GLOBAL_SDF = data; tex(0, GS_W, GS_H, data, true); globalReady = true; globalJob = null; } }; EXTRA_JOBS.push(globalJob); }
   tex(1, 1, 1, new Uint8Array([0, 0, 0, 255]), false);
   gl.uniform1i(U.uGS, 0); gl.uniform1i(U.uRS, 1);
   let regional = false, regJob = null;
@@ -614,13 +587,13 @@ function createGlobe() {
   const target = zz => Math.min(dpr, zz < 4.45 ? 1 : 1.5) * quality;
   return {
     get regional() { return regional; },
+    get ready() { return globalReady; },
     // the Salish bake runs in slices after the first frame; finishRegional completes it on the spot if the view needs it
     loadRegional() {
       if (regional || regJob) return;
       if (REGIONAL_SDF) { tex(1, RS_W, RS_H, REGIONAL_SDF, false); regional = true; return; }
       regJob = { gen: bakeRegional(), done: data => { REGIONAL_SDF = data; tex(1, RS_W, RS_H, data, false); regional = true; regJob = null; } }; EXTRA_JOBS.push(regJob);
     },
-    finishRegional() { if (!regJob) return; const j = regJob, i = EXTRA_JOBS.indexOf(j); if (i >= 0) EXTRA_JOBS.splice(i, 1); j.done(runSync(j.gen)); },
     resize(zz = z) {
       gdpr = target(zz); mode = zz < 4.45 ? 'plane' : 'globe';
       gw = Math.round(cw * gdpr); gh = Math.round(ch * gdpr);
@@ -656,13 +629,14 @@ function createGlobe() {
     },
     // the context goes back to the browser when the dive closes; the bakes stay for the next open
     release() {
-      if (regJob) { const i = EXTRA_JOBS.indexOf(regJob); if (i >= 0) EXTRA_JOBS.splice(i, 1); regJob = null; }
+      for (const job of [regJob, globalJob]) { const i = job ? EXTRA_JOBS.indexOf(job) : -1; if (i >= 0) EXTRA_JOBS.splice(i, 1); }
+      regJob = null; globalJob = null;
       const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
     },
   };
 }
 
-// ---------- the coast in metres (z 4.85 → -1.4) ----------
+// ---------- the coast in metres (z 4.85 → -1.4; ticket #801) ----------
 // The Salish rings in plane metres around the focus (the same orthographic projection the globe uses, so the handoff
 // lines up). Below the data's resolution the coast is refined by deterministic midpoint displacement: each child's
 // offset comes from its parent's hash, never from the zoom, so the same infinite coastline appears at every scale
@@ -1209,7 +1183,7 @@ const SPR = {};
 function sprite(name, make) { return SPR[name] || (SPR[name] = make()); }
 
 
-// ---------- the shore (metres, z 4.85 → -1.4) ----------
+// ---------- the shore (metres, z 4.85 → -1.4; ticket #801) ----------
 const FOCAL_ROCK = { x: .15, y: -.55, r: 1.6 };
 const FIXED_POOL = { x: -9, y: -6, rx: 3.2, ry: 2 };
 const KELP_PATCHES = [[180, 70, 30], [-140, 95, 38], [420, 120, 44], [-420, 60, 26], [40, 150, 32], [760, 180, 54], [-800, 150, 48]];
@@ -1965,7 +1939,7 @@ function drawBoulders() {
   ctx.globalAlpha = 1;
 }
 
-// ---------- the boulder and the bull kelp (z 2.4 → -2.4) ----------
+// ---------- the boulder and the bull kelp (z 2.4 → -2.4; ticket #802) ----------
 const BULB = { x: .9, y: .45, r: .065 };
 const BLADE_PTS = [
   [[.9, .45], [.45, .2], [0, 0], [-.8, -.35], [-1.6, -.75], [-2.2, -1.1]],
@@ -2166,7 +2140,7 @@ function drawFocal() {
   ctx.globalAlpha = 1;
 }
 
-// ---------- spray beads and the drop ----------
+// ---------- spray beads and the drop (ticket #802) ----------
 function dropSprite() {
   return sprite('drop', () => {
     const N = 128, c = makeCanvas(N, N), g = c.getContext('2d'), R = N * .4, C = N / 2;
@@ -2272,7 +2246,7 @@ function drawCloseUp() {
   if (BANDS.slime.isActive) drawMicro();
 }
 
-// ---------- inside the drop, the slime, the dish, you (z -1.95 → -6.2) ----------
+// ---------- inside the drop, the slime and the mockup's pocket (z -1.95 → the dish; ticket #803) ----------
 const POCKET_R = 20e-6;
 const ORGS = [
   { kind: 'nauplius', x: 5.2e-4, y: -3.1e-4, L: 2.5e-4, a: .5 },
@@ -2888,8 +2862,11 @@ function drawFrame(f) {
   const worldA = BANDS.shore.weight;
   if (worldA > 0 && z > -1.42) buildCoast();
   // the forest only shows past the rock band: close in, the GL layer runs only if some of the view is that far inland
-  if (Globe && !Globe.regional && z < 6.45) { Globe.loadRegional(); Globe.finishRegional(); }
-  let glOn = !!Globe && BANDS.planet.isActive;
+  // The regional coastline bake is queued at open and sliced; a reader who scrubs down before it lands sees the world
+  // bake's coast for those frames rather than the lobby freezing while it is drained here.
+  if (Globe && !Globe.regional && z < 6.45) Globe.loadRegional();
+  const globeReady = !!Globe && Globe.ready;
+  let glOn = globeReady && BANDS.planet.isActive;
   if (glOn && z < 3) {
     glOn = false;
     for (const [u, v] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 0]]) {
@@ -2898,7 +2875,7 @@ function drawFrame(f) {
     }
   }
   if (glOn) { Globe.draw(geoRot, s, z, T); ctx.drawImage(glCv, 0, 0, cw, ch); }
-  else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); if (!Globe && z > 4.4) drawGlobeFallback(); }
+  else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); if (!globeReady && z > 4.4) drawGlobeFallback(); }
 
   if (worldA > 0) {
     ctx.save(); ctx.globalAlpha = worldA;
@@ -2922,6 +2899,17 @@ function drawGlobeFallback() {
   }
 }
 
+// The screen-sized canvases go back while no dive is open (a room is playing): each is made again at its size on the
+// next draw, since every one checks its size. The tile bakes and the coastline bakes stay for the page.
+function freeScreenCanvases() {
+  if (cv) { cv.width = 1; cv.height = 1; dpr = 0; }
+  LAYER.c = null; LAYER.g = null; LAYER.pats = {};
+  for (const name of Object.keys(ZLAYER)) delete ZLAYER[name];
+  for (const o of [DMASK, SHALLOW]) { o.c = null; o.g = null; o.img = null; }
+  for (const c of [SEA.mc, SEA.cc]) if (c) { c.width = 1; c.height = 1; }
+  SEA.frame = -1;
+}
+
 // ---------- the module's face (dive-mockup-bands.d.ts) ----------
 /**
  * One canvas for the page: a dive that closes and opens again draws on the same canvas and keeps every bake, so
@@ -2932,11 +2920,13 @@ export function createMockupBands(input) {
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
   if (!WORLD_RINGS) { initGeo(input.worldRings, input.salishRings); initCoast(); }
   if (!Globe) Globe = createGlobe();
+  // the regional coastline bake goes in the queue at once, so `isBaked` covers every band the dive falls through
+  if (Globe) Globe.loadRegional();
   return {
     canvas: cv,
     draw(frame) { drawFrame(frame); },
     pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked || EXTRA_JOBS.length) pump(budgetMs); return bakeLanded; },
     get isBaked() { return allBaked && EXTRA_JOBS.length === 0; },
-    release() { if (Globe) Globe.release(); Globe = null; },
+    release() { if (Globe) Globe.release(); Globe = null; freeScreenCanvases(); },
   };
 }

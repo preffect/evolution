@@ -91,7 +91,7 @@
   font-size: 13px;
   line-height: 18px;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  /* No text-transform: it would turn µ into a capital mu that reads as M. The script writes the capitals. */
 }
 
 .scale-bar {
@@ -277,6 +277,13 @@ input[type='range'] {
   white-space: nowrap;
 }
 
+/* At phone width every second power of ten, so the tick row's labels do not run together. */
+@media (max-width: 560px) {
+  .ticks .tick:nth-child(even) {
+    display: none;
+  }
+}
+
 .ticks .mk {
   top: 16px;
   width: 2px;
@@ -293,6 +300,17 @@ input[type='range'] {
 
 .drag {
   white-space: nowrap;
+}
+
+.unavailable {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--dive-muted);
+  font-size: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,6 +26,9 @@
         <div class="what" [attr.data-testid]="testId.readoutWhat">{{ lines.whatYouSee }}</div>
       </div>
     }
+    @if (isUnavailable()) {
+      <p class="unavailable" [attr.data-testid]="testId.unavailable">{{ unavailableText }}</p>
+    }
     @if (flag(); as stop) {
       <div class="phase-flag" [class.on]="isFlagOn()" [style.color]="stop.colour" [attr.data-testid]="testId.flag">
         {{ phaseTitle(stop) }}
@@ -59,13 +62,14 @@
           [step]="sliderStep"
           [value]="sliderValue()"
           aria-describedby="dive-tick-row"
+          [attr.aria-valuetext]="readout()?.fieldOfView ?? null"
           [attr.data-testid]="testId.slider"
           (input)="onScrub($event)"
         />
       </div>
       <div class="ticks" id="dive-tick-row" aria-hidden="true">
         @for (tick of ticks; track tick.text) {
-          <span [style.left.%]="tick.leftPercent">{{ tick.text }}</span>
+          <span class="tick" [style.left.%]="tick.leftPercent">{{ tick.text }}</span>
         }
         @for (mark of marks; track mark.stop.phaseNumber) {
           <span

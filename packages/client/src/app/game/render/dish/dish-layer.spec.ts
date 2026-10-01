@@ -65,6 +65,16 @@ describe('DishLayer', () => {
     expect((bokeh as ParticleContainer).particleChildren).toHaveLength(DEPTH_BOKEH.count);
   });
 
+  it('shows the vent unless a frame says not to (the opening dive’s scripted dish)', () => {
+    const subject = new DishLayer(textures);
+    const vent = subject.container.children[2] as Sprite;
+    const camera = cameraAt(CAMERA_POSITIONS[0], 1, VIEWPORT_1080P);
+    subject.update({ timeSeconds: 0, camera, viewport: VIEWPORT_1080P, isVentShown: false });
+    expect(vent.visible).toBe(false);
+    subject.update({ timeSeconds: 0, camera, viewport: VIEWPORT_1080P });
+    expect(vent.visible).toBe(true);
+  });
+
   it('moves the particles with time and the camera, deterministically for a seed', () => {
     const first = layer(5);
     const second = layer(5);

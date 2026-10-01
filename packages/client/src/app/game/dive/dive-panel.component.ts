@@ -16,7 +16,14 @@ import {
 } from '@angular/core';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { REDUCED_MOTION } from '../reduced-motion';
-import { DIVE_LADDER, DIVE_PHASE_STOPS, DIVE_SLIDER_STEP, type DivePhaseStop } from '../render/constants';
+import {
+  DIVE_LADDER,
+  DIVE_PHASE_STOPS,
+  DIVE_SLIDER_STEP,
+  DIVE_ZOOM_BOTTOM,
+  DIVE_ZOOM_TOP,
+  type DivePhaseStop,
+} from '../render/constants';
 import { diveLabelPlacements } from '../render/dive/dive-labels';
 import { diveReadout, diveScaleBar, superscript } from '../render/dive/dive-readout';
 import { DIVE_SLIDER_MAX, diveSliderPercent, diveSliderValue, diveZoomFromSlider } from '../render/dive/dive-camera';
@@ -34,13 +41,19 @@ export const DIVE_PANEL_TEST_ID = {
   flag: 'dive-phase-flag',
   label: 'dive-label',
   scaleBar: 'dive-scale-bar',
+  unavailable: 'dive-unavailable',
 } as const;
 
 /** The keys that skip a playing opening to its stop (`' '` is Space). */
 export const DIVE_SKIP_KEYS: readonly string[] = [' ', 'Escape'];
 
-/** The slider's tick row: one power of ten per ladder row, Earth first. */
-export const DIVE_LADDER_POWERS: readonly number[] = DIVE_LADDER.map((row) => row.powerOfTen);
+/** The slider's tick row: one power of ten per ladder row the slider reaches, Earth first. */
+export const DIVE_LADDER_POWERS: readonly number[] = DIVE_LADDER.map((row) => row.powerOfTen).filter(
+  (power) => power >= DIVE_ZOOM_BOTTOM && power <= DIVE_ZOOM_TOP,
+);
+
+/** What the stage says when the dive could not open (no WebGL, a coastline missing): the lobby works on without it. */
+export const DIVE_UNAVAILABLE_TEXT = 'The opening dive could not load.';
 
 /** "Phase 1 · The dish": a phase button's text and the flag's. */
 export function divePhaseTitle(stop: DivePhaseStop): string {
@@ -52,10 +65,17 @@ export function divePhaseButtonText(stop: DivePhaseStop): string {
   return stop.isFuture ? `${divePhaseTitle(stop)} (idea)` : divePhaseTitle(stop);
 }
 
-/** An element whose keys belong to the reader's typing, never to the dive. */
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+/**
+ * Whether the dive owns a key: one nothing else handled, aimed at the page itself or at the dive's stage. A key on a
+ * lobby control (a button, a field, the slider) is that control's, and one inside the encyclopedia is the
+ * encyclopedia's — its Esc closes it and must not skip the dive too.
+ */
+function isDiveKey(event: KeyboardEvent, stage: HTMLElement): boolean {
+  if (event.defaultPrevented || !DIVE_SKIP_KEYS.includes(event.key)) return false;
+  const target = event.target;
+  if (!(target instanceof Node)) return false;
+  const page = stage.ownerDocument;
+  return target === page.body || target === page.documentElement || target === page || stage.contains(target);
 }
 
 @Component({
@@ -73,6 +93,10 @@ export class DivePanelComponent implements AfterViewInit {
   private readonly stage = viewChild.required<ElementRef<HTMLElement>>('stage');
   private handle: DiveHandle | null = null;
   private readonly frame = signal<DiveFrameState | null>(null);
+  private readonly isUnavailableValue = signal(false);
+  /** The dive could not open: the stage shows `DIVE_UNAVAILABLE_TEXT` and stays still. */
+  protected readonly isUnavailable = this.isUnavailableValue.asReadonly();
+  protected readonly unavailableText = DIVE_UNAVAILABLE_TEXT;
 
   protected readonly testId = DIVE_PANEL_TEST_ID;
   protected readonly stops = DIVE_PHASE_STOPS;
@@ -127,7 +151,13 @@ export class DivePanelComponent implements AfterViewInit {
       handle.destroy();
     });
     this.observeVisibility(host, handle);
-    void handle.start();
+    void this.open(handle);
+  }
+
+  /** A dive that fails to open is quiet: the lobby keeps working and the stage says so, never an unhandled error. */
+  private async open(handle: DiveHandle): Promise<void> {
+    const isOpen = await handle.start().catch(() => false);
+    if (!isOpen && this.handle === handle) this.isUnavailableValue.set(true);
   }
 
   /** The dive stops drawing while its stage is scrolled out of view (`IntersectionObserver`, where there is one). */
@@ -154,9 +184,9 @@ export class DivePanelComponent implements AfterViewInit {
     this.handle?.scrub(diveZoomFromSlider(value));
   }
 
-  /** Space or Esc skips a playing opening to its stop; never while the reader types. */
+  /** Space or Esc skips a playing opening to its stop, when the dive owns the key (`isDiveKey`). */
   protected onKeydown(event: KeyboardEvent): void {
-    if (!DIVE_SKIP_KEYS.includes(event.key) || isTypingTarget(event.target)) return;
+    if (!isDiveKey(event, this.stage().nativeElement)) return;
     if (this.handle?.skip() === true) event.preventDefault();
   }
 }

@@ -63,7 +63,7 @@
               "**/testing/**",
               "src/main.ts",
               "src/app/app.config.ts",
-              "src/app/game/render/dive/mockup/**"
+              "src/app/game/render/dive/mockup/dive-mockup-bands.js"
             ],
             "coverageReporters": ["text-summary"],
             "coverageThresholds": {

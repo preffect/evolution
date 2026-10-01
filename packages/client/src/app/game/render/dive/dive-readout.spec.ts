@@ -52,8 +52,8 @@ describe('diveReadout', () => {
 
   it('keeps to the ladder past its ends: the top reads the planet, the bottom reads you', () => {
     expect(nearestLadderPower(7.4)).toBe(7);
-    expect(nearestLadderPower(-6.2)).toBe(-6);
-    expect(diveReadout(-6.2).whatYouSee).toBe('One bacterium: you, at the start of the game.');
+    expect(nearestLadderPower(-6.4)).toBe(-6);
+    expect(diveReadout(-5.6).whatYouSee).toBe('One bacterium: you, at the start of the game.');
     expect(diveReadout(7.4).powerOfTen).toBe('field of view ≈ 10⁷ m');
   });
 });

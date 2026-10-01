@@ -64,6 +64,14 @@ describe('bakeDishField', () => {
     expect(context.fillStyle).toBe(hexWithAlpha(OUTSIDE_DISH, OUTSIDE_DISH_ALPHA));
   });
 
+  it('leaves the vent tint out when asked (the opening dive’s dish), and only that', () => {
+    const field = bakeDishField(createFakeBakeCanvasFactory(), [], cosmetic(), false);
+    const [shallows, shadow] = fakeContextOf(field.canvas).gradients;
+    expect(fakeContextOf(field.canvas).gradients).toHaveLength(2);
+    expect(shallows!.stops[0]!.colour).toBe(hexWithAlpha(ZONE_SHALLOWS, 0));
+    expect(shadow!.stops[0]!.colour).toBe(hexWithAlpha(WALL_INNER_SHADOW, 0));
+  });
+
   it('keeps every zone tint at or under the sheet-02 ceiling and fills the field once, uniformly', () => {
     const { context } = bake();
     const isZoneTint = (colour: string) => !colour.startsWith(`rgba(0, 0, 0`);

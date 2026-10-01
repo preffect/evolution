@@ -25,12 +25,15 @@ export class RecordingDiveHandle implements DiveHandle {
   destroyCount = 0;
   /** What `skip` answers: whether an opening was playing. */
   isSkippable = false;
+  /** What `start` settles with: `true`, `false` (it could not open) or a rejection. */
+  startOutcome: boolean | Error = true;
 
   constructor(readonly options: DiveHostOptions) {}
 
   start(): Promise<boolean> {
     this.startCount += 1;
-    return Promise.resolve(true);
+    const outcome = this.startOutcome;
+    return outcome instanceof Error ? Promise.reject(outcome) : Promise.resolve(outcome);
   }
 
   playPhase(stop: DivePhaseStop, isMotionReduced: boolean): void {
@@ -74,7 +77,10 @@ export class RecordingDiveHandle implements DiveHandle {
 }
 
 /** The provider and the handles it made, newest last. */
-export function provideRecordingDive(): { readonly provider: Provider; readonly handles: RecordingDiveHandle[] } {
+export function provideRecordingDive(startOutcome: boolean | Error = true): {
+  readonly provider: Provider;
+  readonly handles: RecordingDiveHandle[];
+} {
   const handles: RecordingDiveHandle[] = [];
   return {
     handles,
@@ -82,6 +88,7 @@ export function provideRecordingDive(): { readonly provider: Provider; readonly 
       provide: OPENING_DIVE,
       useValue: (options: DiveHostOptions) => {
         const handle = new RecordingDiveHandle(options);
+        handle.startOutcome = startOutcome;
         handles.push(handle);
         return handle;
       },

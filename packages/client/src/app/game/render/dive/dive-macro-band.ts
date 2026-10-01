@@ -65,6 +65,11 @@ export class DiveMacroBand {
     this.cancelBake = scheduler.after(DIVE_BAKE_START_DELAY_MS, slice);
   }
 
+  /** Every tile baked: the dive can fall through the bands without meeting a placeholder. */
+  get isBaked(): boolean {
+    return this.bands.isBaked;
+  }
+
   /** Shown and drawn while a mockup band draws; hidden, and not drawn, otherwise. */
   draw(frame: MockupFrame, isDrawing: boolean): void {
     this.bands.canvas.hidden = !isDrawing;

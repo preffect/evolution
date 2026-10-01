@@ -45,7 +45,7 @@ import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring
 import { FoodLayer } from './food/food-layer';
 import { HALF } from './geometry';
 import { applyCameraTransform, applyDrawnBand, createSceneLayers, type SceneLayers } from './layers';
-import { outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from './render-io';
+import { cellCrossingsOf, outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from './render-io';
 import { followTarget, ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 import type { IndicatorTextures } from './textures/indicator-textures';
@@ -179,8 +179,8 @@ export class GameRenderer {
   }
 
   /** The depth-particle walk and the light-pool placement: a stage of its own, not the camera or the HUD (§7, #264). */
-  private dishStage(frame: RenderFrame, camera: CameraState): void {
-    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport });
+  private dishStage(frame: RenderFrame, camera: CameraState, isVentShown: boolean | undefined): void {
+    this.dish.update({ timeSeconds: frame.timeSeconds, camera, viewport: this.viewport, isVentShown });
   }
 
   /** The cell views every later stage reads, charged to the `cells` stage that consumes them (§7). */
@@ -212,7 +212,7 @@ export class GameRenderer {
   ): RenderOutputs {
     const { stages } = this;
     const { camera, zoom, extent } = stages.measure(RENDER_STAGE.camera, () => this.cameraStage(frame, ownPlayerId));
-    stages.measure(RENDER_STAGE.dish, () => this.dishStage(frame, camera));
+    stages.measure(RENDER_STAGE.dish, () => this.dishStage(frame, camera, inputs.isVentShown));
     const nowMs = frame.timeSeconds * MILLISECONDS_PER_SECOND;
     const { ownCell, views, viewOf } = stages.accrue(RENDER_STAGE.cells, () => this.cellViews(frame, ownPlayerId));
     const { deformations, ownCellRing } = stages.accrue(RENDER_STAGE.effects, () => {
@@ -227,7 +227,7 @@ export class GameRenderer {
     const food = stages.measure(RENDER_STAGE.food, () =>
       this.food.update({ motes: frame.motes, fragments: frame.fragments, timeSeconds: frame.timeSeconds, zoom }),
     );
-    const hud = { previewTraitId: inputs.previewTraitId, relationRings: inputs.ownCellIndicators?.relationRings };
+    const hud = cellCrossingsOf(inputs);
     const cells = stages.measure(RENDER_STAGE.cells, () =>
       this.cells.update({ frame, extent, zoom, nowMs, ownCell, deformations, ownCellRing, ...hud }),
     );

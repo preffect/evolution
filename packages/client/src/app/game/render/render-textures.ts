@@ -106,6 +106,8 @@ export interface RenderTextureOptions {
    * never sampled without WebGL).
    */
   readonly noiseTileSizePx?: number;
+  /** `false` bakes the dish field without the warm vent's tint (the opening dive, rendering/opening-dive.md §4). */
+  readonly isVentTinted?: boolean;
 }
 
 /** The seed-independent half, baked once per Pixi app (`renderer-slot.ts` keeps it across rebuilds). */

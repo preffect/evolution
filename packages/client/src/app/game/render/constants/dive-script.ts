@@ -52,6 +52,9 @@ export interface DiveLabelRange {
   readonly farZoom: number;
 }
 
+// Labels are written in capitals here rather than by CSS: `text-transform: uppercase` turns µ into a capital mu
+// that reads as M (40 µm as "40 MM"), so the units stay lower case.
+
 /** A place name on the planet, at `[longitude, latitude]` degrees. */
 export interface DiveGeoLabel {
   readonly text: string;
@@ -69,17 +72,17 @@ export interface DiveWorldLabel {
 }
 
 export const DIVE_GEO_LABELS: readonly DiveGeoLabel[] = [
-  { text: 'Eurasia', longitude: 90, latitude: 52, range: { nearZoom: 6.6, farZoom: 7.6 } },
-  { text: 'North America', longitude: -102, latitude: 50, range: { nearZoom: 6.6, farZoom: 7.6 } },
-  { text: 'Pacific Ocean', longitude: -165, latitude: 28, range: { nearZoom: 6.6, farZoom: 7.6 } },
-  { text: 'Africa', longitude: 20, latitude: 8, range: { nearZoom: 6.9, farZoom: 7.6 } },
-  { text: 'Vancouver Island', longitude: -125.9, latitude: 49.8, range: { nearZoom: 5.2, farZoom: 6.6 } },
-  { text: 'Pacific Ocean', longitude: -128.3, latitude: 47.6, range: { nearZoom: 5.2, farZoom: 6.4 } },
-  { text: 'Salish Sea', longitude: -123.35, latitude: 49.1, range: { nearZoom: 5.0, farZoom: 6.2 } },
-  { text: 'Olympic Peninsula', longitude: -123.6, latitude: 47.75, range: { nearZoom: 5.0, farZoom: 6.1 } },
-  { text: 'Juan de Fuca Strait', longitude: -123.95, latitude: 48.26, range: { nearZoom: 4.2, farZoom: 5.4 } },
+  { text: 'EURASIA', longitude: 90, latitude: 52, range: { nearZoom: 6.6, farZoom: 7.6 } },
+  { text: 'NORTH AMERICA', longitude: -102, latitude: 50, range: { nearZoom: 6.6, farZoom: 7.6 } },
+  { text: 'PACIFIC OCEAN', longitude: -165, latitude: 28, range: { nearZoom: 6.6, farZoom: 7.6 } },
+  { text: 'AFRICA', longitude: 20, latitude: 8, range: { nearZoom: 6.9, farZoom: 7.6 } },
+  { text: 'VANCOUVER ISLAND', longitude: -125.9, latitude: 49.8, range: { nearZoom: 5.2, farZoom: 6.6 } },
+  { text: 'PACIFIC OCEAN', longitude: -128.3, latitude: 47.6, range: { nearZoom: 5.2, farZoom: 6.4 } },
+  { text: 'SALISH SEA', longitude: -123.35, latitude: 49.1, range: { nearZoom: 5.0, farZoom: 6.2 } },
+  { text: 'OLYMPIC PENINSULA', longitude: -123.6, latitude: 47.75, range: { nearZoom: 5.0, farZoom: 6.1 } },
+  { text: 'JUAN DE FUCA STRAIT', longitude: -123.95, latitude: 48.26, range: { nearZoom: 4.2, farZoom: 5.4 } },
   {
-    text: 'Future Victoria · no one here yet',
+    text: 'FUTURE VICTORIA · NO ONE HERE YET',
     longitude: -123.37,
     latitude: 48.445,
     range: { nearZoom: 4.1, farZoom: 5.1 },
@@ -87,26 +90,26 @@ export const DIVE_GEO_LABELS: readonly DiveGeoLabel[] = [
 ];
 
 export const DIVE_WORLD_LABELS: readonly DiveWorldLabel[] = [
-  { text: 'A rocky point, low tide', x: 0, y: -120, range: { nearZoom: 2.6, farZoom: 4.2 } },
+  { text: 'A ROCKY POINT, LOW TIDE', x: 0, y: -120, range: { nearZoom: 2.6, farZoom: 4.2 } },
   // `KELP_BED_LABEL`
-  { text: 'Bull kelp bed', x: 180, y: 70, range: { nearZoom: 1.8, farZoom: 3.1 } },
+  { text: 'BULL KELP BED', x: 180, y: 70, range: { nearZoom: 1.8, farZoom: 3.1 } },
   // `FIXED_POOL`
-  { text: 'Tide pool', x: -9, y: -6, range: { nearZoom: 1.0, farZoom: 2.1 } },
+  { text: 'TIDE POOL', x: -9, y: -6, range: { nearZoom: 1.0, farZoom: 2.1 } },
   // `FOCAL_ROCK` − (1.2, 1.3)
-  { text: 'Boulder with a stranded bull kelp', x: -1.05, y: -1.85, range: { nearZoom: 0.35, farZoom: 1.55 } },
+  { text: 'BOULDER WITH A STRANDED BULL KELP', x: -1.05, y: -1.85, range: { nearZoom: 0.35, farZoom: 1.55 } },
   // `BULB`
-  { text: 'Bulb (float), ~13 cm', x: 0.9, y: 0.45, range: { nearZoom: -0.55, farZoom: 0.6 } },
-  { text: 'Blade', x: -1.3, y: -0.62, range: { nearZoom: -0.2, farZoom: 0.7 } },
+  { text: 'BULB (FLOAT), ~13 cm', x: 0.9, y: 0.45, range: { nearZoom: -0.55, farZoom: 0.6 } },
+  { text: 'BLADE', x: -1.3, y: -0.62, range: { nearZoom: -0.2, farZoom: 0.7 } },
   // `DROP`'s top
-  { text: 'A drop of sea spray, 5 mm', x: 0.0014, y: -0.0016, range: { nearZoom: -2.3, farZoom: -1.1 } },
+  { text: 'A DROP OF SEA SPRAY, 5 mm', x: 0.0014, y: -0.0016, range: { nearZoom: -2.3, farZoom: -1.1 } },
   // `DROP`'s rim nearest the focus
-  { text: 'Edge of the drop', x: -0.000703, y: -0.000452, range: { nearZoom: -3.4, farZoom: -2.25 } },
-  { text: 'Copepod larva, 0.25 mm', x: 5.2e-4, y: -4.7e-4, range: { nearZoom: -3.5, farZoom: -2.35 } },
-  { text: 'Ciliate, 0.1 mm', x: -3.0e-4, y: 1.0e-4, range: { nearZoom: -3.7, farZoom: -2.5 } },
-  { text: 'Kelp surface cells, ~12 µm', x: 1.9e-4, y: -1.2e-4, range: { nearZoom: -3.9, farZoom: -3.2 } },
-  { text: 'Diatom, 70 µm (bigger than the dish)', x: 3.8e-5, y: -2.4e-5, range: { nearZoom: -4.7, farZoom: -3.6 } },
+  { text: 'EDGE OF THE DROP', x: -0.000703, y: -0.000452, range: { nearZoom: -3.4, farZoom: -2.25 } },
+  { text: 'COPEPOD LARVA, 0.25 mm', x: 5.2e-4, y: -4.7e-4, range: { nearZoom: -3.5, farZoom: -2.35 } },
+  { text: 'CILIATE, 0.1 mm', x: -3.0e-4, y: 1.0e-4, range: { nearZoom: -3.7, farZoom: -2.5 } },
+  { text: 'KELP SURFACE CELLS, ~12 µm', x: 1.9e-4, y: -1.2e-4, range: { nearZoom: -3.9, farZoom: -3.2 } },
+  { text: 'DIATOM, 70 µm (BIGGER THAN THE DISH)', x: 3.8e-5, y: -2.4e-5, range: { nearZoom: -4.7, farZoom: -3.6 } },
   // `POCKET_R` + 2 µm above the centre
-  { text: 'The dish: a pocket of water 40 µm across', x: 0, y: -22e-6, range: { nearZoom: -4.9, farZoom: -3.75 } },
-  { text: 'Bacteria, 1–3 µm', x: -9e-6, y: 8e-6, range: { nearZoom: -5.5, farZoom: -4.5 } },
-  { text: 'You: 1.6 µm', x: 0, y: -1.2e-6, range: { nearZoom: -6.5, farZoom: -5.05 } },
+  { text: 'THE DISH: A POCKET OF WATER 40 µm ACROSS', x: 0, y: -22e-6, range: { nearZoom: -4.9, farZoom: -3.75 } },
+  { text: 'BACTERIA, 1–3 µm', x: -9e-6, y: 8e-6, range: { nearZoom: -5.5, farZoom: -4.5 } },
+  { text: 'YOU: 1.6 µm', x: 0, y: -1.2e-6, range: { nearZoom: -6.5, farZoom: -5.05 } },
 ];

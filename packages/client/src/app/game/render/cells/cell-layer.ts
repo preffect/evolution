@@ -112,6 +112,7 @@ export class CellLayer {
       absorbedSeals: GhostRegistry.sealByPredator(ghosts),
       ownCellRing: input.ownCellRing,
       relationRings: input.relationRings,
+      isFarDotShown: input.isFarDotShown,
       starvedOutMass: starvedOutMassAt(input.frame.renderTick, input.frame.latest.roundStartTick, input.frame.balance),
     };
   }

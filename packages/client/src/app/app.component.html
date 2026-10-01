@@ -40,12 +40,6 @@
         </button>
       </header>
 
-      <!--
-        The opening dive (docs/rendering/opening-dive.md §5, ticket #797): from orbit to the dish, with the game's own
-        dish at its end. It leaves with the lobby, so its renderer is gone before a room builds its own.
-      -->
-      <app-dive-panel />
-
       @if (multiplayer.lobbyNotice(); as notice) {
         <p class="notice" role="status" data-testid="lobby-notice">{{ lobbyNoticeText[notice] }}</p>
       }
@@ -148,6 +142,14 @@
           }
         </ul>
       </section>
+
+      <!--
+        The opening dive (docs/rendering/opening-dive.md §5, ticket #797): from orbit to the dish, with the game's own
+        dish at its end. Last in the column, so every step to play (Connect, Create, Join) comes first and stays above
+        the fold at every size; it draws only while on screen. It leaves with the lobby, so its renderer is gone
+        before a room builds its own.
+      -->
+      <app-dive-panel />
     </div>
   </div>
 

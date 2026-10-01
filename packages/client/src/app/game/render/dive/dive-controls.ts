@@ -124,12 +124,21 @@ export class DiveControls {
     this.autoplayAtMs = null;
   }
 
-  /** Phase 1's opening, once, when its time comes; never under reduced motion or once the dive has left the top. */
-  autoplay(nowMs: number, isMotionReduced: boolean): void {
-    if (this.autoplayAtMs === null || nowMs < this.autoplayAtMs) return;
+  /**
+   * Phase 1's opening, once, when its time comes and the bands it falls through are ready (`isReady`: their tiles
+   * baked, so it never falls into a band still drawing its placeholder); never under reduced motion or once the dive
+   * has left the top.
+   */
+  autoplay(nowMs: number, isMotionReduced: boolean, isReady: boolean): void {
+    if (this.autoplayAtMs === null || nowMs < this.autoplayAtMs || !isReady) return;
     this.autoplayAtMs = null;
     if (isMotionReduced || this.isPlaying || this.zoomValue !== DIVE_ZOOM_TOP) return;
     this.playPhase(DIVE_FIRST_PHASE, nowMs, false);
+  }
+
+  /** Reduced motion asked for mid-opening: a playing opening, paused or not, is at its stop at once. */
+  finishPlay(): void {
+    if (this.play !== null) this.arrive(this.play.stop);
   }
 
   private arrive(stop: DivePhaseStop): void {

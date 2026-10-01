@@ -3,7 +3,7 @@
 // jumping straight to the stop. Every call takes its time as a plain number, so the specs are tables of moments.
 
 import { describe, expect, it } from 'vitest';
-import { DIVE_PHASE_STOPS, DIVE_PLAY_HOLD_MS, DIVE_ZOOM_TOP, type DivePhaseStop } from '../constants';
+import { DIVE_PHASE_STOPS, DIVE_PLAY_HOLD_MS, DIVE_ZOOM_BOTTOM, DIVE_ZOOM_TOP, type DivePhaseStop } from '../constants';
 import { DIVE_FIRST_PHASE, DiveControls, diveEase, diveFallMs } from './dive-controls';
 
 const DISH = DIVE_FIRST_PHASE;
@@ -124,7 +124,7 @@ describe('DiveControls.scrub', () => {
     expect(controls.tick(9000)).toBe(-1);
     expect(controls.stopShown).toBeNull();
     controls.scrub(-100);
-    expect(controls.zoom).toBe(-6.2);
+    expect(controls.zoom).toBe(DIVE_ZOOM_BOTTOM);
   });
 
   it('clears an arrival’s flag', () => {
@@ -139,27 +139,53 @@ describe('DiveControls.autoplay', () => {
   it('plays phase 1’s opening once, when its time comes', () => {
     const controls = new DiveControls();
     controls.scheduleAutoplay(900);
-    controls.autoplay(899, false);
+    controls.autoplay(899, false, true);
     expect(controls.isPlaying).toBe(false);
-    controls.autoplay(900, false);
+    controls.autoplay(900, false, true);
     expect(controls.stopShown).toBe(DISH);
     controls.scrub(0);
-    controls.autoplay(5000, false);
+    controls.autoplay(5000, false, true);
     expect(controls.isPlaying).toBe(false);
   });
 
   it('never plays on its own under reduced motion, once cancelled, or once the dive has left the top', () => {
     const reduced = new DiveControls();
     reduced.scheduleAutoplay(0);
-    reduced.autoplay(1, true);
+    reduced.autoplay(1, true, true);
     const cancelled = new DiveControls();
     cancelled.scheduleAutoplay(0);
     cancelled.cancelAutoplay();
-    cancelled.autoplay(1, false);
+    cancelled.autoplay(1, false, true);
     const moved = new DiveControls();
     moved.scheduleAutoplay(0);
     moved.scrub(3);
-    moved.autoplay(1, false);
+    moved.autoplay(1, false, true);
     for (const controls of [reduced, cancelled, moved]) expect(controls.isPlaying).toBe(false);
+  });
+});
+
+describe('DiveControls: waiting and reduced motion', () => {
+  it('holds the autoplay until the bands it falls through are ready, then plays it', () => {
+    const controls = new DiveControls();
+    controls.scheduleAutoplay(900);
+    controls.autoplay(5000, false, false);
+    expect(controls.isPlaying).toBe(false);
+    controls.autoplay(9000, false, true);
+    expect(controls.stopShown).toBe(DISH);
+  });
+
+  it('finishes a playing opening at its stop, paused or not, and leaves a still dive alone', () => {
+    const paused = playing(SHORE);
+    paused.tick(3000);
+    paused.togglePause(3000);
+    paused.finishPlay();
+    expect(paused.isPlaying).toBe(false);
+    expect(paused.zoom).toBe(SHORE.zoom);
+    expect(paused.stopReached).toBe(SHORE);
+    const still = new DiveControls();
+    still.scrub(2);
+    still.finishPlay();
+    expect(still.zoom).toBe(2);
+    expect(still.stopReached).toBeNull();
   });
 });

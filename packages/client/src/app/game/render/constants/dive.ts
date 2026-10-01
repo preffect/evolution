@@ -5,13 +5,18 @@
 
 import { DISH_RADIUS } from '@evolution/shared';
 import { HALF } from '../geometry';
+import { ORGANELLE_ATLAS_MAX_DPR } from './organelles';
 
 // ===== The log-zoom camera =====
 
 /** The zoom is log10 of the view's width in metres: the dive starts here, 25,000 km across (`Z_TOP`). */
 export const DIVE_ZOOM_TOP = 7.4;
-/** Where the scrub ends: 0.63 µm across, inside your cell (`Z_BOTTOM`). */
-export const DIVE_ZOOM_BOTTOM = -6.2;
+/**
+ * Where the scrub ends: 2.5 µm across, your cell filling most of the view. The mockup went on to −6.2, inside your
+ * cell; the game's cell keeps its detail only to here, where it is drawn at about the organelle atlas's resolution
+ * (`DIVE_BAKE_DEVICE_PIXEL_RATIO`), and beyond it the textures would be magnified several times.
+ */
+export const DIVE_ZOOM_BOTTOM = -5.6;
 /** The base of the zoom's logarithm: one zoom step is one power of ten. */
 export const DIVE_ZOOM_BASE = 10;
 /** The slider's resolution in zoom steps (`step="0.01"`). */
@@ -138,6 +143,11 @@ export const DIVE_LENGTH_WHOLE_FROM = 10;
 export const DIVE_LADDER_POWER_RANGE = { lowest: -6, highest: 7 } as const;
 /** The label's backing box round its text: this much on each side, its top this far above the text's baseline. */
 export const DIVE_LABEL_BOX = { sidePx: 4, ascentPx: 13 } as const;
+/**
+ * The readout's corner of the stage (its three lines at their widest, the panel's CSS): a label whose box would sit
+ * in it moves down below it, so no label prints over the field of view. The width never passes the stage's.
+ */
+export const DIVE_READOUT_KEEP_OUT_PX = { right: 360, bottom: 120 } as const;
 /** A label flipped left of its dot ends this much further from it than the offset (`X − 10 − w − 8`). */
 export const DIVE_LABEL_FLIP_GAP_PX = 8;
 /** The share of the dish's specks that are detritus (the mockup's lipid specks); the rest are algae. */
@@ -145,6 +155,11 @@ export const DIVE_DETRITUS_SHARE = 0.2;
 
 // ===== The session (dive-session.ts) =====
 
+/**
+ * The ratio the dive's texture bundle bakes at, whatever the screen's: the organelle atlas's highest, so your cell
+ * keeps its detail at the dive's bottom, where it is far larger on screen than any cell in play.
+ */
+export const DIVE_BAKE_DEVICE_PIXEL_RATIO = ORGANELLE_ATLAS_MAX_DPR;
 /** The dive renders at most at this device pixel ratio when still (`DPR_STEPS[0]`)… */
 export const DIVE_MAX_DEVICE_PIXEL_RATIO = 2;
 /** …and its upper bands' canvas at this one while the dive moves, where the motion hides it (`DIVE_DPR`). */

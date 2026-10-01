@@ -14,6 +14,7 @@ import {
   DIVE_LABEL_FLIP_GAP_PX,
   DIVE_LABEL_OFFSET_PX,
   DIVE_LABEL_PADDING_PX,
+  DIVE_READOUT_KEEP_OUT_PX,
   DIVE_WORLD_LABELS,
   EARTH_RADIUS_M,
   type DiveGeoLabel,
@@ -107,8 +108,15 @@ export function placeDiveLabel(camera: DiveCamera, text: string, alpha: number, 
     dotX: dot.x,
     dotY: dot.y,
     boxX: textX - DIVE_LABEL_BOX.sidePx,
-    boxY: baseline - DIVE_LABEL_BOX.ascentPx,
+    boxY: boxTopClearOfReadout(textX - DIVE_LABEL_BOX.sidePx, baseline - DIVE_LABEL_BOX.ascentPx, width),
   };
+}
+
+/** A box that would sit in the readout's corner moves down below it (`DIVE_READOUT_KEEP_OUT_PX`). */
+export function boxTopClearOfReadout(boxX: number, boxTop: number, stageWidth: number): number {
+  const isOnReadout =
+    boxX < Math.min(stageWidth, DIVE_READOUT_KEEP_OUT_PX.right) && boxTop < DIVE_READOUT_KEEP_OUT_PX.bottom;
+  return isOnReadout ? DIVE_READOUT_KEEP_OUT_PX.bottom : boxTop;
 }
 
 export interface DiveLabelInputs {

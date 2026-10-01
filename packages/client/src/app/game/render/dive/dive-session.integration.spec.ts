@@ -5,7 +5,7 @@
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
-import { DIVE_BACTERIA_COUNT, DIVE_MOTE_COUNT } from '../constants';
+import { DIVE_BACTERIA_COUNT, DIVE_METRES_PER_WU, DIVE_MOTE_COUNT, DIVE_ZOOM_BOTTOM } from '../constants';
 import { DiveSession } from './dive-session';
 import type { MockupBands } from './mockup/dive-mockup-bands';
 
@@ -57,10 +57,12 @@ describe('the dive’s dish through the real renderer', () => {
 
   it('frames the dish at the dive’s scale: zoomed in on your cell, the renderer culls the rest of the dish', async () => {
     const { subject, app } = await builtSession();
-    const outputs = outputsAt(subject, app, -5.8);
+    const outputs = outputsAt(subject, app, DIVE_ZOOM_BOTTOM);
     expect(outputs!.visibleCells).toBeGreaterThanOrEqual(1);
     expect(outputs!.visibleCells).toBeLessThan(1 + DIVE_BACTERIA_COUNT);
-    expect(outputs!.cameraExtent.maxX - outputs!.cameraExtent.minX).toBeLessThan(300);
+    // The view's width at the bottom is 10^zoom metres: about 377 wu of the 6,000 wu dish.
+    const widthWu = Math.pow(10, DIVE_ZOOM_BOTTOM) / DIVE_METRES_PER_WU;
+    expect(Math.abs(outputs!.cameraExtent.maxX - outputs!.cameraExtent.minX - widthWu)).toBeLessThan(1);
     subject.destroy();
   });
 

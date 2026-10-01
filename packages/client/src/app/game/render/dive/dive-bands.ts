@@ -95,7 +95,7 @@ export function diveBandStates(camera: DiveCamera): DiveBandStates {
   return states;
 }
 
-/** Whether any of the mockup's bands draws: when none does, its canvas is neither drawn nor uploaded. */
+/** Whether any of the mockup's bands draws: when none does, its canvas is hidden and not drawn. */
 export function isMockupDrawing(states: DiveBandStates): boolean {
   return DIVE_MOCKUP_BAND_NAMES.some((name) => states[name].isActive);
 }

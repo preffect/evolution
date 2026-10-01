@@ -20,6 +20,7 @@ import { Container, Graphics, type Application } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import {
   DIVE_AUTOPLAY_DELAY_MS,
+  DIVE_BAKE_DEVICE_PIXEL_RATIO,
   DIVE_CANVAS_TEST_ID,
   DIVE_MAX_DEVICE_PIXEL_RATIO,
   DIVE_PROBE_FRAME_MS,
@@ -59,6 +60,7 @@ export interface DiveSessionDependencies {
 }
 
 const NO_EXTENT = { minX: 0, minY: 0, maxX: 0, maxY: 0 } as const;
+const FULFILLED = 'fulfilled';
 
 export class DiveSession extends FrameLoopSession {
   readonly controls = new DiveControls();
@@ -75,6 +77,8 @@ export class DiveSession extends FrameLoopSession {
   private ambientSeconds = 0;
   private isFrameRequested = true;
   private isDestroyed = false;
+  /** The stage's last reported visibility: the panel's observer can report before the app exists. */
+  private isVisible = true;
 
   constructor(private readonly dependencies: DiveSessionDependencies) {
     super(dependencies.clock);
@@ -82,10 +86,14 @@ export class DiveSession extends FrameLoopSession {
     this.frameTimes = new DiveFrameTimes(dependencies.clock);
   }
 
-  /** Opens the app and loads the upper bands, then starts the renderer's staged bake; `false` when destroyed first. */
+  /**
+   * Opens the app and loads the upper bands, then starts the renderer's staged bake. Answers `false`, never throws,
+   * when either half fails (no WebGL, a missing coastline, the chunk) or `destroy` ran first: the half that did
+   * arrive is given back at once, so nothing outlives a dive that never opened, and the lobby carries on without it.
+   */
   async start(): Promise<boolean> {
     const { dependencies } = this;
-    const [pixi, bands] = await Promise.all([
+    const [pixiResult, bandsResult] = await Promise.allSettled([
       dependencies.createPixiApp({
         host: dependencies.host,
         devicePixelRatio: this.devicePixelRatio,
@@ -94,14 +102,17 @@ export class DiveSession extends FrameLoopSession {
       }),
       dependencies.loadMockupBands(() => this.nowMs()),
     ]);
-    if (this.isDestroyed) {
-      pixi.destroy();
-      bands.release();
+    const pixi = pixiResult.status === FULFILLED ? pixiResult.value : null;
+    const bands = bandsResult.status === FULFILLED ? bandsResult.value : null;
+    if (this.isDestroyed || pixi === null || bands === null) {
+      pixi?.destroy();
+      bands?.release();
       return false;
     }
     this.macro = new DiveMacroBand(bands, dependencies.host);
     this.macro.bakeOn(dependencies.scheduler, () => this.requestFrame());
     this.adoptPixiApp(pixi);
+    if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
     pixi.app.stage.addChild(this.gameRoot, this.dishClip);
     this.showGame(0);
@@ -110,8 +121,11 @@ export class DiveSession extends FrameLoopSession {
     const options = {
       seed: DIVE_SEED,
       gelPatches: [],
-      devicePixelRatio: this.devicePixelRatio,
+      // At the atlases' highest ratio whatever the screen's, so your cell holds its detail down to the dive's bottom.
+      devicePixelRatio: DIVE_BAKE_DEVICE_PIXEL_RATIO,
       noiseTileSizePx: dependencies.noiseTileSizePx,
+      // with the vent sprite hidden (renderFrame), the field's warm vent tint goes too: your cell is the dive's end
+      isVentTinted: false,
     };
     // A failed bake leaves the dive on its upper bands: the lobby must never break on it.
     void this.buildRendererAcrossFrames(options).then(
@@ -130,8 +144,9 @@ export class DiveSession extends FrameLoopSession {
     this.isFrameRequested = true;
   }
 
-  /** Off screen: the ticker stops and nothing draws until it is back. */
+  /** Off screen: the ticker stops and nothing draws until it is back. Kept for `start` when it comes first. */
   setIsVisible(isVisible: boolean): void {
+    this.isVisible = isVisible;
     if (isVisible) this.pixi?.app.ticker.start();
     else this.pixi?.app.ticker.stop();
   }
@@ -185,7 +200,7 @@ export class DiveSession extends FrameLoopSession {
     if (pixi === null) return null;
     const nowMs = this.nowMs();
     const isMotionReduced = this.dependencies.isMotionReduced();
-    this.controls.autoplay(nowMs, isMotionReduced);
+    this.settleControls(nowMs, isMotionReduced);
     const isMoving = this.controls.isPlaying && !this.controls.isPaused;
     const zoom = this.controls.tick(nowMs);
     if (!isMotionReduced) this.ambientSeconds = (nowMs - this.openedAtMs) / MILLISECONDS_PER_SECOND;
@@ -195,6 +210,15 @@ export class DiveSession extends FrameLoopSession {
     this.isFrameRequested = false;
     this.view = diveViewAt({ zoom, viewport, timeSeconds: this.ambientSeconds, isMoving });
     return this.view;
+  }
+
+  /**
+   * The lobby's autoplay once its time comes and the tiles have baked, and reduced motion asked for mid-fall: the
+   * opening jumps to its stop at once, paused or not.
+   */
+  private settleControls(nowMs: number, isMotionReduced: boolean): void {
+    this.controls.autoplay(nowMs, isMotionReduced, this.macro?.isBaked ?? false);
+    if (isMotionReduced) this.controls.finishPlay();
   }
 
   private drawUpperBands(view: DiveView): void {
@@ -228,6 +252,10 @@ export class DiveSession extends FrameLoopSession {
       ...NO_HUD_INPUTS,
       ownCellIndicators: this.scene.ownCellIndicators(frame),
       ownCellChrome: OWN_CELL_CHROME.lens,
+      // The dive's end is on your cell, not the vent under it, and its bacteria grow from specks into cells with no
+      // far-dot halo between (docs/rendering/opening-dive.md §4).
+      isVentShown: false,
+      isFarDotShown: false,
     };
     return this.frameTimes.measureDish(() => renderer.render(frame, DIVE_OWN_PLAYER_ID, inputs, timedSubmit));
   }

@@ -78,9 +78,12 @@ describe('diveGlobeRotation', () => {
     expect(turned[1]).toBeCloseTo(-DIVE_FOCUS_DEGREES.latitude, DIGITS);
   });
 
-  it('turns smoothly through the window: halfway at its middle', () => {
-    const [longitude] = diveGlobeRotation(7.3 - 0.55 / 2);
-    expect(-longitude).toBeCloseTo((82 + 360 + DIVE_FOCUS_DEGREES.longitude) / 2, DIGITS);
+  it('eases the turn through the window: halfway at its middle, slow off the start (smoothstep, not linear)', () => {
+    const endLongitude = 360 + DIVE_FOCUS_DEGREES.longitude;
+    const turnedAt = (fraction: number) => (-diveGlobeRotation(7.3 - 0.55 * fraction)[0] - 82) / (endLongitude - 82);
+    expect(turnedAt(0.5)).toBeCloseTo(0.5, DIGITS);
+    // smoothstep(0.25) = 0.15625; a linear turn would be a quarter of the way round.
+    expect(turnedAt(0.25)).toBeCloseTo(0.15625, DIGITS);
   });
 });
 

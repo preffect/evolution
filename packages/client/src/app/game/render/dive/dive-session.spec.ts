@@ -7,87 +7,19 @@
 // game canvas's opacity; a still dive under reduced motion draws nothing new; the lobby plays phase 1 on its own
 // once; and `destroy` gives every resource back.
 
-import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
-import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
+import { type FakePixiApp } from '../../../../testing/fake-pixi-app';
+import {
+  diveSessionHarness as harness,
+  startedDiveSession as started,
+  tickUntilBuilt,
+  type DiveSessionHarness,
+} from '../../../../testing/dive-session-harness';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_CANVAS_TEST_ID, DIVE_PLAY_HOLD_MS, DIVE_ZOOM_TOP } from '../constants';
 import { DIVE_FIRST_PHASE } from './dive-controls';
-import { DiveSession, type DiveSessionDependencies } from './dive-session';
-import type { DiveView } from './dive-view';
-import type { MockupBands, MockupFrame } from './mockup/dive-mockup-bands';
-
-interface FakeBands extends MockupBands {
-  readonly frames: MockupFrame[];
-  readonly releases: { count: number };
-}
 
 /** The game's canvas opacity: the dish band's weight. */
 const opacityOf = (app: FakePixiApp): number => Number(app.canvas.style.opacity);
-
-function fakeBands(): FakeBands {
-  const frames: MockupFrame[] = [];
-  const releases = { count: 0 };
-  const canvas = document.createElement('canvas');
-  return {
-    canvas,
-    frames,
-    releases,
-    isBaked: true,
-    draw: (frame) => frames.push(frame),
-    pumpBakes: () => false,
-    release: () => {
-      releases.count += 1;
-    },
-  };
-}
-
-interface Harness {
-  readonly subject: DiveSession;
-  readonly clock: ManualClock;
-  readonly bands: FakeBands;
-  readonly apps: FakePixiApp[];
-  readonly views: DiveView[];
-  readonly motion: { isReduced: boolean };
-  readonly dependencies: DiveSessionDependencies;
-}
-
-function harness(overrides: Partial<DiveSessionDependencies> = {}): Harness {
-  const clock = new ManualClock(0);
-  const bands = fakeBands();
-  const apps: FakePixiApp[] = [];
-  const views: DiveView[] = [];
-  const motion = { isReduced: false };
-  const dependencies: DiveSessionDependencies = {
-    host: document.createElement('div'),
-    clock,
-    scheduler: new ManualScheduler(),
-    devicePixelRatio: 1,
-    createPixiApp: () => {
-      const app = createFakePixiApp({ width: 1200, height: 675 });
-      apps.push(app);
-      return Promise.resolve(app);
-    },
-    loadMockupBands: () => Promise.resolve(bands),
-    balance: () => DEFAULT_BALANCE,
-    isMotionReduced: () => motion.isReduced,
-    onView: (view) => views.push(view),
-    noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
-    ...overrides,
-  };
-  return { subject: new DiveSession(dependencies), clock, bands, apps, views, motion, dependencies };
-}
-
-/** Ticks until the staged renderer is current: one bake per frame (ticket #479). */
-function tickUntilBuilt(app: FakePixiApp, subject: DiveSession): void {
-  for (let frame = 0; frame < 200 && subject.isBuildingRenderer; frame += 1) app.tick();
-  app.tick();
-}
-
-async function started(overrides: Partial<DiveSessionDependencies> = {}): Promise<Harness & { app: FakePixiApp }> {
-  const parts = harness(overrides);
-  expect(await parts.subject.start()).toBe(true);
-  return { ...parts, app: parts.apps[0]! };
-}
 
 describe('DiveSession.start', () => {
   it('draws the upper bands from the first frame, while the renderer still bakes, and hides the empty game canvas', async () => {
@@ -217,8 +149,8 @@ describe('DiveSession autoplay', () => {
 
   it('never plays on its own under reduced motion, or once the reader has taken the controls', async () => {
     for (const takeOver of [
-      (parts: Harness) => (parts.motion.isReduced = true),
-      (parts: Harness) => parts.subject.controls.cancelAutoplay(),
+      (parts: DiveSessionHarness) => (parts.motion.isReduced = true),
+      (parts: DiveSessionHarness) => parts.subject.controls.cancelAutoplay(),
     ]) {
       const parts = await started();
       takeOver(parts);
@@ -231,7 +163,7 @@ describe('DiveSession autoplay', () => {
 });
 
 describe('DiveSession.destroy', () => {
-  it('destroys the app, unbinds before it does, takes the upper bands off the stage and gives the planet’s context back', async () => {
+  it('destroys the app, unbinds its textures, takes the upper bands off the stage and gives the planet’s context back', async () => {
     const { subject, app, bands } = await started();
     tickUntilBuilt(app, subject);
     subject.destroy();

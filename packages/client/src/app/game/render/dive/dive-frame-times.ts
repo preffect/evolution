@@ -1,6 +1,6 @@
 // What a dive frame costs, per band (docs/rendering/opening-dive.md §6): the upper bands' canvas drawing, the game
-// renderer's dish (its CPU work outside the submit) and the submit itself (the upload of the upper bands' canvas and
-// every draw call). Script milliseconds on the injected clock: the evidence box has no GPU, so this is the number
+// renderer's dish (its CPU work outside the submit) and the submit itself (the game canvas's draw calls; the upper
+// bands' canvas is composited by the browser, never uploaded). Script milliseconds on the injected clock: the evidence box has no GPU, so this is the number
 // the bands are compared by. A reader takes the means since its last take.
 
 import type { Clock } from '@evolution/shared';
