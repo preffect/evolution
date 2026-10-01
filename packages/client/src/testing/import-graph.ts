@@ -21,7 +21,8 @@ export function specifiers(source: string, pattern: RegExp): string[] {
 
 /**
  * A relative specifier as the source file it names (`./x`, `./x.js` compiled from `./x.ts`, `./dir` for its
- * `index.ts`, or a `.json` file); `null` for a package specifier.
+ * `index.ts`, a `.json` file, or a `.js` module with no TypeScript source, such as the opening dive's mockup bands);
+ * `null` for a package specifier.
  */
 export function resolveSource(fromFile: string, specifier: string): string | null {
   if (!specifier.startsWith('.')) return null;
@@ -30,7 +31,7 @@ export function resolveSource(fromFile: string, specifier: string): string | nul
   const candidates = [
     `${withoutCompiledExtension}${TYPESCRIPT_EXTENSION}`,
     join(base, INDEX_FILE),
-    ...(base.endsWith(JSON_EXTENSION) ? [base] : []),
+    ...(base.endsWith(JSON_EXTENSION) || base.endsWith(COMPILED_EXTENSION) ? [base] : []),
   ];
   const candidate = candidates.find((path) => existsSync(path));
   if (candidate === undefined) throw new Error(`${specifier} from ${fromFile} names no source file`);
@@ -57,7 +58,7 @@ function readUtf8(file: string): string {
   return readFileSync(file, 'utf8');
 }
 
-/** Everything reachable from `entry` along the walk's imports. A `.json` file is reached but imports nothing. */
+/** Everything reachable from `entry` along the walk's imports. A `.json` or plain `.js` file is reached but its imports are not followed. */
 export function importGraph(entry: string, walk: ImportWalk): ImportGraph {
   const files = new Set<string>();
   const packages = new Set<string>();

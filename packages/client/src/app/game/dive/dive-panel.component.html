@@ -1,0 +1,89 @@
+<!-- The opening dive's viewer (docs/rendering/opening-dive.md §5): the mockup's stage and controls. -->
+<section class="viewer" aria-label="Opening dive" [attr.data-testid]="testId.panel">
+  <div class="stage" #stage [attr.data-testid]="testId.stage">
+    <div class="labels" aria-hidden="true">
+      @for (label of labels(); track $index) {
+        <span class="dot" [style.left.px]="label.dotX" [style.top.px]="label.dotY" [style.opacity]="label.alpha"></span>
+        <span
+          class="label"
+          [attr.data-testid]="testId.label"
+          [style.left.px]="label.boxX"
+          [style.top.px]="label.boxY"
+          [style.opacity]="label.alpha"
+          >{{ label.text }}</span
+        >
+      }
+    </div>
+    @if (scaleBar(); as bar) {
+      <div class="scale-bar" aria-hidden="true" [attr.data-testid]="testId.scaleBar" [style.width.px]="bar.widthPx">
+        <span class="scale-text">{{ bar.text }}</span>
+      </div>
+    }
+    @if (readout(); as lines) {
+      <div class="readout" aria-live="off">
+        <div class="fov" [attr.data-testid]="testId.readoutFieldOfView">{{ lines.fieldOfView }}</div>
+        <div class="pow" [attr.data-testid]="testId.readoutPower">{{ lines.powerOfTen }}</div>
+        <div class="what" [attr.data-testid]="testId.readoutWhat">{{ lines.whatYouSee }}</div>
+      </div>
+    }
+    @if (isUnavailable()) {
+      <p class="unavailable" [attr.data-testid]="testId.unavailable">{{ unavailableText }}</p>
+    }
+    @if (flag(); as stop) {
+      <div class="phase-flag" [class.on]="isFlagOn()" [style.color]="stop.colour" [attr.data-testid]="testId.flag">
+        {{ phaseTitle(stop) }}
+      </div>
+    }
+  </div>
+  <div class="controls">
+    <div class="phase-buttons">
+      @for (stop of stops; track stop.phaseNumber) {
+        <button
+          type="button"
+          [class.future]="stop.isFuture"
+          [attr.data-testid]="testId.phaseButton + stop.phaseNumber"
+          (click)="play(stop)"
+        >
+          <span class="chip" [style.background]="stop.colour"></span>{{ buttonText(stop) }}
+        </button>
+      }
+    </div>
+    <div class="scrub">
+      <div class="scrub-row">
+        <button type="button" class="ctl" [attr.data-testid]="testId.pause" (click)="togglePause()">
+          {{ isPaused() ? 'Resume' : 'Pause' }}
+        </button>
+        <label class="hint drag" for="dive-zoom">Drag to zoom</label>
+        <input
+          id="dive-zoom"
+          type="range"
+          min="0"
+          [max]="sliderMax"
+          [step]="sliderStep"
+          [value]="sliderValue()"
+          aria-describedby="dive-tick-row"
+          [attr.aria-valuetext]="readout()?.fieldOfView ?? null"
+          [attr.data-testid]="testId.slider"
+          (input)="onScrub($event)"
+        />
+      </div>
+      <div class="ticks" id="dive-tick-row" aria-hidden="true">
+        @for (tick of ticks; track tick.text) {
+          <span class="tick" [style.left.%]="tick.leftPercent">{{ tick.text }}</span>
+        }
+        @for (mark of marks; track mark.stop.phaseNumber) {
+          <span
+            class="mk"
+            [style.left.%]="mark.leftPercent"
+            [style.background]="mark.stop.colour"
+            [title]="'Phase ' + mark.stop.phaseNumber + ' stops here'"
+          ></span>
+        }
+      </div>
+    </div>
+    <p class="hint">
+      Each button plays that phase's opening, from orbit down to the stop marked in its colour. Phases 4 and 5 are ideas
+      for later chapters. Space or Esc skips to the stop.
+    </p>
+  </div>
+</section>

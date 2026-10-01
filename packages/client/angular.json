@@ -58,7 +58,13 @@
             "setupFiles": ["src/testing/shared-worker-reset.ts"],
             "exclude": ["**/*.integration.spec.ts"],
             "coverage": true,
-            "coverageExclude": ["**/*.spec.ts", "**/testing/**", "src/main.ts", "src/app/app.config.ts"],
+            "coverageExclude": [
+              "**/*.spec.ts",
+              "**/testing/**",
+              "src/main.ts",
+              "src/app/app.config.ts",
+              "src/app/game/render/dive/mockup/dive-mockup-bands.js"
+            ],
             "coverageReporters": ["text-summary"],
             "coverageThresholds": {
               "lines": 80,

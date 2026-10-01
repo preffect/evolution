@@ -6,3 +6,4 @@ change is intended, graphics-qa updates the baseline in the same PR; authors nev
 
 - `dish/` — the dish field, vent sprite and bake preview at seed 42, 1920 × 1080, zoom 1 (from #221).
 - `cells/` — the cell material at seed 42, 1920 × 1080: zoom 1.8 at rest, mid LOD, mass 5000 at zoom 0.36, the protocell (from #228).
+- `dive/` — the opening dive on the lobby at 12 zooms from the planet to your cell, 1280 × 800, plus the phone stop (from #797).

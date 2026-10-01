@@ -151,7 +151,7 @@ export function stageSeededRenderTextures(options: RenderTextureOptions): Staged
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
   const parts: SeededParts = {};
   const steps = [
-    () => (parts.dishField = bakeDishField(baker, options.gelPatches, cosmetic)),
+    () => (parts.dishField = bakeDishField(baker, options.gelPatches, cosmetic, options.isVentTinted ?? true)),
     () => (parts.vent = bakeVentSprite(baker, cosmetic)),
     () => {
       parts.strip = buildNoiseStrip(cosmetic);

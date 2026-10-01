@@ -16,6 +16,7 @@ import { GameHostComponent } from './game/game-host.component';
 import { IdentityService } from './services/identity.service';
 import { LOBBY_NOTICE } from './services/multiplayer.service';
 import { RECONNECT_DELAY_MS } from './services/websocket.service';
+import { provideRecordingDive } from '../testing/fake-dive-handle';
 import { FakeWebSocket } from '../testing/fake-websocket';
 
 /** The server's game_started for alice, seated alone as the host of `g1`. */
@@ -50,12 +51,14 @@ function expectLobbyShell(element: HTMLElement): void {
 }
 
 describe('lobby shell + multiplayer services', () => {
+  let dive: ReturnType<typeof provideRecordingDive>;
   beforeEach(async () => {
     FakeWebSocket.reset();
+    dive = provideRecordingDive();
     vi.stubGlobal('WebSocket', FakeWebSocket);
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [{ provide: IdentityService, useValue: { clientId: 'alice' } }],
+      providers: [{ provide: IdentityService, useValue: { clientId: 'alice' } }, dive.provider],
     }).compileComponents();
   });
 
@@ -63,6 +66,18 @@ describe('lobby shell + multiplayer services', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('closes the lobby’s opening dive when the room starts', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('[data-testid="dive-panel"]')).not.toBeNull();
+    expect(dive.handles).toHaveLength(1);
+    await enterRoom(fixture);
+    fixture.detectChanges();
+    expect(element.querySelector('[data-testid="dive-panel"]')).toBeNull();
+    expect(dive.handles[0]!.destroyCount).toBe(1);
   });
 
   it('connects, creates a game and enters the room when the server starts it', async () => {

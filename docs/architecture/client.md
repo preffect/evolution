@@ -168,6 +168,9 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
 - **Frame budget** (#99): 60 fps, ≤ 12 ms p95 frame time at the 8-player baseline above (8 cells, 1 400 motes,
   110 fragments) at 1080p; the per-stage budget, the 100-cell bench scene that proves headroom above that
   baseline, and how a cell is drawn are [`rendering/budget.md`](../rendering/budget.md) §7.
+- **Opening dive** (#797): the lobby's `game/dive/dive-panel.component.ts` over `render/dive/`, the fourth
+  `FrameLoopSession`: the mockup's upper bands on their own canvas under the real `GameRenderer` on a scripted dish
+  scene, gone with the lobby before a room's renderer builds ([`rendering/opening-dive.md`](../rendering/opening-dive.md)).
 - **Dev-only pages** (#423): a dev build opened with `?bench`, `?preview`, `?kit` or `?cards` shows that page instead
   of the lobby (rendering/budget.md §7, encyclopedia.md §12.7, ui/components-and-constants.md §10.2, ui/overlays.md).
   Each page has a light gate module (`bench/bench-route.ts`, `encyclopedia/preview-route-gate.ts`,

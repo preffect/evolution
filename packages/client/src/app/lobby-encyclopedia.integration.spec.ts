@@ -16,6 +16,7 @@ import { PANEL_TOP, TEXT_LABEL } from './game/render/constants/colours';
 import { UI_SCALE_VARIABLE } from './ui-kit/format/ui-css-variables';
 import { UI_BUTTON_VARIANT } from './ui-kit/ui-button.component';
 import { contrastRatio } from '../testing/colour-difference';
+import { provideRecordingDive } from '../testing/fake-dive-handle';
 
 /** principles-and-palette.md §2: body text against its own ground. */
 const TEXT_CONTRAST_MIN = 4.5;
@@ -40,7 +41,7 @@ describe('the encyclopedia over the lobby (acceptance U11)', () => {
   }
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [AppComponent] });
+    TestBed.configureTestingModule({ imports: [AppComponent], providers: [provideRecordingDive().provider] });
     encyclopedia = TestBed.inject(EncyclopediaStateService);
     fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();

@@ -47,6 +47,8 @@ export interface DishLayerFrame {
   /** The camera state and the viewport it renders into: the zoom follows from them, never a separate field. */
   readonly camera: CameraState;
   readonly viewport: ViewportPx;
+  /** `false` hides the vent sprite: the opening dive's scripted dish (docs/rendering/opening-dive.md §4). Shown when absent. */
+  readonly isVentShown?: boolean;
 }
 
 interface DepthEntry {
@@ -196,6 +198,7 @@ export class DishLayer {
   }
 
   update(frame: DishLayerFrame): void {
+    this.vent.visible = frame.isVentShown ?? true;
     placeLightPoolSprite(this.lightPool, frame.camera, frame.viewport);
     this.updateDetailBand(frame);
     for (const field of this.depthFields) {

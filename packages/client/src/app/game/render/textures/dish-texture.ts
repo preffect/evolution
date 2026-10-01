@@ -166,6 +166,7 @@ export function bakeDishField(
   factory: BakeCanvasFactory,
   patches: readonly GelPatchView[],
   cosmetic: RandomSource,
+  isVentTinted = true,
 ): DishField {
   const halfExtentWu = DISH_RADIUS + WALL_GLASS_WU * FIELD_OUTSIDE_MARGIN_GLASS;
   const sizePx = FIELD_TEXTURE_PX;
@@ -175,7 +176,9 @@ export function bakeDishField(
   frame.context.fillStyle = BG_FIELD;
   frame.context.fillRect(0, 0, sizePx, sizePx);
   paintShallows(frame);
-  paintZoneTint(frame.context, { x: frame.centre, y: frame.centre, radius: VENT_RADIUS * pxPerWu }, VENT_TINT);
+  if (isVentTinted) {
+    paintZoneTint(frame.context, { x: frame.centre, y: frame.centre, radius: VENT_RADIUS * pxPerWu }, VENT_TINT);
+  }
   paintGelPatches(frame, patches);
   paintWallInnerShadow(frame);
   paintOutside(frame);
