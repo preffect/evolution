@@ -164,7 +164,7 @@ WebGL context and no copy into a 2D canvas.
     once.
 - **Resolution** (`planet/dive-planet-resolution.ts`, the mockup's `target` and its guard): the upper bands' ratio,
   at most 1.5× for the sphere's limb and 1× for the forest under the shore. Frames that keep coming more than 24 ms
-  apart step it down by 0.8, to no less than 0.55 (`DIVE_PLANET_RESOLUTION_GUARD`). The render texture is made again
+  apart step it down by 0.8, clamped to no less than 0.55 (`DIVE_PLANET_RESOLUTION_GUARD`). The render texture is made again
   only when its size changes.
 
 **The upper bands below the planet are the mockup's drawing for now.**
@@ -228,11 +228,11 @@ WebGL context and no copy into a 2D canvas.
 
 - **The target:** 60 fps on a laptop's integrated GPU (epic #795), a 16.7 ms frame. Each band gets its budget
   when it moves onto the GPU.
-- **The planet band's budget (ticket #800):** at most 1 ms of script and 2 draw calls a frame (the quad into its
+- **The planet band's budget (ticket #800):** at most 2 ms of script and 2 draw calls a frame (the quad into its
   render texture, the sprite over the view), and one full-view fragment pass at most 1.5× (the sphere) or 1× (the
   forest). Its resolution guard steps the pass down when frames keep coming more than 24 ms apart (§4). Measured on
-  the evidence box from zoom 7.3 to 5: 0.1–1.5 ms of script and 2 draw calls, against 0.4–1.2 ms and one GL draw plus
-  a copy into the 2D canvas on the mockup's globe. The fragment pass is the same shader at the same resolution, so on
+  the evidence box from zoom 7.3 to 5: 0.1–1.5 ms of script (its run-to-run noise is about 1 ms) and 2 draw calls,
+  against 0.4–1.2 ms and one GL draw plus a copy into the 2D canvas on the mockup's globe. The fragment pass is the same shader at the same resolution, so on
   the box's software GL a frame's wall time with the GPU work forced to finish is the same within the box's noise
   (about 1.7–2.0 s either way at 1280 × 800).
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:

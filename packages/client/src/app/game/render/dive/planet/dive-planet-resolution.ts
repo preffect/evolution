@@ -18,7 +18,7 @@ export class DivePlanetResolution {
     if (last === null || nowMs - last >= guard.sampleWindowMs) return;
     this.strikes = nowMs - last > guard.slowFrameMs ? this.strikes + 1 : Math.max(0, this.strikes - 1);
     if (this.strikes > guard.strikesToStep && this.quality > guard.floor) {
-      this.quality *= guard.step;
+      this.quality = Math.max(guard.floor, this.quality * guard.step);
       this.strikes = 0;
     }
   }

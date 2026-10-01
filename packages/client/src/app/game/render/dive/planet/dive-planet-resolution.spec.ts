@@ -33,8 +33,7 @@ describe('DivePlanetResolution', () => {
     frames(resolution, 1, slowFrameMs + 1, (strikesToStep + 1) * (slowFrameMs + 1));
     expect(resolution.ratioAt(7, 1)).toBeCloseTo(step, 9);
     frames(resolution, 400, slowFrameMs + 1, 10000);
-    expect(resolution.ratioAt(7, 1)).toBeLessThanOrEqual(floor);
-    expect(resolution.ratioAt(7, 1)).toBeGreaterThan(floor * step);
+    expect(resolution.ratioAt(7, 1)).toBe(floor);
   });
 
   it('takes a strike off for a quick frame, and ignores a gap too long to be a frame (a pause, a hidden tab)', () => {

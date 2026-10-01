@@ -31,10 +31,12 @@ const vec3 FLOOR_FOREST = vec3(.1, .14, .075);
 const vec3 FLOOR_OUTCROP = vec3(.46, .45, .41);
 const float KM_PER_DEGREE = 111.2;
 
+/** smoothstep from 1 at 'from' down to 0 at 'to' (from > to): GLSL leaves smoothstep with edge0 >= edge1 undefined. */
+float smoothFall(float from, float to, float x) { return 1. - smoothstep(to, from, x); }
 float gaussian2(vec2 ld, vec2 centre, vec2 spread) { vec2 d = (ld - centre) / spread; return exp(-dot(d, d)); }
 float softBox(vec2 ld, vec4 box, float feather) {
-  return smoothstep(box.x - feather, box.x + feather, ld.x) * smoothstep(box.z + feather, box.z - feather, ld.x) *
-         smoothstep(box.y - feather, box.y + feather, ld.y) * smoothstep(box.w + feather, box.w - feather, ld.y);
+  return smoothstep(box.x - feather, box.x + feather, ld.x) * smoothFall(box.z + feather, box.z - feather, ld.x) *
+         smoothstep(box.y - feather, box.y + feather, ld.y) * smoothFall(box.w + feather, box.w - feather, ld.y);
 }
 /** A volcano: (longitude, latitude, height m) and its radius in km. */
 float cone(vec2 ld, vec3 peak, float radiusKm) {
@@ -52,7 +54,7 @@ float massif(vec2 ld, float inlandKm) {
   m += 1900. * gaussian2(ld, vec2(-123.6, 47.8), vec2(.55, .32)) * smoothstep(0., 5., inlandKm); // Olympic Mountains
   m += 850. * smoothstep(49.25, 49.7, ld.y) * smoothstep(-124.6, -123.9, ld.x) * smoothstep(2., 20., inlandKm); // Coast Mountains
   m += 550. * smoothstep(-122.25, -121.6, ld.x) * smoothstep(1., 12., inlandKm) * (1. - smoothstep(-120.9, -120.3, ld.x)); // Cascades
-  m *= 1. - .8 * smoothstep(-121.1, -120.1, ld.x) * smoothstep(49.3, 48.9, ld.y);         // the Columbia plateau
+  m *= 1. - .8 * smoothstep(-121.1, -120.1, ld.x) * smoothFall(49.3, 48.9, ld.y);         // the Columbia plateau
   return m;
 }
 float volcanoes(vec2 ld) {
@@ -115,8 +117,8 @@ vec3 region(vec2 q, vec2 ld, float inlandKm, float mpp, out float meadowOut, out
   c = mix(c, REGION_ROCK, clamp(smoothstep(1650., 2100., h0) + smoothstep(1.1, 1.9, slope) * .5, 0., 1.));
   c = mix(c, REGION_SNOW, smoothstep(2150., 2500., h0 + 260. * speckle - slope * 180.) * .92);
   // the dry side: steppe east of the Cascades, oak meadows round Victoria
-  c = mix(c, REGION_STEPPE, smoothstep(-121., -120.1, ld.x + .5 * valueNoise(q / 40000.)) * smoothstep(1800., 900., h0) * smoothstep(49.35, 48.85, ld.y));
-  float meadow = gaussian2(ld, vec2(-123.38, 48.46), vec2(.12, .06)) * smoothstep(260., 80., h0);
+  c = mix(c, REGION_STEPPE, smoothstep(-121., -120.1, ld.x + .5 * valueNoise(q / 40000.)) * smoothFall(1800., 900., h0) * smoothFall(49.35, 48.85, ld.y));
+  float meadow = gaussian2(ld, vec2(-123.38, 48.46), vec2(.12, .06)) * smoothFall(260., 80., h0);
   vec2 mq = mat2(.8, .6, -.6, .8) * q;
   meadow *= smoothstep(.64, .72, valueNoise(mq / 900.) * .55 + valueNoise(q / 260. + 3.1) * .3 + valueNoise(mq / 70.) * .15);
   c = mix(c, REGION_MEADOW, meadow);
@@ -150,7 +152,7 @@ vec3 canopy(vec2 q, float meadow, float mpp) {
     float angle = atan(d.y, d.x);
     float edge = radius * (oak > .5 ? .9 + .1 * valueNoise(vec2(angle * 3., species * 40.)) : .8 + .2 * abs(cos(3.5 * angle + r.y * 30.)));
     shadow = max(shadow, 1. - smoothstep(radius * .65, radius * 1.2, length(q - (centre - sunDirection * radius * 1.25))));
-    float a = smoothstep(edge + mpp * .8, edge - mpp * .8, dl);
+    float a = smoothFall(edge + mpp * .8, edge - mpp * .8, dl);
     float top = 1. - dl / edge;
     if (a > 0. && top > best) {
       best = top;

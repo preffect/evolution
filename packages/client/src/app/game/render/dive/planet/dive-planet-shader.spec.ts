@@ -50,6 +50,13 @@ describe('the planet shader source', () => {
     for (const name of called) if (!GLSL_BUILT_INS.has(name)) expect(defined.has(name), name).toBe(true);
   });
 
+  it('never calls smoothstep with its edges reversed, which GLSL leaves undefined (smoothFall falls instead)', () => {
+    for (const match of DIVE_PLANET_FRAGMENT_SOURCE.matchAll(/smoothstep\((-?[\d.]+), (-?[\d.]+),/g)) {
+      expect(Number(match[1]), match[0]).toBeLessThan(Number(match[2]));
+    }
+    expect(DIVE_PLANET_FRAGMENT_SOURCE).not.toMatch(/smoothstep\(([\w.]+) \+ ([^,]+), \1 - \2,/);
+  });
+
   it('reads the signed distance back with the bake’s own encoding', () => {
     expect(DIVE_PLANET_FRAGMENT_SOURCE).toContain(glslFloat(DIVE_SDF_ZERO_LEVEL));
     expect(DIVE_PLANET_FRAGMENT_SOURCE).toContain(`/ ${glslFloat(DIVE_SDF_LEVELS_PER_TEXEL.red)}`);
