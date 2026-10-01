@@ -112,6 +112,9 @@ Options:
   --no-deploy-watch  Do not start the deploy watcher (scripts/deploy-main.sh --watch,
                      which redeploys this checkout whenever origin/main moves)
   --clear-prebundle  Delete the Angular prebundle cache after stopping and before starting
+  --live-reload      Serve the client with live reload and HMR. Off by default: a dropped dev-server
+                     socket (an idle timeout or a blip through the router) then reloads the page and
+                     the player loses the game (#792). A deploy restarts in the same choice
   --wait-ready       Accepted for older callers: every start now waits until NEW listeners from this
                      checkout appear on the started ports. A server or client that exits first is a
                      failed start: what it started is stopped. A stack still not listening after the
@@ -493,6 +496,8 @@ RUN_CLIENT=true
 RUN_MODE=""
 DEPLOY_WATCH=true
 CLEAR_PREBUNDLE=false
+# The flag as run.env records it for a deploy's restart: "--live-reload" or empty (off)
+RUN_LIVE_RELOAD=""
 
 for arg in "$@"; do
   case "$arg" in
@@ -505,6 +510,7 @@ for arg in "$@"; do
     --client-only)     RUN_SERVER=false; RUN_MODE="$arg" ;;
     --no-deploy-watch) DEPLOY_WATCH=false ;;
     --clear-prebundle) CLEAR_PREBUNDLE=true ;;
+    --live-reload)     RUN_LIVE_RELOAD="$arg" ;;
     --wait-ready)      ;; # the default since #444
     *)
       echo "Unknown option: $arg"
@@ -547,7 +553,8 @@ fi
 
 mkdir -p "$LOG_DIR"
 > "$PID_FILE"
-printf 'PORT=%s\nSERVER_PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\n' "$SERVER_PORT" "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" > "$RUN_ENV_FILE"
+printf 'PORT=%s\nSERVER_PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=%s\nRUN_LIVE_RELOAD=%s\n' \
+  "$SERVER_PORT" "$SERVER_PORT" "$CLIENT_PORT" "$RUN_MODE" "$RUN_LIVE_RELOAD" > "$RUN_ENV_FILE"
 record_listeners_before_start
 
 if $RUN_SERVER; then
@@ -561,7 +568,10 @@ if $RUN_CLIENT; then
   echo "==> Starting Angular client on port ${CLIENT_PORT}..."
   # The proxy targets this run's server port rather than the one baked into proxy.conf.json
   sed -E "s#localhost:[0-9]+#localhost:${SERVER_PORT}#g" "$CLIENT_PROXY_TEMPLATE" > "$CLIENT_PROXY_FILE"
-  pnpm dev:client --port "$CLIENT_PORT" --proxy-config "$CLIENT_PROXY_FILE" > "$LOG_DIR/client.log" 2>&1 &
+  # Live reload and HMR both off unless asked for: either one keeps the socket whose drop reloads the page
+  live_reload="$([[ -n "$RUN_LIVE_RELOAD" ]] && echo true || echo false)"
+  pnpm dev:client --port "$CLIENT_PORT" --proxy-config "$CLIENT_PROXY_FILE" \
+    --live-reload="$live_reload" --hmr="$live_reload" > "$LOG_DIR/client.log" 2>&1 &
   CLIENT_PID=$!
   echo "$CLIENT_PID" >> "$PID_FILE"
 fi
