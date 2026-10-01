@@ -25,9 +25,11 @@ import {
   type RandomSource,
 } from '@evolution/shared';
 import type { RenderFrame } from '../../net/world-store';
+import type { RenderTextureOptions } from '../render-textures';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import {
   DIVE_BACTERIA_COUNT,
+  DIVE_BAKE_DEVICE_PIXEL_RATIO,
   DIVE_BACTERIUM_DIAMETER_M,
   DIVE_BACTERIUM_DRIFT_M,
   DIVE_BACTERIUM_DRIFT_PERIOD_SECONDS,
@@ -172,5 +174,20 @@ export function createDiveMicroScene(): DiveMicroScene {
       return previewRenderFrame({ renderTick: timeSeconds / TICK_INTERVAL_S, scene, balance });
     },
     ownCellIndicators: (frame) => actionSubjectOwnCellIndicators(frame, frame.balance),
+  };
+}
+
+/**
+ * The textures the dive's renderer bakes for its scene: seeded through `cosmetic:dive`, at the organelle atlas's
+ * highest ratio whatever the screen's (so your cell holds its detail down to the dive's bottom), and with the field's
+ * warm vent tint off, since the vent sprite is hidden too: your cell is the dive's end.
+ */
+export function diveTextureOptions(noiseTileSizePx: number | undefined): Omit<RenderTextureOptions, 'baker'> {
+  return {
+    seed: DIVE_SEED,
+    gelPatches: [],
+    devicePixelRatio: DIVE_BAKE_DEVICE_PIXEL_RATIO,
+    noiseTileSizePx,
+    isVentTinted: false,
   };
 }

@@ -14,6 +14,7 @@ function bands(): MockupBands {
   return {
     canvas: document.createElement('canvas'),
     isBaked: true,
+    isPlanetReady: true,
     draw: () => undefined,
     pumpBakes: () => false,
     release: () => undefined,

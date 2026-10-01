@@ -22,6 +22,7 @@ function recordingBands(): MockupBands & { readonly frames: MockupFrame[]; relea
   return {
     canvas: document.createElement('canvas'),
     isBaked: true,
+    isPlanetReady: true,
     frames,
     released: 0,
     draw: (frame) => frames.push(frame),

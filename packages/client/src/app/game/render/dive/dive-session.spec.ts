@@ -207,15 +207,32 @@ describe('DiveSession in orbit (ticket #805)', () => {
     }
   });
 
-  it('crossfades the baked planet over the fallback globe, at once under reduced motion', async () => {
-    const { subject, app, bands, motion } = await started();
+  it('brings the baked planet up over the fallback globe across 300 ms, at once under reduced motion', async () => {
+    const { subject, app, bands, clock } = await started();
+    const alpha = (): number => bands.frames.at(-1)!.globeAlpha;
+    bands.isPlanetReady = false;
     app.tick();
-    expect(bands.frames.at(-1)!.globeCrossfadeMs).toBe(DIVE_GLOBE_CROSSFADE_MS);
-    motion.isReduced = true;
-    subject.requestFrame();
+    expect(alpha()).toBe(0);
+    bands.isPlanetReady = true;
     app.tick();
-    expect(bands.frames.at(-1)!.globeCrossfadeMs).toBe(0);
+    expect(alpha()).toBe(0);
+    clock.advanceMilliseconds(DIVE_GLOBE_CROSSFADE_MS / 2);
+    app.tick();
+    expect(alpha()).toBeCloseTo(0.5, 6);
+    clock.advanceMilliseconds(DIVE_GLOBE_CROSSFADE_MS / 2);
+    app.tick();
+    expect(alpha()).toBe(1);
     subject.destroy();
+
+    const reduced = await started();
+    reduced.bands.isPlanetReady = false;
+    reduced.motion.isReduced = true;
+    reduced.app.tick();
+    reduced.bands.isPlanetReady = true;
+    reduced.subject.requestFrame();
+    reduced.app.tick();
+    expect(reduced.bands.frames.at(-1)!.globeAlpha).toBe(1);
+    reduced.subject.destroy();
   });
 });
 

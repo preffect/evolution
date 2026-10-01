@@ -14,6 +14,7 @@ import {
   DIVE_LABEL_FLIP_GAP_PX,
   DIVE_LABEL_OFFSET_PX,
   DIVE_LABEL_PADDING_PX,
+  DIVE_LABEL_SIDE_GAP_PX,
   DIVE_LABEL_STACK_GAP_PX,
   DIVE_READOUT_KEEP_OUT_PX,
   DIVE_WORLD_LABELS,
@@ -30,15 +31,24 @@ export interface DiveLabelPlacement {
   /** The dot, in CSS px from the view's top-left. */
   readonly dotX: number;
   readonly dotY: number;
-  /** The backing box's top-left. */
+  /** The backing box's top-left, and its width. */
   readonly boxX: number;
   readonly boxY: number;
+  readonly boxWidth: number;
 }
 
 /** The readout's box on the stage, from its top-left corner: no label's box may start inside it. */
 export interface DiveReadoutKeepOut {
   readonly right: number;
   readonly bottom: number;
+}
+
+/** What the panel has measured on the stage; each falls back to the constants until it has. */
+export interface DiveLabelLayout {
+  /** The readout's box; `DIVE_READOUT_KEEP_OUT_PX` until measured. */
+  readonly readout?: DiveReadoutKeepOut;
+  /** Each label's backing box as rendered, in CSS px by its text; estimated from its length until measured. */
+  readonly boxWidths?: ReadonlyMap<string, number>;
 }
 
 /** A label's fade over its range: 0 outside it, 1 a `DIVE_LABEL_FADE_ZOOM` inside both ends (`labelAlpha`). */
@@ -104,10 +114,11 @@ export interface DiveLabelAtDot {
 
 /** A box's sides: its padding on the left and on the right of the text. */
 const BOX_SIDES = 2;
+const BOX_PADDING_PX = DIVE_LABEL_BOX.sidePx * BOX_SIDES;
 
-/** A label's text width, as the placement estimates it from its length. */
-function textWidthOf(text: string): number {
-  return text.length * DIVE_LABEL_CHARACTER_WIDTH_PX;
+/** A label's backing box width: as the panel measured it, else estimated from the text's length. */
+export function diveLabelBoxWidth(text: string, boxWidths?: ReadonlyMap<string, number>): number {
+  return boxWidths?.get(text) ?? text.length * DIVE_LABEL_CHARACTER_WIDTH_PX + BOX_PADDING_PX;
 }
 
 /**
@@ -117,11 +128,13 @@ function textWidthOf(text: string): number {
 export function placeDiveLabel(
   camera: DiveCamera,
   label: DiveLabelAtDot,
-  readout: DiveReadoutKeepOut = DIVE_READOUT_KEEP_OUT_PX,
+  layout: DiveLabelLayout = {},
 ): DiveLabelPlacement {
   const { text, alpha, dot } = label;
   const { width, height } = camera.viewport;
-  const textWidth = textWidthOf(text);
+  const readout = layout.readout ?? DIVE_READOUT_KEEP_OUT_PX;
+  const boxWidth = diveLabelBoxWidth(text, layout.boxWidths);
+  const textWidth = boxWidth - BOX_PADDING_PX;
   let textX = dot.x + DIVE_LABEL_OFFSET_PX;
   if (textX + textWidth + DIVE_LABEL_PADDING_PX > width - DIVE_LABEL_EDGE_PX.side) {
     textX = dot.x - DIVE_LABEL_OFFSET_PX - textWidth - DIVE_LABEL_FLIP_GAP_PX;
@@ -142,6 +155,7 @@ export function placeDiveLabel(
       right: Math.min(width, readout.right),
       bottom: readout.bottom,
     }),
+    boxWidth,
   };
 }
 
@@ -158,15 +172,18 @@ interface LabelBox {
 
 function boxOf(placement: DiveLabelPlacement, top: number): LabelBox {
   const left = placement.boxX;
-  return { left, right: left + textWidthOf(placement.text) + DIVE_LABEL_BOX.sidePx * BOX_SIDES, top };
+  return { left, right: left + placement.boxWidth, top };
 }
 
-/** Two boxes closer than the stacking gap: their spans cross, and their tops are less than a box and a gap apart. */
+/**
+ * Two boxes too close to read apart: less than the side gap apart across, and their tops less than a box and the
+ * stacking gap apart down.
+ */
 function isCrowding(first: LabelBox, second: LabelBox): boolean {
   const pitch = DIVE_LABEL_BOX.heightPx + DIVE_LABEL_STACK_GAP_PX;
   return (
-    first.left < second.right &&
-    second.left < first.right &&
+    first.left < second.right + DIVE_LABEL_SIDE_GAP_PX &&
+    second.left < first.right + DIVE_LABEL_SIDE_GAP_PX &&
     first.top < second.top + pitch &&
     second.top < first.top + pitch
   );
@@ -199,13 +216,11 @@ export function stackDiveLabels(placements: readonly DiveLabelPlacement[]): read
   return stacked;
 }
 
-export interface DiveLabelInputs {
+export interface DiveLabelInputs extends DiveLabelLayout {
   readonly camera: DiveCamera;
   readonly globeRotation: readonly [number, number];
   /** The planar world's fade over the globe: the shore band's weight. */
   readonly worldWeight: number;
-  /** The readout's measured box; `DIVE_READOUT_KEEP_OUT_PX` until the panel has one. */
-  readonly readout?: DiveReadoutKeepOut;
 }
 
 /** The labels of one kind on screen: each one's fade, then its dot, culled near the view and placed. */
@@ -220,7 +235,7 @@ function placementsOf<Label extends { readonly text: string; readonly range: Div
     const alpha = diveLabelAlpha(label.range, camera.zoom) * place.fade;
     const dot = alpha > 0 ? place.dotOf(label) : null;
     if (dot !== null && isNearView(camera, dot)) {
-      placements.push(placeDiveLabel(camera, { text: label.text, alpha, dot }, inputs.readout));
+      placements.push(placeDiveLabel(camera, { text: label.text, alpha, dot }, inputs));
     }
   }
   return placements;

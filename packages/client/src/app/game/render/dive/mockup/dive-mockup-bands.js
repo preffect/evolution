@@ -24,12 +24,6 @@ const d3 = { geoArea, geoEquirectangular, geoOrthographic, geoPath };
 let BANDS = null;
 /** The dive's clock (milliseconds); the bake pump and the globe's resolution guard read it. */
 let nowMs = () => 0;
-/**
- * The planet's crossfade from the flat fallback globe (ticket #805): when the world's coastline bake landed after this
- * open drew the fallback, and how long the full planet takes to come up over it. `null`: no crossfade to draw.
- */
-let globeShownAtMs = null;
-let sawFallbackGlobe = false;
 
 // ---------- core: constants, palette, helpers ----------
 const R_EARTH = 6.371e6;
@@ -2880,10 +2874,11 @@ function drawFrame(f) {
       if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
     }
   }
-  const globeAlpha = glOn ? globeCrossfade(f.globeCrossfadeMs) : 1;
+  // the baked planet comes up over the fallback globe at the session's alpha (dive-globe-crossfade.ts, ticket #805)
+  const globeAlpha = glOn ? f.globeAlpha : 1;
   if (!glOn || globeAlpha < 1) {
     ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch);
-    if ((!globeReady || globeAlpha < 1) && z > 4.4) { drawGlobeFallback(); sawFallbackGlobe ||= !globeReady; }
+    if ((!globeReady || globeAlpha < 1) && z > 4.4) drawGlobeFallback();
   }
   if (glOn) {
     Globe.draw(geoRot, s, z, T);
@@ -2897,15 +2892,6 @@ function drawFrame(f) {
     ctx.restore();
   }
   frameNo++;
-}
-// The full planet's opacity over the fallback globe: 1 unless this open drew the fallback, then rising over
-// `crossfadeMs` from the first frame the baked planet draws (0 under reduced motion: at once).
-function globeCrossfade(crossfadeMs) {
-  if (!sawFallbackGlobe || crossfadeMs <= 0) return 1;
-  if (globeShownAtMs === null) globeShownAtMs = nowMs();
-  const unit = Math.min(1, (nowMs() - globeShownAtMs) / crossfadeMs);
-  if (unit >= 1) { sawFallbackGlobe = false; globeShownAtMs = null; }
-  return unit;
 }
 // without WebGL: the flat globe of the first draft
 function drawGlobeFallback() {
@@ -2939,7 +2925,6 @@ function freeScreenCanvases() {
  */
 export function createMockupBands(input) {
   nowMs = input.nowMs;
-  sawFallbackGlobe = false; globeShownAtMs = null;
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
   if (!WORLD_RINGS) { initGeo(input.worldRings, input.salishRings); initCoast(); }
   if (!Globe) Globe = createGlobe();
@@ -2950,6 +2935,7 @@ export function createMockupBands(input) {
     draw(frame) { drawFrame(frame); },
     pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked || EXTRA_JOBS.length) pump(budgetMs); return bakeLanded; },
     get isBaked() { return allBaked && EXTRA_JOBS.length === 0; },
+    get isPlanetReady() { return !!Globe && Globe.ready; },
     release() { if (Globe) Globe.release(); Globe = null; freeScreenCanvases(); },
   };
 }

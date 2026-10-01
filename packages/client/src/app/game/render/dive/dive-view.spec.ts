@@ -14,18 +14,17 @@ describe('mockupDevicePixelRatio', () => {
 describe('mockupFrameOf', () => {
   const inputs = { zoom: 5, viewport: { width: 800, height: 450 }, timeSeconds: 3, isMoving: true };
 
-  it('hands the mockup the camera, the planet’s turn, the band table and the planet’s crossfade', () => {
+  it('hands the mockup the camera, the planet’s turn, the band table and the planet’s opacity', () => {
     const view = diveViewAt({ ...inputs, globeIdleSpinDegrees: 0 });
-    const frame = mockupFrameOf(view, 2, false);
+    const frame = mockupFrameOf(view, 2, 0.5);
     expect(frame).toMatchObject({
       zoom: 5,
       timeSeconds: 3,
       widthPx: 800,
       heightPx: 450,
       devicePixelRatio: 1.5,
-      globeCrossfadeMs: 300,
+      globeAlpha: 0.5,
     });
-    expect(mockupFrameOf(view, 2, true).globeCrossfadeMs).toBe(0);
     expect(frame.globeRotation).toBe(view.globeRotation);
     expect(frame.bands).toBe(view.bands);
     expect(frame.bands.planet.isActive).toBe(true);

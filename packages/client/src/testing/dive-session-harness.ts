@@ -11,6 +11,8 @@ import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from './
 export interface FakeDiveBands extends MockupBands {
   readonly frames: MockupFrame[];
   readonly releases: { count: number };
+  /** The world's coastline bake has landed; a spec clears it to show the fallback globe first. */
+  isPlanetReady: boolean;
 }
 
 export function fakeDiveBands(): FakeDiveBands {
@@ -22,6 +24,7 @@ export function fakeDiveBands(): FakeDiveBands {
     frames,
     releases,
     isBaked: true,
+    isPlanetReady: true,
     draw: (frame) => frames.push(frame),
     pumpBakes: () => false,
     release: () => {

@@ -31,8 +31,8 @@ export interface MockupFrame {
   /** The globe's rotation as d3 takes it: `[λ, φ]` in degrees. */
   readonly globeRotation: readonly [number, number];
   readonly bands: MockupBandStates;
-  /** How long the baked planet takes to come up over the fallback globe when it lands mid-view; 0: at once. */
-  readonly globeCrossfadeMs: number;
+  /** The baked planet's opacity over the fallback globe (`dive-globe-crossfade.ts`): 1 once it is up. */
+  readonly globeAlpha: number;
 }
 
 export interface MockupBandsInput {
@@ -49,6 +49,8 @@ export interface MockupBands {
   /** Runs the texture bakes for about `budgetMs`; `true` when one finished, so a still view draws once more. */
   pumpBakes(budgetMs: number): boolean;
   readonly isBaked: boolean;
+  /** The world's coastline bake has landed: the baked planet can draw instead of the fallback globe. */
+  readonly isPlanetReady: boolean;
   /** Gives the globe's WebGL context back; the bakes are kept for the next open. */
   release(): void;
 }

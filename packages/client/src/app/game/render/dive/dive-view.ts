@@ -3,7 +3,7 @@
 // session only sequences it and the panel reads the same numbers for its readout and labels.
 
 import type { ViewportPx } from '../camera';
-import { DIVE_GLOBE_CROSSFADE_MS, DIVE_MAX_DEVICE_PIXEL_RATIO, DIVE_MOVING_DEVICE_PIXEL_RATIO } from '../constants';
+import { DIVE_MAX_DEVICE_PIXEL_RATIO, DIVE_MOVING_DEVICE_PIXEL_RATIO } from '../constants';
 import { diveBandStates, type DiveBandStates } from './dive-bands';
 import { diveCameraAt, diveGlobeRotation, type DiveCamera } from './dive-camera';
 import type { MockupFrame } from './mockup/dive-mockup-bands';
@@ -48,11 +48,8 @@ export function mockupDevicePixelRatio(screenRatio: number, isMoving: boolean): 
   return Math.min(screenRatio, isMoving ? DIVE_MOVING_DEVICE_PIXEL_RATIO : DIVE_MAX_DEVICE_PIXEL_RATIO);
 }
 
-/**
- * What the mockup's canvas draws this frame. The baked planet comes up over the fallback globe over
- * `DIVE_GLOBE_CROSSFADE_MS`, or at once under reduced motion, where a still dive draws only when something changed.
- */
-export function mockupFrameOf(view: DiveView, screenRatio: number, isMotionReduced: boolean): MockupFrame {
+/** What the mockup's canvas draws this frame, the baked planet at `globeAlpha` over the fallback globe. */
+export function mockupFrameOf(view: DiveView, screenRatio: number, globeAlpha: number): MockupFrame {
   return {
     zoom: view.camera.zoom,
     timeSeconds: view.timeSeconds,
@@ -61,6 +58,6 @@ export function mockupFrameOf(view: DiveView, screenRatio: number, isMotionReduc
     devicePixelRatio: mockupDevicePixelRatio(screenRatio, view.isMoving),
     globeRotation: view.globeRotation,
     bands: view.bands,
-    globeCrossfadeMs: isMotionReduced ? 0 : DIVE_GLOBE_CROSSFADE_MS,
+    globeAlpha,
   };
 }

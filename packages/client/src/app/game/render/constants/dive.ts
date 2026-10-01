@@ -157,6 +157,11 @@ export const DIVE_LABEL_BOX = { sidePx: 4, ascentPx: 13, heightPx: 18 } as const
 /** Two labels that would overlap stack: the lower one moves down to this far under the other's box. */
 export const DIVE_LABEL_STACK_GAP_PX = 2;
 /**
+ * Two labels on one line closer than this side by side read as one ("EURASIA PACIFIC OCEAN"), so they stack too. It
+ * also covers an estimated width's error before the panel has measured the boxes (ticket #805).
+ */
+export const DIVE_LABEL_SIDE_GAP_PX = 8;
+/**
  * The readout's corner of the stage until the panel has measured its box (ticket #805): its longest line runs to
  * about 408 px on the 1280 stage. A label whose box would sit in it moves down below it, so no label prints over the
  * field of view. The width never passes the stage's.

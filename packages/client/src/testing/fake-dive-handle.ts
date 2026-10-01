@@ -19,6 +19,7 @@ export class RecordingDiveHandle implements DiveHandle {
   readonly played: { stop: DivePhaseStop; isMotionReduced: boolean }[] = [];
   readonly scrubs: number[] = [];
   readonly visibility: boolean[] = [];
+  readonly stageSizes: { readonly width: number; readonly height: number }[] = [];
   startCount = 0;
   pauseToggles = 0;
   skipCount = 0;
@@ -55,6 +56,10 @@ export class RecordingDiveHandle implements DiveHandle {
 
   setIsVisible(isVisible: boolean): void {
     this.visibility.push(isVisible);
+  }
+
+  resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
+    this.stageSizes.push(sizePx);
   }
 
   takeFrameTimes(): DiveFrameTimesReport {

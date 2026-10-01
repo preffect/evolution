@@ -13,15 +13,17 @@ import {
   inject,
   signal,
   viewChild,
+  viewChildren,
   type AfterViewInit,
 } from '@angular/core';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { REDUCED_MOTION } from '../reduced-motion';
 import {
   DIVE_LADDER,
+  DIVE_GEO_LABELS,
   DIVE_PHASE_STOPS,
-  DIVE_READOUT_CLEARANCE_PX,
   DIVE_SLIDER_STEP,
+  DIVE_WORLD_LABELS,
   DIVE_ZOOM_BOTTOM,
   DIVE_ZOOM_TOP,
   type DivePhaseStop,
@@ -31,6 +33,7 @@ import { diveReadout, diveScaleBar, superscript } from '../render/dive/dive-read
 import { DIVE_SLIDER_MAX, diveSliderPercent, diveSliderValue, diveZoomFromSlider } from '../render/dive/dive-camera';
 import { OPENING_DIVE, type DiveFrameState, type DiveHandle } from '../render/dive/dive-host';
 import { DIVE_PANEL_TEST_ID } from '../test-ids/dive-test-ids';
+import { diveReadoutKeepOut, measuredLabelWidths, observeSizes } from './dive-stage-measures';
 
 /** The keys that skip a playing opening to its stop (`' '` is Space). */
 export const DIVE_SKIP_KEYS: readonly string[] = [' ', 'Escape'];
@@ -51,14 +54,6 @@ export function divePhaseTitle(stop: DivePhaseStop): string {
 /** A phase button's text: its title, and "(idea)" for a later chapter not in the plan yet. */
 export function divePhaseButtonText(stop: DivePhaseStop): string {
   return stop.isFuture ? `${divePhaseTitle(stop)} (idea)` : divePhaseTitle(stop);
-}
-
-/** The readout's box on its stage, and the clearance a label keeps past it. */
-export function diveReadoutKeepOut(readout: HTMLElement): DiveReadoutKeepOut {
-  return {
-    right: readout.offsetLeft + readout.offsetWidth + DIVE_READOUT_CLEARANCE_PX,
-    bottom: readout.offsetTop + readout.offsetHeight + DIVE_READOUT_CLEARANCE_PX,
-  };
 }
 
 /**
@@ -90,6 +85,10 @@ export class DivePanelComponent implements AfterViewInit {
   private readonly readoutElement = viewChild<ElementRef<HTMLElement>>('readout');
   /** The readout's measured box, which the labels keep clear of; the constant's until it is measured. */
   private readonly readoutKeepOut = signal<DiveReadoutKeepOut | undefined>(undefined);
+  /** Every label's text once (a place can be named on the planet and on the map), laid out unseen to be measured. */
+  protected readonly labelTexts = [...new Set([...DIVE_GEO_LABELS, ...DIVE_WORLD_LABELS].map((label) => label.text))];
+  private readonly labelMeasures = viewChildren<ElementRef<HTMLElement>>('labelMeasure');
+  private readonly labelBoxWidths = signal<ReadonlyMap<string, number> | undefined>(undefined);
   private handle: DiveHandle | null = null;
   private readonly frame = signal<DiveFrameState | null>(null);
   private readonly isUnavailableValue = signal(false);
@@ -127,6 +126,7 @@ export class DivePanelComponent implements AfterViewInit {
       globeRotation: view.globeRotation,
       worldWeight: view.bands.shore.weight,
       readout: this.readoutKeepOut(),
+      boxWidths: this.labelBoxWidths(),
     });
   });
   protected readonly scaleBar = computed(() => {
@@ -139,6 +139,7 @@ export class DivePanelComponent implements AfterViewInit {
 
   constructor() {
     this.measureReadout();
+    this.measureLabels();
   }
 
   ngAfterViewInit(): void {
@@ -155,6 +156,9 @@ export class DivePanelComponent implements AfterViewInit {
       handle.destroy();
     });
     this.observeVisibility(host, handle);
+    // The canvases follow the stage itself, not the window: a grid column settles after the window's resize (#805).
+    const resize = (): void => handle.resizeStage({ width: host.clientWidth, height: host.clientHeight });
+    this.destroyReference.onDestroy(observeSizes([host], resize));
     void this.open(handle);
   }
 
@@ -182,13 +186,19 @@ export class DivePanelComponent implements AfterViewInit {
   private measureReadout(): void {
     effect((onCleanup) => {
       const readout = this.readoutElement()?.nativeElement;
-      const view = readout?.ownerDocument.defaultView;
-      if (readout === undefined || view === null || view === undefined || typeof view.ResizeObserver !== 'function') {
-        return;
-      }
-      const observer = new view.ResizeObserver(() => this.readoutKeepOut.set(diveReadoutKeepOut(readout)));
-      observer.observe(readout);
-      onCleanup(() => observer.disconnect());
+      if (readout === undefined) return;
+      onCleanup(observeSizes([readout], () => this.readoutKeepOut.set(diveReadoutKeepOut(readout))));
+    });
+  }
+
+  /**
+   * Each label's box as rendered, measured again when its size changes (the label font arriving), so labels side by
+   * side are kept apart by the boxes they really have rather than an estimate from their length.
+   */
+  private measureLabels(): void {
+    effect((onCleanup) => {
+      const labels = this.labelMeasures().map((label) => label.nativeElement);
+      onCleanup(observeSizes(labels, () => this.labelBoxWidths.set(measuredLabelWidths(labels))));
     });
   }
 

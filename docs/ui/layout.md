@@ -146,7 +146,9 @@ view without scrolling (ticket #805). "Connect & Join Lobby" is never below the 
 
 The DOM order is the narrow order, so the keyboard reaches Connect before the dive's controls at every width. Each
 left-hand row is its own grid area, so an absent notice or error takes no room; the dive spans them all and a last,
-flexible row takes up whatever of its height they leave, so the forms never spread apart to match it. Measured on
+flexible row takes up whatever of its height they leave, so the forms never spread apart to match it. The dive's
+canvases follow its stage through a `ResizeObserver`, so a window resize that moves the columns never leaves them
+at a stale size (rendering/opening-dive.md §4). Measured on
 a private stack at DPR 1, in CSS px from the viewport's top:
 
 | Viewport   | Connect & Join Lobby | Dive stage | Whole dive panel               |
