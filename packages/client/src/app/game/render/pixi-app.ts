@@ -17,6 +17,11 @@ export interface PixiAppOptions {
   readonly fixedSize?: { readonly width: number; readonly height: number };
   /** Keeps the back buffer readable (`canvas.toDataURL` in the smoke); a copy per frame, so dev builds only. */
   readonly shouldPreserveDrawingBuffer: boolean;
+  /**
+   * Clears to transparent instead of the dark field, so what the page draws under the canvas shows through: the
+   * opening dive's upper bands (docs/rendering/opening-dive.md §1).
+   */
+  readonly isTransparent?: boolean;
 }
 
 export interface PixiAppHandle {
@@ -66,6 +71,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
   const app = new Application();
   await app.init({
     background: BG_DEEP,
+    backgroundAlpha: options.isTransparent === true ? 0 : 1,
     resolution: options.devicePixelRatio,
     autoDensity: true,
     antialias: false,

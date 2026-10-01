@@ -40,6 +40,12 @@
         </button>
       </header>
 
+      <!--
+        The opening dive (docs/rendering/opening-dive.md §5, ticket #797): from orbit to the dish, with the game's own
+        dish at its end. It leaves with the lobby, so its renderer is gone before a room builds its own.
+      -->
+      <app-dive-panel />
+
       @if (multiplayer.lobbyNotice(); as notice) {
         <p class="notice" role="status" data-testid="lobby-notice">{{ lobbyNoticeText[notice] }}</p>
       }

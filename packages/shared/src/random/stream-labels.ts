@@ -48,6 +48,8 @@ export const COSMETIC_SUB_STREAM = {
   bench: 'bench',
   /** The encyclopedia preview scenes' specs: the seeded mote and fragment clusters (docs/architecture/encyclopedia.md §12.7, #363). */
   preview: 'preview',
+  /** The opening dive's dish scene: its seeded bacteria and motes (docs/rendering/opening-dive.md §4, #797). */
+  dive: 'dive',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];

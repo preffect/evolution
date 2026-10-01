@@ -16,6 +16,7 @@ import { GameHostComponent } from './game/game-host.component';
 import { IdentityService } from './services/identity.service';
 import { LOBBY_NOTICE } from './services/multiplayer.service';
 import { RECONNECT_DELAY_MS } from './services/websocket.service';
+import { provideRecordingDive } from '../testing/fake-dive-handle';
 import { FakeWebSocket } from '../testing/fake-websocket';
 
 /** The server's game_started for alice, seated alone as the host of `g1`. */
@@ -55,7 +56,7 @@ describe('lobby shell + multiplayer services', () => {
     vi.stubGlobal('WebSocket', FakeWebSocket);
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [{ provide: IdentityService, useValue: { clientId: 'alice' } }],
+      providers: [{ provide: IdentityService, useValue: { clientId: 'alice' } }, provideRecordingDive().provider],
     }).compileComponents();
   });
 

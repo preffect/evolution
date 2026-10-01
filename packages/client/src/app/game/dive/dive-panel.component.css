@@ -1,0 +1,302 @@
+/*
+ * The opening dive's viewer (docs/rendering/opening-dive.md §5): the mockup's own look, its palette as the custom
+ * properties below, its type on the kit's families (the kit's sans for the mockup's condensed display face, the
+ * kit's mono for its numbers). Lengths follow the mockup at 1×; the controls scale with `--ui-scale`.
+ */
+:host {
+  --dive-ink: #02060a;
+  --dive-panel: #0f1e28;
+  --dive-panel-2: #142834;
+  --dive-line: #23404f;
+  --dive-text: #dce9ee;
+  --dive-muted: #8aa5b1;
+  --dive-amber: #e8b04b;
+  --dive-label-text: #e8f3f5;
+  --dive-label-ground: rgba(4, 10, 14, 0.72);
+  --dive-scale-ground: rgba(4, 10, 14, 0.6);
+  --dive-shadow: 0 1px 3px #000c;
+  display: block;
+  /* Under the lobby header, as wide as the lobby's column, spaced as its panels are. */
+  margin-top: calc(var(--ui-space-l) * var(--ui-scale));
+  color: var(--dive-text);
+}
+
+.viewer {
+  background: var(--dive-panel);
+  border: 1px solid var(--dive-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 100%;
+  background: var(--dive-ink);
+  overflow: hidden;
+}
+
+@media (max-width: 560px) {
+  .stage {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* The upper bands' canvas and, over it, the game's (transparent) canvas: both fill the stage. */
+.stage ::ng-deep canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The upper bands' canvas is hidden once no mockup band draws (the view is inside the dish). */
+.stage ::ng-deep canvas[hidden] {
+  display: none;
+}
+
+/* The canvas is appended into the stage after these, so each overlay names its own layer above it. */
+.labels,
+.scale-bar,
+.readout,
+.phase-flag {
+  z-index: 1;
+}
+
+.labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--dive-amber);
+}
+
+.label {
+  position: absolute;
+  height: 18px;
+  padding: 0 4px;
+  white-space: nowrap;
+  background: var(--dive-label-ground);
+  color: var(--dive-label-text);
+  font-family: var(--ui-font-sans);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scale-bar {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  height: 30px;
+  padding: 0 6px;
+  box-sizing: content-box;
+  background: var(--dive-scale-ground);
+  pointer-events: none;
+}
+
+.scale-bar::before,
+.scale-bar::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  width: 2px;
+  height: 8px;
+  background: var(--dive-label-text);
+}
+
+.scale-bar::before {
+  left: 6px;
+}
+
+.scale-bar::after {
+  right: 6px;
+}
+
+.scale-text {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 2px;
+  color: var(--dive-label-text);
+  font-family: var(--ui-font-mono);
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 14px;
+  white-space: nowrap;
+  border-bottom: 3px solid var(--dive-label-text);
+  padding-bottom: 6px;
+}
+
+.readout {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  display: grid;
+  gap: 2px;
+  max-width: calc(100% - 28px);
+  pointer-events: none;
+  text-shadow: var(--dive-shadow);
+}
+
+.fov {
+  font-family: var(--ui-font-mono);
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pow {
+  font-family: var(--ui-font-mono);
+  color: var(--dive-amber);
+  font-size: 14px;
+}
+
+.what {
+  font-family: var(--ui-font-sans);
+  font-size: 14px;
+  color: #cfe0e6;
+  max-width: 46ch;
+}
+
+.phase-flag {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: #000a;
+  font-family: var(--ui-font-sans);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.phase-flag.on {
+  opacity: 1;
+}
+
+.controls {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--dive-line);
+}
+
+.phase-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.phase-buttons button,
+.ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--dive-line);
+  border-radius: 4px;
+  background: var(--dive-panel-2);
+  color: var(--dive-text);
+  font-family: var(--ui-font-sans);
+  font-weight: 600;
+  font-size: calc(14px * var(--ui-scale, 1));
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.phase-buttons button:hover,
+.ctl:hover {
+  border-color: var(--dive-muted);
+}
+
+.phase-buttons button:focus-visible,
+.ctl:focus-visible,
+input[type='range']:focus-visible {
+  outline: 2px solid var(--dive-amber);
+  outline-offset: 2px;
+}
+
+.phase-buttons .future {
+  border-style: dashed;
+  color: var(--dive-muted);
+}
+
+.chip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.scrub {
+  display: grid;
+  gap: 4px;
+}
+
+.scrub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--dive-amber);
+}
+
+.ticks {
+  position: relative;
+  height: 34px;
+  margin-inline: 8px;
+  color: var(--dive-muted);
+  font-family: var(--ui-font-mono);
+  font-size: 11px;
+}
+
+.ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.ticks .mk {
+  top: 16px;
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  transform: translateX(-1px);
+}
+
+.hint {
+  margin: 0;
+  color: var(--dive-muted);
+  font-size: calc(14px * var(--ui-scale, 1));
+}
+
+.drag {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-flag {
+    transition: none;
+  }
+}

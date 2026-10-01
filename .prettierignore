@@ -7,3 +7,7 @@ pnpm-lock.yaml
 ha-router/
 # agent worktrees (scripts/agent.sh --branch) are other checkouts
 .worktrees/
+# The opening dive's upper bands: the mockup's own code and the coastlines it bakes, kept as they are until epic
+# #795's follow-ups move each band onto the game's renderer (docs/rendering/opening-dive.md §4)
+packages/client/src/app/game/render/dive/mockup/dive-mockup-bands.js
+packages/client/src/assets/dive/

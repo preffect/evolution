@@ -21,6 +21,7 @@
     "**/testing/fake-*.ts",
     "**/testing/scenarios/**",
     "**/*.generated.*",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "**/render/dive/mockup/dive-mockup-bands.js"
   ]
 }
