@@ -215,4 +215,20 @@ describe('MenuOverlayComponent', () => {
     mountMenu();
     expect(query(HUD_TEST_ID.menuAlert)).toBeNull();
   });
+
+  it('toggles the mouse lock, on by default, as a switch that says its state and keeps the menu open', () => {
+    localStorage.clear();
+    const menu = mountMenu();
+    const toggle = query(HUD_TEST_ID.menuMouseLock)!;
+    expect(toggle.getAttribute('role')).toBe('switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(toggle.textContent).toContain('Mouse lock: On');
+
+    activate(HUD_TEST_ID.menuMouseLock);
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.textContent).toContain('Mouse lock: Off');
+    expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
+    menu.destroy();
+    localStorage.clear();
+  });
 });
