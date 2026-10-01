@@ -71,7 +71,13 @@ export class RecordingDiveHandle implements DiveHandle {
 
   /** Reports a frame at `zoom` as the session would, with the controls where the spec says. */
   emitFrame(zoom: number, controls: Partial<Omit<DiveFrameState, 'view'>> = {}): void {
-    const view = diveViewAt({ zoom, viewport: { width: 1200, height: 675 }, timeSeconds: 0, isMoving: false });
+    const view = diveViewAt({
+      zoom,
+      viewport: { width: 1200, height: 675 },
+      timeSeconds: 0,
+      isMoving: false,
+      globeIdleSpinDegrees: 0,
+    });
     this.options.onFrame({ view, isPlaying: false, isPaused: false, stopShown: null, hasArrived: false, ...controls });
   }
 }

@@ -15,7 +15,14 @@ import {
   tickUntilBuilt,
   type DiveSessionHarness,
 } from '../../../../testing/dive-session-harness';
-import { DIVE_AUTOPLAY_DELAY_MS, DIVE_CANVAS_TEST_ID, DIVE_PLAY_HOLD_MS, DIVE_ZOOM_TOP } from '../constants';
+import {
+  DIVE_AUTOPLAY_DELAY_MS,
+  DIVE_CANVAS_TEST_ID,
+  DIVE_GLOBE_CROSSFADE_MS,
+  DIVE_PLAY_HOLD_MS,
+  DIVE_ZOOM_TOP,
+} from '../constants';
+import { diveGlobeIdleSpin } from './dive-camera';
 import { DIVE_FIRST_PHASE } from './dive-controls';
 
 /** The game's canvas opacity: the dish band's weight. */
@@ -159,6 +166,56 @@ describe('DiveSession autoplay', () => {
       expect(parts.subject.controls.isPlaying).toBe(false);
       parts.subject.destroy();
     }
+  });
+});
+
+describe('DiveSession in orbit (ticket #805)', () => {
+  /** The planet's longitude at the view's centre in the last frame drawn: d3's rotation looks at its negation. */
+  const centreLongitudeOf = (parts: DiveSessionHarness): number => -parts.views.at(-1)!.globeRotation[0];
+
+  it('turns the planet on its own while the dive waits in orbit', async () => {
+    const parts = await started();
+    parts.subject.controls.cancelAutoplay();
+    parts.app.tick();
+    const before = centreLongitudeOf(parts);
+    parts.clock.advanceMilliseconds(2000);
+    parts.app.tick();
+    expect(centreLongitudeOf(parts) - before).toBeCloseTo(diveGlobeIdleSpin(2000), 6);
+    parts.subject.destroy();
+  });
+
+  it('holds the planet still under reduced motion, while paused, and once the dive is below the opening turn', async () => {
+    const stillnesses: ((parts: DiveSessionHarness) => void)[] = [
+      (parts) => (parts.motion.isReduced = true),
+      (parts) => {
+        parts.subject.controls.playPhase(DIVE_FIRST_PHASE, parts.clock.nowMilliseconds(), false);
+        parts.subject.controls.togglePause(parts.clock.nowMilliseconds());
+      },
+      (parts) => parts.subject.controls.scrub(5),
+    ];
+    for (const holdStill of stillnesses) {
+      const parts = await started();
+      parts.subject.controls.cancelAutoplay();
+      holdStill(parts);
+      parts.app.tick();
+      const before = parts.views.at(-1)!.globeRotation;
+      parts.clock.advanceMilliseconds(2000);
+      parts.subject.requestFrame();
+      parts.app.tick();
+      expect(parts.views.at(-1)!.globeRotation).toEqual(before);
+      parts.subject.destroy();
+    }
+  });
+
+  it('crossfades the baked planet over the fallback globe, at once under reduced motion', async () => {
+    const { subject, app, bands, motion } = await started();
+    app.tick();
+    expect(bands.frames.at(-1)!.globeCrossfadeMs).toBe(DIVE_GLOBE_CROSSFADE_MS);
+    motion.isReduced = true;
+    subject.requestFrame();
+    app.tick();
+    expect(bands.frames.at(-1)!.globeCrossfadeMs).toBe(0);
+    subject.destroy();
   });
 });
 

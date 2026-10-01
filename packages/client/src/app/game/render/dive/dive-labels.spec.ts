@@ -5,7 +5,14 @@
 import { describe, expect, it } from 'vitest';
 import { DIVE_GEO_LABELS, DIVE_WORLD_LABELS } from '../constants';
 import { diveCameraAt, diveGlobeRotation } from './dive-camera';
-import { diveGeoLabelFade, diveLabelAlpha, diveLabelPlacements, placeDiveLabel } from './dive-labels';
+import {
+  diveGeoLabelFade,
+  diveLabelAlpha,
+  diveLabelPlacements,
+  placeDiveLabel,
+  stackDiveLabels,
+  type DiveLabelPlacement,
+} from './dive-labels';
 
 const VIEWPORT = { width: 1200, height: 675 };
 const DIGITS = 9;
@@ -66,21 +73,77 @@ describe('diveLabelPlacements', () => {
 
 describe('placeDiveLabel', () => {
   const camera = diveCameraAt(0, VIEWPORT);
+  const blade = (x: number, y: number) => ({ text: 'Blade', alpha: 1, dot: { x, y } });
 
   it('sets the text right of and above its dot', () => {
-    const placed = placeDiveLabel(camera, 'Blade', 1, { x: 100, y: 200 });
+    const placed = placeDiveLabel(camera, blade(100, 200));
     expect(placed).toMatchObject({ dotX: 100, dotY: 200, boxX: 106, boxY: 177 });
   });
 
   it('flips the text left of its dot at the right edge', () => {
-    const placed = placeDiveLabel(camera, 'Blade', 1, { x: 1180, y: 200 });
+    const placed = placeDiveLabel(camera, blade(1180, 200));
     expect(placed.boxX).toBeLessThan(1180 - 'Blade'.length * 8.5);
   });
 
   it('keeps the text below the top edge, and below the readout in its corner', () => {
-    expect(placeDiveLabel(camera, 'Blade', 1, { x: 600, y: 0 }).boxY).toBe(16 - 13);
-    expect(placeDiveLabel(camera, 'Blade', 1, { x: 100, y: 40 }).boxY).toBe(120);
-    expect(placeDiveLabel(camera, 'Blade', 1, { x: 400, y: 40 }).boxY).toBe(40 - 10 - 13);
+    expect(placeDiveLabel(camera, blade(600, 0)).boxY).toBe(16 - 13);
+    expect(placeDiveLabel(camera, blade(100, 40)).boxY).toBe(120);
+    expect(placeDiveLabel(camera, blade(450, 40)).boxY).toBe(40 - 10 - 13);
+  });
+
+  it('keeps clear of the readout’s longest line, 408 px wide on the 1280 stage, until it is measured', () => {
+    // A box starting at 390 px was clear of the old 360 px keep-out but sat over "40 µm" (ticket #805).
+    expect(placeDiveLabel(camera, blade(386, 40)).boxY).toBe(120);
+  });
+
+  it('keeps clear of the readout’s measured box instead, once there is one', () => {
+    const readout = { right: 300, bottom: 150 };
+    expect(placeDiveLabel(camera, blade(200, 40), readout).boxY).toBe(150);
+    expect(placeDiveLabel(camera, blade(320, 40), readout).boxY).toBe(40 - 10 - 13);
+  });
+});
+
+describe('stackDiveLabels', () => {
+  const labelAt = (text: string, boxX: number, boxY: number): DiveLabelPlacement => ({
+    text,
+    alpha: 1,
+    dotX: boxX,
+    dotY: boxY,
+    boxX,
+    boxY,
+  });
+
+  it('moves the lower of two overlapping labels down under the other, keeping their order and dots', () => {
+    const stacked = stackDiveLabels([labelAt('THE DISH', 100, 52), labelAt('DIATOM', 120, 50)]);
+    expect(stacked.map((label) => label.text)).toEqual(['THE DISH', 'DIATOM']);
+    expect(stacked[1]!.boxY).toBe(50);
+    expect(stacked[0]!.boxY).toBe(50 + 18 + 2);
+    expect(stacked[0]!.dotY).toBe(52);
+  });
+
+  it('stacks labels on one line one under another, the first one first', () => {
+    const stacked = stackDiveLabels([labelAt('A', 10, 120), labelAt('B', 10, 120), labelAt('C', 10, 120)]);
+    expect(stacked.map((label) => label.boxY)).toEqual([120, 140, 160]);
+  });
+
+  it('leaves labels apart from each other where they are, side by side or a box and a gap apart', () => {
+    const apart = [labelAt('THE DISH', 100, 50), labelAt('DIATOM', 300, 50), labelAt('THE DISH', 100, 70)];
+    expect(stackDiveLabels(apart)).toEqual(apart);
+  });
+
+  it('never lets the dish and diatom labels land on one spot through the handoff (−3.9 to −4.1)', () => {
+    for (const viewport of [VIEWPORT, { width: 362, height: 453 }]) {
+      for (let zoom = -3.9; zoom >= -4.1; zoom -= 0.025) {
+        const boxes = diveLabelPlacements({
+          camera: diveCameraAt(zoom, viewport),
+          globeRotation: diveGlobeRotation(zoom),
+          worldWeight: 1,
+        });
+        expect(stackDiveLabels(boxes)).toEqual(boxes);
+        const tops = boxes.map((label) => `${Math.round(label.boxX)},${Math.round(label.boxY)}`);
+        expect(new Set(tops).size).toBe(tops.length);
+      }
+    }
   });
 });
 

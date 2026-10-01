@@ -20,7 +20,7 @@
       </div>
     }
     @if (readout(); as lines) {
-      <div class="readout" aria-live="off">
+      <div class="readout" #readout aria-live="off">
         <div class="fov" [attr.data-testid]="testId.readoutFieldOfView">{{ lines.fieldOfView }}</div>
         <div class="pow" [attr.data-testid]="testId.readoutPower">{{ lines.powerOfTen }}</div>
         <div class="what" [attr.data-testid]="testId.readoutWhat">{{ lines.whatYouSee }}</div>

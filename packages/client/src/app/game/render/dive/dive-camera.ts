@@ -5,6 +5,7 @@
 import type { ViewportPx } from '../camera';
 import {
   DIVE_FOCUS_DEGREES,
+  DIVE_GLOBE_IDLE_SPIN,
   DIVE_GLOBE_START_DEGREES,
   DIVE_GLOBE_TURN_SPAN_ZOOM,
   DIVE_GLOBE_TURN_START_ZOOM,
@@ -13,6 +14,7 @@ import {
   DIVE_ZOOM_BOTTOM,
   DIVE_ZOOM_TOP,
 } from '../constants';
+import { MILLISECONDS_PER_SECOND } from '@evolution/shared';
 import { DEGREES_PER_TURN, HALF, clamp01, smoothstep } from '../geometry';
 
 export interface DiveCamera {
@@ -69,11 +71,22 @@ export function diveViewReachM(camera: DiveCamera): number {
   return Math.hypot(camera.halfWidthM, camera.halfHeightM);
 }
 
-/** The planet's rotation as d3 takes it, `[λ, φ]` degrees: over Eurasia at the top, turned to the focus below. */
-export function diveGlobeRotation(zoom: number): readonly [number, number] {
+/** How far the planet has turned on its own after `idleMs` in orbit, in degrees of longitude (`DIVE_GLOBE_IDLE_SPIN`). */
+export function diveGlobeIdleSpin(idleMs: number): number {
+  const { degreesPerSecond, maxDegrees } = DIVE_GLOBE_IDLE_SPIN;
+  const timeConstantMs = (maxDegrees / degreesPerSecond) * MILLISECONDS_PER_SECOND;
+  return maxDegrees * (1 - Math.exp(-Math.max(0, idleMs) / timeConstantMs));
+}
+
+/**
+ * The planet's rotation as d3 takes it, `[λ, φ]` degrees: over Eurasia at the top, turned on by its idle spin, and
+ * turned to the focus below, the opening turn taking up the idle spin so it always ends on the focus.
+ */
+export function diveGlobeRotation(zoom: number, idleSpinDegrees = 0): readonly [number, number] {
   const turn = smoothstep(0, 1, clamp01((DIVE_GLOBE_TURN_START_ZOOM - zoom) / DIVE_GLOBE_TURN_SPAN_ZOOM));
   const endLongitude = DEGREES_PER_TURN + DIVE_FOCUS_DEGREES.longitude;
-  const longitude = DIVE_GLOBE_START_DEGREES.longitude + (endLongitude - DIVE_GLOBE_START_DEGREES.longitude) * turn;
+  const startLongitude = DIVE_GLOBE_START_DEGREES.longitude + idleSpinDegrees;
+  const longitude = startLongitude + (endLongitude - startLongitude) * turn;
   const latitude =
     DIVE_GLOBE_START_DEGREES.latitude + (DIVE_FOCUS_DEGREES.latitude - DIVE_GLOBE_START_DEGREES.latitude) * turn;
   return [-longitude, -latitude];

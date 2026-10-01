@@ -5,9 +5,11 @@ import { signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { provideRecordingDive, type RecordingDiveHandle } from '../../../testing/fake-dive-handle';
+import { withRecordingObserver } from '../../../testing/recording-observer';
 import { REDUCED_MOTION } from '../reduced-motion';
 import { DIVE_PHASE_STOPS, type DivePhaseStop } from '../render/constants';
-import { DIVE_PANEL_TEST_ID, DIVE_UNAVAILABLE_TEXT, DivePanelComponent } from './dive-panel.component';
+import { DIVE_PANEL_TEST_ID } from '../test-ids/dive-test-ids';
+import { DIVE_UNAVAILABLE_TEXT, DivePanelComponent, diveReadoutKeepOut } from './dive-panel.component';
 
 const SHORE = DIVE_PHASE_STOPS[4] as DivePhaseStop;
 
@@ -201,43 +203,59 @@ describe('DivePanelComponent when the dive cannot open', () => {
   });
 });
 
+/** A panel of its own over a recording dive, for the specs that install an observer before it is made. */
+function panelOverRecordingDive() {
+  const dive = provideRecordingDive();
+  TestBed.configureTestingModule({
+    imports: [DivePanelComponent],
+    providers: [dive.provider, { provide: REDUCED_MOTION, useValue: signal(false).asReadonly() }],
+  });
+  const fixture = TestBed.createComponent(DivePanelComponent);
+  fixture.detectChanges();
+  return { fixture, handle: dive.handles[0]! };
+}
+
 describe('DivePanelComponent off screen', () => {
   it('tells the dive when its stage leaves and comes back into view', () => {
-    const observers: { callback: IntersectionObserverCallback; observed: Element[]; isDisconnected: boolean }[] = [];
-    class RecordingObserver {
-      private readonly record: (typeof observers)[number];
-      constructor(callback: IntersectionObserverCallback) {
-        this.record = { callback, observed: [], isDisconnected: false };
-        observers.push(this.record);
-      }
-      observe(target: Element): void {
-        this.record.observed.push(target);
-      }
-      disconnect(): void {
-        this.record.isDisconnected = true;
-      }
-    }
-    const previous = window.IntersectionObserver;
-    window.IntersectionObserver = RecordingObserver as unknown as typeof IntersectionObserver;
-    try {
-      const dive = provideRecordingDive();
-      TestBed.configureTestingModule({
-        imports: [DivePanelComponent],
-        providers: [dive.provider, { provide: REDUCED_MOTION, useValue: signal(false).asReadonly() }],
-      });
-      const fixture = TestBed.createComponent(DivePanelComponent);
-      fixture.detectChanges();
+    withRecordingObserver<IntersectionObserverCallback>('IntersectionObserver', (observers) => {
+      const { fixture, handle } = panelOverRecordingDive();
       const [observer] = observers;
       const stage = fixture.nativeElement.querySelector(`[data-testid="${DIVE_PANEL_TEST_ID.stage}"]`);
       expect(observer!.observed).toEqual([stage]);
       const entry = (isIntersecting: boolean) => [{ isIntersecting } as IntersectionObserverEntry];
       observer!.callback(entry(false), observer as unknown as IntersectionObserver);
       observer!.callback(entry(true), observer as unknown as IntersectionObserver);
-      expect(dive.handles[0]!.visibility).toEqual([false, true]);
+      expect(handle.visibility).toEqual([false, true]);
       fixture.destroy();
       expect(observer!.isDisconnected).toBe(true);
-    } finally {
-      window.IntersectionObserver = previous;
-    }
+    });
+  });
+});
+
+describe('the readout’s keep-out (ticket #805)', () => {
+  it('is the readout’s box on its stage, with a clearance past its edge', () => {
+    const readout = { offsetLeft: 8, offsetTop: 6, offsetWidth: 420, offsetHeight: 96 } as HTMLElement;
+    expect(diveReadoutKeepOut(readout)).toEqual({ right: 432, bottom: 106 });
+  });
+
+  it('keeps the labels clear of the readout as measured, re-measured whenever it changes size', () => {
+    withRecordingObserver<ResizeObserverCallback>('ResizeObserver', (observers) => {
+      const { fixture, handle } = panelOverRecordingDive();
+      handle.emitFrame(7.3);
+      fixture.detectChanges();
+      const readout = fixture.nativeElement.querySelector('.readout') as HTMLElement;
+      const [observer] = observers;
+      expect(observer!.observed).toEqual([readout]);
+      // A readout as wide as the stage and 500 px tall: every label moves down under it.
+      const box = { offsetLeft: 0, offsetTop: 0, offsetWidth: 1200, offsetHeight: 500 };
+      for (const [name, value] of Object.entries(box)) Object.defineProperty(readout, name, { value });
+      observer!.callback([], observer as unknown as ResizeObserver);
+      fixture.detectChanges();
+      const labels = [...fixture.nativeElement.querySelectorAll(`[data-testid="${DIVE_PANEL_TEST_ID.label}"]`)];
+      expect(labels.length).toBeGreaterThan(0);
+      for (const label of labels) expect(parseFloat((label as HTMLElement).style.top)).toBeGreaterThanOrEqual(504);
+      fixture.destroy();
+      expect(observer!.isDisconnected).toBe(true);
+    });
   });
 });

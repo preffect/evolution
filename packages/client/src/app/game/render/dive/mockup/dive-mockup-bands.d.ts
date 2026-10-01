@@ -31,6 +31,8 @@ export interface MockupFrame {
   /** The globe's rotation as d3 takes it: `[λ, φ]` in degrees. */
   readonly globeRotation: readonly [number, number];
   readonly bands: MockupBandStates;
+  /** How long the baked planet takes to come up over the fallback globe when it lands mid-view; 0: at once. */
+  readonly globeCrossfadeMs: number;
 }
 
 export interface MockupBandsInput {

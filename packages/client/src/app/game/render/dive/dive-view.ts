@@ -3,7 +3,7 @@
 // session only sequences it and the panel reads the same numbers for its readout and labels.
 
 import type { ViewportPx } from '../camera';
-import { DIVE_MAX_DEVICE_PIXEL_RATIO, DIVE_MOVING_DEVICE_PIXEL_RATIO } from '../constants';
+import { DIVE_GLOBE_CROSSFADE_MS, DIVE_MAX_DEVICE_PIXEL_RATIO, DIVE_MOVING_DEVICE_PIXEL_RATIO } from '../constants';
 import { diveBandStates, type DiveBandStates } from './dive-bands';
 import { diveCameraAt, diveGlobeRotation, type DiveCamera } from './dive-camera';
 import type { MockupFrame } from './mockup/dive-mockup-bands';
@@ -23,6 +23,8 @@ export interface DiveViewInputs {
   readonly viewport: ViewportPx;
   readonly timeSeconds: number;
   readonly isMoving: boolean;
+  /** How far the planet has turned on its own while the dive waited in orbit (`diveGlobeIdleSpin`). */
+  readonly globeIdleSpinDegrees: number;
 }
 
 /** Two viewports of the same size: a change of size is a frame a still dive must draw. */
@@ -35,7 +37,7 @@ export function diveViewAt(inputs: DiveViewInputs): DiveView {
   return {
     camera,
     bands: diveBandStates(camera),
-    globeRotation: diveGlobeRotation(camera.zoom),
+    globeRotation: diveGlobeRotation(camera.zoom, inputs.globeIdleSpinDegrees),
     timeSeconds: inputs.timeSeconds,
     isMoving: inputs.isMoving,
   };
@@ -46,8 +48,11 @@ export function mockupDevicePixelRatio(screenRatio: number, isMoving: boolean): 
   return Math.min(screenRatio, isMoving ? DIVE_MOVING_DEVICE_PIXEL_RATIO : DIVE_MAX_DEVICE_PIXEL_RATIO);
 }
 
-/** What the mockup's canvas draws this frame. */
-export function mockupFrameOf(view: DiveView, screenRatio: number): MockupFrame {
+/**
+ * What the mockup's canvas draws this frame. The baked planet comes up over the fallback globe over
+ * `DIVE_GLOBE_CROSSFADE_MS`, or at once under reduced motion, where a still dive draws only when something changed.
+ */
+export function mockupFrameOf(view: DiveView, screenRatio: number, isMotionReduced: boolean): MockupFrame {
   return {
     zoom: view.camera.zoom,
     timeSeconds: view.timeSeconds,
@@ -56,5 +61,6 @@ export function mockupFrameOf(view: DiveView, screenRatio: number): MockupFrame 
     devicePixelRatio: mockupDevicePixelRatio(screenRatio, view.isMoving),
     globeRotation: view.globeRotation,
     bands: view.bands,
+    globeCrossfadeMs: isMotionReduced ? 0 : DIVE_GLOBE_CROSSFADE_MS,
   };
 }

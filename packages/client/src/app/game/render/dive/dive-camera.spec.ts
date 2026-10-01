@@ -9,6 +9,7 @@ import {
   DIVE_SLIDER_MAX,
   clampDiveZoom,
   diveCameraAt,
+  diveGlobeIdleSpin,
   diveGlobeRotation,
   diveRendererZoom,
   diveScreenPoint,
@@ -84,6 +85,29 @@ describe('diveGlobeRotation', () => {
     expect(turnedAt(0.5)).toBeCloseTo(0.5, DIGITS);
     // smoothstep(0.25) = 0.15625; a linear turn would be a quarter of the way round.
     expect(turnedAt(0.25)).toBeCloseTo(0.15625, DIGITS);
+  });
+});
+
+describe('diveGlobeIdleSpin', () => {
+  it('starts at rest and turns at 3° a second at first', () => {
+    expect(diveGlobeIdleSpin(0)).toBe(0);
+    expect(diveGlobeIdleSpin(-100)).toBe(0);
+    expect(diveGlobeIdleSpin(100)).toBeCloseTo(0.3, 2);
+  });
+
+  it('eases toward 90° and never passes it, however long the wait', () => {
+    expect(diveGlobeIdleSpin(30_000)).toBeCloseTo(90 * (1 - Math.exp(-1)), DIGITS);
+    expect(diveGlobeIdleSpin(3_600_000)).toBeLessThanOrEqual(90);
+    expect(diveGlobeIdleSpin(3_600_000)).toBeGreaterThan(89.9);
+  });
+
+  it('turns the planet on at the top, and the opening turn takes it up to end on the focus', () => {
+    expect(diveGlobeRotation(DIVE_ZOOM_TOP, 20)).toEqual([-102, -38]);
+    const turned = diveGlobeRotation(6, 20);
+    expect(turned[0]).toBeCloseTo(-(360 + DIVE_FOCUS_DEGREES.longitude), DIGITS);
+    // Halfway through the turn, halfway from where the spin left the planet.
+    const endLongitude = 360 + DIVE_FOCUS_DEGREES.longitude;
+    expect(-diveGlobeRotation(7.3 - 0.55 / 2, 20)[0]).toBeCloseTo((102 + endLongitude) / 2, DIGITS);
   });
 });
 

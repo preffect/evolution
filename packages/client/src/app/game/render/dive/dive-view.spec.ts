@@ -12,13 +12,29 @@ describe('mockupDevicePixelRatio', () => {
 });
 
 describe('mockupFrameOf', () => {
-  it('hands the mockup the camera, the planet’s turn and the band table', () => {
-    const view = diveViewAt({ zoom: 5, viewport: { width: 800, height: 450 }, timeSeconds: 3, isMoving: true });
-    const frame = mockupFrameOf(view, 2);
-    expect(frame).toMatchObject({ zoom: 5, timeSeconds: 3, widthPx: 800, heightPx: 450, devicePixelRatio: 1.5 });
+  const inputs = { zoom: 5, viewport: { width: 800, height: 450 }, timeSeconds: 3, isMoving: true };
+
+  it('hands the mockup the camera, the planet’s turn, the band table and the planet’s crossfade', () => {
+    const view = diveViewAt({ ...inputs, globeIdleSpinDegrees: 0 });
+    const frame = mockupFrameOf(view, 2, false);
+    expect(frame).toMatchObject({
+      zoom: 5,
+      timeSeconds: 3,
+      widthPx: 800,
+      heightPx: 450,
+      devicePixelRatio: 1.5,
+      globeCrossfadeMs: 300,
+    });
+    expect(mockupFrameOf(view, 2, true).globeCrossfadeMs).toBe(0);
     expect(frame.globeRotation).toBe(view.globeRotation);
     expect(frame.bands).toBe(view.bands);
     expect(frame.bands.planet.isActive).toBe(true);
+  });
+
+  it('turns the planet by its idle spin in orbit', () => {
+    const still = diveViewAt({ ...inputs, zoom: 7.4, globeIdleSpinDegrees: 0 });
+    const spun = diveViewAt({ ...inputs, zoom: 7.4, globeIdleSpinDegrees: 10 });
+    expect(spun.globeRotation[0]).toBeCloseTo(still.globeRotation[0] - 10, 9);
   });
 });
 

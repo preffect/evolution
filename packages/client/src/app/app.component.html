@@ -48,7 +48,7 @@
         <p class="error">{{ serverErrorCaption }} {{ errorMessage }}</p>
       }
 
-      <section class="panel">
+      <section class="panel connection">
         <h2>Connection</h2>
         <label>
           Name
@@ -61,7 +61,16 @@
         }
       </section>
 
-      <section class="panel">
+      <!--
+        The opening dive (docs/rendering/opening-dive.md §1, docs/ui/layout.md §2.1; tickets #797, #805): from orbit to
+        the dish, with the game's own dish at its end. From 1024 px wide it is the right column beside Connection and
+        Create; narrower it comes right after Connection, so Connect stays above the fold and the dive's stage shows
+        under it. It draws only while on screen and leaves with the lobby, so its renderer is gone before a room builds
+        its own.
+      -->
+      <app-dive-panel class="dive" />
+
+      <section class="panel create">
         <h2>Create Game</h2>
         <label>
           Game name
@@ -110,7 +119,7 @@
         </button>
       </section>
 
-      <section class="panel">
+      <section class="panel games-panel">
         <h2>Open Games</h2>
         @if (multiplayer.games().length === 0) {
           <p class="muted">No games yet.</p>
@@ -142,14 +151,6 @@
           }
         </ul>
       </section>
-
-      <!--
-        The opening dive (docs/rendering/opening-dive.md §5, ticket #797): from orbit to the dish, with the game's own
-        dish at its end. Last in the column, so every step to play (Connect, Create, Join) comes first and stays above
-        the fold at every size; it draws only while on screen. It leaves with the lobby, so its renderer is gone
-        before a room builds its own.
-      -->
-      <app-dive-panel />
     </div>
   </div>
 

@@ -24,6 +24,12 @@ const d3 = { geoArea, geoEquirectangular, geoOrthographic, geoPath };
 let BANDS = null;
 /** The dive's clock (milliseconds); the bake pump and the globe's resolution guard read it. */
 let nowMs = () => 0;
+/**
+ * The planet's crossfade from the flat fallback globe (ticket #805): when the world's coastline bake landed after this
+ * open drew the fallback, and how long the full planet takes to come up over it. `null`: no crossfade to draw.
+ */
+let globeShownAtMs = null;
+let sawFallbackGlobe = false;
 
 // ---------- core: constants, palette, helpers ----------
 const R_EARTH = 6.371e6;
@@ -2874,8 +2880,15 @@ function drawFrame(f) {
       if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
     }
   }
-  if (glOn) { Globe.draw(geoRot, s, z, T); ctx.drawImage(glCv, 0, 0, cw, ch); }
-  else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); if (!globeReady && z > 4.4) drawGlobeFallback(); }
+  const globeAlpha = glOn ? globeCrossfade(f.globeCrossfadeMs) : 1;
+  if (!glOn || globeAlpha < 1) {
+    ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch);
+    if ((!globeReady || globeAlpha < 1) && z > 4.4) { drawGlobeFallback(); sawFallbackGlobe ||= !globeReady; }
+  }
+  if (glOn) {
+    Globe.draw(geoRot, s, z, T);
+    ctx.globalAlpha = globeAlpha; ctx.drawImage(glCv, 0, 0, cw, ch); ctx.globalAlpha = 1;
+  }
 
   if (worldA > 0) {
     ctx.save(); ctx.globalAlpha = worldA;
@@ -2884,6 +2897,15 @@ function drawFrame(f) {
     ctx.restore();
   }
   frameNo++;
+}
+// The full planet's opacity over the fallback globe: 1 unless this open drew the fallback, then rising over
+// `crossfadeMs` from the first frame the baked planet draws (0 under reduced motion: at once).
+function globeCrossfade(crossfadeMs) {
+  if (!sawFallbackGlobe || crossfadeMs <= 0) return 1;
+  if (globeShownAtMs === null) globeShownAtMs = nowMs();
+  const unit = Math.min(1, (nowMs() - globeShownAtMs) / crossfadeMs);
+  if (unit >= 1) { sawFallbackGlobe = false; globeShownAtMs = null; }
+  return unit;
 }
 // without WebGL: the flat globe of the first draft
 function drawGlobeFallback() {
@@ -2917,6 +2939,7 @@ function freeScreenCanvases() {
  */
 export function createMockupBands(input) {
   nowMs = input.nowMs;
+  sawFallbackGlobe = false; globeShownAtMs = null;
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
   if (!WORLD_RINGS) { initGeo(input.worldRings, input.salishRings); initCoast(); }
   if (!Globe) Globe = createGlobe();
