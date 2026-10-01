@@ -14,6 +14,7 @@
   --dive-label-text: #e8f3f5;
   --dive-label-ground: rgba(4, 10, 14, 0.72);
   --dive-scale-ground: rgba(4, 10, 14, 0.6);
+  --dive-readout-ground: rgba(2, 6, 10, 0.6);
   --dive-shadow: 0 1px 3px #000c;
   display: block;
   /* Under the lobby header, as wide as the lobby's column, spaced as its panels are. */
@@ -29,6 +30,8 @@
 }
 
 .stage {
+  /* Its width is the readout's query (below): the stage is narrow in the lobby's right column at 1024 px. */
+  container: dive-stage / inline-size;
   position: relative;
   aspect-ratio: 16 / 9;
   max-width: 100%;
@@ -68,6 +71,11 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+/* The labels measured unseen: laid out as every label is, never seen and never in the way. */
+.label-measures {
+  visibility: hidden;
 }
 
 .dot {
@@ -138,13 +146,22 @@
   padding-bottom: 6px;
 }
 
+/*
+ * A soft dark backing (ticket #805): at the dive's bottom your cell fills the stage and its membrane highlight would
+ * sit behind the text. The panel measures this box for the labels' keep-out.
+ */
 .readout {
   position: absolute;
-  left: 14px;
-  top: 12px;
+  left: 8px;
+  top: 6px;
   display: grid;
   gap: 2px;
-  max-width: calc(100% - 28px);
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--dive-readout-ground);
+  box-shadow: 0 0 10px 6px var(--dive-readout-ground);
   pointer-events: none;
   text-shadow: var(--dive-shadow);
 }
@@ -167,6 +184,26 @@
   font-size: 14px;
   color: #cfe0e6;
   max-width: 46ch;
+}
+
+/*
+ * A narrow stage (ticket #805): the dive's column at 1024 px is about 584 px wide, and the readout at full size took
+ * 72 % of it, pushing the planet's names far from their dots. Smaller type and at most 60 % of the stage keep them by
+ * their dots; the measured keep-out follows. A phone's stage (under 561 px) keeps the full readout across its width.
+ */
+@container dive-stage (561px <= width <= 700px) {
+  .readout {
+    max-width: 60%;
+  }
+
+  .fov {
+    font-size: 22px;
+  }
+
+  .pow,
+  .what {
+    font-size: 12px;
+  }
 }
 
 .phase-flag {

@@ -33,6 +33,8 @@ export interface DiveHandle {
   /** Space or Esc: `true` when a playing opening jumped to its stop. */
   skip(): boolean;
   setIsVisible(isVisible: boolean): void;
+  /** The stage's new size in CSS px: the canvases follow it. */
+  resizeStage(sizePx: { readonly width: number; readonly height: number }): void;
   /** The mean script ms per frame of each band since the last take. */
   takeFrameTimes(): DiveFrameTimesReport;
   /** The evidence probe: `frames` frames at `zoom` back to back, and their mean script ms per band. */
@@ -105,6 +107,7 @@ export function createDiveHandle(options: DiveHostOptions, dependencies: DiveHan
       return hasSkipped;
     },
     setIsVisible: (isVisible) => session.setIsVisible(isVisible),
+    resizeStage: (sizePx) => session.resizeStage(sizePx),
     takeFrameTimes: () => session.frameTimes.take(),
     probeFrames: (zoom, frames) => session.probeFrames(zoom, frames),
     destroy: () => session.destroy(),

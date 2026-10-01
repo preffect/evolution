@@ -17,29 +17,26 @@ import {
   type Scheduler,
 } from '@evolution/shared';
 import { Container, Graphics, type Application } from 'pixi.js';
-import { hexToNumber } from '../colour';
 import {
   DIVE_AUTOPLAY_DELAY_MS,
-  DIVE_BAKE_DEVICE_PIXEL_RATIO,
   DIVE_CANVAS_TEST_ID,
   DIVE_MAX_DEVICE_PIXEL_RATIO,
   DIVE_PROBE_FRAME_MS,
-  DIVE_SEED,
-  WHITE,
 } from '../constants';
 import { OWN_CELL_CHROME } from '../effects/own-cell-indicators-layer';
 import { FrameLoopSession } from '../frame-loop-session';
 import type { GameRenderer } from '../game-renderer';
-import { HALF } from '../geometry';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { NO_HUD_INPUTS, outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from '../render-io';
 import type { RenderFrame } from '../../net/world-store';
-import { DIVE_DISH_CLIP_RADIUS_WU, isMockupDrawing } from './dive-bands';
+import { isMockupDrawing } from './dive-bands';
 import { diveRendererZoom } from './dive-camera';
 import { DiveControls } from './dive-controls';
+import { clipDiveRendererToDish } from './dive-dish-clip';
 import { DiveFrameTimes, type DiveFrameTimesReport } from './dive-frame-times';
+import { DiveGlobeIdle } from './dive-globe-idle';
 import { DiveMacroBand, type MockupBandsLoader } from './dive-macro-band';
-import { DIVE_OWN_PLAYER_ID, createDiveMicroScene } from './dive-micro-scene';
+import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveTextureOptions } from './dive-micro-scene';
 import { diveViewAt, isSameViewport, mockupFrameOf, type DiveView } from './dive-view';
 
 export interface DiveSessionDependencies {
@@ -75,6 +72,7 @@ export class DiveSession extends FrameLoopSession {
   private lastOutputs: RenderOutputs | null = null;
   private openedAtMs = 0;
   private ambientSeconds = 0;
+  private readonly globeIdle = new DiveGlobeIdle();
   private isFrameRequested = true;
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
@@ -118,17 +116,8 @@ export class DiveSession extends FrameLoopSession {
     this.showGame(0);
     this.openedAtMs = this.nowMs();
     this.controls.scheduleAutoplay(this.openedAtMs + DIVE_AUTOPLAY_DELAY_MS);
-    const options = {
-      seed: DIVE_SEED,
-      gelPatches: [],
-      // At the atlases' highest ratio whatever the screen's, so your cell holds its detail down to the dive's bottom.
-      devicePixelRatio: DIVE_BAKE_DEVICE_PIXEL_RATIO,
-      noiseTileSizePx: dependencies.noiseTileSizePx,
-      // with the vent sprite hidden (renderFrame), the field's warm vent tint goes too: your cell is the dive's end
-      isVentTinted: false,
-    };
     // A failed bake leaves the dive on its upper bands: the lobby must never break on it.
-    void this.buildRendererAcrossFrames(options).then(
+    void this.buildRendererAcrossFrames(diveTextureOptions(dependencies.noiseTileSizePx)).then(
       () => this.requestFrame(),
       () => this.requestFrame(),
     );
@@ -142,6 +131,12 @@ export class DiveSession extends FrameLoopSession {
   /** A control changed or a bake landed: a still dive draws once more. */
   requestFrame(): void {
     this.isFrameRequested = true;
+  }
+
+  /** The stage changed size: the app follows at once (Pixi's `resizeTo` measures only on a window resize, #805). */
+  resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
+    this.pixi?.resize(sizePx);
+    this.requestFrame();
   }
 
   /** Off screen: the ticker stops and nothing draws until it is back. Kept for `start` when it comes first. */
@@ -204,11 +199,18 @@ export class DiveSession extends FrameLoopSession {
     const isMoving = this.controls.isPlaying && !this.controls.isPaused;
     const zoom = this.controls.tick(nowMs);
     if (!isMotionReduced) this.ambientSeconds = (nowMs - this.openedAtMs) / MILLISECONDS_PER_SECOND;
+    this.globeIdle.advance({ nowMs, zoom, isMotionReduced, isPaused: this.controls.isPaused });
     const viewport = { width: pixi.app.screen.width, height: pixi.app.screen.height };
     const hasResized = this.view === null || !isSameViewport(this.view.camera.viewport, viewport);
     if (isMotionReduced && !isMoving && !this.isFrameRequested && !hasResized) return null;
     this.isFrameRequested = false;
-    this.view = diveViewAt({ zoom, viewport, timeSeconds: this.ambientSeconds, isMoving });
+    this.view = diveViewAt({
+      zoom,
+      viewport,
+      timeSeconds: this.ambientSeconds,
+      isMoving,
+      globeIdleSpinDegrees: this.globeIdle.spinDegrees,
+    });
     return this.view;
   }
 
@@ -225,7 +227,9 @@ export class DiveSession extends FrameLoopSession {
     const macro = this.macro;
     if (macro === null) return;
     const isDrawing = isMockupDrawing(view.bands);
-    this.frameTimes.measureUpperBands(() => macro.draw(mockupFrameOf(view, this.devicePixelRatio), isDrawing));
+    const globeAlpha = macro.globeAlphaAt(this.nowMs(), this.dependencies.isMotionReduced());
+    const frame = mockupFrameOf(view, this.devicePixelRatio, globeAlpha);
+    this.frameTimes.measureUpperBands(() => macro.draw(frame, isDrawing));
   }
 
   protected nextFrame(): RenderFrame | null {
@@ -245,7 +249,7 @@ export class DiveSession extends FrameLoopSession {
     if (!isWarmUp) this.showGame(dish.isActive ? dish.weight : 0);
     // Above the dish band the renderer does no work at all: its canvas is not shown, so it is not drawn.
     if (!dish.isActive && !isWarmUp) return outputsBeforeAnyFrame(NO_EXTENT);
-    this.clipToDish(view);
+    clipDiveRendererToDish(this.gameRoot, this.dishClip, view);
     renderer.setFixedZoom(diveRendererZoom(view.camera));
     renderer.parkOn(DISH_CENTRE_TARGET);
     const inputs: RenderInputs = {
@@ -258,19 +262,6 @@ export class DiveSession extends FrameLoopSession {
       isFarDotShown: false,
     };
     return this.frameTimes.measureDish(() => renderer.render(frame, DIVE_OWN_PLAYER_ID, inputs, timedSubmit));
-  }
-
-  /** The renderer is clipped to the dish's wall while the slime round it shows; inside the dish, not at all. */
-  private clipToDish(view: DiveView): void {
-    this.dishClip.clear();
-    if (!view.bands.slime.isActive) {
-      this.gameRoot.mask = null;
-      return;
-    }
-    const { width, height } = view.camera.viewport;
-    const radiusPx = DIVE_DISH_CLIP_RADIUS_WU * diveRendererZoom(view.camera);
-    this.dishClip.circle(width * HALF, height * HALF, radiusPx).fill(hexToNumber(WHITE));
-    this.gameRoot.mask = this.dishClip;
   }
 
   /** What the renderer answered for the last frame drawn through it: what it culled to, and the dish's counts. */

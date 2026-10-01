@@ -2874,8 +2874,16 @@ function drawFrame(f) {
       if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
     }
   }
-  if (glOn) { Globe.draw(geoRot, s, z, T); ctx.drawImage(glCv, 0, 0, cw, ch); }
-  else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); if (!globeReady && z > 4.4) drawGlobeFallback(); }
+  // the baked planet comes up over the fallback globe at the session's alpha (dive-globe-crossfade.ts, ticket #805)
+  const globeAlpha = glOn ? f.globeAlpha : 1;
+  if (!glOn || globeAlpha < 1) {
+    ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch);
+    if ((!globeReady || globeAlpha < 1) && z > 4.4) drawGlobeFallback();
+  }
+  if (glOn) {
+    Globe.draw(geoRot, s, z, T);
+    ctx.globalAlpha = globeAlpha; ctx.drawImage(glCv, 0, 0, cw, ch); ctx.globalAlpha = 1;
+  }
 
   if (worldA > 0) {
     ctx.save(); ctx.globalAlpha = worldA;
@@ -2927,6 +2935,7 @@ export function createMockupBands(input) {
     draw(frame) { drawFrame(frame); },
     pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked || EXTRA_JOBS.length) pump(budgetMs); return bakeLanded; },
     get isBaked() { return allBaked && EXTRA_JOBS.length === 0; },
+    get isPlanetReady() { return !!Globe && Globe.ready; },
     release() { if (Globe) Globe.release(); Globe = null; freeScreenCanvases(); },
   };
 }

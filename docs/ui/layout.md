@@ -133,3 +133,26 @@ the header's `Encyclopedia`. The text and number fields are native `<input>`s dr
 | Room (joined, not started): player list, "Waiting for the host to start" or Start | `mp.playerIds()`, `mp.isHost()`                                                                                                                                                                                                                                                                                                                                            | `room-waiting`, `room-start`                                                                                   |
 | In game: the canvas host and the HUD overlay                                      | `game-setup.ts`                                                                                                                                                                                                                                                                                                                                                            | `game-canvas`, `hud`                                                                                           |
 | Lobby header: `Encyclopedia` button                                               | opens the encyclopedia over the lobby (encyclopedia.md §11.1)                                                                                                                                                                                                                                                                                                              | `lobby-encyclopedia`                                                                                           |
+
+### 2.1 The lobby's layout and the opening dive
+
+The lobby carries the opening dive (rendering/opening-dive.md, ticket #797) and every step to play, and both are in
+view without scrolling (ticket #805). "Connect & Join Lobby" is never below the fold.
+
+| Width     | Layout                                                                                                                                                                                                                                           |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ≥ 1024 px | Two columns under the header, at most 1440 px together: Connection, Create Game and Open Games on the left (320–400 px), the dive on the right (the rest). The dive stays in view while a long games list scrolls the page (`position: sticky`). |
+| < 1024 px | One column, at most 760 px: the header, Connection, then the dive (its stage 16 : 9, or 4 : 5 under 560 px), then Create Game and Open Games.                                                                                                    |
+
+The DOM order is the narrow order, so the keyboard reaches Connect before the dive's controls at every width. Each
+left-hand row is its own grid area, so an absent notice or error takes no room; the dive spans them all and a last,
+flexible row takes up whatever of its height they leave, so the forms never spread apart to match it. The dive's
+canvases follow its stage through a `ResizeObserver`, so a window resize that moves the columns never leaves them
+at a stale size (rendering/opening-dive.md §4). Measured on
+a private stack at DPR 1, in CSS px from the viewport's top:
+
+| Viewport   | Connect & Join Lobby | Dive stage | Whole dive panel               |
+| ---------- | -------------------- | ---------- | ------------------------------ |
+| 1280 × 800 | 193–233              | 82–549     | 81–784                         |
+| 1024 × 640 | 153–185              | 67–395     | 66–615                         |
+| 390 × 844  | 187–219              | 253–706    | 252–1054 (its controls scroll) |

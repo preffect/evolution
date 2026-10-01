@@ -34,6 +34,14 @@ export const EARTH_RADIUS_M = 6.371e6;
 export const DIVE_GLOBE_START_DEGREES = { longitude: 82, latitude: 38 } as const;
 export const DIVE_GLOBE_TURN_START_ZOOM = 7.3;
 export const DIVE_GLOBE_TURN_SPAN_ZOOM = 0.55;
+/**
+ * The planet's idle turn while the dive waits in orbit (ticket #805: the readout says "The planet turns…"), the same
+ * way as the opening turn: it starts at `degreesPerSecond` and eases toward `maxDegrees`, so a long wait never turns
+ * it past the focus. The opening turn takes up whatever it reached.
+ */
+export const DIVE_GLOBE_IDLE_SPIN = { degreesPerSecond: 3, maxDegrees: 90 } as const;
+/** The baked planet comes up over the flat fallback globe over this long, instead of in one frame (ticket #805). */
+export const DIVE_GLOBE_CROSSFADE_MS = 300;
 
 // ===== Playing a phase's opening =====
 
@@ -141,13 +149,26 @@ export const DIVE_LENGTH_GROUPED_FROM = 100;
 export const DIVE_LENGTH_WHOLE_FROM = 10;
 /** The readout's powers of ten run from the dive's bottom to its top (`LADDER`'s rows). */
 export const DIVE_LADDER_POWER_RANGE = { lowest: -6, highest: 7 } as const;
-/** The label's backing box round its text: this much on each side, its top this far above the text's baseline. */
-export const DIVE_LABEL_BOX = { sidePx: 4, ascentPx: 13 } as const;
 /**
- * The readout's corner of the stage (its three lines at their widest, the panel's CSS): a label whose box would sit
- * in it moves down below it, so no label prints over the field of view. The width never passes the stage's.
+ * The label's backing box round its text: this much on each side, its top this far above the text's baseline, and
+ * its height (the panel's `.label`).
  */
-export const DIVE_READOUT_KEEP_OUT_PX = { right: 360, bottom: 120 } as const;
+export const DIVE_LABEL_BOX = { sidePx: 4, ascentPx: 13, heightPx: 18 } as const;
+/** Two labels that would overlap stack: the lower one moves down to this far under the other's box. */
+export const DIVE_LABEL_STACK_GAP_PX = 2;
+/**
+ * Two labels on one line closer than this side by side read as one ("EURASIA PACIFIC OCEAN"), so they stack too. It
+ * also covers an estimated width's error before the panel has measured the boxes (ticket #805).
+ */
+export const DIVE_LABEL_SIDE_GAP_PX = 8;
+/**
+ * The readout's corner of the stage until the panel has measured its box (ticket #805): its longest line runs to
+ * about 408 px on the 1280 stage. A label whose box would sit in it moves down below it, so no label prints over the
+ * field of view. The width never passes the stage's.
+ */
+export const DIVE_READOUT_KEEP_OUT_PX = { right: 408, bottom: 120 } as const;
+/** A label keeps this far clear of the readout's measured box, past its edge. */
+export const DIVE_READOUT_CLEARANCE_PX = 4;
 /** A label flipped left of its dot ends this much further from it than the offset (`X − 10 − w − 8`). */
 export const DIVE_LABEL_FLIP_GAP_PX = 8;
 /** The share of the dish's specks that are detritus (the mockup's lipid specks); the rest are algae. */

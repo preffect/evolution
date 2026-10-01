@@ -19,6 +19,7 @@ export class RecordingDiveHandle implements DiveHandle {
   readonly played: { stop: DivePhaseStop; isMotionReduced: boolean }[] = [];
   readonly scrubs: number[] = [];
   readonly visibility: boolean[] = [];
+  readonly stageSizes: { readonly width: number; readonly height: number }[] = [];
   startCount = 0;
   pauseToggles = 0;
   skipCount = 0;
@@ -57,6 +58,10 @@ export class RecordingDiveHandle implements DiveHandle {
     this.visibility.push(isVisible);
   }
 
+  resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
+    this.stageSizes.push(sizePx);
+  }
+
   takeFrameTimes(): DiveFrameTimesReport {
     return NO_FRAME_TIMES;
   }
@@ -71,7 +76,13 @@ export class RecordingDiveHandle implements DiveHandle {
 
   /** Reports a frame at `zoom` as the session would, with the controls where the spec says. */
   emitFrame(zoom: number, controls: Partial<Omit<DiveFrameState, 'view'>> = {}): void {
-    const view = diveViewAt({ zoom, viewport: { width: 1200, height: 675 }, timeSeconds: 0, isMoving: false });
+    const view = diveViewAt({
+      zoom,
+      viewport: { width: 1200, height: 675 },
+      timeSeconds: 0,
+      isMoving: false,
+      globeIdleSpinDegrees: 0,
+    });
     this.options.onFrame({ view, isPlaying: false, isPaused: false, stopShown: null, hasArrived: false, ...controls });
   }
 }

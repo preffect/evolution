@@ -23,6 +23,8 @@ export interface DiveViewInputs {
   readonly viewport: ViewportPx;
   readonly timeSeconds: number;
   readonly isMoving: boolean;
+  /** How far the planet has turned on its own while the dive waited in orbit (`diveGlobeIdleSpin`). */
+  readonly globeIdleSpinDegrees: number;
 }
 
 /** Two viewports of the same size: a change of size is a frame a still dive must draw. */
@@ -35,7 +37,7 @@ export function diveViewAt(inputs: DiveViewInputs): DiveView {
   return {
     camera,
     bands: diveBandStates(camera),
-    globeRotation: diveGlobeRotation(camera.zoom),
+    globeRotation: diveGlobeRotation(camera.zoom, inputs.globeIdleSpinDegrees),
     timeSeconds: inputs.timeSeconds,
     isMoving: inputs.isMoving,
   };
@@ -46,8 +48,8 @@ export function mockupDevicePixelRatio(screenRatio: number, isMoving: boolean): 
   return Math.min(screenRatio, isMoving ? DIVE_MOVING_DEVICE_PIXEL_RATIO : DIVE_MAX_DEVICE_PIXEL_RATIO);
 }
 
-/** What the mockup's canvas draws this frame. */
-export function mockupFrameOf(view: DiveView, screenRatio: number): MockupFrame {
+/** What the mockup's canvas draws this frame, the baked planet at `globeAlpha` over the fallback globe. */
+export function mockupFrameOf(view: DiveView, screenRatio: number, globeAlpha: number): MockupFrame {
   return {
     zoom: view.camera.zoom,
     timeSeconds: view.timeSeconds,
@@ -56,5 +58,6 @@ export function mockupFrameOf(view: DiveView, screenRatio: number): MockupFrame 
     devicePixelRatio: mockupDevicePixelRatio(screenRatio, view.isMoving),
     globeRotation: view.globeRotation,
     bands: view.bands,
+    globeAlpha,
   };
 }

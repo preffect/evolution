@@ -7,8 +7,9 @@ controls. This file says how the client draws it. The numbers are `render/consta
 
 ## 1. Where it lives
 
-- **Panel:** `game/dive/dive-panel.component.ts` is last in the lobby's column (`app.component.html`), so every step
-  to play (Connect, Create, Join) comes first and stays above the fold at every size. It is DOM only: the readout,
+- **Panel:** `game/dive/dive-panel.component.ts` sits beside the lobby's forms from 1024 px wide, and right under
+  Connection below that (`app.component.html`, ui/layout.md §2.1, ticket #805), so Connect & Join Lobby is never
+  below the fold and the dive is in view without scrolling. It is DOM only: the readout,
   labels, scale bar, flag and controls. It gets a `DiveHandle` through the `OPENING_DIVE` token
   (`render/dive/dive-host.ts`), the same seam shape as the encyclopedia preview's (`preview/preview-host.ts`). A
   component spec provides `testing/fake-dive-handle.ts` and never touches Pixi.
@@ -43,9 +44,22 @@ controls. This file says how the client draws it. The numbers are `render/consta
 - **Game renderer:** it takes the same scale as a fixed zoom, `pixelsPerMetre × DIVE_METRES_PER_WU` px per world
   unit, parked on the dish centre. `DIVE_METRES_PER_WU` makes the game's `DISH_RADIUS` the mockup's 40 µm pocket.
 - **Planet turn:** the planet turns from Eurasia to the focus between zoom 7.3 and 6.75 (`diveGlobeRotation`).
+- **Idle spin:** while the dive is in orbit above that turn (the wait for the autoplay's bakes, the hold before the
+  fall), the planet turns on its own the same way, since the readout says "The planet turns…" (ticket #805). It
+  starts at 3° a second and eases toward 90° (`DIVE_GLOBE_IDLE_SPIN`, `diveGlobeIdleSpin`), so a long wait never
+  turns it past the focus; the opening turn takes up whatever it reached and still ends on the focus. It stands still
+  while paused and under reduced motion (`dive-globe-idle.ts`).
 - **Labels:** an amber dot and a text on a dark box, faded over each label's zoom range (`dive-labels.ts`). The
   script writes them in capitals with the units in lower case: CSS capitals would turn µ into a capital mu that
-  reads as M. A label that would sit on the readout moves down below it (`DIVE_READOUT_KEEP_OUT_PX`).
+  reads as M. A label that would sit on the readout moves down below it. The panel measures the readout's box with a
+  `ResizeObserver` (its words change with the zoom and wrap on a phone) and keeps the labels
+  `DIVE_READOUT_CLEARANCE_PX` past it; until it has measured, `DIVE_READOUT_KEEP_OUT_PX` stands in, as wide as the
+  readout's longest line on the 1280 stage (408 px). Two labels whose boxes would overlap, or sit closer than
+  `DIVE_LABEL_SIDE_GAP_PX` side by side on one line (they would read as one label), stack: taken top first, each
+  moves down under a box already set (`stackDiveLabels`), so the dish and a diatom in the same spot, or two labels
+  pushed under the readout, both read. Their dots stay put. The boxes are as rendered: the panel lays every label's
+  text out once unseen and measures it (`dive-stage-measures.ts`, again when the label font arrives); until then each
+  width is estimated from the text's length (ticket #805).
 - **Slider:** its `aria-valuetext` is the field of view. Under 560 px the tick row shows every second power of
   ten.
 
@@ -101,14 +115,23 @@ so nothing the renderer draws is forked. It holds:
   page globals became module state, its bake timer became the injected `SCHEDULER` (an 8 ms slice every 10 ms until
   every tile is made, as the mockup's `pump`), and its UI went to the panel. The world's and the region's coastline
   bakes go in the same sliced queue rather than being drained on the spot; until the world's lands the planet draws
-  as the flat fallback globe. Its header and each section name the follow-up that deletes them: ticket #800 the
-  planet, #801 the coast and shore, #802 the kelp and drop, #803 the slime.
+  as the flat fallback globe. When it lands (`isPlanetReady`), the full planet (its stars, rim and clouds) comes up
+  over the fallback across `DIVE_GLOBE_CROSSFADE_MS` (300 ms) instead of in one frame, or at once under reduced
+  motion; a planet whose bake was kept from an earlier open shows at once. The timing is
+  `render/dive/dive-globe-crossfade.ts`, which the macro band runs each frame on the dive's clock; the module only
+  draws the opacity it is handed (`MockupFrame.globeAlpha`) (ticket #805). Its header and each section name the
+  follow-up that deletes them: ticket #800 the planet, #801 the coast and shore, #802 the kelp and drop, #803 the
+  slime.
 - **What it draws:** one Canvas 2D canvas, with the planet's WebGL canvas drawn into it.
   `render/dive/dive-macro-band.ts` puts that canvas first in the stage, under the game's.
 - **Not a texture:** the ticket allowed uploading the canvas as a Pixi texture, and that was built first. It was
   dropped: the upload reads the canvas back every frame, and the bands' drawing then took 1,498 ms a frame at zoom
   3.3, against 16 ms on a canvas of their own (§6). The browser compositing two canvases costs no script time.
 - **Resolution:** the canvas draws at up to 2× when still and 1.5× while the dive falls.
+- **Size:** both canvases follow the stage itself. The panel watches the stage with a `ResizeObserver` and hands its
+  size to the session (`DiveHandle.resizeStage`), since Pixi's `resizeTo` measures only on a window resize, which
+  can come before the lobby's grid column has settled; the upper bands' canvas takes the app's size each frame
+  (ticket #805).
 - **Code standards:** it is JavaScript, outside eslint, prettier, jscpd and coverage (`.prettierignore`,
   `.jscpd.json`, `angular.json`). It is never brought up to `CODE-STANDARDS.md`: tickets #800–#803 move each band
   onto the game's renderer (shaders, baked textures, render-to-texture layers) and delete its part of the file.
@@ -135,7 +158,10 @@ so nothing the renderer draws is forked. It holds:
   first and it was aimed at the page itself or at the dive's stage. A key on a lobby control (a button, a field,
   the slider) is that control's, and the encyclopedia's Esc closes the encyclopedia without skipping the dive. A
   paused or still dive ignores them.
-- **Readout:** the field of view, its power of ten and the ladder's line for it (`dive-readout.ts`).
+- **Readout:** the field of view, its power of ten and the ladder's line for it (`dive-readout.ts`), on a soft dark
+  backing (0.6 alpha) so it reads over your cell's membrane highlight and granules at the dive's bottom. On a stage
+  561–700 px wide (the right-hand column at 1024 px) a container query sets it smaller and at most 60 % of the
+  stage, so the planet's names stay by their dots; a phone's stage keeps it full size (ticket #805).
 - **Scale bar:** the longest 5, 2 or 1 × 10ⁿ inside 18 % of the view.
 - **Labels:** an amber dot and a text on a dark box, faded over each label's zoom range (`dive-labels.ts`).
 - **Autoplay:** the lobby plays phase 1's opening `DIVE_AUTOPLAY_DELAY_MS` after it opens, once, and not before
@@ -166,12 +192,14 @@ so nothing the renderer draws is forked. It holds:
 
 **Unit (vitest, no WebGL):**
 
-- `dive-camera.spec.ts`: the scale, the dish's width in px per world unit, the planet's turn and the slider.
+- `dive-camera.spec.ts`: the scale, the dish's width in px per world unit, the planet's turn, its idle spin and the
+  slider.
 - `dive-bands.spec.ts`: the windows pinned literally, the cuts, the nesting, the crossfade, the 2 px and in-dish
   cuts.
 - `dive-controls.spec.ts`: play, hold, fall, arrive, pause re-base, skip, scrub, reduced motion.
 - `dive-readout.spec.ts`: `fmtLen`'s cases, the superscripts, the ladder's ends, the scale bar.
-- `dive-labels.spec.ts`: the fade, the far side of the planet, Victoria's place, the flip and the clamps.
+- `dive-labels.spec.ts`: the fade, the far side of the planet, Victoria's place, the flip and the clamps, the
+  readout's keep-out (408 px, then measured) and the stacking through the handoff at 1280 and 390.
 - `dive-micro-scene.spec.ts`: your size, the derived mass, food inside the dish, no warning ring, seeded, the
   tick.
 - `dive-session.spec.ts`: over the fake Pixi app:
@@ -182,10 +210,21 @@ so nothing the renderer draws is forked. It holds:
   - `destroy` unbinds and releases
 - `dive-bundle.spec.ts`: the mockup's module and `d3-geo` out of every static import chain from `main.ts`.
 - `dive-session.spec.ts` also: each half failing at start (the other given back), visibility reported before the
-  app, reduced motion mid-fall, the autoplay held until the tiles bake.
+  app, reduced motion mid-fall, the autoplay held until the tiles bake, the idle spin (turning in orbit; still while
+  paused, under reduced motion and below the turn) and the planet's crossfade through the macro band.
+- `dive-globe-crossfade.spec.ts`: the fallback while the planet bakes, the rise across 300 ms, no fade back, a kept
+  planet and reduced motion at once.
 - `app.integration.spec.ts`: a room starting closes the dive.
 - `dive-panel.component.spec.ts`: over the recording handle: the buttons, the slider, pause, the readout, the
   labels, the flag, Space and Esc but not while typing.
+- `dive-panel-observers.spec.ts`: over a recording observer: the stage scrolled out of view, the stage resized on
+  its own (no window resize), the labels kept clear of the readout's measured box, the labels kept apart by their
+  measured boxes, every label's text laid out once to be measured.
+
+**UI (Playwright, `pnpm --filter @evolution/client smoke`):** `e2e/lobby-dive-layout.spec.ts`: at 1280 × 800 and
+1024 × 640 the dive beside Connect, both whole above the fold; at 390 × 844 Connect first, then the dive's whole
+stage above the fold; no size scrolls sideways; at 1024 × 640 the readout at most 60 % of the stage; and the
+canvases the stage's size after the window shrinks from 1920 to 1024.
 
 **Visual evidence:**
 

@@ -9,40 +9,31 @@ import {
   DestroyRef,
   ElementRef,
   computed,
+  effect,
   inject,
   signal,
   viewChild,
+  viewChildren,
   type AfterViewInit,
 } from '@angular/core';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { REDUCED_MOTION } from '../reduced-motion';
 import {
   DIVE_LADDER,
+  DIVE_GEO_LABELS,
   DIVE_PHASE_STOPS,
   DIVE_SLIDER_STEP,
+  DIVE_WORLD_LABELS,
   DIVE_ZOOM_BOTTOM,
   DIVE_ZOOM_TOP,
   type DivePhaseStop,
 } from '../render/constants';
-import { diveLabelPlacements } from '../render/dive/dive-labels';
+import { diveLabelPlacements, type DiveReadoutKeepOut } from '../render/dive/dive-labels';
 import { diveReadout, diveScaleBar, superscript } from '../render/dive/dive-readout';
 import { DIVE_SLIDER_MAX, diveSliderPercent, diveSliderValue, diveZoomFromSlider } from '../render/dive/dive-camera';
 import { OPENING_DIVE, type DiveFrameState, type DiveHandle } from '../render/dive/dive-host';
-
-export const DIVE_PANEL_TEST_ID = {
-  panel: 'dive-panel',
-  stage: 'dive-stage',
-  pause: 'dive-pause',
-  slider: 'dive-zoom',
-  phaseButton: 'dive-phase-',
-  readoutFieldOfView: 'dive-readout-fov',
-  readoutPower: 'dive-readout-power',
-  readoutWhat: 'dive-readout-what',
-  flag: 'dive-phase-flag',
-  label: 'dive-label',
-  scaleBar: 'dive-scale-bar',
-  unavailable: 'dive-unavailable',
-} as const;
+import { DIVE_PANEL_TEST_ID } from '../test-ids/dive-test-ids';
+import { diveReadoutKeepOut, measuredLabelWidths, observeSizes } from './dive-stage-measures';
 
 /** The keys that skip a playing opening to its stop (`' '` is Space). */
 export const DIVE_SKIP_KEYS: readonly string[] = [' ', 'Escape'];
@@ -91,6 +82,13 @@ export class DivePanelComponent implements AfterViewInit {
   private readonly isMotionReduced = inject(REDUCED_MOTION);
   private readonly destroyReference = inject(DestroyRef);
   private readonly stage = viewChild.required<ElementRef<HTMLElement>>('stage');
+  private readonly readoutElement = viewChild<ElementRef<HTMLElement>>('readout');
+  /** The readout's measured box, which the labels keep clear of; the constant's until it is measured. */
+  private readonly readoutKeepOut = signal<DiveReadoutKeepOut | undefined>(undefined);
+  /** Every label's text once (a place can be named on the planet and on the map), laid out unseen to be measured. */
+  protected readonly labelTexts = [...new Set([...DIVE_GEO_LABELS, ...DIVE_WORLD_LABELS].map((label) => label.text))];
+  private readonly labelMeasures = viewChildren<ElementRef<HTMLElement>>('labelMeasure');
+  private readonly labelBoxWidths = signal<ReadonlyMap<string, number> | undefined>(undefined);
   private handle: DiveHandle | null = null;
   private readonly frame = signal<DiveFrameState | null>(null);
   private readonly isUnavailableValue = signal(false);
@@ -127,6 +125,8 @@ export class DivePanelComponent implements AfterViewInit {
       camera: view.camera,
       globeRotation: view.globeRotation,
       worldWeight: view.bands.shore.weight,
+      readout: this.readoutKeepOut(),
+      boxWidths: this.labelBoxWidths(),
     });
   });
   protected readonly scaleBar = computed(() => {
@@ -136,6 +136,11 @@ export class DivePanelComponent implements AfterViewInit {
   protected readonly flag = computed(() => this.frame()?.stopShown ?? null);
   protected readonly isFlagOn = computed(() => this.frame()?.hasArrived ?? false);
   protected readonly isPaused = computed(() => this.frame()?.isPaused ?? false);
+
+  constructor() {
+    this.measureReadout();
+    this.measureLabels();
+  }
 
   ngAfterViewInit(): void {
     const host = this.stage().nativeElement;
@@ -151,6 +156,9 @@ export class DivePanelComponent implements AfterViewInit {
       handle.destroy();
     });
     this.observeVisibility(host, handle);
+    // The canvases follow the stage itself, not the window: a grid column settles after the window's resize (#805).
+    const resize = (): void => handle.resizeStage({ width: host.clientWidth, height: host.clientHeight });
+    this.destroyReference.onDestroy(observeSizes([host], resize));
     void this.open(handle);
   }
 
@@ -169,6 +177,29 @@ export class DivePanelComponent implements AfterViewInit {
     });
     observer.observe(host);
     this.destroyReference.onDestroy(() => observer.disconnect());
+  }
+
+  /**
+   * The readout's box, measured whenever it changes size (its line of words changes with the zoom and wraps on a
+   * narrow stage), so the labels keep clear of the box it really has (`ResizeObserver`, where there is one).
+   */
+  private measureReadout(): void {
+    effect((onCleanup) => {
+      const readout = this.readoutElement()?.nativeElement;
+      if (readout === undefined) return;
+      onCleanup(observeSizes([readout], () => this.readoutKeepOut.set(diveReadoutKeepOut(readout))));
+    });
+  }
+
+  /**
+   * Each label's box as rendered, measured again when its size changes (the label font arriving), so labels side by
+   * side are kept apart by the boxes they really have rather than an estimate from their length.
+   */
+  private measureLabels(): void {
+    effect((onCleanup) => {
+      const labels = this.labelMeasures().map((label) => label.nativeElement);
+      onCleanup(observeSizes(labels, () => this.labelBoxWidths.set(measuredLabelWidths(labels))));
+    });
   }
 
   protected play(stop: DivePhaseStop): void {

@@ -12,6 +12,7 @@ import {
   DIVE_SALISH_RINGS_URL,
   DIVE_WORLD_RINGS_URL,
 } from '../constants';
+import { DiveGlobeCrossfade } from './dive-globe-crossfade';
 import type { MockupBands, MockupFrame, MockupRing } from './mockup/dive-mockup-bands';
 
 /** Fetches the mockup's module and the coastlines it bakes from, and makes its bands on the dive's clock. */
@@ -43,6 +44,7 @@ export const loadMockupBands: MockupBandsLoader = mockupBandsLoader((url) => fet
 
 export class DiveMacroBand {
   private cancelBake: CancelDeferredCall | null = null;
+  private readonly globeCrossfade = new DiveGlobeCrossfade();
 
   constructor(
     private readonly bands: MockupBands,
@@ -68,6 +70,11 @@ export class DiveMacroBand {
   /** Every tile baked: the dive can fall through the bands without meeting a placeholder. */
   get isBaked(): boolean {
     return this.bands.isBaked;
+  }
+
+  /** The baked planet's opacity over the fallback globe this frame (`DiveGlobeCrossfade`). */
+  globeAlphaAt(nowMs: number, isMotionReduced: boolean): number {
+    return this.globeCrossfade.alphaAt({ nowMs, isPlanetReady: this.bands.isPlanetReady, isMotionReduced });
   }
 
   /** Shown and drawn while a mockup band draws; hidden, and not drawn, otherwise. */

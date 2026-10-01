@@ -12,6 +12,7 @@ import type { MockupBands } from './mockup/dive-mockup-bands';
 const NO_BANDS: MockupBands = {
   canvas: document.createElement('canvas'),
   isBaked: true,
+  isPlanetReady: true,
   draw: () => undefined,
   pumpBakes: () => false,
   release: () => undefined,
