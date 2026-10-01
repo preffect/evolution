@@ -46,6 +46,13 @@ export interface PointerLockInputOptions {
 /** `requestPointerLock` as browsers ship it: older ones return nothing and report a refusal by event only. */
 type PointerLockRequest = (options?: PointerLockOptions) => Promise<void> | undefined;
 
+/** The element itself when it is HTML, else its nearest HTML ancestor (an SVG shape's `<svg>` host's parent chain). */
+function htmlElementOf(element: Element | null): HTMLElement | null {
+  let current = element;
+  while (current !== null && !(current instanceof HTMLElement)) current = current.parentElement;
+  return current;
+}
+
 export class PointerLockInput {
   private state: PointerLockState = IDLE_POINTER_LOCK_STATE;
   private point: CanvasPoint = { x: 0, y: 0 };
@@ -53,6 +60,8 @@ export class PointerLockInput {
   private readonly ownerDocument: Document;
   private readonly onLockChange = (): void => this.lockChanged();
   private readonly onLockError = (): void => this.requestFailed();
+  /** The room has gone: a grant still on its way is let go of at once, and nothing reaches the HUD any more. */
+  private isDetached = false;
 
   constructor(private readonly options: PointerLockInputOptions) {
     this.ownerDocument = options.host.ownerDocument;
@@ -101,14 +110,30 @@ export class PointerLockInput {
     this.ownerDocument.exitPointerLock();
   }
 
+  /**
+   * Lets go of a held lock and stops listening. A request still on its way keeps the listeners until the browser
+   * answers it, so a late grant is released at once rather than holding the lobby's cursor captive.
+   */
   detach(): void {
+    this.leaveLock();
+    this.isDetached = true;
     if (this.isLocked()) {
       this.state = withReleaseRequested(this.state);
       this.ownerDocument.exitPointerLock();
     }
+    if (this.state.phase !== POINTER_LOCK_PHASE.requesting) this.stopListening();
+  }
+
+  private stopListening(): void {
     this.ownerDocument.removeEventListener('pointerlockchange', this.onLockChange);
     this.ownerDocument.removeEventListener('pointerlockerror', this.onLockError);
-    this.leaveLock();
+  }
+
+  /** The browser answered the request a detached room was still waiting on: release a grant, then stop listening. */
+  private settleAfterDetach(): void {
+    if (this.ownerDocument.pointerLockElement === this.options.host) this.ownerDocument.exitPointerLock();
+    this.state = IDLE_POINTER_LOCK_STATE;
+    this.stopListening();
   }
 
   private facts(): PointerLockFacts {
@@ -151,11 +176,19 @@ export class PointerLockInput {
   }
 
   private requestFailed(): void {
+    if (this.isDetached) {
+      this.settleAfterDetach();
+      return;
+    }
     if (this.state.phase !== POINTER_LOCK_PHASE.requesting) return;
     this.state = withRequestFailed(this.state, this.nowMs());
   }
 
   private lockChanged(): void {
+    if (this.isDetached) {
+      this.settleAfterDetach();
+      return;
+    }
     if (this.ownerDocument.pointerLockElement === this.options.host) {
       this.state = withLockAcquired(this.state);
       this.options.seam.onCursorMoved(this.point);
@@ -175,12 +208,13 @@ export class PointerLockInput {
 
   /**
    * The HUD control under the virtual pointer, or `null` over the dish. The HUD layer takes no pointer events, so the
-   * hit test passes through it to the canvas host unless a control that opted back in is there.
+   * hit test passes through it to the canvas host unless a control that opted back in is there. The innermost painted
+   * node can be an SVG shape (a card's glyph), so the hit is first walked up to its nearest HTML element.
    */
   private controlUnderPointer(): HTMLElement | null {
     const box = this.options.host.getBoundingClientRect();
-    const hit = this.ownerDocument.elementFromPoint(box.left + this.point.x, box.top + this.point.y);
-    const isControl = hit instanceof HTMLElement && hit !== this.ownerDocument.body && !this.options.host.contains(hit);
+    const hit = htmlElementOf(this.ownerDocument.elementFromPoint(box.left + this.point.x, box.top + this.point.y));
+    const isControl = hit !== null && hit !== this.ownerDocument.body && !this.options.host.contains(hit);
     return isControl ? hit : null;
   }
 }

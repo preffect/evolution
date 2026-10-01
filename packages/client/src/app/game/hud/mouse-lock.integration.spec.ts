@@ -230,7 +230,10 @@ describe('the mouse lock over the wired game', () => {
     canvasHost.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', code: 'KeyH', bubbles: true }));
     frame();
     expect(browser.exits).toHaveBeenCalledOnce();
+    browser.settle();
+    TestBed.tick();
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.encyclopedia);
+    expect(query(HUD_TEST_ID.virtualCursor)).toBeNull();
 
     TestBed.inject(MouseLockService).toggle();
     hudState.closeOverlays();

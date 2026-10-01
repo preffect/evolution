@@ -118,10 +118,16 @@ cell is lost. So while a room is up the pointer is locked to the canvas with the
   `pointer-lock-input.ts` hit-tests the virtual pointer (`elementFromPoint`, which the HUD layer's
   `pointer-events: none` passes through): over a control that takes the pointer (a trait card, the leaderboard
   header) a primary press clicks it instead of sprinting, as the real cursor would, and `virtual-hover.ts` dispatches
-  the `mouseenter` / `mouseleave` the browser would have, so a card highlights and previews its trait.
+  the `mouseenter` / `mouseleave` the browser would have, so a card highlights and previews its trait. The hit is
+  walked up to its nearest HTML element first, since over a card's glyph it is an SVG shape. Losing the lock leaves
+  whatever was hovered, so no highlight or trait preview outlives the virtual pointer.
 - **Escape.** While locked the browser keeps Escape for itself and leaves the lock; the page may never see the key.
-  A lock lost while the document still has focus is that Escape, and **opens the menu** (`MouseLockService.exitedByUser`,
-  which leaves an open menu open, so a browser that also delivers the key cannot open and close it in one press).
+  A lock lost while the document still has focus is that Escape, and acts as the key would in overlays.md §3.5's
+  topmost-first order (`MouseLockService.exitedByUser` → `pressMenuKey`): the full leaderboard, held or pinned, closes
+  first; with nothing open, **the menu opens**. A menu already open stays open: a browser that delivers the key while
+  still locked and then drops the lock opens the menu once, not open-then-closed. The reverse order (the lock dropped
+  first, the key delivered after) would still close the menu the lock's Escape opened; Chrome and Firefox keep the key,
+  so it is not handled.
   Closing the menu leaves the pointer free until the next canvas click locks again. Chrome refuses a re-lock for about
   a second after an Escape exit, so none is asked for `POINTER_LOCK_RETRY_COOLDOWN_MS` (1250 ms) after one: a click in
   that window neither locks nor sprints, and logs nothing.
@@ -145,7 +151,10 @@ cell is lost. So while a room is up the pointer is locked to the canvas with the
   `input/pointer-lock-input.ts`, the HUD's half `hud/mouse-lock.service.ts`, wired by `game-host.component.ts` through
   `setupGame`'s `pointerLock` seam. `hud/mouse-lock.integration.spec.ts` pins the locking click, steering from the
   virtual pointer, Escape → menu → re-lock after the cooldown, a card click under the lock and the encyclopedia's
-  release, against `testing/fake-pointer-lock.ts`, since jsdom has no Pointer Lock API.
+  release, against `testing/fake-pointer-lock.ts`, since jsdom has no Pointer Lock API. The fake keeps the browser's
+  order: a request stays pending until answered, a refusal rejects its promise before `pointerlockerror` fires, and
+  `exitPointerLock` only asks, the change arriving when the spec settles it. Detaching a room stops listening once
+  no request is pending; a grant that arrives for a room already gone is released at once.
 
 | Constant                             | Value                       | Unit | Meaning                                                          |
 | ------------------------------------ | --------------------------- | ---- | ---------------------------------------------------------------- |

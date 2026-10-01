@@ -61,8 +61,12 @@ export class MouseLockService {
     this.cursorPointValue.set(point);
   }
 
-  /** The player left the lock with Escape: the menu opens, as that Escape would have opened it (§4.1). */
+  /**
+   * The player left the lock with Escape, which the browser kept: it acts as that Escape would have, in overlays.md
+   * §3.5's topmost-first order (the held or pinned full leaderboard closes; with nothing open, the menu opens). A menu
+   * already open stays open, so a browser that delivers the key first and then drops the lock does not close it again.
+   */
   exitedByUser(): void {
-    if (!this.hudState.isMenuOpen()) this.hudState.openMenu();
+    if (!this.hudState.isMenuOpen()) this.hudState.pressMenuKey();
   }
 }

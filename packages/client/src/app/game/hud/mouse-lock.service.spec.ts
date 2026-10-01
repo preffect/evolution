@@ -61,11 +61,25 @@ describe('MouseLockService', () => {
     expect(mouseLock.isCursorNeeded()).toBe(true);
   });
 
-  it('opens the menu when the player leaves the lock with Escape, and leaves an open menu open', () => {
+  it('opens the menu when the player leaves the lock with Escape and nothing is open', () => {
     const mouseLock = TestBed.inject(MouseLockService);
     const hudState = TestBed.inject(HudStateService);
     mouseLock.exitedByUser();
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
+  });
+
+  it('follows the topmost-first order: an Escape out of the lock closes the full leaderboard and opens no menu', () => {
+    const mouseLock = TestBed.inject(MouseLockService);
+    const hudState = TestBed.inject(HudStateService);
+    hudState.toggleFullLeaderboard();
+    mouseLock.exitedByUser();
+    expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
+  });
+
+  it('leaves a menu the key already opened open, when the browser then also drops the lock', () => {
+    const mouseLock = TestBed.inject(MouseLockService);
+    const hudState = TestBed.inject(HudStateService);
+    hudState.pressMenuKey();
     mouseLock.exitedByUser();
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
   });
