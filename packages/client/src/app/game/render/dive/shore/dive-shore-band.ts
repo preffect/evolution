@@ -17,7 +17,13 @@ import { shoreLevelProgress } from './shore-lod';
 import { ShoreLevels } from './shore-levels';
 import { ShoreMesh, type ShoreLevelTextures, type ShoreTileTextures } from './shore-mesh';
 import type { ShoreSnapshotSources } from './shore-snapshot';
+import type { ShoreTiles } from './shore-tiles';
 import { SHORE_LEVEL_UPLOADER, liveTileTextures, releaseTileTextures } from './shore-textures';
+
+/** What the band bakes from: the snapshot's sources, its tiles the pumped set. */
+export interface DiveShoreSources extends ShoreSnapshotSources {
+  readonly tiles: ShoreTiles;
+}
 
 export class DiveShoreBand {
   private readonly mesh = new ShoreMesh({
@@ -38,7 +44,7 @@ export class DiveShoreBand {
 
   constructor(
     private readonly pixi: PixiAppHandle,
-    private readonly sources: ShoreSnapshotSources,
+    private readonly sources: DiveShoreSources,
     private readonly devicePixelRatio: number,
   ) {
     this.levels = new ShoreLevels(sources, SHORE_LEVEL_UPLOADER);

@@ -4,7 +4,7 @@
 // CPU, in this thread, so a bake never waits on the GPU process. The mockup drew its zone layers on GPU canvases and
 // read pixels back between them, and a frame then cost seconds on a box without a GPU (PR #799's evidence).
 
-import type { BakeContext2D } from '../../textures/texture-bake';
+import { createDetachedCanvas, type BakeContext2D } from '../../textures/texture-bake';
 
 /** The pixels a bake writes and puts: an `ImageData`'s shape. */
 export interface ShorePixels {
@@ -77,17 +77,15 @@ export interface ShoreCanvasFactory {
   create(width: number, height: number): ShoreCanvas;
 }
 
-const MIN_CANVAS_PX = 1;
-
 /** The browser factory: one detached `<canvas>` per bake, made for pixel reads so it rasterises on the CPU. */
 export function createDomShoreCanvasFactory(documentReference: Document): ShoreCanvasFactory {
   return {
     create(width, height) {
-      const element = documentReference.createElement('canvas');
-      element.width = Math.max(MIN_CANVAS_PX, Math.ceil(width));
-      element.height = Math.max(MIN_CANVAS_PX, Math.ceil(height));
-      const context = element.getContext('2d', { willReadFrequently: true });
-      if (context === null) throw new Error('Canvas 2D is unavailable: the shore cannot bake.');
+      const { element, context } = createDetachedCanvas(
+        documentReference,
+        { width, height },
+        { willReadFrequently: true },
+      );
       return { width: element.width, height: element.height, context: context as ShoreContext2D, image: element };
     },
   };

@@ -36,30 +36,41 @@ function smoothClosedPath(context: ShoreContext2D, points: readonly (readonly [n
   context.closePath();
 }
 
-/** A tide pool's outline (`poolShape`). */
-export function poolPath(context: ShoreContext2D, place: BlobPlace): void {
-  const shape = SHORE_POOL_SHAPE;
-  const points = Array.from({ length: shape.points }, (_unused, index): [number, number] => {
-    const angle = (index / shape.points) * RADIANS_PER_FULL_TURN;
-    const radius =
-      place.radius * (shape.radius.min + shape.radius.span * coordinateHash(place.seed, index, shape.salt));
+/** A blob of `count` points round its centre, each `radiusShare(index)` of its radius out, squashed on y. */
+function blobPath(
+  context: ShoreContext2D,
+  place: BlobPlace,
+  outline: { readonly count: number; readonly radiusShare: (index: number) => number },
+): void {
+  const points = Array.from({ length: outline.count }, (_unused, index): [number, number] => {
+    const angle = (index / outline.count) * RADIANS_PER_FULL_TURN;
+    const radius = place.radius * outline.radiusShare(index);
     return [place.x + Math.cos(angle) * radius, place.y + Math.sin(angle) * radius * place.squash];
   });
   smoothClosedPath(context, points);
 }
 
+/** A tide pool's outline (`poolShape`). */
+export function poolPath(context: ShoreContext2D, place: BlobPlace): void {
+  const shape = SHORE_POOL_SHAPE;
+  blobPath(context, place, {
+    count: shape.points,
+    radiusShare: (index) => shape.radius.min + shape.radius.span * coordinateHash(place.seed, index, shape.salt),
+  });
+}
+
 /** A stone's outline: lobes two points wide and a little wobble (`rockPath`). */
 export function rockPath(context: ShoreContext2D, place: BlobPlace): void {
   const shape = SHORE_ROCK_SHAPE;
-  const points = Array.from({ length: shape.points }, (_unused, index): [number, number] => {
-    const angle = (index / shape.points) * RADIANS_PER_FULL_TURN;
-    const lobe = Math.floor(index / shape.pointsPerLobe);
-    const big = coordinateHash(place.seed, lobe, shape.lobeSalt);
-    const next = coordinateHash(place.seed, lobe + 1, shape.lobeSalt);
-    const between = (index % shape.pointsPerLobe) / shape.pointsPerLobe;
-    const wobble = shape.wobble * (coordinateHash(place.seed, index, shape.wobbleSalt) - HALF);
-    const radius = place.radius * (shape.base + shape.lobe * (big + (next - big) * between) + wobble);
-    return [place.x + Math.cos(angle) * radius, place.y + Math.sin(angle) * radius * place.squash];
+  blobPath(context, place, {
+    count: shape.points,
+    radiusShare: (index) => {
+      const lobe = Math.floor(index / shape.pointsPerLobe);
+      const big = coordinateHash(place.seed, lobe, shape.lobeSalt);
+      const next = coordinateHash(place.seed, lobe + 1, shape.lobeSalt);
+      const between = (index % shape.pointsPerLobe) / shape.pointsPerLobe;
+      const wobble = shape.wobble * (coordinateHash(place.seed, index, shape.wobbleSalt) - HALF);
+      return shape.base + shape.lobe * (big + (next - big) * between) + wobble;
+    },
   });
-  smoothClosedPath(context, points);
 }

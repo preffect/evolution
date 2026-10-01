@@ -12,7 +12,7 @@ import {
 import { SHORE_PALETTE } from '../../constants/dive-shore-tiles';
 import { BLUE, GREEN, RED } from '../../colour';
 import { HALF } from '../../geometry';
-import { coordinateHash, square, type PeriodicNoise } from './shore-noise';
+import { coordinateHash, square, type PeriodicNoise, tilePoint } from './shore-noise';
 import { clampUnit, ramp3, rgb255, setColour, squarePixelBake, type Rgb255 } from './shore-pixels';
 import type { TileBake } from './shore-tiles-rock';
 
@@ -44,7 +44,7 @@ export const bakeBarnaclesFar: TileBake = (kit) => {
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
     const point = { across: x / tile.sizePx, down: y / tile.sizePx };
     const cover = patchAt(kit.noise, point, tile.patchSalt, tile.cover);
-    const grain = kit.noise.fbm(point, square(tile.grain.frequency), tile.grain.octaves, tile.grain.salt);
+    const grain = kit.noise.layer(point, tile.grain);
     const isBareSpeck = coordinateHash(x, y, tile.speckSalt) > tile.speckAbove;
     const colour = isBareSpeck ? base : ramp3(dark, base, light, clampUnit(grain * tile.grainShare + tile.grainLift));
     setColour(out, colour, cover * tile.alpha);
@@ -57,16 +57,10 @@ export const bakeMusselsFar: TileBake = (kit) => {
   const dark = rgb255(SHORE_PALETTE.musselDark);
   const sheen = rgb255(SHORE_PALETTE.musselSheen);
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const coverNoise = kit.noise.fbm(
-      { across, down },
-      square(tile.cover.frequency),
-      tile.cover.octaves,
-      tile.cover.salt,
-    );
+    const { across, down } = tilePoint(x, y, tile.sizePx);
+    const coverNoise = kit.noise.layer({ across, down }, tile.cover);
     const cover = clampUnit((coverNoise - tile.cover.from) * tile.cover.gain);
-    const grain = kit.noise.fbm({ across, down }, square(tile.grain.frequency), tile.grain.octaves, tile.grain.salt);
+    const grain = kit.noise.layer({ across, down }, tile.grain);
     const glint = coordinateHash(x, y, tile.sheenSalt) > tile.sheenAbove ? tile.sheen : 0;
     setColour(out, lerpRgb(dark, sheen, grain * tile.grain.share + glint), cover * tile.alpha);
   });
@@ -82,7 +76,7 @@ export const bakeRockweedFar: TileBake = (kit) => {
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
     const point = { across: x / tile.sizePx, down: y / tile.sizePx };
     const cover = patchAt(kit.noise, point, tile.patchSalt, tile.cover);
-    const warp = kit.noise.fbm(point, square(tile.warp.frequency), tile.warp.octaves, tile.warp.salt);
+    const warp = kit.noise.layer(point, tile.warp);
     const warpedU = point.across + (warp * tile.warp.gain) / tile.strands.u;
     const strand = kit.noise.fbm(
       { across: warpedU, down: point.down },
@@ -90,7 +84,7 @@ export const bakeRockweedFar: TileBake = (kit) => {
       tile.strands.octaves,
       tile.strands.salt,
     );
-    const clump = kit.noise.fbm(point, square(tile.clumps.frequency), tile.clumps.octaves, tile.clumps.salt);
+    const clump = kit.noise.layer(point, tile.clumps);
     const glint = coordinateHash(x, y, tile.glintSalt) > tile.glintAbove ? tile.glint : 0;
     const tone = (strand - HALF) * tile.strandContrast + tile.strandLift + clump * tile.clumpShare + glint;
     const clumpAlpha = clampUnit((clump - tile.clumpFrom) * tile.clumpGain);
@@ -104,9 +98,9 @@ function lowZoneFarColour(
 ): { colour: Rgb255; isPink: boolean; grass: number } {
   const tile = SHORE_LOWZONE_FAR_TILE;
   const grass = kit.noise.fbm(point, { x: tile.grass.u, y: tile.grass.v }, tile.grass.octaves, tile.grass.salt);
-  const pinkNoise = kit.noise.fbm(point, square(tile.pink.frequency), tile.pink.octaves, tile.pink.salt);
+  const pinkNoise = kit.noise.layer(point, tile.pink);
   if (pinkNoise > tile.pink.above) {
-    const grain = kit.noise.fbm(point, square(tile.pinkGrain.frequency), tile.pinkGrain.octaves, tile.pinkGrain.salt);
+    const grain = kit.noise.layer(point, tile.pinkGrain);
     const pink = rgb255(SHORE_PALETTE.coralline);
     return {
       colour: ramp3(pink, pink, rgb255(SHORE_PALETTE.corallineLight), grain * tile.pinkGrain.share),

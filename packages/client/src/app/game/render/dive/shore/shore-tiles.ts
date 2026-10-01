@@ -7,6 +7,7 @@ import { SHORE_TILE_AVERAGE_STRIDE } from '../../constants/dive-shore';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS } from '../../colour';
 import type { ShoreCanvas, ShoreCanvasFactory } from './shore-canvas';
 import { PeriodicNoise, shoreRandom } from './shore-noise';
+import { SteppedQueue, type PumpStep } from './shore-pump';
 import { bakeBarnaclesFar, bakeLowZoneFar, bakeMusselsFar, bakeRockweedFar } from './shore-tiles-far';
 import { bakeKelpBed, bakeKelpBedFar, bakeSeabed } from './shore-tiles-floor';
 import { bakeGrain, bakeLichen, bakeRock, type TileBake, type TileBakeKit } from './shore-tiles-rock';
@@ -80,13 +81,24 @@ interface TileJob {
   readonly bake: Generator<void, ShoreCanvas>;
 }
 
-export class ShoreTiles {
+/** Where a drawing gets its tiles: the baked one, or `null` while it bakes. */
+export interface ShoreTileSource {
+  get(name: ShoreTileName): ShoreTile | null;
+  readonly isBaked: boolean;
+}
+
+export class ShoreTiles extends SteppedQueue implements ShoreTileSource {
   private readonly tiles = new Map<ShoreTileName, ShoreTile>();
   private readonly wanted: ShoreTileName[] = [];
   private job: TileJob | null = null;
   private readonly kit: TileBakeKit;
 
-  constructor(factory: ShoreCanvasFactory) {
+  /** `bakes` is every tile's bake, the real ones unless a spec passes quick stand-ins. */
+  constructor(
+    factory: ShoreCanvasFactory,
+    private readonly bakes: Readonly<Record<ShoreTileName, TileBake>> = SHORE_TILE_BAKES,
+  ) {
+    super();
     this.kit = { factory, noise: new PeriodicNoise(shoreRandom('lattice')) };
   }
 
@@ -106,24 +118,17 @@ export class ShoreTiles {
     return [...this.wanted, ...SHORE_TILE_NAMES].find((name) => !this.tiles.has(name));
   }
 
-  /** Bakes for about `budgetMs` on `nowMs`; `true` when a tile finished, so a still view draws once more. */
-  pump(budgetMs: number, nowMs: () => number): boolean {
-    const startedMs = nowMs();
-    let hasFinished = false;
-    while (nowMs() - startedMs < budgetMs) {
-      if (this.job === null) {
-        const name = this.nextName();
-        if (name === undefined) break;
-        this.job = { name, bake: SHORE_TILE_BAKES[name](this.kit) };
-      }
-      const step = this.job.bake.next();
-      if (step.done === true) {
-        this.finish(this.job.name, step.value);
-        this.job = null;
-        hasFinished = true;
-      }
+  protected step(): PumpStep {
+    if (this.job === null) {
+      const name = this.nextName();
+      if (name === undefined) return 'idle';
+      this.job = { name, bake: this.bakes[name](this.kit) };
     }
-    return hasFinished;
+    const step = this.job.bake.next();
+    if (step.done !== true) return 'stepped';
+    this.finish(this.job.name, step.value);
+    this.job = null;
+    return 'finished';
   }
 
   /** Bakes every tile still missing at once: a spec's, or a reader who asks for a tile with no frames to wait. */

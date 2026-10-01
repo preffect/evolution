@@ -8,7 +8,7 @@ import { DIAMETER_PER_RADIUS, HALF, smoothstep } from '../../geometry';
 import type { ShoreCanvas, ShoreCanvasFactory, ShoreContext2D, ShorePattern } from './shore-canvas';
 import type { CoastRing, ShoreCoast } from './shore-coast';
 import { pointCount, pointX, pointY, type FlatPoints } from './shore-points';
-import type { ShoreTile, ShoreTileName, ShoreTiles } from './shore-tiles';
+import type { ShoreTile, ShoreTileName, ShoreTileSource } from './shore-tiles';
 
 /** The view a snapshot draws: the mockup's `z`, `s`, `cw`, `ch`, `dpr`, `hx`, `hy` and `T`. */
 export interface ShoreView {
@@ -36,7 +36,7 @@ export interface ShorePaint {
   readonly canvas: ShoreCanvas;
   readonly context: ShoreContext2D;
   readonly coast: ShoreCoast;
-  readonly tiles: ShoreTiles;
+  readonly tiles: ShoreTileSource;
   readonly factory: ShoreCanvasFactory;
   /** Patterns made on this canvas, by tile and size (`rock:380`). */
   readonly patterns: Map<string, ShorePattern>;

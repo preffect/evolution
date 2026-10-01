@@ -20,7 +20,7 @@ import { shoreSeaData, shoreStones, type ShoreSeaData } from './shore-sea-data';
 import { capHalfWidth, seaGridOf } from './shore-sea-grid';
 import { shoreSeaRamp, type ShoreSeaRamp } from './shore-sea-ramp';
 import { drawBeaches, drawDriftwood } from './shore-shore-life';
-import type { ShoreTiles } from './shore-tiles';
+import type { ShoreTileSource } from './shore-tiles';
 
 /** A baked level: its view, its colour, the distance grid, the stones in the water, and the sea strokes' reach. */
 export interface ShoreSnapshot {
@@ -35,7 +35,7 @@ export interface ShoreSnapshot {
 /** What a snapshot is drawn from: the land in metres, the tiles and a canvas factory. */
 export interface ShoreSnapshotSources {
   readonly land: LandRings;
-  readonly tiles: ShoreTiles;
+  readonly tiles: ShoreTileSource;
   readonly factory: ShoreCanvasFactory;
 }
 

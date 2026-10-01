@@ -15,7 +15,7 @@ import {
 import { SHORE_PALETTE } from '../../constants/dive-shore-tiles';
 import { CHANNEL_MAX } from '../../colour';
 import { DIAMETER_PER_RADIUS, HALF } from '../../geometry';
-import { coordinateHash, shoreRandom, square, wrappingVoronoi, type PeriodicNoise } from './shore-noise';
+import { coordinateHash, shoreRandom, square, wrappingVoronoi, type PeriodicNoise, tilePoint } from './shore-noise';
 import { clampUnit, ramp3, rgb255, setColour, squarePixelBake, wrapDraw } from './shore-pixels';
 import type { TileBake } from './shore-tiles-rock';
 
@@ -32,12 +32,7 @@ export const bakeSand: TileBake = (kit) => {
   const base = rgb255(SHORE_PALETTE.sandBase);
   const light = rgb255(SHORE_PALETTE.sandLight);
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const grain = kit.noise.fbm(
-      { across: x / tile.sizePx, down: y / tile.sizePx },
-      square(tile.grain.frequency),
-      tile.grain.octaves,
-      tile.grain.salt,
-    );
+    const grain = kit.noise.layer({ across: x / tile.sizePx, down: y / tile.sizePx }, tile.grain);
     const tone = grain * tile.share + tile.lift + speckLift(coordinateHash(x, y, tile.speckSalt));
     setColour(out, ramp3(wet, base, light, clampUnit(tone)));
   });
@@ -54,12 +49,7 @@ export const bakeRipples: TileBake = (kit) => {
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
     const across = (x / tile.sizePx) * RADIANS_PER_FULL_TURN;
     const down = (y / tile.sizePx) * RADIANS_PER_FULL_TURN;
-    const roughness = kit.noise.fbm(
-      { across: x / tile.sizePx, down: y / tile.sizePx },
-      square(tile.roughness.frequency),
-      tile.roughness.octaves,
-      tile.roughness.salt,
-    );
+    const roughness = kit.noise.layer({ across: x / tile.sizePx, down: y / tile.sizePx }, tile.roughness);
     const height =
       Math.sin(across * first.u + down * first.v + first.warp * Math.sin(down * first.warpFrequency)) * first.weight +
       Math.sin(across * second.u + down * second.v + second.phase) * second.weight +
@@ -73,10 +63,9 @@ export const bakeRipples: TileBake = (kit) => {
 export const bakeSwell: TileBake = (kit) => {
   const tile = SHORE_SWELL_TILE;
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const warp = kit.noise.fbm({ across, down }, square(tile.warp.frequency), tile.warp.octaves, tile.warp.salt);
-    const chop = kit.noise.fbm({ across, down }, square(tile.chop.frequency), tile.chop.octaves, tile.chop.salt);
+    const { across, down } = tilePoint(x, y, tile.sizePx);
+    const warp = kit.noise.layer({ across, down }, tile.warp);
+    const chop = kit.noise.layer({ across, down }, tile.chop);
     const { long, short } = tile;
     const height =
       Math.sin((down * long.v + across * long.u + warp * long.warp) * RADIANS_PER_FULL_TURN) * long.weight +
@@ -173,7 +162,7 @@ export const bakeFoam: TileBake = function* (kit) {
     const point = warped(kit.noise, { across: x / tile.sizePx, down: y / tile.sizePx }, tile.warp);
     const cells = wrappingVoronoi(wrapUnit(point.across), wrapUnit(point.down), tile.grid, jitter);
     const edge = (cells.second - cells.nearest) * tile.grid;
-    const sheet = kit.noise.fbm(point, square(tile.sheet.frequency), tile.sheet.octaves, tile.sheet.salt);
+    const sheet = kit.noise.layer(point, tile.sheet);
     const hole = clampUnit((edge - tile.edgeFrom) / tile.edgeSpan) * clampUnit((sheet - tile.holeFrom) * tile.holeGain);
     const alpha = clampUnit(1 - hole) * clampUnit((sheet - tile.sheetFrom) * tile.sheetGain);
     setColour(out, tile.rgb, alpha * tile.alpha);
@@ -190,9 +179,7 @@ export const bakeCaustic: TileBake = (kit) => {
     const point = warped(kit.noise, { across: x / tile.sizePx, down: y / tile.sizePx }, tile.warp);
     const cells = wrappingVoronoi(wrapUnit(point.across), wrapUnit(point.down), tile.grid, jitter);
     const edge = (cells.second - cells.nearest) * tile.grid;
-    const light =
-      tile.light.base +
-      tile.light.gain * kit.noise.fbm(point, square(tile.light.frequency), tile.light.octaves, tile.light.salt);
+    const light = tile.light.base + tile.light.gain * kit.noise.layer(point, tile.light);
     const sharp = squared(clampUnit(1 - edge / tile.sharp.width)) * tile.sharp.weight;
     const soft = squared(clampUnit(1 - edge / tile.soft.width)) * tile.soft.weight;
     setColour(out, tile.rgb, clampUnit((sharp + soft) * light) * CHANNEL_MAX);

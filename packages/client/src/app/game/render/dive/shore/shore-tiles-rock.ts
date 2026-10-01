@@ -5,7 +5,7 @@ import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import { SHORE_GRAIN_TILE, SHORE_LICHEN_TILE, SHORE_PALETTE, SHORE_ROCK_TILE } from '../../constants/dive-shore-tiles';
 import { HALF } from '../../geometry';
 import type { ShoreCanvas, ShoreCanvasFactory } from './shore-canvas';
-import { coordinateHash, shoreRandom, square, type PeriodicNoise } from './shore-noise';
+import { coordinateHash, shoreRandom, tilePoint, type PeriodicNoise } from './shore-noise';
 import { clampUnit, ramp3, rgb255, setColour, squarePixelBake, wrapDraw, type PixelColour } from './shore-pixels';
 
 /** What every tile bake draws with. */
@@ -24,10 +24,9 @@ function rockShade(noise: PeriodicNoise): (x: number, y: number, out: PixelColou
   const base = rgb255(SHORE_PALETTE.rockBase);
   const light = rgb255(SHORE_PALETTE.rockLight);
   return (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const broad = noise.fbm({ across, down }, square(tile.base.frequency), tile.base.octaves, tile.base.salt);
-    const fine = noise.fbm({ across, down }, square(tile.fine.frequency), tile.fine.octaves, tile.fine.salt);
+    const { across, down } = tilePoint(x, y, tile.sizePx);
+    const broad = noise.layer({ across, down }, tile.base);
+    const fine = noise.layer({ across, down }, tile.fine);
     let value = clampUnit((broad - HALF) * tile.contrast + HALF) * tile.baseShare + fine * tile.fineShare;
     const speck = coordinateHash(x, y, tile.speckSalt);
     if (speck > tile.darkSpeckAbove) value -= tile.darkSpeck;
@@ -125,15 +124,9 @@ export const bakeLichen: TileBake = (kit) => {
   const [red, green, blue] = rgb255(SHORE_PALETTE.lichenBlack);
   const [mottleRed, mottleGreen, mottleBlue] = tile.mottleRgb;
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const cover = kit.noise.fbm({ across, down }, square(tile.cover.frequency), tile.cover.octaves, tile.cover.salt);
-    const mottle = kit.noise.fbm(
-      { across, down },
-      square(tile.mottle.frequency),
-      tile.mottle.octaves,
-      tile.mottle.salt,
-    );
+    const { across, down } = tilePoint(x, y, tile.sizePx);
+    const cover = kit.noise.layer({ across, down }, tile.cover);
+    const mottle = kit.noise.layer({ across, down }, tile.mottle);
     const alpha = clampUnit((cover - tile.coverFrom) * tile.coverGain) * (tile.alphaBase + mottle * tile.alphaMottle);
     setColour(out, [red + mottle * mottleRed, green + mottle * mottleGreen, blue + mottle * mottleBlue], alpha);
   });

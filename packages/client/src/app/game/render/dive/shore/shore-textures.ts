@@ -7,7 +7,7 @@ import { byteDataTexture } from '../../textures/pixi-textures';
 import type { ShoreCanvas } from './shore-canvas';
 import type { ShoreLevelUploader } from './shore-levels';
 import type { ShoreLevelTextures, ShoreTileTextures } from './shore-mesh';
-import type { ShoreTile, ShoreTiles } from './shore-tiles';
+import type { ShoreTile, ShoreTileSource } from './shore-tiles';
 
 function canvasSource(canvas: ShoreCanvas, isRepeating: boolean): TextureSource {
   return new CanvasSource({
@@ -54,7 +54,7 @@ export const SHORE_LEVEL_UPLOADER: ShoreLevelUploader<ShoreLevelTextures> = {
 const LIVE_TILES = ['caustic', 'swell', 'ripple', 'glint', 'foam', 'seabed'] as const;
 
 /** The live sea's tiles once every one has baked; `null` before. */
-export function liveTileTextures(tiles: ShoreTiles): ShoreTileTextures | null {
+export function liveTileTextures(tiles: ShoreTileSource): ShoreTileTextures | null {
   const baked = LIVE_TILES.map((name) => tiles.get(name));
   if (baked.some((tile) => tile === null)) return null;
   const [caustic, swell, ripple, glint, foam, floor] = baked as ShoreTile[];

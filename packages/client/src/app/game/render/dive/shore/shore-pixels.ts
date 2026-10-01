@@ -6,6 +6,7 @@ import { SHORE_PIXEL_ROWS_PER_SLICE } from '../../constants/dive-shore-tiles';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS, hexToRgb } from '../../colour';
 import { HALF } from '../../geometry';
 import type { ShoreCanvas, ShoreCanvasFactory } from './shore-canvas';
+import { lerp } from './shore-noise';
 
 /** A colour in 0–255 channels. */
 export type Rgb255 = readonly [number, number, number];
@@ -27,8 +28,9 @@ export function rgb255(hex: string): Rgb255 {
   return [red * CHANNEL_MAX, green * CHANNEL_MAX, blue * CHANNEL_MAX];
 }
 
-function lerp(from: number, target: number, fraction: number): number {
-  return from + (target - from) * fraction;
+/** Three hex colours as a ramp's low, middle and high (`ramp3`'s A, B, C). */
+export function rampOf(hexes: readonly [string, string, string]): readonly [Rgb255, Rgb255, Rgb255] {
+  return [rgb255(hexes[0]), rgb255(hexes[1]), rgb255(hexes[2])];
 }
 
 /** Two linear ramps meeting at the middle: `low` at 0, `middle` at ½, `high` at 1 (`ramp3`). */

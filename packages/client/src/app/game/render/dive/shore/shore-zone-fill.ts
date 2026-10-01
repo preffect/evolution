@@ -34,10 +34,21 @@ export function viewRect(paint: ShorePaint, box: WorldBox | null): ViewRect | nu
   const maxY = view.heightPx * HALF + bleed;
   if (box === null) return [minX, minY, maxX - minX, maxY - minY];
   const scale = view.pixelsPerMetre;
-  const left = Math.max(minX, Math.floor(box[0] * scale) - bleed);
-  const top = Math.max(minY, Math.floor(box[1] * scale) - bleed);
-  const right = Math.min(maxX, Math.ceil(box[2] * scale) + bleed);
-  const bottom = Math.min(maxY, Math.ceil(box[3] * scale) + bleed);
+  const wanted: ViewRect = [
+    box[0] * scale - bleed,
+    box[1] * scale - bleed,
+    (box[2] - box[0]) * scale + DIAMETER_PER_RADIUS * bleed,
+    (box[3] - box[1]) * scale + DIAMETER_PER_RADIUS * bleed,
+  ];
+  return cutToBounds(wanted, [minX, minY, maxX, maxY]);
+}
+
+/** `wanted` rounded out to whole pixels and cut to `bounds` (`[minX, minY, maxX, maxY]`); `null` when nothing is left. */
+function cutToBounds(wanted: ViewRect, bounds: readonly [number, number, number, number]): ViewRect | null {
+  const left = Math.max(bounds[0], Math.floor(wanted[0]));
+  const top = Math.max(bounds[1], Math.floor(wanted[1]));
+  const right = Math.min(bounds[2], Math.ceil(wanted[0] + wanted[2]));
+  const bottom = Math.min(bounds[3], Math.ceil(wanted[1] + wanted[3]));
   return right > left && bottom > top ? [left, top, right - left, bottom - top] : null;
 }
 
@@ -88,11 +99,13 @@ function layerFor(paint: ShorePaint, zone: ZoneName): ShoreCanvas {
 function canvasRect(paint: ShorePaint, rect: ViewRect): ViewRect | null {
   const { view } = paint;
   const ratio = view.devicePixelRatio;
-  const left = Math.max(0, Math.floor((rect[0] + view.widthPx * HALF) * ratio));
-  const top = Math.max(0, Math.floor((rect[1] + view.heightPx * HALF) * ratio));
-  const right = Math.min(paint.canvas.width, Math.ceil((rect[0] + rect[2] + view.widthPx * HALF) * ratio));
-  const bottom = Math.min(paint.canvas.height, Math.ceil((rect[1] + rect[3] + view.heightPx * HALF) * ratio));
-  return right > left && bottom > top ? [left, top, right - left, bottom - top] : null;
+  const wanted: ViewRect = [
+    (rect[0] + view.widthPx * HALF) * ratio,
+    (rect[1] + view.heightPx * HALF) * ratio,
+    rect[2] * ratio,
+    rect[3] * ratio,
+  ];
+  return cutToBounds(wanted, [0, 0, paint.canvas.width, paint.canvas.height]);
 }
 
 /**

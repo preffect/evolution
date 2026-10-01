@@ -6,6 +6,7 @@
 import { SHORE_LEVEL_CACHE } from '../../constants/dive-shore';
 import type { StageSize } from './shore-lod';
 import { SHORE_LEVEL_COUNT, shoreLevelAt, shoreLevelView } from './shore-lod';
+import { SteppedQueue, type PumpStep } from './shore-pump';
 import { bakeShoreSnapshot, type ShoreSnapshot, type ShoreSnapshotSources } from './shore-snapshot';
 
 /** What a baked level becomes on the GPU, and how it is given back: the band's (`ShoreMesh`'s textures). */
@@ -27,7 +28,7 @@ export interface ShoreLevelPair<Level> {
   readonly isExact: boolean;
 }
 
-export class ShoreLevels<Level> {
+export class ShoreLevels<Level> extends SteppedQueue {
   private readonly baked = new Map<number, Level>();
   /** Levels let go, given back only once nothing draws with them (`releaseRetired`). */
   private retired: Level[] = [];
@@ -39,7 +40,9 @@ export class ShoreLevels<Level> {
   constructor(
     private readonly sources: ShoreSnapshotSources,
     private readonly uploader: ShoreLevelUploader<Level>,
-  ) {}
+  ) {
+    super();
+  }
 
   /** A new stage size or ratio drops every level: they are baked for one. */
   setStage(stage: StageSize, devicePixelRatio: number): void {
@@ -78,27 +81,20 @@ export class ShoreLevels<Level> {
     return this.wanted.some((level) => !this.baked.has(level));
   }
 
-  /** Bakes for about `budgetMs`; `true` when a level finished, so a still view draws once more. */
-  pump(budgetMs: number, nowMs: () => number): boolean {
-    const startedMs = nowMs();
-    let hasFinished = false;
-    while (nowMs() - startedMs < budgetMs) {
-      if (this.job === null) {
-        const level = this.wanted.find((candidate) => !this.baked.has(candidate));
-        if (level === undefined || this.stage.width <= 0) break;
-        this.job = {
-          level,
-          bake: bakeShoreSnapshot(shoreLevelView(level, this.stage, this.devicePixelRatio), this.sources),
-        };
-      }
-      const step = this.job.bake.next();
-      if (step.done === true) {
-        this.baked.set(this.job.level, this.uploader.upload(step.value));
-        this.job = null;
-        hasFinished = true;
-      }
+  protected step(): PumpStep {
+    if (this.job === null) {
+      const level = this.wanted.find((candidate) => !this.baked.has(candidate));
+      if (level === undefined || this.stage.width <= 0) return 'idle';
+      this.job = {
+        level,
+        bake: bakeShoreSnapshot(shoreLevelView(level, this.stage, this.devicePixelRatio), this.sources),
+      };
     }
-    return hasFinished;
+    const step = this.job.bake.next();
+    if (step.done !== true) return 'stepped';
+    this.baked.set(this.job.level, this.uploader.upload(step.value));
+    this.job = null;
+    return 'finished';
   }
 
   /** The level `zoom` is in (or the nearest baked one, coarser first) and the next one down. */

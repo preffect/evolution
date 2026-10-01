@@ -7,8 +7,8 @@ import { SHORE_KELPBED_FAR_TILE, SHORE_KELPBED_TILE, SHORE_SEABED_TILE } from '.
 import { SHORE_PALETTE } from '../../constants/dive-shore-tiles';
 import { HALF } from '../../geometry';
 import type { ShoreCanvas } from './shore-canvas';
-import { shoreRandom, square, type PeriodicNoise } from './shore-noise';
-import { clampUnit, ramp3, rgb255, setColour, squarePixelBake, wrapDraw } from './shore-pixels';
+import { shoreRandom, square, type PeriodicNoise, tilePoint } from './shore-noise';
+import { clampUnit, ramp3, rampOf, setColour, squarePixelBake, wrapDraw } from './shore-pixels';
 import type { TileBake } from './shore-tiles-rock';
 
 const MIDDLE_BLADE = 2;
@@ -72,21 +72,11 @@ export const bakeKelpBed: TileBake = function* (kit) {
 /** A kelp canopy seen from far off: mottled golden-brown clumps; the tile is 150 m (`BAKES.kelpbedFar`). */
 export const bakeKelpBedFar: TileBake = (kit) => {
   const tile = SHORE_KELPBED_FAR_TILE;
-  const [dark, base, light] = tile.ramp.map(rgb255) as [
-    ReturnType<typeof rgb255>,
-    ReturnType<typeof rgb255>,
-    ReturnType<typeof rgb255>,
-  ];
+  const [dark, base, light] = rampOf(tile.ramp);
   return squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const cover = kit.noise.fbm({ across, down }, square(tile.cover.frequency), tile.cover.octaves, tile.cover.salt);
-    const mottle = kit.noise.fbm(
-      { across, down },
-      square(tile.mottle.frequency),
-      tile.mottle.octaves,
-      tile.mottle.salt,
-    );
+    const [cover, mottle] = [tile.cover, tile.mottle].map((layer) =>
+      kit.noise.layer(tilePoint(x, y, tile.sizePx), layer),
+    ) as [number, number];
     const colour = ramp3(dark, base, light, clampUnit(mottle * tile.mottle.share + tile.mottle.lift));
     setColour(out, colour, clampUnit((cover - tile.cover.from) * tile.cover.gain) * tile.alpha);
   });
@@ -183,25 +173,15 @@ function drawTufts(canvas: ShoreCanvas, random: RandomSource): void {
 /** The shallow sea floor: sand with ripple marks, cobbles, weed tufts; the tile is 5 m (`BAKES.seabed`). */
 export const bakeSeabed: TileBake = function* (kit) {
   const tile = SHORE_SEABED_TILE;
-  const [dark, base, light] = tile.ramp.map(rgb255) as [
-    ReturnType<typeof rgb255>,
-    ReturnType<typeof rgb255>,
-    ReturnType<typeof rgb255>,
-  ];
+  const [dark, base, light] = rampOf(tile.ramp);
   const canvas = yield* squarePixelBake(kit.factory, tile.sizePx, (x, y, out) => {
-    const across = x / tile.sizePx;
-    const down = y / tile.sizePx;
-    const warp = kit.noise.fbm(
-      { across, down },
-      square(tile.rippleWarp.frequency),
-      tile.rippleWarp.octaves,
-      tile.rippleWarp.salt,
-    );
+    const { across, down } = tilePoint(x, y, tile.sizePx);
+    const warp = kit.noise.layer({ across, down }, tile.rippleWarp);
     const ripple =
       Math.sin((across * tile.ripple.u + down * tile.ripple.v + warp * tile.rippleWarp.gain) * RADIANS_PER_FULL_TURN) *
         HALF +
       HALF;
-    const floor = kit.noise.fbm({ across, down }, square(tile.floor.frequency), tile.floor.octaves, tile.floor.salt);
+    const floor = kit.noise.layer({ across, down }, tile.floor);
     setColour(out, ramp3(dark, base, light, clampUnit(floor * tile.floorShare + ripple * tile.rippleShare)));
   });
   const random = shoreRandom('seabed');

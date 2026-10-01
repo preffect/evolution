@@ -39,7 +39,8 @@ export function mixHash(value: number): number {
   return (mixed ^ (mixed >>> SHORE_MIX.lastShift)) >>> 0;
 }
 
-function lerp(from: number, target: number, fraction: number): number {
+/** `from` to `target` by `fraction`. */
+export function lerp(from: number, target: number, fraction: number): number {
   return from + (target - from) * fraction;
 }
 
@@ -100,6 +101,11 @@ export class PeriodicNoise {
     return lerp(top, bottom, easeY);
   }
 
+  /** One of a bake's noise layers at `point` (`pfbm(u × f, v × f, f, f, octaves, salt)`). */
+  layer(point: { readonly across: number; readonly down: number }, layer: NoiseLayer): number {
+    return this.fbm(point, { x: layer.frequency, y: layer.frequency }, layer.octaves, layer.salt);
+  }
+
   /**
    * A fractal sum of `octaves` periodic noises (`pfbm`): `frequency` lattice cells across the tile on each axis, so
    * `(across, down)` in tile units [0, 1) wraps.
@@ -124,6 +130,18 @@ export class PeriodicNoise {
     }
     return sum / totalWeight;
   }
+}
+
+/** A noise layer a tile bake reads: its square frequency, its octaves and its salt. */
+export interface NoiseLayer {
+  readonly frequency: number;
+  readonly octaves: number;
+  readonly salt: number;
+}
+
+/** A pixel of a square tile `sizePx` across, in tile units [0, 1). */
+export function tilePoint(x: number, y: number, sizePx: number): { readonly across: number; readonly down: number } {
+  return { across: x / sizePx, down: y / sizePx };
 }
 
 /** The square frequency most bakes use: `n` cells across on both axes. */
