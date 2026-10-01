@@ -11,6 +11,7 @@ import {
   bandWeight,
   diveBandStates,
   isMockupDrawing,
+  DIVE_MOCKUP_BAND_NAMES,
 } from './dive-bands';
 import { diveCameraAt } from './dive-camera';
 
@@ -87,6 +88,10 @@ describe('diveBandStates', () => {
     expect(diveBandStates(tiny).dish.weight).toBeGreaterThan(0);
     expect(DIVE_DISH_RADIUS_M * tiny.pixelsPerMetre).toBeLessThan(2);
     expect(diveBandStates(tiny).dish.isActive).toBe(false);
+  });
+
+  it('leaves the shore out of the mockup’s canvases: the shore band draws it (ticket #801)', () => {
+    expect(DIVE_MOCKUP_BAND_NAMES).toEqual(['planet', 'kelp', 'drop', 'slime']);
   });
 
   it('stops the slime, and with it the mockup’s whole canvas, once the view lies inside the dish', () => {

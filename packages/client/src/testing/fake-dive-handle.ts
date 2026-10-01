@@ -13,7 +13,7 @@ import {
 } from '../app/game/render/dive/dive-host';
 import type { DiveFrameTimesReport } from '../app/game/render/dive/dive-frame-times';
 
-const NO_FRAME_TIMES: DiveFrameTimesReport = { frames: 0, upperBandsMs: 0, dishMs: 0, submitMs: 0 };
+const NO_FRAME_TIMES: DiveFrameTimesReport = { frames: 0, upperBandsMs: 0, shoreMs: 0, dishMs: 0, submitMs: 0 };
 
 export class RecordingDiveHandle implements DiveHandle {
   readonly played: { stop: DivePhaseStop; isMotionReduced: boolean }[] = [];

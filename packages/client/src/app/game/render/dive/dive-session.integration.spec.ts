@@ -4,6 +4,7 @@
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
+import { fakeUpperBands } from '../../../../testing/dive-session-harness';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_BACTERIA_COUNT, DIVE_METRES_PER_WU, DIVE_MOTE_COUNT, DIVE_ZOOM_BOTTOM } from '../constants';
 import { DiveSession } from './dive-session';
@@ -11,6 +12,8 @@ import type { MockupBands } from './mockup/dive-mockup-bands';
 
 const NO_BANDS: MockupBands = {
   canvas: document.createElement('canvas'),
+  upperCanvas: document.createElement('canvas'),
+  isForestShown: true,
   isBaked: true,
   isPlanetReady: true,
   draw: () => undefined,
@@ -26,10 +29,11 @@ async function builtSession(): Promise<{ subject: DiveSession; app: FakePixiApp 
     scheduler: new ManualScheduler(),
     devicePixelRatio: 1,
     createPixiApp: () => {
-      app = createFakePixiApp({ width: 1200, height: 675 });
-      return Promise.resolve(app);
+      const made = createFakePixiApp({ width: 1200, height: 675 });
+      app ??= made;
+      return Promise.resolve(made);
     },
-    loadMockupBands: () => Promise.resolve(NO_BANDS),
+    loadUpperBands: () => Promise.resolve(fakeUpperBands(NO_BANDS)),
     balance: () => DEFAULT_BALANCE,
     isMotionReduced: () => false,
     onView: () => undefined,

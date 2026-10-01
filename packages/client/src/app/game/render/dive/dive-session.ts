@@ -1,6 +1,6 @@
 // The opening dive on the lobby (docs/rendering/opening-dive.md §1): the fourth `FrameLoopSession`, beside a room's,
-// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's own canvas (`DiveMacroBand`); over
-// it, the session's Pixi app clears to transparent and draws the **real** `GameRenderer` on a scripted dish scene,
+// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvases and the shore's own Pixi
+// app (`DiveUpperStage`); over them, the session's Pixi app clears to transparent and draws the **real** `GameRenderer` on a scripted dish scene,
 // clipped to the dish's outer wall while the slime round it shows, and faded in by the band table as the dark field
 // arrives (the canvas's opacity, so the browser composites the fade).
 //
@@ -29,15 +29,16 @@ import type { GameRenderer } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import { NO_HUD_INPUTS, outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from '../render-io';
 import type { RenderFrame } from '../../net/world-store';
-import { isMockupDrawing } from './dive-bands';
 import { diveRendererZoom } from './dive-camera';
 import { DiveControls } from './dive-controls';
 import { clipDiveRendererToDish } from './dive-dish-clip';
 import { DiveFrameTimes, type DiveFrameTimesReport } from './dive-frame-times';
 import { DiveGlobeIdle } from './dive-globe-idle';
-import { DiveMacroBand, type MockupBandsLoader } from './dive-macro-band';
+import type { UpperBandsLoader } from './dive-macro-band';
+import { openDiveParts } from './dive-session-parts';
 import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveTextureOptions } from './dive-micro-scene';
-import { diveViewAt, isSameViewport, mockupFrameOf, type DiveView } from './dive-view';
+import { diveViewAt, isSameViewport, type DiveView } from './dive-view';
+import { DiveUpperStage } from './dive-upper-stage';
 
 export interface DiveSessionDependencies {
   readonly host: HTMLElement;
@@ -47,7 +48,8 @@ export interface DiveSessionDependencies {
   readonly scheduler: Scheduler;
   readonly devicePixelRatio: number;
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
-  readonly loadMockupBands: MockupBandsLoader;
+  /** The mockup's bands and the shore's parts, a lazily loaded chunk each (`loadUpperBands`). */
+  readonly loadUpperBands: UpperBandsLoader;
   readonly balance: () => BalanceConfig;
   readonly isMotionReduced: () => boolean;
   /** Each frame drawn: what the panel's readout, labels and slider show. */
@@ -57,7 +59,6 @@ export interface DiveSessionDependencies {
 }
 
 const NO_EXTENT = { minX: 0, minY: 0, maxX: 0, maxY: 0 } as const;
-const FULFILLED = 'fulfilled';
 
 export class DiveSession extends FrameLoopSession {
   readonly controls = new DiveControls();
@@ -67,7 +68,7 @@ export class DiveSession extends FrameLoopSession {
   /** The renderer's layers, clipped to the dish while the slime round it shows. */
   private readonly gameRoot = new Container();
   private readonly dishClip = new Graphics();
-  private macro: DiveMacroBand | null = null;
+  private upper: DiveUpperStage | null = null;
   private view: DiveView | null = null;
   private lastOutputs: RenderOutputs | null = null;
   private openedAtMs = 0;
@@ -91,24 +92,20 @@ export class DiveSession extends FrameLoopSession {
    */
   async start(): Promise<boolean> {
     const { dependencies } = this;
-    const [pixiResult, bandsResult] = await Promise.allSettled([
-      dependencies.createPixiApp({
-        host: dependencies.host,
-        devicePixelRatio: this.devicePixelRatio,
-        shouldPreserveDrawingBuffer: false,
-        isTransparent: true,
-      }),
-      dependencies.loadMockupBands(() => this.nowMs()),
-    ]);
-    const pixi = pixiResult.status === FULFILLED ? pixiResult.value : null;
-    const bands = bandsResult.status === FULFILLED ? bandsResult.value : null;
-    if (this.isDestroyed || pixi === null || bands === null) {
-      pixi?.destroy();
-      bands?.release();
-      return false;
-    }
-    this.macro = new DiveMacroBand(bands, dependencies.host);
-    this.macro.bakeOn(dependencies.scheduler, () => this.requestFrame());
+    const opened = await openDiveParts({
+      createApp: () => this.createTransparentApp(),
+      loadBands: () => dependencies.loadUpperBands(() => this.nowMs()),
+      isClosed: () => this.isDestroyed,
+    });
+    if (opened === null) return false;
+    const { pixi, bands, shorePixi } = opened;
+    this.upper = new DiveUpperStage(bands, shorePixi, {
+      host: dependencies.host,
+      devicePixelRatio: this.devicePixelRatio,
+      scheduler: dependencies.scheduler,
+      nowMs: () => this.nowMs(),
+      onBaked: () => this.requestFrame(),
+    });
     this.adoptPixiApp(pixi);
     if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
@@ -124,6 +121,15 @@ export class DiveSession extends FrameLoopSession {
     return true;
   }
 
+  private createTransparentApp(): Promise<PixiAppHandle> {
+    return this.dependencies.createPixiApp({
+      host: this.dependencies.host,
+      devicePixelRatio: this.devicePixelRatio,
+      shouldPreserveDrawingBuffer: false,
+      isTransparent: true,
+    });
+  }
+
   protected override rendererStage(_app: Application): Container {
     return this.gameRoot;
   }
@@ -136,6 +142,7 @@ export class DiveSession extends FrameLoopSession {
   /** The stage changed size: the app follows at once (Pixi's `resizeTo` measures only on a window resize, #805). */
   resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
     this.pixi?.resize(sizePx);
+    this.upper?.resize(sizePx);
     this.requestFrame();
   }
 
@@ -219,17 +226,12 @@ export class DiveSession extends FrameLoopSession {
    * opening jumps to its stop at once, paused or not.
    */
   private settleControls(nowMs: number, isMotionReduced: boolean): void {
-    this.controls.autoplay(nowMs, isMotionReduced, this.macro?.isBaked ?? false);
+    this.controls.autoplay(nowMs, isMotionReduced, this.upper?.isBaked ?? false);
     if (isMotionReduced) this.controls.finishPlay();
   }
 
   private drawUpperBands(view: DiveView): void {
-    const macro = this.macro;
-    if (macro === null) return;
-    const isDrawing = isMockupDrawing(view.bands);
-    const globeAlpha = macro.globeAlphaAt(this.nowMs(), this.dependencies.isMotionReduced());
-    const frame = mockupFrameOf(view, this.devicePixelRatio, globeAlpha);
-    this.frameTimes.measureUpperBands(() => macro.draw(frame, isDrawing));
+    this.upper?.draw(view, this.frameTimes, this.dependencies.isMotionReduced());
   }
 
   protected nextFrame(): RenderFrame | null {
@@ -282,8 +284,8 @@ export class DiveSession extends FrameLoopSession {
   destroy(): void {
     this.isDestroyed = true;
     this.gameRoot.mask = null;
-    this.macro?.destroy();
-    this.macro = null;
+    this.upper?.destroy();
+    this.upper = null;
     this.view = null;
     this.disposeLoop();
   }

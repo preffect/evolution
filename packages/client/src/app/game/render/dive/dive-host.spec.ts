@@ -3,6 +3,7 @@
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
+import { fakeUpperBands } from '../../../../testing/dive-session-harness';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PHASE_STOPS, DIVE_ZOOM_TOP, type DivePhaseStop } from '../constants';
 import { createDiveHandle, type DiveFrameState, type DiveHandle } from './dive-host';
@@ -13,6 +14,8 @@ const SHORE = DIVE_PHASE_STOPS[4] as DivePhaseStop;
 function bands(): MockupBands {
   return {
     canvas: document.createElement('canvas'),
+    upperCanvas: document.createElement('canvas'),
+    isForestShown: true,
     isBaked: true,
     isPlanetReady: true,
     draw: () => undefined,
@@ -42,10 +45,11 @@ async function opened(): Promise<{
       scheduler: new ManualScheduler(),
       devicePixelRatio: 1,
       createPixiApp: () => {
-        app = createFakePixiApp({ width: 1200, height: 675 });
-        return Promise.resolve(app);
+        const made = createFakePixiApp({ width: 1200, height: 675 });
+        app ??= made;
+        return Promise.resolve(made);
       },
-      loadMockupBands: () => Promise.resolve(bands()),
+      loadUpperBands: () => Promise.resolve(fakeUpperBands(bands())),
       noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     },
   );

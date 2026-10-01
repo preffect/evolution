@@ -35,16 +35,41 @@ export interface MockupFrame {
   readonly globeAlpha: number;
 }
 
+/** The shore band's coast in metres (`shore/shore-coast.ts`): the kelp band and the forest test build it per frame. */
+export interface MockupCoast {
+  build(view: { readonly halfWidthM: number; readonly halfHeightM: number; readonly pixelsPerMetre: number }): void;
+  distance(x: number, y: number, maxM: number): number;
+  readonly rings: readonly { readonly points: readonly number[] }[];
+  readonly marginM: number;
+}
+
+/** A tile the shore band has baked (`shore/shore-tiles.ts`): the kelp and slime bands draw from it. */
+export interface MockupTile {
+  readonly canvas: CanvasImageSource & { readonly width: number; readonly height: number };
+  readonly averageColour: string;
+}
+
+export interface MockupTiles {
+  /** The tile, or `null` while it bakes (it then jumps the shore's queue). */
+  get(name: string): MockupTile | null;
+}
+
 export interface MockupBandsInput {
   readonly worldRings: readonly MockupRing[];
   readonly salishRings: readonly MockupRing[];
+  readonly coast: MockupCoast;
+  readonly tiles: MockupTiles;
   /** The dive's clock in milliseconds: the bake pump's budget is measured on it. */
   readonly nowMs: () => number;
 }
 
 export interface MockupBands {
-  /** The one canvas the bands draw on (kept for the page); the dive lays it under the game's canvas. */
+  /** The planet's canvas (kept for the page): the bottom of the stage. */
   readonly canvas: HTMLCanvasElement;
+  /** The kelp's, the drop's and the slime's canvas, over the shore band's and under the game's. */
+  readonly upperCanvas: HTMLCanvasElement;
+  /** Whether the last frame drew the planet's forest: when not, the shore lays its flat forest under the land. */
+  readonly isForestShown: boolean;
   draw(frame: MockupFrame): void;
   /** Runs the texture bakes for about `budgetMs`; `true` when one finished, so a still view draws once more. */
   pumpBakes(budgetMs: number): boolean;
