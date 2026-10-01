@@ -31,12 +31,9 @@ export interface MockupFrame {
   /** The globe's rotation as d3 takes it: `[λ, φ]` in degrees. */
   readonly globeRotation: readonly [number, number];
   readonly bands: MockupBandStates;
-  /** The baked planet's opacity over the fallback globe (`dive-globe-crossfade.ts`): 1 once it is up. */
-  readonly globeAlpha: number;
 }
 
 export interface MockupBandsInput {
-  readonly worldRings: readonly MockupRing[];
   readonly salishRings: readonly MockupRing[];
   /** The dive's clock in milliseconds: the bake pump's budget is measured on it. */
   readonly nowMs: () => number;
@@ -45,13 +42,15 @@ export interface MockupBandsInput {
 export interface MockupBands {
   /** The one canvas the bands draw on (kept for the page); the dive lays it under the game's canvas. */
   readonly canvas: HTMLCanvasElement;
-  draw(frame: MockupFrame): void;
+  /**
+   * Draws the frame; `true` when the planet (`dive-planet-band.ts`) shows under the canvas, which is then left clear
+   * for it wherever the shore does not draw (close in, only while some of the view lies past the rock band).
+   */
+  draw(frame: MockupFrame): boolean;
   /** Runs the texture bakes for about `budgetMs`; `true` when one finished, so a still view draws once more. */
   pumpBakes(budgetMs: number): boolean;
   readonly isBaked: boolean;
-  /** The world's coastline bake has landed: the baked planet can draw instead of the fallback globe. */
-  readonly isPlanetReady: boolean;
-  /** Gives the globe's WebGL context back; the bakes are kept for the next open. */
+  /** Shrinks the screen-sized canvases to nothing; the bakes are kept for the next open. */
   release(): void;
 }
 

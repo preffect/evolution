@@ -1,11 +1,11 @@
 // The dive session (docs/rendering/opening-dive.md §1) over the fake Pixi app `render-session.spec.ts` uses and a
 // recording stand-in for the mockup's upper bands, so no spec here touches WebGL, a 2D canvas or the coastlines.
 //
-// What is load-bearing, each observed on the thing itself: the upper bands draw from the first frame while the
-// renderer still bakes, on their own canvas under the game's; the game's dish is drawn only where the band table
-// says (never in orbit, unclipped inside the dish, clipped to its wall while the slime shows) and faded in by the
-// game canvas's opacity; a still dive under reduced motion draws nothing new; the lobby plays phase 1 on its own
-// once; and `destroy` gives every resource back.
+// What is load-bearing, each observed on the thing itself (the planet's part is `dive-session-planet.spec.ts`): the
+// game's dish is drawn only where the band table says
+// (never in orbit, unclipped inside the dish, clipped to its wall while the slime shows), over the mockup's canvas,
+// and faded in by the game canvas's opacity; a still dive under reduced motion draws nothing new; the lobby plays
+// phase 1 on its own once; and `destroy` gives every resource back.
 
 import { describe, expect, it } from 'vitest';
 import { type FakePixiApp } from '../../../../testing/fake-pixi-app';
@@ -15,13 +15,7 @@ import {
   tickUntilBuilt,
   type DiveSessionHarness,
 } from '../../../../testing/dive-session-harness';
-import {
-  DIVE_AUTOPLAY_DELAY_MS,
-  DIVE_CANVAS_TEST_ID,
-  DIVE_GLOBE_CROSSFADE_MS,
-  DIVE_PLAY_HOLD_MS,
-  DIVE_ZOOM_TOP,
-} from '../constants';
+import { DIVE_AUTOPLAY_DELAY_MS, DIVE_CANVAS_TEST_ID, DIVE_PLAY_HOLD_MS, DIVE_ZOOM_TOP } from '../constants';
 import { diveGlobeIdleSpin } from './dive-camera';
 import { DIVE_FIRST_PHASE } from './dive-controls';
 
@@ -29,18 +23,6 @@ import { DIVE_FIRST_PHASE } from './dive-controls';
 const opacityOf = (app: FakePixiApp): number => Number(app.canvas.style.opacity);
 
 describe('DiveSession.start', () => {
-  it('draws the upper bands from the first frame, while the renderer still bakes, and hides the empty game canvas', async () => {
-    const { subject, app, bands, views } = await started();
-    expect(subject.isBuildingRenderer).toBe(true);
-    app.tick();
-    expect(bands.frames).toHaveLength(1);
-    expect(bands.frames[0]!.zoom).toBe(DIVE_ZOOM_TOP);
-    expect(app.renderCalls.count).toBe(0);
-    expect(opacityOf(app)).toBe(0);
-    expect(views.at(-1)!.camera.zoom).toBe(DIVE_ZOOM_TOP);
-    subject.destroy();
-  });
-
   it('lays the upper bands’ canvas first in the stage, under the game’s, and the renderer in a root of its own', async () => {
     const { subject, app, bands, dependencies } = await started();
     expect(dependencies.host.firstElementChild).toBe(bands.canvas);
@@ -63,26 +45,17 @@ describe('DiveSession.start', () => {
 });
 
 describe('DiveSession frames', () => {
-  it('leaves the game’s dish undrawn and unseen in orbit', async () => {
-    const { subject, app, views } = await started();
-    tickUntilBuilt(app, subject);
-    const rendered = app.renderCalls.count;
-    app.tick();
-    expect(views.at(-1)!.bands.dish.isActive).toBe(false);
-    expect(app.renderCalls.count).toBe(rendered);
-    expect(opacityOf(app)).toBe(0);
-    subject.destroy();
-  });
-
   it('draws the dish clipped to its wall while the slime shows, and the upper bands under it', async () => {
     const { subject, app, bands } = await started();
     tickUntilBuilt(app, subject);
     subject.controls.scrub(-4.3);
     const drawnBefore = bands.frames.length;
     app.tick();
-    const [gameRoot, dishClip] = app.stage.children;
+    const [gameRoot, dishClip, planet] = app.stage.children;
     expect(opacityOf(app)).toBe(1);
     expect(gameRoot!.mask).toBe(dishClip);
+    expect(gameRoot!.visible).toBe(true);
+    expect(planet!.visible).toBe(false);
     expect(bands.frames.length).toBe(drawnBefore + 1);
     expect(subject.lastRenderedTick).not.toBeNull();
     subject.destroy();
@@ -113,29 +86,30 @@ describe('DiveSession frames', () => {
 
 describe('DiveSession under reduced motion', () => {
   it('draws nothing new while the dive is still, and one frame for each change', async () => {
-    const { subject, app, bands, motion } = await started();
+    const { subject, app, views, motion } = await started();
     motion.isReduced = true;
     app.tick();
-    const drawn = bands.frames.length;
+    const [drawn, planetDraws] = [views.length, app.textureRenders.length];
     app.tick();
     app.tick();
-    expect(bands.frames.length).toBe(drawn);
+    expect(views.length).toBe(drawn);
+    expect(app.textureRenders.length).toBe(planetDraws);
     subject.controls.scrub(3);
     subject.requestFrame();
     app.tick();
-    expect(bands.frames.length).toBe(drawn + 1);
-    expect(bands.frames.at(-1)!.zoom).toBe(3);
+    expect(views.length).toBe(drawn + 1);
+    expect(views.at(-1)!.camera.zoom).toBe(3);
     subject.destroy();
   });
 
   it('holds the ambient time still', async () => {
-    const { subject, app, clock, bands, motion } = await started();
+    const { subject, app, clock, views, motion } = await started();
     motion.isReduced = true;
     app.tick();
     clock.advanceMilliseconds(5000);
     subject.requestFrame();
     app.tick();
-    expect(bands.frames.at(-1)!.timeSeconds).toBe(bands.frames[0]!.timeSeconds);
+    expect(views.at(-1)!.timeSeconds).toBe(views[0]!.timeSeconds);
     subject.destroy();
   });
 });
@@ -206,41 +180,16 @@ describe('DiveSession in orbit (ticket #805)', () => {
       parts.subject.destroy();
     }
   });
-
-  it('brings the baked planet up over the fallback globe across 300 ms, at once under reduced motion', async () => {
-    const { subject, app, bands, clock } = await started();
-    const alpha = (): number => bands.frames.at(-1)!.globeAlpha;
-    bands.isPlanetReady = false;
-    app.tick();
-    expect(alpha()).toBe(0);
-    bands.isPlanetReady = true;
-    app.tick();
-    expect(alpha()).toBe(0);
-    clock.advanceMilliseconds(DIVE_GLOBE_CROSSFADE_MS / 2);
-    app.tick();
-    expect(alpha()).toBeCloseTo(0.5, 6);
-    clock.advanceMilliseconds(DIVE_GLOBE_CROSSFADE_MS / 2);
-    app.tick();
-    expect(alpha()).toBe(1);
-    subject.destroy();
-
-    const reduced = await started();
-    reduced.bands.isPlanetReady = false;
-    reduced.motion.isReduced = true;
-    reduced.app.tick();
-    reduced.bands.isPlanetReady = true;
-    reduced.subject.requestFrame();
-    reduced.app.tick();
-    expect(reduced.bands.frames.at(-1)!.globeAlpha).toBe(1);
-    reduced.subject.destroy();
-  });
 });
 
 describe('DiveSession.destroy', () => {
-  it('destroys the app, unbinds its textures, takes the upper bands off the stage and gives the planet’s context back', async () => {
+  it('destroys the app, unbinds its textures, takes the upper bands off the stage and frees the planet', async () => {
     const { subject, app, bands } = await started();
     tickUntilBuilt(app, subject);
+    const [, , planet] = app.stage.children;
     subject.destroy();
+    expect(planet!.destroyed).toBe(true);
+    expect(app.textureRenders.at(-1)!.target.destroyed).toBe(true);
     expect(app.lifecycle.isDestroyed).toBe(true);
     expect(app.unbindCalls.count).toBe(1);
     expect(bands.canvas.parentElement).toBeNull();

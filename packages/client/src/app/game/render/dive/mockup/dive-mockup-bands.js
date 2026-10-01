@@ -1,6 +1,7 @@
-// The opening dive's upper bands as the mockup draws them (ticket #797, epic #795): the planet, the map, the coast
-// and the shore, the boulder and the bull kelp, the drop, and the slime inside the drop, on one Canvas 2D canvas (the
-// planet on a WebGL canvas of its own, drawn into it). `dive-macro-band.ts` lays that canvas under the game's.
+// The opening dive's upper bands as the mockup draws them (ticket #797, epic #795): the coast and the shore, the
+// boulder and the bull kelp, the drop, and the slime inside the drop, on one Canvas 2D canvas. The planet under them is
+// the game's since ticket #800 (`dive-planet-band.ts`, on the dive's Pixi canvas under this one): this canvas leaves
+// clear where it shows. `dive-macro-band.ts` lays the canvases.
 //
 // **This file is the mockup's code, not the game's.** It is the design artifact
 // (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu, src/00-core.js … 72-scene.js) made into one module: its page
@@ -10,26 +11,27 @@
 // angular.json): the follow-up tickets of epic #795 move each band onto the game's GPU renderer and delete its part of
 // this file, so it is never brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is
 // the contract. Which ticket deletes what (each section's header names its ticket too):
-//   ticket #800, the planet: the signed distance bakes, the WebGL globe, `drawGlobeFallback`
 //   ticket #801, the coast and shore: the coast in metres, the shore's tiles and layers, kelp beds, pools, boulders
 //   ticket #802, the kelp and drop: the boulder and the bull kelp, the spray beads and the drop's lens
 //   ticket #803, the slime: inside the drop (the kelp's cells, slime, diatoms, ciliates, the mockup's own pocket)
 // The core helpers, the tile pump and `drawFrame` go with the last of them.
 //
 // Units: world metres around the focus (x east, y south); z is log10 of the view's width in metres; T is seconds.
-import { geoArea, geoEquirectangular, geoOrthographic, geoPath } from 'd3-geo';
+import { geoOrthographic } from 'd3-geo';
+// The shore's sea depth takes the planet's distance transform (ticket #800 moved it to the game's code).
+import { distanceTransform2d as edt2d } from '../planet/signed-distance';
 
-const d3 = { geoArea, geoEquirectangular, geoOrthographic, geoPath };
+const d3 = { geoOrthographic };
 /** The bands the dive's table says draw this frame, and how far each is faded in (`dive-bands.ts`). */
 let BANDS = null;
-/** The dive's clock (milliseconds); the bake pump and the globe's resolution guard read it. */
+/** The dive's clock (milliseconds); the bake pump reads it. */
 let nowMs = () => 0;
 
 // ---------- core: constants, palette, helpers ----------
 const R_EARTH = 6.371e6;
 const CENTER = [-123.357, 48.4006];
 const Z_TOP = 7.4, Z_BOTTOM = -6.2;
-const RAD = Math.PI / 180, TAU = Math.PI * 2;
+const TAU = Math.PI * 2;
 
 
 // Palette. The micro end reuses the game's own constants (docs/visual-style/principles-and-palette.md §2,
@@ -158,483 +160,14 @@ function patXf(pat, tilePx, world, rot = 0, ox = 0, oy = 0) {
 }
 
 // ---------- geo data ----------
-function toFeature(rings) {
-  const features = rings.map(r => {
-    let f = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [r] } };
-    if (d3.geoArea(f) > 2 * Math.PI) f = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [r.slice().reverse()] } };
-    return f;
-  });
-  return { type: 'FeatureCollection', features };
-}
-let WORLD_RINGS = null, SALISH_RINGS = null, WORLD = null, SALISH = null, REG_BOX = null, RS_H = 0;
-// the Salish bake covers the extent of its rings (degrees)
+let SALISH_RINGS = null, REG_BOX = null;
+// the Salish rings' extent (degrees): a segment along it is where the data was clipped, not coast
 const regionBox = () => {
   let a = 180, b = 90, c = -180, d = -90;
   for (const r of SALISH_RINGS) for (const [x, y] of r) { a = Math.min(a, x); b = Math.min(b, y); c = Math.max(c, x); d = Math.max(d, y); }
   return [a, b, c, d];
 };
-
-// ---------- signed distance bakes (ticket #800) ----------
-// Felzenszwalb & Huttenlocher squared distance transform, one row or column
-function edt1d(f, n, d, v, zz) {
-  let k = 0; v[0] = 0; zz[0] = -1e20; zz[1] = 1e20;
-  for (let q = 1; q < n; q++) {
-    let sx = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]);
-    while (sx <= zz[k]) { k--; sx = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); }
-    k++; v[k] = q; zz[k] = sx; zz[k + 1] = 1e20;
-  }
-  k = 0;
-  for (let q = 0; q < n; q++) { while (zz[k + 1] < q) k++; const dq = q - v[k]; d[q] = dq * dq + f[v[k]]; }
-}
-function* edt2d(grid, w, h) {
-  const n = Math.max(w, h), f = new Float64Array(n), d = new Float64Array(n), v = new Int32Array(n), zz = new Float64Array(n + 1);
-  for (let x = 0; x < w; x++) {
-    for (let y = 0; y < h; y++) f[y] = grid[y * w + x];
-    edt1d(f, h, d, v, zz);
-    for (let y = 0; y < h; y++) grid[y * w + x] = d[y];
-    if ((x & 63) === 63) yield;
-  }
-  for (let y = 0; y < h; y++) {
-    const o = y * w;
-    for (let x = 0; x < w; x++) f[x] = grid[o + x];
-    edt1d(f, w, d, v, zz);
-    for (let x = 0; x < w; x++) grid[o + x] = d[x];
-    if ((y & 63) === 63) yield;
-  }
-}
-// Rasterise land with `draw(ctx)`, then encode signed distance in texels (+ on land). Texels within 3 of the coast get
-// the exact distance to the ring segments (texel coords), so the zero line is the vector coast, not a staircase.
-// R: ¼-texel steps (±32), G: 1-texel steps (±127), B: 8-texel steps (±1016).
-function* bakeSdf(w, h, draw, segs) {
-  const c = makeCanvas(w, h), g = c.getContext('2d', { willReadFrequently: true });
-  g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; draw(g);
-  yield;
-  const img = g.getImageData(0, 0, w, h).data;
-  yield;
-  const N = w * h, toSea = new Float64Array(N), toLand = new Float64Array(N);
-  for (let i = 0; i < N; i++) { const land = img[i * 4] >= 128; toSea[i] = land ? 1e20 : 0; toLand[i] = land ? 0 : 1e20; if ((i & 524287) === 524287) yield; }
-  yield* edt2d(toSea, w, h); yield* edt2d(toLand, w, h);
-  const near = new Float32Array(N).fill(1e9);
-  const list = [];
-  segs((ax, ay, bx, by) => list.push([ax, ay, bx, by]));
-  for (let si = 0; si < list.length; si++) {
-    if ((si & 255) === 255) yield;
-    const [ax, ay, bx, by] = list[si];
-    const x0 = Math.max(0, Math.floor(Math.min(ax, bx) - 3)), x1 = Math.min(w - 1, Math.ceil(Math.max(ax, bx) + 3));
-    const y0 = Math.max(0, Math.floor(Math.min(ay, by) - 3)), y1 = Math.min(h - 1, Math.ceil(Math.max(ay, by) + 3));
-    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1e-9;
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-      const px0 = x + .5 - ax, py0 = y + .5 - ay, t = clamp((px0 * dx + py0 * dy) / L2, 0, 1);
-      const d = Math.hypot(px0 - t * dx, py0 - t * dy), i = y * w + x;
-      if (d < near[i]) near[i] = d;
-    }
-  }
-  const out = new Uint8Array(N * 4);
-  for (let i = 0; i < N; i++) {
-    if ((i & 262143) === 262143) yield;
-    const land = toSea[i] > 0;
-    let sd = land ? Math.sqrt(toSea[i]) - .5 : -(Math.sqrt(toLand[i]) - .5);
-    if (near[i] < 3) sd = land ? near[i] : -near[i];
-    out[i * 4] = clamp(Math.round(128 + sd * 4), 0, 255);
-    out[i * 4 + 1] = clamp(Math.round(128 + sd), 0, 255);
-    out[i * 4 + 2] = clamp(Math.round(128 + sd / 8), 0, 255);
-    out[i * 4 + 3] = 255;
-  }
-  return out;
-}
-const GS_W = 2048, GS_H = 1024;
-function* bakeGlobal() {
-  const pr = d3.geoEquirectangular().scale(GS_W / (2 * Math.PI)).translate([GS_W / 2, GS_H / 2]).precision(.2);
-  return yield* bakeSdf(GS_W, GS_H, g => { g.beginPath(); d3.geoPath(pr, g)(WORLD); g.fill(); }, seg => {
-    for (const r of WORLD_RINGS) for (let i = 1; i < r.length; i++) {
-      const ax = (r[i - 1][0] + 180) / 360 * GS_W, ay = (90 - r[i - 1][1]) / 180 * GS_H, bx = (r[i][0] + 180) / 360 * GS_W, by = (90 - r[i][1]) / 180 * GS_H;
-      if (Math.abs(bx - ax) < GS_W / 2) seg(ax, ay, bx, by);
-    }
-  });
-}
-const RS_W = 2048;
-function initGeo(worldRings, salishRings) {
-  WORLD_RINGS = worldRings; SALISH_RINGS = salishRings;
-  WORLD = toFeature(WORLD_RINGS); SALISH = toFeature(SALISH_RINGS); REG_BOX = regionBox();
-  RS_H = Math.round(RS_W * (REG_BOX[3] - REG_BOX[1]) / ((REG_BOX[2] - REG_BOX[0]) * Math.cos((REG_BOX[1] + REG_BOX[3]) / 2 * RAD)));
-}
-function* bakeRegional() {
-  const [a, b, c, d] = REG_BOX;
-  const X = x => (x - a) / (c - a) * RS_W, Y = y => (d - y) / (d - b) * RS_H;
-  return yield* bakeSdf(RS_W, RS_H, g => {
-    g.beginPath();
-    for (const r of SALISH_RINGS) r.forEach(([x, y], i) => i ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y)));
-    g.fill('nonzero');
-  }, seg => {
-    for (const r of SALISH_RINGS) for (let i = 1; i < r.length; i++) {
-      const A = r[i - 1], B = r[i];
-      // skip the straight edges where the data was clipped to its box: they are not coast
-      if ((A[0] === B[0] && (A[0] === a || A[0] === c)) || (A[1] === B[1] && (A[1] === b || A[1] === d))) continue;
-      seg(X(A[0]), Y(A[1]), X(B[0]), Y(B[1]));
-    }
-  });
-}
-
-// ---------- WebGL: the planet, the map and the forest (z 7.4 → 1.4; ticket #800) ----------
-// One full-screen fragment shader. Far out it ray-casts an orthographic sphere that matches d3.geoOrthographic, so the
-// 2D labels sit on it; close in it switches to plane metres around the focus. Land comes from signed-distance bakes of
-// the Natural Earth coastlines, relief and forest are procedural, and the light is the game's: from the top-left.
-const GLSL_FRAG = `
-precision highp float;
-uniform vec2 uRes;
-uniform float uRpx, uMpp, uPlanar, uT, uLandSdf, uCloud, uReg, uCrown, uExag, uDet;
-uniform mat3 uInv;
-uniform vec2 uC;
-uniform vec3 uSun, uEC;
-uniform sampler2D uGS, uRS;
-uniform vec4 uRB;
-uniform float uRsTex;
-
-const float PI = 3.14159265;
-const float RE = 6371000.0;
-const vec3 ATM = vec3(0.36, 0.62, 1.0);
-
-float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
-vec2 h22(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
-float h13(vec3 p3){ p3 = fract(p3 * .1031); p3 += dot(p3, p3.zyx + 31.32); return fract((p3.x + p3.y) * p3.z); }
-float vn(vec2 x){ vec2 i = floor(x), f = fract(x); vec2 u = f * f * (3. - 2. * f);
-  return mix(mix(h12(i), h12(i + vec2(1., 0.)), u.x), mix(h12(i + vec2(0., 1.)), h12(i + vec2(1., 1.)), u.x), u.y); }
-float vn3(vec3 x){ vec3 i = floor(x), f = fract(x); vec3 u = f * f * (3. - 2. * f);
-  return mix(mix(mix(h13(i), h13(i + vec3(1,0,0)), u.x), mix(h13(i + vec3(0,1,0)), h13(i + vec3(1,1,0)), u.x), u.y),
-             mix(mix(h13(i + vec3(0,0,1)), h13(i + vec3(1,0,1)), u.x), mix(h13(i + vec3(0,1,1)), h13(i + vec3(1,1,1)), u.x), u.y), u.z); }
-float fbm3(vec3 p, int oct){ float a = 0., b = .5, w = 0.;
-  for (int i = 0; i < 7; i++) { if (i >= oct) break; a += b * vn3(p); w += b; p = p * 2.03 + vec3(1.7, 9.2, 3.1); b *= .5; }
-  return a / w; }
-
-// adaptive fbm: octaves past the pixel fade to the mean, so detail grows with the zoom and never pops
-vec2 tfbm(vec2 p, float oct){
-  float a = 0., r = 0., b = .5, wr = 1.;
-  mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
-  for (int i = 0; i < 16; i++) {
-    float k = clamp(oct - float(i), 0., 1.);
-    if (k <= 0.) { a += b * .5; r += b * .5; }
-    else {
-      float n = vn(p);
-      float rg = 1. - abs(2. * n - 1.);
-      a += b * mix(.5, n, k);
-      r += b * mix(.5, rg * rg * wr, k); wr = clamp(rg * 1.4, 0., 1.);
-    }
-    p = m * p + vec2(3.1, 1.7); b *= .5;
-  }
-  return vec2(a, r);
-}
-
-float gauss2(vec2 ld, vec2 c, vec2 s){ vec2 d = (ld - c) / s; return exp(-dot(d, d)); }
-float boxw(vec2 ld, vec4 b, float f){ return smoothstep(b.x - f, b.x + f, ld.x) * smoothstep(b.z + f, b.z - f, ld.x) * smoothstep(b.y - f, b.y + f, ld.y) * smoothstep(b.w + f, b.w - f, ld.y); }
-float cone(vec2 ld, vec3 v, float r){ vec2 d = vec2((ld.x - v.x) * cos(v.y * PI / 180.) * 111.2, (ld.y - v.y) * 111.2); float t = max(0., 1. - length(d) / r); return v.z * t * t * (3. - 2. * t); }
-
-// broad relief of the Salish region in metres (the ranges the real region has)
-float massif(vec2 ld, float din){
-  float m = 1000. * smoothstep(1., 26., din);
-  m *= 1. - .82 * gauss2(ld, vec2(-123.45, 48.52), vec2(.42, .22));             // Victoria and Saanich lowland
-  m *= 1. - .85 * boxw(ld, vec4(-123.1, 46.9, -122.15, 48.35), .25);            // Puget lowland
-  m *= 1. - .85 * boxw(ld, vec4(-123.25, 48.95, -121.7, 49.22), .12);           // Fraser lowland
-  m += 1900. * gauss2(ld, vec2(-123.6, 47.8), vec2(.55, .32)) * smoothstep(0., 5., din);   // Olympic Mountains
-  m += 850. * smoothstep(49.25, 49.7, ld.y) * smoothstep(-124.6, -123.9, ld.x) * smoothstep(2., 20., din); // Coast Mountains
-  m += 550. * smoothstep(-122.25, -121.6, ld.x) * smoothstep(1., 12., din) * (1. - smoothstep(-120.9, -120.3, ld.x)); // Cascades
-  m *= 1. - .8 * smoothstep(-121.1, -120.1, ld.x) * smoothstep(49.3, 48.9, ld.y);    // the Columbia plateau
-  return m;
-}
-float volcanoes(vec2 ld){
-  return cone(ld, vec3(-121.813, 48.777, 3100.), 16.) + cone(ld, vec3(-121.114, 48.112, 2900.), 12.) +
-         cone(ld, vec3(-121.760, 46.853, 4100.), 22.) + cone(ld, vec3(-122.194, 46.191, 2300.), 12.) +
-         cone(ld, vec3(-121.491, 46.202, 3400.), 16.) + cone(ld, vec3(-121.696, 45.373, 3200.), 14.);
-}
-
-// signed distance to the coast in metres (+ land), and a broad inland distance in km
-void sdf(vec2 ll, out float dm, out float din, out float wr){
-  vec4 g = texture2D(uGS, vec2((ll.x + PI) / (2. * PI), (.5 * PI - ll.y) / PI));
-  float gT = 2. * PI * RE / 2048.;
-  float gF = (g.r * 255. - 128.) / 4., gM = g.g * 255. - 128., gC = (g.b * 255. - 128.) * 8.;
-  float gD = abs(gF) < 31. ? gF : abs(gM) < 126. ? gM : gC;
-  dm = gD * gT; din = gD * gT / 1000.;
-  vec2 ru = vec2((ll.x - uRB.x) / (uRB.z - uRB.x), (uRB.w - ll.y) / (uRB.w - uRB.y));
-  wr = uReg * smoothstep(0., .12, min(ru.x, 1. - ru.x)) * smoothstep(0., .12, min(ru.y, 1. - ru.y));
-  if (wr > 0.) {
-    vec4 r = texture2D(uRS, ru);
-    float rF = (r.r * 255. - 128.) / 4., rM = r.g * 255. - 128., rC = (r.b * 255. - 128.) * 8.;
-    float rd = (abs(rF) < 31. ? rF : abs(rM) < 126. ? rM : rC) * uRsTex;
-    dm = mix(dm, rd, wr); din = mix(din, rd / 1000., wr);
-  }
-}
-
-float deserts(vec2 ld){
-  float d = gauss2(ld, vec2(12., 23.), vec2(24., 7.)) + gauss2(ld, vec2(46., 22.), vec2(9., 6.)) + gauss2(ld, vec2(62., 29.), vec2(9., 4.)) +
-            gauss2(ld, vec2(84., 40.), vec2(9., 3.)) + gauss2(ld, vec2(104., 42.), vec2(8., 2.5)) + gauss2(ld, vec2(133., -25.), vec2(12., 6.)) +
-            gauss2(ld, vec2(20., -24.), vec2(6., 5.)) + gauss2(ld, vec2(-70., -24.), vec2(2.5, 8.)) + gauss2(ld, vec2(-112., 34.), vec2(6., 4.)) +
-            gauss2(ld, vec2(-68., -44.), vec2(3., 5.)) + gauss2(ld, vec2(62., 43.), vec2(7., 3.));
-  return clamp(d, 0., 1.);
-}
-vec3 biome(vec2 ld, float nz){
-  float la = abs(ld.y);
-  vec3 c = vec3(.10, .25, .10);
-  c = mix(c, vec3(.40, .38, .20), smoothstep(9., 17., la));
-  c = mix(c, vec3(.22, .31, .15), smoothstep(27., 38., la));
-  c = mix(c, vec3(.12, .20, .12), smoothstep(47., 56., la));
-  c = mix(c, vec3(.38, .37, .30), smoothstep(63., 69., la));
-  c = mix(c, vec3(.70, .58, .38), deserts(ld) * smoothstep(.25, .6, nz + .2));
-  c = mix(c, vec3(.13, .23, .13), gauss2(ld, vec2(-126., 52.), vec2(9., 8.)));   // Pacific Northwest rainforest
-  float ice = max(step(ld.y, -62.), step(76., ld.y));
-  ice = max(ice, boxw(ld, vec4(-56., 60., -20., 84.), 2.5) * step(0., ld.y));
-  c = mix(c, vec3(.90, .93, .96), clamp(ice, 0., 1.));
-  return c * (.82 + .36 * nz);
-}
-
-// Salish land at the pixel: relief, snow, meadows, hillshade
-vec3 region(vec2 q, vec2 ld, float din, float mpp, out float hOut, out float shadeOut){
-  // under the canopy only the broad hills need shading; the crowns carry their own light
-  float oct = min(log2(26000. / (mpp * 2.2)), mix(16., 8.5, uCrown));
-  float e = max(mpp * 1.3, .25);
-  float m = massif(ld, din), vo = volcanoes(ld);
-  float ramp = .22 + .78 * smoothstep(0., 3.5, din);
-  vec2 p = q / 26000.;
-  vec2 f0 = tfbm(p, oct), fx = tfbm(p + vec2(e / 26000., 0.), oct), fy = tfbm(p + vec2(0., e / 26000.), oct);
-  float h0 = (340. * f0.y + 60. * f0.x + m * (.3 + 1.1 * f0.y)) * ramp + vo * (.85 + .3 * f0.x);
-  float hx = (340. * fx.y + 60. * fx.x + m * (.3 + 1.1 * fx.y)) * ramp + vo * (.85 + .3 * fx.x);
-  float hy = (340. * fy.y + 60. * fy.x + m * (.3 + 1.1 * fy.y)) * ramp + vo * (.85 + .3 * fy.x);
-  vec2 gr = vec2(hx - h0, hy - h0) / e;
-  float slope = length(gr);
-  vec3 n = normalize(vec3(-gr * uExag, 1.));
-  float stand = .8 + .4 * (vn(q / 260.) * .6 + vn(mat2(.8, .6, -.6, .8) * q / 70. + 7.) * .4);
-  float shade = clamp(dot(n, uSun) / uSun.z, .2, 1.5);
-  float nz = vn(q / 900.) * .6 + vn(q / 180.) * .4;
-  vec3 c = mix(vec3(.105, .19, .11), vec3(.15, .25, .135), smoothstep(80., 900., h0) * (.6 + .4 * nz));
-  c = mix(c, vec3(.30, .34, .25), smoothstep(1350., 1750., h0 + 250. * nz));
-  c = mix(c, vec3(.45, .44, .40), clamp(smoothstep(1650., 2100., h0) + smoothstep(1.1, 1.9, slope) * .5, 0., 1.));
-  c = mix(c, vec3(.9, .93, .95), smoothstep(2150., 2500., h0 + 260. * nz - slope * 180.) * .92);
-  // the dry side: steppe east of the Cascades, oak meadows around Victoria
-  c = mix(c, vec3(.50, .46, .31), smoothstep(-121., -120.1, ld.x + .5 * vn(q / 40000.)) * smoothstep(1800., 900., h0) * smoothstep(49.35, 48.85, ld.y));
-  float mead = gauss2(ld, vec2(-123.38, 48.46), vec2(.12, .06)) * smoothstep(260., 80., h0);
-  vec2 mq = mat2(.8, .6, -.6, .8) * q;
-  mead *= smoothstep(.64, .72, vn(mq / 900.) * .55 + vn(q / 260. + 3.1) * .3 + vn(mq / 70.) * .15);
-  c = mix(c, vec3(.47, .43, .25), mead);
-  hOut = mead; shadeOut = shade * mix(stand, 1., mead);
-  return c;
-}
-
-// conifer canopy: seeded crowns lit from the top-left, casting shade to the bottom-right
-vec3 canopy(vec2 q, vec3 base, float mead, float mpp){
-  const float CS = 6.5;
-  vec2 g = q / CS, ip = floor(g);
-  vec2 sunD = normalize(uSun.xy);
-  float best = -1., cov = 0., shadow = 0.;
-  vec3 cc = vec3(0.);
-  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
-    vec2 c = ip + vec2(float(i), float(j));
-    vec2 r = h22(c);
-    float sp = h12(c + 17.3);
-    float oakLand = mead;
-    if (r.x < oakLand * .82) continue;                       // meadow: few trees
-    vec2 cp = (c + .15 + .7 * r) * CS;
-    float oak = step(.5, oakLand) * step(sp, .8);
-    float R = CS * (oak > .5 ? .62 + .3 * h12(c + 5.) : .44 + .3 * h12(c + 5.));
-    vec2 d = q - cp; float dl = length(d);
-    float ang = atan(d.y, d.x);
-    float Rs = R * (oak > .5 ? .9 + .1 * vn(vec2(ang * 3., sp * 40.)) : .8 + .2 * abs(cos(3.5 * ang + r.y * 30.)));
-    vec2 ds = q - (cp - sunD * R * 1.25);
-    shadow = max(shadow, 1. - smoothstep(R * .65, R * 1.2, length(ds)));
-    float a = smoothstep(Rs + mpp * .8, Rs - mpp * .8, dl);
-    float top = 1. - dl / Rs;
-    if (a > 0. && top > best) {
-      best = top; cov = a;
-      vec3 sc = sp < .45 ? vec3(.12, .27, .16) : sp < .75 ? vec3(.19, .32, .13) : sp < .92 ? vec3(.14, .25, .16) : vec3(.27, .39, .16);
-      if (oak > .5) sc = vec3(.32, .39, .18);
-      vec3 nrm = normalize(vec3(d / max(dl, 1e-3) * (oak > .5 ? 1.1 : 1.9) * (1. - top * .3), 1.));
-      float lam = clamp(dot(nrm, uSun), 0., 1.);
-      float tex = .8 + .4 * vn(q * 2.4 + c * 7.) * vn(q * .9 + c);
-      cc = sc * (.45 + 1.3 * lam) * tex;
-    }
-  }
-  vec3 floorC = mead > .5 ? vec3(.46, .42, .24) * (.85 + .3 * vn(q * .7)) : vec3(.1, .14, .075) * (.8 + .4 * vn(q * .3));
-  if (mead > .5) floorC = mix(floorC, vec3(.46, .45, .41), smoothstep(.62, .7, vn(q / 22.) * .8 + vn(q / 4.) * .2));
-  floorC *= 1. - .45 * shadow;
-  cc *= 1. - .3 * shadow * (1. - best);
-  return mix(floorC, cc, cov);
-}
-
-vec3 space(vec2 p, vec2 frag){
-  float r = length(p);
-  vec3 c = vec3(.006, .012, .024);
-  vec2 cell = floor(frag / 2.5); float h = h12(cell);
-  if (h > .9962) c += vec3(.72, .8, .9) * ((h - .9962) / .0038) * (.75 + .25 * sin(uT * 1.7 + h * 400.));
-  float lit = .3 + .7 * clamp(dot(normalize(p), normalize(uSun.xy)) * .5 + .5, 0., 1.);
-  float t = (r - 1.) * uRpx / max(uRpx * .028, 2.);
-  c += ATM * exp(-t * 1.3) * .75 * lit;
-  return c;
-}
-
-float clouds(vec3 e){
-  float a = uT * .0025;
-  vec3 ce = vec3(e.x * cos(a) - e.y * sin(a), e.x * sin(a) + e.y * cos(a), e.z);
-  vec3 w = vec3(fbm3(ce * 2.3, 3), fbm3(ce * 2.3 + 5.2, 3), fbm3(ce * 2.3 + 9.7, 3));
-  float n = fbm3(ce * 4.6 + w * 2.1, 7);
-  float la = abs(asin(e.z)) * 180. / PI;
-  float band = .06 * exp(-pow((la - 4.) / 7., 2.)) + .07 * smoothstep(38., 56., la) - .07 * exp(-pow((la - 24.) / 7., 2.));
-  float c = smoothstep(.52, .74, n + band) * .9;
-  c *= smoothstep(.05, .17, acos(clamp(dot(e, uEC), -1., 1.)));     // the Olympic rain shadow keeps the focus clear
-  return c;
-}
-
-void main(){
-  vec2 frag = gl_FragCoord.xy - .5 * uRes;
-  vec3 nrm = vec3(0., 0., 1.), e;
-  vec2 q; float lon, lat, rim = 0.;
-  if (uPlanar > .5) {
-    q = frag * uMpp;
-    lat = uC.y + q.y / RE; lon = uC.x + q.x / (RE * cos(uC.y));
-    e = vec3(cos(lat) * cos(lon), cos(lat) * sin(lon), sin(lat));
-  } else {
-    vec2 p = frag / uRpx; float r2 = dot(p, p);
-    if (r2 > 1.) { gl_FragColor = vec4(space(p, frag), 1.); return; }
-    float zc = sqrt(1. - r2); nrm = vec3(p, zc); rim = 1. - zc;
-    e = uInv * vec3(zc, p.x, p.y);
-    lat = asin(clamp(e.z, -1., 1.)); lon = atan(e.y, e.x);
-    float dl = mod(lon - uC.x + PI, 2. * PI) - PI;
-    q = vec2(dl * RE * cos(uC.y), (lat - uC.y) * RE);
-  }
-  vec2 ld = vec2(lon, lat) * 180. / PI;
-  float dm, din, wr;
-  sdf(vec2(lon, lat), dm, din, wr);
-  float aa = uMpp * .9;
-  float landA = mix(1., smoothstep(-aa, aa, dm), uLandSdf);
-  float nz = fbm3(e * 9., 4);
-  vec3 col;
-  // sea: shelf and shallows from the distance to the coast, sun glint
-  float off = -dm;
-  vec3 sea = mix(vec3(.13, .42, .46), vec3(.07, .27, .36), smoothstep(0., 2500., off));
-  sea = mix(sea, vec3(.045, .17, .27), smoothstep(8000., 90000., off));
-  sea = mix(sea, vec3(.03, .115, .2), smoothstep(150000., 600000., off));
-  sea *= .96 + .07 * nz;
-  if (abs(ld.y) > 79.) sea = mix(sea, vec3(.85, .9, .94), smoothstep(79., 83., abs(ld.y)) * .9);
-  col = sea;
-  if (landA > 0.) {
-    vec3 land = biome(ld, nz);
-    if (wr > 0.) {
-      float mead, shade;
-      vec3 rc = region(q, ld, din, uMpp, mead, shade);
-      if (uCrown > 0.) rc = mix(rc, canopy(q, rc, mead, uMpp), uCrown);
-      land = mix(land, mix(land, rc * shade, uDet), wr);
-    }
-    col = mix(sea, land, landA);
-  }
-  // clouds and their shadows
-  float cl = 0.;
-  if (uCloud > 0.) {
-    cl = clouds(e) * uCloud;
-    vec3 es = normalize(e + (uInv * vec3(0., uSun.x, uSun.y)) * .012);
-    float cs = clouds(es) * uCloud;
-    col *= 1. - .38 * cs;
-  }
-  // the planet's light: day side top-left, a soft terminator, no lights on the night side (no one is here yet)
-  float diff = dot(nrm, uSun);
-  float day = smoothstep(-.12, .22, diff);
-  vec3 H = normalize(uSun + vec3(0., 0., 1.));
-  float spec = pow(max(dot(nrm, H), 0.), 90.) * .55 * (1. - landA) * (1. - cl);
-  vec3 lit = col * (.12 + .88 * max(diff, 0.) / uSun.z) + vec3(1., .96, .86) * spec;
-  vec3 cloudC = vec3(.96, .97, 1.) * (.2 + .85 * max(diff, 0.) / uSun.z);
-  lit = mix(lit, cloudC, cl * .92);
-  col = mix(col * .025 + vec3(.004, .008, .02), lit, day);
-  col += vec3(.3, .13, .05) * exp(-pow(diff / .06, 2.)) * .08 * (1. - uPlanar);
-  // atmosphere at the limb
-  float limb = pow(rim, 2.4);
-  col = mix(col, ATM * (.12 + .9 * max(diff + .15, 0.)), limb * .75);
-  col += ATM * .05 * day * (1. - uPlanar);
-  gl_FragColor = vec4(col, 1.);
-}`;
-const GLSL_VERT = 'attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }';
-
-let glCv = null, Globe = null, GLOBAL_SDF = null, REGIONAL_SDF = null;
-function createGlobe() {
-  glCv = makeCanvas(1, 1);
-  let gl = null;
-  try { gl = glCv.getContext('webgl', { antialias: false, alpha: false, premultipliedAlpha: false, powerPreference: 'high-performance' }); } catch (e) { gl = null; }
-  if (!gl) return null;
-  const sh = (type, src) => { const o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(o)); return null; } return o; };
-  const vs = sh(gl.VERTEX_SHADER, GLSL_VERT), fs = sh(gl.FRAGMENT_SHADER, GLSL_FRAG);
-  if (!vs || !fs) return null;
-  const prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(prog)); return null; }
-  gl.useProgram(prog);
-  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const U = {};
-  for (const n of ['uRes', 'uRpx', 'uMpp', 'uPlanar', 'uT', 'uLandSdf', 'uCloud', 'uReg', 'uCrown', 'uExag', 'uDet', 'uInv', 'uC', 'uSun', 'uEC', 'uGS', 'uRS', 'uRB', 'uRsTex']) U[n] = gl.getUniformLocation(prog, n);
-  const tex = (unit, w, h, data, repeat) => {
-    const t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  };
-  // The world's coastline bake is sliced like every other tile (the pump's EXTRA_JOBS), never drained on the spot: the
-  // lobby would freeze for it. Until it lands the planet draws as the flat fallback globe.
-  let globalReady = !!GLOBAL_SDF, globalJob = null;
-  if (GLOBAL_SDF) tex(0, GS_W, GS_H, GLOBAL_SDF, true);
-  else { globalJob = { gen: bakeGlobal(), done: data => { GLOBAL_SDF = data; tex(0, GS_W, GS_H, data, true); globalReady = true; globalJob = null; } }; EXTRA_JOBS.push(globalJob); }
-  tex(1, 1, 1, new Uint8Array([0, 0, 0, 255]), false);
-  gl.uniform1i(U.uGS, 0); gl.uniform1i(U.uRS, 1);
-  let regional = false, regJob = null;
-  const sun = (() => { const v = [-.52, .5, .69]; const l = Math.hypot(...v); return v.map(x => x / l); })();
-  const eC = [Math.cos(CENTER[1] * RAD) * Math.cos(CENTER[0] * RAD), Math.cos(CENTER[1] * RAD) * Math.sin(CENTER[0] * RAD), Math.sin(CENTER[1] * RAD)];
-  // Resolution: crisp for the planet's limb, 1× for the forest (it sits under the 2D shore), and a guard that steps
-  // down if frames run long on a slow GPU.
-  let gw = 0, gh = 0, gdpr = 1, mode = '', quality = 1, slow = 0, lastT = 0;
-  const target = zz => Math.min(dpr, zz < 4.45 ? 1 : 1.5) * quality;
-  return {
-    get regional() { return regional; },
-    get ready() { return globalReady; },
-    // the Salish bake runs in slices after the first frame; finishRegional completes it on the spot if the view needs it
-    loadRegional() {
-      if (regional || regJob) return;
-      if (REGIONAL_SDF) { tex(1, RS_W, RS_H, REGIONAL_SDF, false); regional = true; return; }
-      regJob = { gen: bakeRegional(), done: data => { REGIONAL_SDF = data; tex(1, RS_W, RS_H, data, false); regional = true; regJob = null; } }; EXTRA_JOBS.push(regJob);
-    },
-    resize(zz = z) {
-      gdpr = target(zz); mode = zz < 4.45 ? 'plane' : 'globe';
-      gw = Math.round(cw * gdpr); gh = Math.round(ch * gdpr);
-      glCv.width = gw; glCv.height = gh; gl.viewport(0, 0, gw, gh);
-    },
-    // rot: d3 rotation [λ, φ] in degrees; sPx: CSS px per metre
-    draw(rot, sPx, zz, t) {
-      if ((zz < 4.45 ? 'plane' : 'globe') !== mode) this.resize(zz);
-      const now = nowMs();
-      if (lastT && now - lastT < 200) { slow = now - lastT > 24 ? slow + 1 : Math.max(0, slow - 1); if (slow > 20 && quality > .55) { quality *= .8; slow = 0; this.resize(zz); } }
-      lastT = now;
-      const dl = rot[0] * RAD, dp = rot[1] * RAD, cl = Math.cos(dl), sl = Math.sin(dl), cp = Math.cos(dp), sp = Math.sin(dp);
-      // M = Ry(φ)·Rz(λ) takes earth to view; column-major data of Mᵀ is M's rows
-      gl.uniformMatrix3fv(U.uInv, false, new Float32Array([cp * cl, -cp * sl, -sp, sl, cl, 0, sp * cl, -sp * sl, cp]));
-      const rpx = R_EARTH * sPx * gdpr;
-      gl.uniform2f(U.uRes, gw, gh);
-      gl.uniform1f(U.uRpx, rpx);
-      gl.uniform1f(U.uMpp, 1 / (sPx * gdpr));
-      gl.uniform1f(U.uPlanar, zz < 4.45 ? 1 : 0);
-      gl.uniform1f(U.uT, t);
-      gl.uniform1f(U.uLandSdf, sstep(4.42, 4.62, zz));
-      gl.uniform1f(U.uCloud, sstep(6.1, 6.9, zz));
-      gl.uniform1f(U.uReg, regional ? 1 : 0);
-      gl.uniform1f(U.uCrown, sstep(3.95, 3.35, zz));
-      gl.uniform1f(U.uDet, sstep(6.5, 6.1, zz));
-      gl.uniform1f(U.uExag, lerp(3.4, 4.2, sstep(3.8, 6.6, zz)));
-      gl.uniform2f(U.uC, CENTER[0] * RAD, CENTER[1] * RAD);
-      gl.uniform3f(U.uSun, sun[0], sun[1], sun[2]);
-      gl.uniform3f(U.uEC, eC[0], eC[1], eC[2]);
-      gl.uniform4f(U.uRB, REG_BOX[0] * RAD, REG_BOX[1] * RAD, REG_BOX[2] * RAD, REG_BOX[3] * RAD);
-      gl.uniform1f(U.uRsTex, (REG_BOX[3] - REG_BOX[1]) * RAD * R_EARTH / RS_H);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    },
-    // the context goes back to the browser when the dive closes; the bakes stay for the next open
-    release() {
-      for (const job of [regJob, globalJob]) { const i = job ? EXTRA_JOBS.indexOf(job) : -1; if (i >= 0) EXTRA_JOBS.splice(i, 1); }
-      regJob = null; globalJob = null;
-      const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
-    },
-  };
-}
+function initGeo(salishRings) { SALISH_RINGS = salishRings; REG_BOX = regionBox(); }
 
 // ---------- the coast in metres (z 4.85 → -1.4; ticket #801) ----------
 // The Salish rings in plane metres around the focus (the same orthographic projection the globe uses, so the handoff
@@ -847,13 +380,11 @@ function tex(name) {
 }
 // the order the dive needs them in
 const BAKE_ORDER = ['rock', 'grain', 'lichenBlack', 'kelpbedFar', 'swell', 'barnacleFar', 'musselFar', 'rockweedFar', 'lowzoneFar', 'seabed', 'caustic', 'foam', 'kelpbed', 'ripple', 'glint', 'sand', 'barnacle', 'mussel', 'lowzone', 'rockweed', 'blade', 'cells', 'cellsDark'];
-const EXTRA_JOBS = [];
 function pump(budgetMs) {
   const t0 = nowMs();
   while (nowMs() - t0 < budgetMs) {
     if (curJob && TEX[curJob.name]) curJob = null;
     if (!curJob) {
-      if (EXTRA_JOBS.length) { const j = EXTRA_JOBS[0], r = j.gen.next(); if (r.done) { EXTRA_JOBS.shift(); j.done(r.value); requestRender(); } continue; }
       const next = WANT.concat(BAKE_ORDER, Object.keys(BAKES)).find(k => BAKES[k] && !TEX[k]);
       if (!next) { allBaked = true; return; }
       curJob = { name: next, gen: BAKES[next]() };
@@ -1358,7 +889,7 @@ function zoneFill(name, alpha, rule, near = true, box = null) {
 // The shallows and the sea-floor mask are both functions of one number: how far a pixel of sea is from the coast.
 // They used to be stacks of 28 and 6 round-joined strokes of the rings, up to ~270 px wide: exact, but every join is
 // a disc the size of the view, so the GPU paid thousands of view-sized overdraws a frame. Instead the distance comes
-// from an exact Euclidean distance transform of the land mask (edt2d, as the coast bakes use) on the same 1/6-res
+// from an exact Euclidean distance transform of the land mask (edt2d, as the planet's coast bakes use) on the same 1/6-res
 // grid, plus a 4× coarser grid for land beyond it (the wide strokes reached up to 0.9 × CV.m past the view); each
 // pixel then composites the very strokes that would have covered it, with the same anti-aliased edge.
 const SEA_K = 6, SEA_KC = 4, SEA_PAD = 8, SEA_COARSE_MAX = 12000;
@@ -2839,34 +2370,25 @@ function drawBacteria(df) {
 
 
 // ---------- one frame (was 90-render.js; the labels, scale bar and readout are the panel's, in the DOM) ----------
-const proj = d3.geoOrthographic().clipAngle(90).precision(0.6);
-let gpath = null;
-let geoRot = [0, 0];
 let frameNo = 0;
 function sizeCanvas(widthPx, heightPx, ratio) {
   cw = Math.max(1, widthPx); ch = Math.max(1, heightPx);
   const W = Math.round(cw * ratio), H = Math.round(ch * ratio);
   if (dpr === ratio && cv.width === W && cv.height === H) return;
   dpr = ratio; cv.width = W; cv.height = H;
-  if (Globe) Globe.resize();
 }
+// Answers whether the planet shows under this canvas: the canvas is left clear for it, and the shore draws over it.
 function drawFrame(f) {
   z = f.zoom; T = f.timeSeconds; BANDS = f.bands;
   sizeCanvas(f.widthPx, f.heightPx, f.devicePixelRatio);
   const W = Math.pow(10, z);
   s = cw / W; hx = cw / 2 / s; hy = ch / 2 / s;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  geoRot = [f.globeRotation[0], f.globeRotation[1]];
-  proj.rotate(geoRot).scale(R_EARTH * s).translate([cw / 2, ch / 2]);
 
   const worldA = BANDS.shore.weight;
   if (worldA > 0 && z > -1.42) buildCoast();
-  // the forest only shows past the rock band: close in, the GL layer runs only if some of the view is that far inland
-  // The regional coastline bake is queued at open and sliced; a reader who scrubs down before it lands sees the world
-  // bake's coast for those frames rather than the lobby freezing while it is drained here.
-  if (Globe && !Globe.regional && z < 6.45) Globe.loadRegional();
-  const globeReady = !!Globe && Globe.ready;
-  let glOn = globeReady && BANDS.planet.isActive;
+  // the forest only shows past the rock band: close in, the planet shows only if some of the view is that far inland
+  let glOn = BANDS.planet.isActive;
   if (glOn && z < 3) {
     glOn = false;
     for (const [u, v] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 0]]) {
@@ -2874,16 +2396,8 @@ function drawFrame(f) {
       if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
     }
   }
-  // the baked planet comes up over the fallback globe at the session's alpha (dive-globe-crossfade.ts, ticket #805)
-  const globeAlpha = glOn ? f.globeAlpha : 1;
-  if (!glOn || globeAlpha < 1) {
-    ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch);
-    if ((!globeReady || globeAlpha < 1) && z > 4.4) drawGlobeFallback();
-  }
-  if (glOn) {
-    Globe.draw(geoRot, s, z, T);
-    ctx.globalAlpha = globeAlpha; ctx.drawImage(glCv, 0, 0, cw, ch); ctx.globalAlpha = 1;
-  }
+  if (glOn) ctx.clearRect(0, 0, cw, ch);
+  else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); }
 
   if (worldA > 0) {
     ctx.save(); ctx.globalAlpha = worldA;
@@ -2892,19 +2406,7 @@ function drawFrame(f) {
     ctx.restore();
   }
   frameNo++;
-}
-// without WebGL: the flat globe of the first draft
-function drawGlobeFallback() {
-  if (!gpath) gpath = d3.geoPath(proj, ctx);
-  const Rp = R_EARTH * s;
-  ctx.beginPath(); gpath({ type: 'Sphere' });
-  ctx.fillStyle = '#12405a'; ctx.fill();
-  ctx.beginPath(); gpath(z > 5.9 ? WORLD : SALISH); ctx.fillStyle = '#2f4d30'; ctx.fill();
-  if (Rp < cw * 2) {
-    const sh = ctx.createRadialGradient(cw / 2 - Rp * .4, ch / 2 - Rp * .4, Rp * .2, cw / 2, ch / 2, Rp * 1.05);
-    sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.5)');
-    ctx.fillStyle = sh; ctx.beginPath(); gpath({ type: 'Sphere' }); ctx.fill();
-  }
+  return glOn;
 }
 
 // The screen-sized canvases go back while no dive is open (a room is playing): each is made again at its size on the
@@ -2919,23 +2421,16 @@ function freeScreenCanvases() {
 }
 
 // ---------- the module's face (dive-mockup-bands.d.ts) ----------
-/**
- * One canvas for the page: a dive that closes and opens again draws on the same canvas and keeps every bake, so
- * only the globe's GL context is given back on `release` (and made again on the next open from the kept bakes).
- */
+/** One canvas for the page: a dive that closes and opens again draws on the same canvas and keeps every bake. */
 export function createMockupBands(input) {
   nowMs = input.nowMs;
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
-  if (!WORLD_RINGS) { initGeo(input.worldRings, input.salishRings); initCoast(); }
-  if (!Globe) Globe = createGlobe();
-  // the regional coastline bake goes in the queue at once, so `isBaked` covers every band the dive falls through
-  if (Globe) Globe.loadRegional();
+  if (!SALISH_RINGS) { initGeo(input.salishRings); initCoast(); }
   return {
     canvas: cv,
-    draw(frame) { drawFrame(frame); },
-    pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked || EXTRA_JOBS.length) pump(budgetMs); return bakeLanded; },
-    get isBaked() { return allBaked && EXTRA_JOBS.length === 0; },
-    get isPlanetReady() { return !!Globe && Globe.ready; },
-    release() { if (Globe) Globe.release(); Globe = null; freeScreenCanvases(); },
+    draw(frame) { return drawFrame(frame); },
+    pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked) pump(budgetMs); return bakeLanded; },
+    get isBaked() { return allBaked; },
+    release() { freeScreenCanvases(); },
   };
 }

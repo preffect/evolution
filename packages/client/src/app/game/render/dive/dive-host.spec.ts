@@ -3,6 +3,7 @@
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
+import { fakeUpperBands } from '../../../../testing/dive-session-harness';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PHASE_STOPS, DIVE_ZOOM_TOP, type DivePhaseStop } from '../constants';
 import { createDiveHandle, type DiveFrameState, type DiveHandle } from './dive-host';
@@ -14,8 +15,7 @@ function bands(): MockupBands {
   return {
     canvas: document.createElement('canvas'),
     isBaked: true,
-    isPlanetReady: true,
-    draw: () => undefined,
+    draw: () => false,
     pumpBakes: () => false,
     release: () => undefined,
   };
@@ -45,7 +45,7 @@ async function opened(): Promise<{
         app = createFakePixiApp({ width: 1200, height: 675 });
         return Promise.resolve(app);
       },
-      loadMockupBands: () => Promise.resolve(bands()),
+      loadUpperBands: () => Promise.resolve(fakeUpperBands(bands())),
       noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     },
   );
