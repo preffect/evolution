@@ -157,6 +157,9 @@ merge_to_main game.txt v3e
 RUN_LIVE_RELOAD=--live-reload run_deploy
 check "a run.env from before #792 restarts without live reload, whatever the caller inherited (rc $rc)" $(( rc == 0 && $(holds restarted_with "CLIENT_PORT=$RECORDED_CLIENT_PORT  ?--clear-prebundle") && ! $(holds restarted_with '--live-reload') ))
 rm "$target/.game-logs/run.env"
+merge_to_main game.txt v3f
+RUN_MODE=--not-an-option RUN_LIVE_RELOAD=--live-reload run_deploy
+check "without a run.env an inherited mode or live reload never reaches the restart (rc $rc)" $(( rc == 0 && $(holds restarted_with 'CLIENT_PORT=[^ ]* --clear-prebundle') && ! $(holds restarted_with '--not-an-option|--live-reload') ))
 
 echo scratch > "$target/untracked.txt"
 merge_to_main game.txt v4

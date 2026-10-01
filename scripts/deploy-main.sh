@@ -100,13 +100,14 @@ run_step() { # <name> <command> — in the target, output into the log; fd 9 (th
 
 # run.sh again, in the stack's recorded mode and ports. The recorded port wins over an inherited SERVER_PORT
 # (its alias, #474): a run.env from before #474 records only PORT, and run.sh refuses the two when they differ.
-# Live reload repeats only when run.env records it: a run.env from before #792 restarts without it.
+# The mode and live reload come from run.env alone, never inherited: a run.env from before #792 restarts without
+# live reload, and without a run.env the restart passes neither (an inherited value would reach run.sh as an option).
 restart_command() { # <to-sha>
   local watch_flag="" skip_env=""
   # This watcher is running the deploy; a one-shot deploy lets run.sh start one, which skips this commit
   # should the restart fail (a harmless no-op when it succeeds: the commit is then the deployed one)
   if $watching; then watch_flag=" --no-deploy-watch"; else skip_env="DEPLOY_WATCH_SKIP_SHA=$1 "; fi
-  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT RUN_LIVE_RELOAD; . $RUN_ENV_PATH; }; set +a; $skip_env$RUN_SCRIPT \${RUN_MODE:-} \${RUN_LIVE_RELOAD:-} --clear-prebundle --wait-ready$watch_flag"
+  echo "unset RUN_MODE RUN_LIVE_RELOAD; set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT; . $RUN_ENV_PATH; }; set +a; $skip_env$RUN_SCRIPT \${RUN_MODE:-} \${RUN_LIVE_RELOAD:-} --clear-prebundle --wait-ready$watch_flag"
 }
 
 deploy_steps() { # <from-sha> <to-sha>
