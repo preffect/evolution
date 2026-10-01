@@ -97,4 +97,11 @@ describe('diveBandStates', () => {
     expect(isMockupDrawing(inside)).toBe(false);
     expect(inside.dish.isActive).toBe(true);
   });
+
+  it('leaves the mockup’s canvas undrawn in orbit, where the planet on the game’s canvas is all there is', () => {
+    const orbit = statesAt(5);
+    expect(orbit.planet.isActive).toBe(true);
+    expect(isMockupDrawing(orbit)).toBe(false);
+    expect(isMockupDrawing(statesAt(4.6))).toBe(true);
+  });
 });

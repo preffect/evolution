@@ -1,6 +1,6 @@
-// The planet's crossfade on the dive (docs/rendering/opening-dive.md §4, ticket #805): until the world's coastline bake
-// lands, the upper bands draw the flat fallback globe; when it lands, the full planet (its stars, rim and clouds) comes
-// up over it across `DIVE_GLOBE_CROSSFADE_MS` instead of in one frame. The session asks once a frame, on its clock.
+// The planet's crossfade on the dive (docs/rendering/opening-dive.md §4, tickets #805 and #800): until the world's
+// full coastline bake lands, the planet draws from its quick bake; when it lands, the full coast comes up over the
+// quick one across `DIVE_GLOBE_CROSSFADE_MS` instead of in one frame. The planet band asks once a frame, on its clock.
 
 import { DIVE_GLOBE_CROSSFADE_MS } from '../constants';
 import { clamp01 } from '../geometry';
@@ -12,18 +12,18 @@ export interface DiveGlobeCrossfadeFrame {
   readonly isMotionReduced: boolean;
 }
 
-/** Fully the fallback globe: the planet's opacity while it has not baked. */
+/** Fully the quick bake: the full bake's weight while it has not landed. */
 const FALLBACK_ONLY = 0;
-/** Fully the planet. */
+/** Fully the full bake. */
 const PLANET_ONLY = 1;
 
 export class DiveGlobeCrossfade {
-  /** This open drew the fallback globe, so the planet fades in over it when it lands. */
+  /** This open drew the quick bake, so the full one fades in over it when it lands. */
   private hasShownFallback = false;
   private planetShownAtMs: number | null = null;
 
   /**
-   * The planet's opacity over the fallback globe this frame: 0 while it bakes, then rising to 1 across the crossfade
+   * The full bake's weight over the quick one this frame: 0 while it bakes, then rising to 1 across the crossfade
    * from the first frame it can draw. A planet that was ready from the first frame (its bake kept from an earlier open)
    * is 1 at once, as it is under reduced motion, where a still dive draws only when something changed.
    */

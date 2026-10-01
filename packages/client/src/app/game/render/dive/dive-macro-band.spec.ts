@@ -1,11 +1,13 @@
-// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas under the game's, and
-// the loader that brings the module and its coastlines in with the dive. The real module draws on a 2D canvas jsdom
-// has not got, so the loader is checked up to the bands it makes, and the band over a recording stand-in.
+// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, and
+// the loader that brings the module, the planet's bakes and the coastlines in with the dive. The real module draws on
+// a 2D canvas jsdom has not got, so the loader is checked up to the bands it makes, and the band over a recording
+// stand-in.
 
-import { ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL } from '../constants';
-import { DiveMacroBand, mockupBandsLoader, type JsonFetch } from './dive-macro-band';
+import { diveBandStates } from './dive-bands';
+import { diveCameraAt } from './dive-camera';
+import { DiveMacroBand, diveUpperBandsLoader, type JsonFetch } from './dive-macro-band';
 import type { MockupBands, MockupFrame } from './mockup/dive-mockup-bands';
 
 /** One closed square ring round the focus, in [longitude, latitude] degrees. */
@@ -17,15 +19,17 @@ const RING = [
   [-123.4, 48.4],
 ];
 
-function recordingBands(): MockupBands & { readonly frames: MockupFrame[]; released: number } {
+function recordingBands(isPlanetUnder = true): MockupBands & { readonly frames: MockupFrame[]; released: number } {
   const frames: MockupFrame[] = [];
   return {
     canvas: document.createElement('canvas'),
     isBaked: true,
-    isPlanetReady: true,
     frames,
     released: 0,
-    draw: (frame) => frames.push(frame),
+    draw: (frame) => {
+      frames.push(frame);
+      return isPlanetUnder;
+    },
     pumpBakes: () => true,
     release() {
       this.released += 1;
@@ -33,27 +37,39 @@ function recordingBands(): MockupBands & { readonly frames: MockupFrame[]; relea
   };
 }
 
-describe('mockupBandsLoader', () => {
-  it('fetches both coastlines and makes the bands on the dive’s clock', async () => {
+const ringsFetch: JsonFetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([RING]) });
+
+describe('diveUpperBandsLoader', () => {
+  it('fetches both coastlines and makes the bands on the dive’s clock, and the planet’s bakes over them', async () => {
     const fetched: string[] = [];
     const fetchJson: JsonFetch = (url) => {
       fetched.push(url);
-      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([RING]) });
+      return ringsFetch(url);
     };
-    const bands = await mockupBandsLoader(fetchJson)(() => 0);
+    const { mockup, planet } = await diveUpperBandsLoader(fetchJson)(() => 0);
     expect(fetched.sort()).toEqual([DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL].sort());
-    expect(bands.canvas).toBeInstanceOf(HTMLCanvasElement);
-    bands.release();
+    expect(mockup.canvas).toBeInstanceOf(HTMLCanvasElement);
+    expect(planet.plan.regionBox).toEqual({ west: -123.4, south: 48.4, east: -123.3, north: 48.5 });
+    mockup.release();
+  });
+
+  it('keeps the planet’s finished bakes for the page: every open of one loader shares them', async () => {
+    const load = diveUpperBandsLoader(ringsFetch);
+    const first = await load(() => 0);
+    const second = await load(() => 0);
+    expect(second.planet.kept).toBe(first.planet.kept);
+    expect((await diveUpperBandsLoader(ringsFetch)(() => 0)).planet.kept).not.toBe(first.planet.kept);
   });
 
   it('fails the open when a coastline is missing, naming it', async () => {
     const fetchJson: JsonFetch = () => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
-    await expect(mockupBandsLoader(fetchJson)(() => 0)).rejects.toThrow(DIVE_WORLD_RINGS_URL);
+    await expect(diveUpperBandsLoader(fetchJson)(() => 0)).rejects.toThrow(DIVE_WORLD_RINGS_URL);
   });
 });
 
 describe('DiveMacroBand', () => {
-  const frame = { zoom: 2 } as MockupFrame;
+  const frameAt = (zoom: number): MockupFrame =>
+    ({ zoom, bands: diveBandStates(diveCameraAt(zoom, { width: 800, height: 450 })) }) as MockupFrame;
 
   it('lays its canvas first in the stage, under whatever the app appends', () => {
     const host = document.createElement('div');
@@ -66,6 +82,7 @@ describe('DiveMacroBand', () => {
   it('draws and shows its canvas while a mockup band draws; hides it and draws nothing otherwise', () => {
     const bands = recordingBands();
     const band = new DiveMacroBand(bands, document.createElement('div'));
+    const frame = frameAt(2);
     band.draw(frame, true);
     expect(bands.frames).toEqual([frame]);
     expect(bands.canvas.hidden).toBe(false);
@@ -74,42 +91,32 @@ describe('DiveMacroBand', () => {
     expect(bands.canvas.hidden).toBe(true);
   });
 
-  it('bakes on the scheduler as the mockup’s pump did: 8 ms slices every 10 ms from 60 ms, until every tile is made', () => {
-    const scheduler = new ManualScheduler();
-    const budgets: number[] = [];
-    let slicesLeft = 3;
-    const bands: MockupBands = {
-      ...recordingBands(),
-      get isBaked() {
-        return slicesLeft === 0;
-      },
-      pumpBakes(budgetMs) {
-        budgets.push(budgetMs);
-        slicesLeft -= 1;
-        return slicesLeft === 1;
-      },
-    };
-    let landed = 0;
-    new DiveMacroBand(bands, document.createElement('div')).bakeOn(scheduler, () => (landed += 1));
-    scheduler.advanceMilliseconds(59);
-    expect(budgets).toEqual([]);
-    scheduler.advanceMilliseconds(1);
-    expect(budgets).toEqual([8]);
-    for (let step = 0; step < 5; step += 1) scheduler.advanceMilliseconds(10);
-    expect(budgets).toEqual([8, 8, 8]);
-    expect(landed).toBe(1);
-    expect(scheduler.pendingCallCount).toBe(0);
+  it('says whether the planet shows under it: the mockup’s answer while it draws, the band table’s otherwise', () => {
+    const band = new DiveMacroBand(recordingBands(false), document.createElement('div'));
+    expect(band.draw(frameAt(2), true)).toBe(false);
+    expect(band.draw(frameAt(7), false)).toBe(true);
+    expect(band.draw(frameAt(-4.5), false)).toBe(false);
   });
 
-  it('stops baking when the dive closes', () => {
-    const scheduler = new ManualScheduler();
+  it('lies over the game’s canvas while the planet shows under it, and under it again after', () => {
+    const host = document.createElement('div');
+    const bands = recordingBands();
+    const band = new DiveMacroBand(bands, host);
+    const gameCanvas = document.createElement('canvas');
+    host.append(gameCanvas);
+    band.stackOverGame(true);
+    expect([...host.children]).toEqual([gameCanvas, bands.canvas]);
+    band.stackOverGame(false);
+    expect([...host.children]).toEqual([bands.canvas, gameCanvas]);
+  });
+
+  it('bakes the mockup’s tiles through the mockup', () => {
     const band = new DiveMacroBand({ ...recordingBands(), isBaked: false }, document.createElement('div'));
-    band.bakeOn(scheduler, () => undefined);
-    band.destroy();
-    expect(scheduler.pendingCallCount).toBe(0);
+    expect(band.pumpBakes(8)).toBe(true);
+    expect(band.isBaked).toBe(false);
   });
 
-  it('leaves the stage and gives the planet’s context back on destroy', () => {
+  it('leaves the stage and releases the mockup’s canvases on destroy', () => {
     const host = document.createElement('div');
     const bands = recordingBands();
     new DiveMacroBand(bands, host).destroy();

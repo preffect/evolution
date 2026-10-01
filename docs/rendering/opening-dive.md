@@ -1,6 +1,6 @@
 # Evolution — Rendering: the opening dive
 
-Ticket #797, epic #795. The dive from orbit to the dish on the lobby (main menu), with the mockup's controls. The
+Tickets #797 and #800, epic #795. The dive from orbit to the dish on the lobby (main menu), with the mockup's controls. The
 mockup is the design (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu): its look, labels, sizes, phase stops and
 controls. This file says how the client draws it. The numbers are `render/constants/dive.ts` and the words
 `render/constants/dive-script.ts`. Both carry the mockup's own values.
@@ -14,21 +14,26 @@ controls. This file says how the client draws it. The numbers are `render/consta
   (`render/dive/dive-host.ts`), the same seam shape as the encyclopedia preview's (`preview/preview-host.ts`). A
   component spec provides `testing/fake-dive-handle.ts` and never touches Pixi.
 - **Session:** `render/dive/dive-session.ts` is the fourth `FrameLoopSession`, beside a room's, the bench's and the
-  preview's. The panel's stage element holds two canvases, bottom to top:
-  - the upper bands' canvas (§4), first in the stage
+  preview's. The panel's stage element holds two canvases:
+  - the upper bands' canvas (§4)
   - the session's Pixi app, which clears to transparent (`PixiAppOptions.isTransparent`). Its stage holds
     `gameRoot`, with a real `GameRenderer` in it (`FrameLoopSession.rendererStage` puts the renderer's layers
-    there), and the dish clip mask.
-- **Start:** the app and the upper bands load in parallel. If either fails (no WebGL, a missing coastline, the
+    there), the dish clip mask, and the planet (§4, ticket #800). The planet and the dish are never drawn in the same
+    frame.
+  - **Their order follows the band** (`render/dive/dive-upper-layers.ts`, `DiveMacroBand.stackOverGame`): while the
+    planet shows, the upper bands' canvas lies over the Pixi canvas and is left clear for it, so the coast and shore
+    draw over the planet; otherwise it lies under it, so the game's dish draws over the slime.
+- **Start:** the app and the upper bands load in parallel (`dive-session-open.ts`). If either fails (no WebGL, a missing coastline, the
   chunk), or the panel closes first, the half that arrived is given back at once and `start` answers `false`; the
   stage then says "The opening dive could not load." and the lobby works on. The renderer's textures bake across
   frames (ticket #479) while the upper bands already draw, so the lobby never freezes on the bake. A failed bake
   leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
   (`DIVE_BAKE_DEVICE_PIXEL_RATIO`).
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
-  `RenderSession` builds. `destroy` runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app)
-  and gives the planet's WebGL context back. The mockup's canvas and its baked tiles stay for the page, so a return
-  to the lobby does not bake them again.
+  `RenderSession` builds. `destroy` frees the planet's GPU objects (its quad, program, coastline textures and render
+  texture), then runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app). The dive holds one
+  WebGL context, the app's. The mockup's canvas and its baked tiles, and the planet's coastline bakes (kept by the
+  loader, `diveUpperBandsLoader`), stay for the page, so a return to the lobby does not bake them again.
 - **No debug hook:** the session never installs `window.__evolutionDebug`.
 
 ## 2. The log-zoom camera
@@ -71,7 +76,7 @@ That table is the one place the windows live: the mockup's canvas and the game's
 
 | Band   | Fades in (zoom) | Stops drawing            | Drawn by                                        |
 | ------ | --------------- | ------------------------ | ----------------------------------------------- |
-| planet | always 1        | at or below 1.35         | mockup: WebGL globe, map and forest             |
+| planet | always 1        | at or below 1.35         | **the game's Pixi app**: the planet shader      |
 | shore  | 4.85 → 4.4      | at or below −1.42        | mockup: coast and shore over the globe          |
 | kelp   | 2.4 → 2.1       | at or below −1.42        | mockup: the boulder and the stranded bull kelp  |
 | drop   | 0.35 → 0.05     | at or below −2.96        | mockup: the blade's beads of spray and the drop |
@@ -84,7 +89,11 @@ That table is the one place the windows live: the mockup's canvas and the game's
 - **The handover:** the mockup's own pocket, its wall and its bacteria in the dish fade out by `1 − weight`.
 - **The clip:** while the slime shows, `gameRoot` is clipped to the dish's outer wall (`DISH_RADIUS` plus the wall
   glass), so the slime round the dish stays the mockup's. Once the view lies inside the dish, the clip lifts.
-- **Culling:** the mockup's canvas is hidden and not drawn when no mockup band is active.
+- **Culling:** the mockup's canvas is hidden and not drawn when no mockup band is active, so in orbit (above the
+  shore's fade at 4.85) the planet on the Pixi canvas is all that draws. Close in (below zoom 3) the mockup's canvas
+  says whether any of the view lies past the rock band; when none does, the planet is not drawn and the canvas paints
+  its own sea and land (`MockupBands.draw` answers whether the planet shows).
+- **Between the planet and the dish** (zoom 1.35 to −3.7) the Pixi canvas draws nothing and its opacity is 0.
 - **The shore weight:** it is also the planar world's fade over the globe. It stays 1 below its cut, so the
   close-ups under it still draw.
 
@@ -109,21 +118,62 @@ so nothing the renderer draws is forked. It holds:
 - **The vent:** the game's dish centre is the warm vent, under your cell. The dive hides the vent sprite
   (`RenderInputs.isVentShown`), so the end of the dive is your cell and not an orange glow.
 
-**The upper bands are the mockup's drawing for now.**
+**The planet is the game's (ticket #800).** From orbit to the shore (the planet band, above zoom 1.35) the planet,
+the map and the forest are one shader on the dive's own Pixi app: the mockup's WebGL globe ported, with no second
+WebGL context and no copy into a 2D canvas.
+
+- **The band:** `render/dive/dive-planet-band.ts` holds the planet's GPU objects (`planet/dive-planet-mesh.ts`): a
+  quad with the planet shader drawn into a render texture (`PixiAppHandle.renderToTexture`), and a sprite that lays
+  that texture over the view. Two draw calls a frame.
+- **The shader** (`planet/dive-planet-shader.ts`, with `-noise.ts` and `-land.ts`), GLSL ES 3.00:
+  - Far out it ray-casts an orthographic sphere that matches `d3.geoOrthographic` turned by the dive's rotation, so
+    the labels (`dive-labels.ts`) and the coast in metres sit on it. Close in (below `DIVE_PLANET_PLANE_BELOW_ZOOM`
+    4.45) it draws plane metres round the focus.
+  - Off the sphere: the dark, a few twinkling stars, and the atmosphere's glow on the lit side.
+  - Land comes from signed distance bakes of the Natural Earth coastlines: the sea's shelf and shallows from the
+    distance to the coast, the land's biomes by latitude and its deserts, and close in the Salish region's relief
+    (its lowlands, the Olympics, the Coast Mountains, the Cascades and their volcanoes), snow, the dry side east of
+    the Cascades, the oak meadows round Victoria and a conifer canopy.
+  - Clouds drift and cast shadows; the Olympic rain shadow keeps the focus clear. They clear by zoom 6.1.
+  - The light is the game's, from the top-left: a soft terminator, a sun glint on the sea, and no lights on the
+    night side (no one is here yet).
+  - Its fades are the mockup's (`constants/dive-planet.ts`): the clouds, the region's detail, the coast's
+    antialiased edge, the crowns and the relief's exaggeration.
+- **What it is told each frame:** `planet/dive-planet-frame.ts` works the uniforms out from the camera, and is the
+  TypeScript reference of the shader's projection (`divePlanetEarthPointAt`, term for term with its `main`).
+  `dive-planet-frame.spec.ts` pins every place name's dot to the sphere at its own place, as the planet turns and
+  spins.
+- **The coastline bakes** (`planet/dive-planet-bakes.ts`, the mockup's `bakeGlobal` and `bakeRegional`):
+  - Each ring set is filled into a land mask by the nonzero rule at texel centres (`planet/land-raster.ts`). It is
+    a path context, so `d3.geoPath` draws the world's rings into it after cutting them at the antimeridian. The
+    mockup filled a Canvas 2D path and read it back; this needs no canvas.
+  - The mask becomes a signed distance in texels (`planet/signed-distance.ts`: Felzenszwalb and Huttenlocher's
+    squared distance transform, and the exact distance to the coast's segments within 3 texels of them, so the zero
+    line is the vector coast). It is packed in three byte channels: quarter texels, texels and eight texels
+    (`DIVE_SDF_LEVELS_PER_TEXEL`). The shader reads back the finest channel that has not saturated.
+  - Three bakes, in this order: the world's quick bake (512 × 256), the world's (2048 × 1024) and the Salish
+    region's (2048 wide over its rings' box). They bake in slices on the scheduler (`dive-bake-pump.ts`: 8 ms every
+    10 ms) before the upper bands' tiles, and the lobby's autoplay waits for them. Measured in Node: about 0.1 s,
+    0.5 s and 0.8 s of work, no step longer than 16 ms.
+  - Until the quick bake lands the planet is open sea. When the world's full bake lands, its coast comes up over the
+    quick one across `DIVE_GLOBE_CROSSFADE_MS` (300 ms), or at once under reduced motion
+    (`dive-globe-crossfade.ts`). This replaces the mockup's flat fallback globe (`drawGlobeFallback`).
+  - The finished bakes are kept by the loader, which lives for the page: a planet kept from an earlier open shows at
+    once.
+- **Resolution** (`planet/dive-planet-resolution.ts`, the mockup's `target` and its guard): the upper bands' ratio,
+  at most 1.5× for the sphere's limb and 1× for the forest under the shore. Frames that keep coming more than 24 ms
+  apart step it down by 0.8, to no less than 0.55 (`DIVE_PLANET_RESOLUTION_GUARD`). The render texture is made again
+  only when its size changes.
+
+**The upper bands below the planet are the mockup's drawing for now.**
 
 - **The module:** `render/dive/mockup/dive-mockup-bands.js` is the mockup's `src/*.js` made into one module. Its
   page globals became module state, its bake timer became the injected `SCHEDULER` (an 8 ms slice every 10 ms until
-  every tile is made, as the mockup's `pump`), and its UI went to the panel. The world's and the region's coastline
-  bakes go in the same sliced queue rather than being drained on the spot; until the world's lands the planet draws
-  as the flat fallback globe. When it lands (`isPlanetReady`), the full planet (its stars, rim and clouds) comes up
-  over the fallback across `DIVE_GLOBE_CROSSFADE_MS` (300 ms) instead of in one frame, or at once under reduced
-  motion; a planet whose bake was kept from an earlier open shows at once. The timing is
-  `render/dive/dive-globe-crossfade.ts`, which the macro band runs each frame on the dive's clock; the module only
-  draws the opacity it is handed (`MockupFrame.globeAlpha`) (ticket #805). Its header and each section name the
-  follow-up that deletes them: ticket #800 the planet, #801 the coast and shore, #802 the kelp and drop, #803 the
-  slime.
-- **What it draws:** one Canvas 2D canvas, with the planet's WebGL canvas drawn into it.
-  `render/dive/dive-macro-band.ts` puts that canvas first in the stage, under the game's.
+  every tile is made, as the mockup's `pump`), and its UI went to the panel. Its header and each section name the
+  follow-up that deletes them: #801 the coast and shore, #802 the kelp and drop, #803 the slime. Its shore's sea
+  depth takes the planet's distance transform (`distanceTransform2d`).
+- **What it draws:** one Canvas 2D canvas. Where the planet shows it is cleared and the shore draws over it;
+  elsewhere it paints the dark first. `render/dive/dive-macro-band.ts` lays it beside the game's canvas (§1).
 - **Not a texture:** the ticket allowed uploading the canvas as a Pixi texture, and that was built first. It was
   dropped: the upload reads the canvas back every frame, and the bands' drawing then took 1,498 ms a frame at zoom
   3.3, against 16 ms on a canvas of their own (§6). The browser compositing two canvases costs no script time.
@@ -133,16 +183,16 @@ so nothing the renderer draws is forked. It holds:
   can come before the lobby's grid column has settled; the upper bands' canvas takes the app's size each frame
   (ticket #805).
 - **Code standards:** it is JavaScript, outside eslint, prettier, jscpd and coverage (`.prettierignore`,
-  `.jscpd.json`, `angular.json`). It is never brought up to `CODE-STANDARDS.md`: tickets #800–#803 move each band
+  `.jscpd.json`, `angular.json`). It is never brought up to `CODE-STANDARDS.md`: tickets #801–#803 move each band
   onto the game's renderer (shaders, baked textures, render-to-texture layers) and delete its part of the file.
-- **Memory:** `release` gives back the planet's WebGL context and shrinks the screen-sized canvases (the view, the
-  layers, the zone layers, the sea grids) to nothing; each is made again at its size on the next draw. The tile and
-  coastline bakes stay for the page, so a return to the lobby does not bake them again.
+- **Memory:** `release` shrinks the screen-sized canvases (the view, the layers, the zone layers, the sea grids) to
+  nothing; each is made again at its size on the next draw. The tile bakes stay for the page, so a return to the
+  lobby does not bake them again.
 - **The lazy chunk:** `dive-bundle.spec.ts` pins on the sources that no static import chain from `main.ts` reaches
-  the module or names `d3-geo`.
+  the module or the planet's bakes, or names `d3-geo`.
 - **Coastline data:** `assets/dive/world-rings.json` and `assets/dive/salish-rings.json` (Natural Earth rings,
-  200 KB) and `d3-geo` load with the dive. The module is a dynamic `import()` (its own chunk), and the JSON is
-  fetched. None of it is in the game bundle.
+  200 KB) and `d3-geo` load with the dive. The module and the planet's bakes are dynamic `import()`s (their own
+  chunks), and the JSON is fetched once for both. None of it is in the game bundle.
 
 ## 5. Controls and UI
 
@@ -174,10 +224,18 @@ so nothing the renderer draws is forked. It holds:
 
 ## 6. Frame budget and measurement
 
-- **The target:** 60 fps on a laptop's integrated GPU (epic #795). This ticket ports; the budget per band and the
-  quality governor belong to the follow-ups that move each band onto the GPU.
+- **The target:** 60 fps on a laptop's integrated GPU (epic #795), a 16.7 ms frame. Each band gets its budget
+  when it moves onto the GPU.
+- **The planet band's budget (ticket #800):** at most 1 ms of script and 2 draw calls a frame (the quad into its
+  render texture, the sprite over the view), and one full-view fragment pass at most 1.5× (the sphere) or 1× (the
+  forest). Its resolution guard steps the pass down when frames keep coming more than 24 ms apart (§4). Measured on
+  the evidence box from zoom 7.3 to 5: 0.1–1.5 ms of script and 2 draw calls, against 0.4–1.2 ms and one GL draw plus
+  a copy into the 2D canvas on the mockup's globe. The fragment pass is the same shader at the same resolution, so on
+  the box's software GL a frame's wall time with the GPU work forced to finish is the same within the box's noise
+  (about 1.7–2.0 s either way at 1280 × 800).
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:
   - the upper bands' canvas drawing
+  - the planet: its uniforms and its draw into its render texture
   - the game renderer's dish, outside the submit
   - the submit (the game canvas's draw calls)
 - **How it is read:** `DiveHandle.takeFrameTimes()` returns the means since the last take, and
@@ -203,17 +261,31 @@ so nothing the renderer draws is forked. It holds:
 - `dive-micro-scene.spec.ts`: your size, the derived mass, food inside the dish, no warning ring, seeded, the
   tick.
 - `dive-session.spec.ts`: over the fake Pixi app:
-  - the upper bands draw while the renderer bakes
-  - the dish draws only by the table, clipped then unclipped
+  - the dish draws only by the table, clipped then unclipped, over the mockup's canvas
   - a still reduced-motion dive draws nothing
   - autoplay plays once
   - `destroy` unbinds and releases
-- `dive-bundle.spec.ts`: the mockup's module and `d3-geo` out of every static import chain from `main.ts`.
-- `dive-session.spec.ts` also: each half failing at start (the other given back), visibility reported before the
-  app, reduced motion mid-fall, the autoplay held until the tiles bake, the idle spin (turning in orbit; still while
-  paused, under reduced motion and below the turn) and the planet's crossfade through the macro band.
-- `dive-globe-crossfade.spec.ts`: the fallback while the planet bakes, the rise across 300 ms, no fade back, a kept
-  planet and reduced motion at once.
+- `dive-session-planet.spec.ts`: the planet draws on the game's canvas from the first frame while the renderer
+  bakes; the mockup's canvas lies over it while it shows; neither it nor the dish draws between them; the full
+  coast's crossfade over the quick bake, at once under reduced motion; the autoplay held until its coastlines bake.
+- `dive-bundle.spec.ts`: the mockup's module, the planet's bakes and `d3-geo` out of every static import chain
+  from `main.ts`.
+- `dive-session-start.spec.ts`: each half failing at start (the other given back), visibility reported before
+  the app, reduced motion mid-fall, the autoplay held until the tiles bake. `dive-session.spec.ts` also: the idle
+  spin (turning in orbit; still while paused, under reduced motion and below the turn).
+- `dive-globe-crossfade.spec.ts`: the quick bake while the full one bakes, the rise across 300 ms, no fade back, a
+  kept planet and reduced motion at once.
+- `dive-planet-band.spec.ts`: the bakes in order and kept for the page, a slice stopped at its budget, nothing
+  re-baked that was kept, the draw at the sphere's ratio, the crossfade's uniform.
+- `dive-bake-pump.spec.ts`: 8 ms slices every 10 ms from 60 ms, the bakers in order, stopped on close.
+- `planet/dive-planet-frame.spec.ts`: the fades; the scale; every place name's dot on the shader's sphere at its own
+  place as the planet turns and spins; the focus at the centre; plane metres close in.
+- `planet/dive-planet-mesh.spec.ts`, `dive-planet-shader.spec.ts`: the slots start as open sea, a bake replaces its
+  slot and frees the old, the render texture sized to the resolution and kept while it holds, destroy frees all;
+  GLSL ES 3.00, every uniform declared and set, every function defined, the bake's encoding read back.
+- `planet/land-raster.spec.ts`, `signed-distance.spec.ts`, `dive-planet-bakes.spec.ts`, `dive-planet-resolution.spec.ts`:
+  the nonzero fill at texel centres, the distance transform, the exact coast, the channels, the antimeridian cut,
+  the region's box, the resolution's caps and its guard.
 - `app.integration.spec.ts`: a room starting closes the dive.
 - `dive-panel.component.spec.ts`: over the recording handle: the buttons, the slider, pause, the readout, the
   labels, the flag, Space and Esc but not while typing.
@@ -224,7 +296,8 @@ so nothing the renderer draws is forked. It holds:
 **UI (Playwright, `pnpm --filter @evolution/client smoke`):** `e2e/lobby-dive-layout.spec.ts`: at 1280 × 800 and
 1024 × 640 the dive beside Connect, both whole above the fold; at 390 × 844 Connect first, then the dive's whole
 stage above the fold; no size scrolls sideways; at 1024 × 640 the readout at most 60 % of the stage; and the
-canvases the stage's size after the window shrinks from 1920 to 1024.
+canvases the stage's size after the window shrinks from 1920 to 1024, scrubbed to the shore, where both draw (in
+orbit the upper bands' canvas is hidden).
 
 **Visual evidence:**
 

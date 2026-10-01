@@ -1,7 +1,7 @@
 // The dive's band table (docs/rendering/opening-dive.md §3): which bands draw at a camera and how far each is faded
 // in. Bands nest: each draws in its own metres around the focus, fades in as the dive falls into its range, and
 // stops drawing once the view has passed it. The table is the one place those windows live — the mockup's drawing
-// (`mockup/dive-mockup-bands.js`) and the game's renderer both read their weights from here.
+// (`mockup/dive-mockup-bands.js`), the planet (`dive-planet-band.ts`) and the game's renderer all read it.
 
 import { DISH_RADIUS } from '@evolution/shared';
 import {
@@ -20,7 +20,7 @@ import {
 import { smoothstep } from '../geometry';
 import { diveViewReachM, type DiveCamera } from './dive-camera';
 
-/** The bands, top to bottom. Only `dish` is drawn by the game's renderer; the rest are the mockup's for now. */
+/** The bands, top to bottom. The planet and the dish are drawn on the game's Pixi app; the rest are the mockup's for now. */
 export const DIVE_BAND = {
   planet: 'planet',
   shore: 'shore',
@@ -32,9 +32,9 @@ export const DIVE_BAND = {
 export type DiveBandName = (typeof DIVE_BAND)[keyof typeof DIVE_BAND];
 export const DIVE_BAND_NAMES: readonly DiveBandName[] = Object.values(DIVE_BAND);
 
-/** The bands the mockup's canvas draws; the dish is the game's. */
+/** The bands the mockup's canvas draws; the planet and the dish are the game's. */
 export const DIVE_MOCKUP_BAND_NAMES: readonly DiveBandName[] = DIVE_BAND_NAMES.filter(
-  (name) => name !== DIVE_BAND.dish,
+  (name) => name !== DIVE_BAND.planet && name !== DIVE_BAND.dish,
 );
 
 export interface DiveBandState {

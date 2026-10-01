@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   diveSessionHarness as harness,
   fakeDiveBands as fakeBands,
+  fakeUpperBands,
   startedDiveSession as started,
 } from '../../../../testing/dive-session-harness';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
@@ -13,7 +14,7 @@ import { DIVE_FIRST_PHASE } from './dive-controls';
 
 describe('DiveSession.start when a half fails', () => {
   it('destroys the app it made when the upper bands fail (a missing coastline), and answers false', async () => {
-    const { subject, apps } = harness({ loadMockupBands: () => Promise.reject(new Error('404')) });
+    const { subject, apps } = harness({ loadUpperBands: () => Promise.reject(new Error('404')) });
     expect(await subject.start()).toBe(false);
     expect(apps[0]!.lifecycle.isDestroyed).toBe(true);
     subject.destroy();
@@ -29,14 +30,14 @@ describe('DiveSession.start when a half fails', () => {
   it('answers false, holding nothing, when both fail', async () => {
     const { subject } = harness({
       createPixiApp: () => Promise.reject(new Error('no WebGL')),
-      loadMockupBands: () => Promise.reject(new Error('404')),
+      loadUpperBands: () => Promise.reject(new Error('404')),
     });
     await expect(subject.start()).resolves.toBe(false);
     subject.destroy();
   });
 
   it('gives back the half that arrives after destroy when the other failed', async () => {
-    const { subject, apps } = harness({ loadMockupBands: () => Promise.reject(new Error('404')) });
+    const { subject, apps } = harness({ loadUpperBands: () => Promise.reject(new Error('404')) });
     const start = subject.start();
     subject.destroy();
     expect(await start).toBe(false);
@@ -74,7 +75,7 @@ describe('DiveSession: what can change around it', () => {
         return baked.isBaked;
       },
     };
-    const { subject, app, clock } = await started({ loadMockupBands: () => Promise.resolve(bands) });
+    const { subject, app, clock } = await started({ loadUpperBands: () => Promise.resolve(fakeUpperBands(bands)) });
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS * 3);
     app.tick();
     expect(subject.controls.isPlaying).toBe(false);

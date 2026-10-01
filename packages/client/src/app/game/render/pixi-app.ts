@@ -2,7 +2,7 @@
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
-import { Application, RenderTexture, Texture } from 'pixi.js';
+import { Application, RenderTexture, Texture, type Container } from 'pixi.js';
 import { BG_DEEP, RENDER_WARM_UP_TARGET_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
@@ -45,6 +45,11 @@ export interface PixiAppHandle {
   unbindTextures(): void;
   /** Uploads a texture source and renders a container off screen: a staged renderer's warm-up (ticket #603). */
   readonly warmUp: RendererWarmUpSeam;
+  /**
+   * Draws `container` into `target`, cleared first: a layer rendered at its own resolution, as the opening dive's
+   * planet is (docs/rendering/opening-dive.md §4).
+   */
+  renderToTexture(container: Container, target: RenderTexture): void;
   destroy(): void;
 }
 
@@ -95,6 +100,9 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
     },
     warmUp: createWarmUpSeam(app),
+    renderToTexture: (container, target) => {
+      app.renderer.render({ container, target, clear: true });
+    },
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },
