@@ -147,6 +147,15 @@ printf 'PORT=%s\nSERVER_PORT=%s\nCLIENT_PORT=%s\n' "$RECORDED_SERVER_PORT" "$REC
 merge_to_main game.txt v3c
 PORT=1 SERVER_PORT=2 run_deploy
 check "a run.env with both names restarts on the recorded port under both, not the caller's (rc $rc)" $(( rc == 0 && $(holds restarted_with "SERVER_PORT=$RECORDED_SERVER_PORT PORT=$RECORDED_SERVER_PORT CLIENT_PORT=$RECORDED_CLIENT_PORT ") ))
+# Live reload (#792) repeats only when run.env records it, and an inherited RUN_LIVE_RELOAD never reaches the restart
+printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=\nRUN_LIVE_RELOAD=--live-reload\n' "$RECORDED_SERVER_PORT" "$RECORDED_CLIENT_PORT" > "$target/.game-logs/run.env"
+merge_to_main game.txt v3d
+run_deploy
+check "a run.env recording --live-reload restarts with it (rc $rc)" $(( rc == 0 && $(holds restarted_with "CLIENT_PORT=$RECORDED_CLIENT_PORT  ?--live-reload --clear-prebundle") ))
+printf 'PORT=%s\nCLIENT_PORT=%s\nRUN_MODE=\n' "$RECORDED_SERVER_PORT" "$RECORDED_CLIENT_PORT" > "$target/.game-logs/run.env"
+merge_to_main game.txt v3e
+RUN_LIVE_RELOAD=--live-reload run_deploy
+check "a run.env from before #792 restarts without live reload, whatever the caller inherited (rc $rc)" $(( rc == 0 && $(holds restarted_with "CLIENT_PORT=$RECORDED_CLIENT_PORT  ?--clear-prebundle") && ! $(holds restarted_with '--live-reload') ))
 rm "$target/.game-logs/run.env"
 
 echo scratch > "$target/untracked.txt"

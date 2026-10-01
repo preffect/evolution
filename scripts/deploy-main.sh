@@ -6,8 +6,8 @@
 # (scripts/lib/workspace-ready.sh: `pnpm install --frozen-lockfile` when node_modules does not match
 # pnpm-lock.yaml, the shared build when it is stale, stamping the build record so the restart's own setup
 # finds nothing to do; a failed install or build fails the deploy before the restart), then restarts the stack
-# with `./run.sh --clear-prebundle --wait-ready` in the mode and on the ports the stack was started
-# with (.game-logs/run.env, written by run.sh). run.sh deletes the Angular dependency prebundle
+# with `./run.sh --clear-prebundle --wait-ready` in the mode, live-reload choice and on the ports the stack was
+# started with (.game-logs/run.env, written by run.sh). run.sh deletes the Angular dependency prebundle
 # (packages/client/.angular/cache, built from the OLD shared package) after stopping the old stack and
 # before starting the new one, and fails unless this checkout's server and client listen again. A
 # one-shot deploy lets run.sh start the watcher; a deploy the watcher runs passes --no-deploy-watch.
@@ -41,7 +41,7 @@ UPSTREAM_REMOTE=origin
 UPSTREAM_BRANCH=main
 UPSTREAM="$UPSTREAM_REMOTE/$UPSTREAM_BRANCH"
 DEFAULT_WATCH_INTERVAL_SECONDS=60
-RUN_ENV_PATH=.game-logs/run.env # written by run.sh: PORT, SERVER_PORT, CLIENT_PORT, RUN_MODE
+RUN_ENV_PATH=.game-logs/run.env # written by run.sh: PORT, SERVER_PORT, CLIENT_PORT, RUN_MODE, RUN_LIVE_RELOAD
 SHORT_SHA_LENGTH=12
 EXIT_USAGE=1
 EXIT_REFUSED=2
@@ -100,12 +100,13 @@ run_step() { # <name> <command> — in the target, output into the log; fd 9 (th
 
 # run.sh again, in the stack's recorded mode and ports. The recorded port wins over an inherited SERVER_PORT
 # (its alias, #474): a run.env from before #474 records only PORT, and run.sh refuses the two when they differ.
+# Live reload repeats only when run.env records it: a run.env from before #792 restarts without it.
 restart_command() { # <to-sha>
   local watch_flag="" skip_env=""
   # This watcher is running the deploy; a one-shot deploy lets run.sh start one, which skips this commit
   # should the restart fail (a harmless no-op when it succeeds: the commit is then the deployed one)
   if $watching; then watch_flag=" --no-deploy-watch"; else skip_env="DEPLOY_WATCH_SKIP_SHA=$1 "; fi
-  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT; . $RUN_ENV_PATH; }; set +a; $skip_env$RUN_SCRIPT \${RUN_MODE:-} --clear-prebundle --wait-ready$watch_flag"
+  echo "set -a; [ ! -f $RUN_ENV_PATH ] || { unset SERVER_PORT RUN_LIVE_RELOAD; . $RUN_ENV_PATH; }; set +a; $skip_env$RUN_SCRIPT \${RUN_MODE:-} \${RUN_LIVE_RELOAD:-} --clear-prebundle --wait-ready$watch_flag"
 }
 
 deploy_steps() { # <from-sha> <to-sha>
