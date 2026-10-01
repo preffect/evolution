@@ -12,6 +12,7 @@ import type { CanvasPoint } from './input-state';
 import { INPUT_ACTION } from './keyboard-action';
 import { attachKeyboardInput } from './keyboard-input';
 import { attachPointerInput } from './pointer-input';
+import { PointerLockInput, type PointerLockSeam } from './pointer-lock-input';
 import { inputWorldContextOf } from './input-world-context';
 
 export interface AttachInputOptions {
@@ -33,15 +34,26 @@ export interface AttachInputOptions {
    * a clicked card goes through the same pick policy as the `1` `2` `3` keys (docs/ui/overlays.md §3.2, #188).
    */
   readonly onTraitCardPickReady?: (pick: ((cardIndex: number) => void) | null) => void;
+  /** The HUD's side of the mouse lock (docs/ui/input-and-onboarding.md §4.1, #794); absent, the pointer never locks. */
+  readonly pointerLock?: PointerLockSeam;
 }
 
 export interface InputSeam {
   readonly controller: InputController;
+  /** Once per animation frame: the lock follows the overlays, then the controller sends what came due. */
+  onAnimationFrame(): void;
   detach(): void;
 }
 
-export function attachInput(options: AttachInputOptions): InputSeam {
-  const controller = new InputController({
+/** The mouse lock for this room, when the HUD wired its side (docs/ui/input-and-onboarding.md §4.1). */
+function pointerLockOf(options: AttachInputOptions): PointerLockInput | undefined {
+  const seam = options.pointerLock;
+  return seam === undefined ? undefined : new PointerLockInput({ host: options.host, clock: options.clock, seam });
+}
+
+/** The room's one controller: it sends through the store, so prediction sees every input the server will. */
+function controllerOf(options: AttachInputOptions): InputController {
+  return new InputController({
     clock: options.clock,
     send: (input) => {
       options.store.recordOwnInput(input);
@@ -55,6 +67,10 @@ export function attachInput(options: AttachInputOptions): InputSeam {
       onFullLeaderboardHeldChanged: options.onFullLeaderboardHeldChanged,
     }),
   });
+}
+
+export function attachInput(options: AttachInputOptions): InputSeam {
+  const controller = controllerOf(options);
   const ownerDocument = options.host.ownerDocument;
   const detachKeyboard = attachKeyboardInput({
     ownerDocument,
@@ -65,14 +81,20 @@ export function attachInput(options: AttachInputOptions): InputSeam {
     onAction: (action) => controller.apply(action),
     onAllKeysReleased: () => controller.releaseAllKeys(),
   });
+  const pointerLock = pointerLockOf(options);
   const detachPointer = attachPointerInput({
     host: options.host,
     onPointerMoved: (point) => controller.pointerMovedTo(point),
     onSprint: () => controller.apply({ kind: INPUT_ACTION.sprint }),
+    ...definedEntriesOf({ pointerLock }),
   });
   options.onTraitCardPickReady?.((cardIndex) => controller.apply({ kind: INPUT_ACTION.pickCard, cardIndex }));
   return {
     controller,
+    onAnimationFrame: () => {
+      pointerLock?.syncWithHud();
+      controller.pump();
+    },
     detach: () => {
       // A room can end with Tab still down (the round ends, a disconnect, a leave control). The
       // HUD state is `providedIn: 'root'` and outlives these components, so the release has to be
@@ -82,6 +104,7 @@ export function attachInput(options: AttachInputOptions): InputSeam {
       options.onTraitCardPickReady?.(null);
       detachKeyboard();
       detachPointer();
+      pointerLock?.detach();
     },
   };
 }

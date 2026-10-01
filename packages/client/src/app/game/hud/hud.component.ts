@@ -9,7 +9,8 @@
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
 // onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189),
-// the round results (§3.4, #637), the toasts (§3.6, #190) and the upgrade popups (§3.8, #783).
+// the round results (§3.4, #637), the toasts (§3.6, #190), the upgrade popups (§3.8, #783) and the mouse lock's
+// in-game cursor (docs/ui/input-and-onboarding.md §4.1, #794).
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -29,6 +30,7 @@ import { RoundTimerComponent } from './round-timer.component';
 import { ToastComponent } from './toast.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
 import { UpgradePopupComponent } from './upgrade-popup.component';
+import { VirtualCursorComponent } from './virtual-cursor.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
@@ -57,6 +59,7 @@ import { HUD_OVERLAY } from './hud-state.service';
     ToastComponent,
     TraitOfferOverlayComponent,
     UpgradePopupComponent,
+    VirtualCursorComponent,
   ],
   template: `
     @if (isRoundPlaying()) {
@@ -111,6 +114,9 @@ import { HUD_OVERLAY } from './hud-state.service';
       <app-connection-banner />
       <app-server-error-notice />
     </div>
+    <!-- The in-game cursor while the pointer is locked (docs/ui/input-and-onboarding.md §4.1): above everything, since
+         it stands in for the system cursor; it draws nothing while the pointer is free. -->
+    <app-virtual-cursor />
   `,
   host: {
     '[attr.data-testid]': 'testId.hud',

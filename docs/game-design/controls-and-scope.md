@@ -18,6 +18,11 @@
   the respawned cell (#346). Steering throttle ramps from 0 when the pointer is within `STEER_DEAD_ZONE_RADII` × radius of
   the centre to 1 at `STEER_FULL_THROTTLE_RADII` × radius. Keyboard steering synthesises a target at
   `STEER_FULL_THROTTLE_RADII` × radius in the pressed direction.
+- **Mouse lock** (#794). While a room is up the first mouse click on the canvas locks the pointer to it and does not
+  sprint; steering then follows a virtual pointer clamped to the canvas, drawn as an in-game cursor, with the same
+  offset, dead zone and full throttle as a real one. Escape leaves the lock and opens the menu; the menu, the
+  encyclopedia and the results hand the lock back, the trait picker keeps it. Touch is never locked. A menu toggle,
+  on by default, turns it off ([`ui/input-and-onboarding.md §4.1`](../ui/input-and-onboarding.md#41-mouse-lock-794)).
 - **Sprint.** Speed × `SPRINT_SPEED_MULTIPLIER` for `SPRINT_DURATION_SECONDS`, costs
   `SPRINT_MASS_COST_FRACTION` of current mass (never below `CELL_STARTING_MASS`), cooldown
   `SPRINT_COOLDOWN_SECONDS` measured from sprint start. Sprint is also the engulf-escape tool.

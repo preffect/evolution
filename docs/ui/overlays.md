@@ -138,9 +138,11 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
    up (an open offer, a threat or an engulf, encyclopedia.md §11.1) the alert strip sits full width between this line
    and the buttons, `UI_SPACE_L_PX` above them, and pushes them down by its height (`esc-menu-alert-1280x800.png`); the
    offer strip carries its seconds in `figure` and the `1` `2` `3` key hints at its trailing end.
-2. Three full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
+2. Four full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
    closes the menu. **`Encyclopedia`** (secondary, `H` key hint; `H` acts while the menu is open, §4) replaces the menu
-   with the encyclopedia, whose Escape comes back here. **`Exit game`** (danger) asks once
+   with the encyclopedia, whose Escape comes back here. **`Mouse lock: On`** / **`Off`** (secondary, a `role="switch"`
+   with `aria-checked`) toggles the mouse lock (input-and-onboarding.md §4.1) and leaves the menu open; the next click
+   on the dish locks when it is on. **`Exit game`** (danger) asks once
    (`esc-menu-confirm-1280x800.png`): its row, keeping its size and danger rim, becomes `Leave this round?` (`body`) on
    the left with two compact buttons on the right, `Exit` (danger) and then `Cancel` (secondary, focused) at the
    trailing end, where a quick second click on the right half of `Exit game` lands. `Exit` calls `leave()` and the
@@ -171,7 +173,7 @@ keeps its timer and `1` `2` `3` still pick, and the alert strip shows the offer 
 covers part of the card band; otherwise a player who opened the menu during an offer would silently get the server's
 pick.
 
-**Coverage.** The menu is about 18 % of the viewport at 1280 × 800 with three traits, inside input-and-onboarding.md §6's overlay bar.
+**Coverage.** The menu is about 20 % of the viewport at 1280 × 800 with three traits (18 % before the `Mouse lock` row), inside input-and-onboarding.md §6's overlay bar.
 
 **With the other overlays.** Layer order, top down: the notices (§3.6), the encyclopedia, the menu, the results and
 respawn overlays, the trait picker, the chrome. The chrome stays visible under the menu's scrim and hides while the
@@ -195,7 +197,7 @@ encyclopedia is open (encyclopedia.md §11.1).
 | `MENU_SCRIM_ALPHA`          | 0.5   | ×    | The callout-backing scrim behind the menu; the encyclopedia's is darker (§11.7). |
 
 Home `hud/hud-constants.ts`, published as `--hud-menu-…` like §3.2's. Test ids: `menu-overlay` (`role="dialog"`,
-`aria-modal="true"`, labelled by its title), `menu-resume`, `menu-encyclopedia`, `menu-exit` (was `menu-leave`),
+`aria-modal="true"`, labelled by its title), `menu-resume`, `menu-encyclopedia`, `menu-mouse-lock`, `menu-exit` (was `menu-leave`),
 `menu-exit-confirm`, `menu-exit-cancel`, `menu-alert` (with `data-alert-kind`), `menu-traits`, `menu-trait-<traitId>`.
 
 ### 3.6 Notices: toasts and connection states

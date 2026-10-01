@@ -10,6 +10,7 @@ import { definedEntriesOf } from './defined-entries';
 import { installEvolutionDebug, type EvolutionDebugApi, type EvolutionDebugHost } from './debug/evolution-debug';
 import { attachInput, type AttachInputOptions, type InputSeam } from './input/attach-input';
 import type { InputController } from './input/input-controller';
+import type { PointerLockSeam } from './input/pointer-lock-input';
 import { NO_RETICLE, type RenderInputs } from './render/render-io';
 import type { PixiAppHandle, PixiAppOptions } from './render/pixi-app';
 import type { CameraExtent } from './render/camera';
@@ -55,6 +56,8 @@ export interface GameSetupDependencies {
   readonly onFullLeaderboardHeldChanged?: (isHeld: boolean) => void;
   /** The picker's card pick for this room, `null` when the room goes (docs/ui/overlays.md §3.2, #188). */
   readonly onTraitCardPickReady?: (pick: ((cardIndex: number) => void) | null) => void;
+  /** The mouse lock's toggle, overlays, Escape and cursor (docs/ui/input-and-onboarding.md §4.1, #794). */
+  readonly pointerLock?: PointerLockSeam;
 }
 
 /** Teardown handle returned by `setupGame`. */
@@ -77,6 +80,7 @@ function hudHandlersOf(dependencies: GameSetupDependencies): Partial<AttachInput
     onEncyclopediaKey: dependencies.onEncyclopediaKey,
     onFullLeaderboardHeldChanged: dependencies.onFullLeaderboardHeldChanged,
     onTraitCardPickReady: dependencies.onTraitCardPickReady,
+    pointerLock: dependencies.pointerLock,
   });
 }
 
@@ -124,7 +128,7 @@ export function setupGame(options: GameSetupOptions, dependencies: GameSetupDepe
     ...hudHandlersOf(dependencies),
   });
   controller = input.controller;
-  session.setAnimationFrameListener(() => input.controller.pump());
+  session.setAnimationFrameListener(() => input.onAnimationFrame());
   const subscription = options.messages$.subscribe((message) => session.onMessage(message));
   const uninstallDebug = installEvolutionDebug(
     dependencies.debugHost,

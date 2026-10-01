@@ -6,8 +6,8 @@
 
 | Input                | Pointer / touch                                                           | Keyboard                                                                                                                                                    | Sent as (architecture/wire-contract.md §4)                                                            |
 | -------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Steer                | pointer position over the canvas → world via the camera                   | WASD / arrows synthesise a target (game-design/controls-and-scope.md §6)                                                                                    | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
-| Sprint               | left click / tap on the canvas                                            | Space (edge-triggered, no repeat) with focus outside `trait-offer`                                                                                          | `shouldSprint: true` once per press                                                                   |
+| Steer                | pointer position over the canvas → world via the camera (locked: §4.1)    | WASD / arrows synthesise a target (game-design/controls-and-scope.md §6)                                                                                    | `targetX/targetY` every client tick; the pointer's last position is latched when it leaves the canvas |
+| Sprint               | left click / tap on the canvas (not the click that locks, §4.1)           | Space (edge-triggered, no repeat) with focus outside `trait-offer`                                                                                          | `shouldSprint: true` once per press                                                                   |
 | Pick trait           | click a card                                                              | `1` `2` `3`; Enter/Space with focus on a card                                                                                                               | `traitChoice`                                                                                         |
 | Full leaderboard     | click the leaderboard header (toggles)                                    | Tab held                                                                                                                                                    | local                                                                                                 |
 | Menu / close overlay | —                                                                         | Escape (§3.5; inside the encyclopedia, encyclopedia.md §11.5)                                                                                               | local                                                                                                 |
@@ -40,9 +40,11 @@
 - **The module list** (the one home; `architecture/constants-files-tests.md §10`'s file plan repeats it without roles). Pure and
   unit-tested: `input-constants.ts` (key codes, direction vectors, selectors), `keyboard-action.ts` (the rules of
   this section, press and release → one action), `input-state.ts` (the latched pointer, the held keys, the two
-  one-shots, the Tab hold), `game-input-builder.ts` (state + world → `GameInput`). Thin adapters:
-  `dom-input-context.ts` (the focus facts), `keyboard-input.ts`, `pointer-input.ts`,
-  `input-world-context.ts` (`WorldStore` → the own cell, the open offer, the live `balance.controls`).
+  one-shots, the Tab hold), `game-input-builder.ts` (state + world → `GameInput`), `pointer-lock-policy.ts` and
+  `virtual-pointer.ts` (the mouse lock's rules and its pointer, §4.1). Thin adapters:
+  `dom-input-context.ts` (the focus facts), `keyboard-input.ts`, `pointer-input.ts`, `pointer-lock-input.ts` and
+  `virtual-hover.ts` (§4.1), `input-world-context.ts` (`WorldStore` → the own cell, the open offer, the live
+  `balance.controls`).
   `input-controller.ts` owns the client tick counter and the one send per tick; `attach-input.ts` composes them
   and `game-setup.ts` wires the seam. In dev builds `window.__evolutionDebug.input()` reports what was last sent
   and what is held, so a Playwright run can assert that a key reached its handler.
@@ -89,6 +91,77 @@
   own-cell indicators are not interactive; their facts reach keyboard and screen-reader users through the status
   mirror (§3.1.4) and the menu (§3.5).
 - Touch: pointer events only (game-design/controls-and-scope.md §10); no layout changes beyond the sprint hint's text.
+
+### 4.1 Mouse lock (#794)
+
+A click that lands outside the window takes focus away, the window `blur` releases every input, and in a fight the
+cell is lost. So while a room is up the pointer is locked to the canvas with the Pointer Lock API, on by default.
+
+- **Locking.** The first primary **mouse** click on the canvas asks for the lock (`requestPointerLock` with
+  `unadjustedMovement`, asked again without it where the platform refuses the option) and **does not sprint**. A
+  touch or a pen is never locked and sprints as before. The click the lock is asked from is where the virtual pointer
+  starts, so nothing jumps.
+- **The virtual pointer.** While locked the browser reports only `movementX/Y`; `virtual-pointer.ts` moves its own
+  canvas point by that times `POINTER_LOCK_MOVEMENT_SCALE` (1) and clamps it to the canvas host's box, and that point
+  is what the controller latches, so the steer offset, the dead zone and full throttle are computed exactly as for a
+  real pointer. The play area it clamps to is the whole canvas, not the drawn band of a canvas wider than
+  `INTEREST_VIEW_ASPECT_RATIO` (game-design/controls-and-scope.md §7): the steer target is an offset whose length
+  stops mattering at full throttle, so the band would only take reach away from the sides of an ultrawide screen.
+- **The in-game cursor** (`hud/virtual-cursor.component.ts`, `virtual-cursor`): the system cursor is hidden while
+  locked, so the HUD draws one at the virtual pointer, above every layer. A ring of radius
+  `VIRTUAL_CURSOR_RING_RADIUS_PX` stroked `VIRTUAL_CURSOR_RING_STROKE_PX` in the text colour over a
+  callout-backing halo `VIRTUAL_CURSOR_HALO_STROKE_PX` wider, with a text-colour dot of `VIRTUAL_CURSOR_DOT_RADIUS_PX`
+  on its own dark disc at the exact steering point. Real px, not `--ui-scale`d, since it stands in for the system
+  cursor; still, so reduced motion changes nothing; it takes no events and is `aria-hidden`. It is the one DOM element
+  allowed in the exclusion box (layout.md §1), where the system cursor always was.
+- **Controls under a locked pointer.** Every mouse event goes to the canvas host while locked, so
+  `pointer-lock-input.ts` hit-tests the virtual pointer (`elementFromPoint`, which the HUD layer's
+  `pointer-events: none` passes through): over a control that takes the pointer (a trait card, the leaderboard
+  header) a primary press clicks it instead of sprinting, as the real cursor would, and `virtual-hover.ts` dispatches
+  the `mouseenter` / `mouseleave` the browser would have, so a card highlights and previews its trait.
+- **Escape.** While locked the browser keeps Escape for itself and leaves the lock; the page may never see the key.
+  A lock lost while the document still has focus is that Escape, and **opens the menu** (`MouseLockService.exitedByUser`,
+  which leaves an open menu open, so a browser that also delivers the key cannot open and close it in one press).
+  Closing the menu leaves the pointer free until the next canvas click locks again. Chrome refuses a re-lock for about
+  a second after an Escape exit, so none is asked for `POINTER_LOCK_RETRY_COOLDOWN_MS` (1250 ms) after one: a click in
+  that window neither locks nor sprints, and logs nothing.
+- **Overlays.** The lock is handed back (`exitPointerLock`, which is no Escape and opens nothing) while an overlay with
+  buttons is up: the menu, the encyclopedia, and the results phase (`MouseLockService.isCursorNeeded`, checked once a
+  frame). **The trait picker keeps the lock:** it is non-modal (overlays.md §3.2), the cell keeps steering under it,
+  and offers come mid-fight; releasing would put the system cursor at an arbitrary spot and make the next click a
+  re-lock instead of a sprint, the very loss of control #794 removes. `1` `2` `3` pick as always and a locked click on
+  a card picks it. The death overlay has nothing to click, so the lock stays through death and respawn.
+- **Losing focus.** A lock lost while the document has no focus (alt-tab, a click on another window) opens nothing:
+  the window `blur` has already released every key (§4), the latched pointer stays where it was, as it does when the
+  pointer leaves the window unlocked, and the next canvas click re-locks with no cooldown.
+- **Failures.** A refused request (`pointerlockerror`) or one unanswered after `POINTER_LOCK_REQUEST_TIMEOUT_MS`
+  (1000 ms) also waits out the cooldown; after `POINTER_LOCK_MAX_FAILED_REQUESTS` (3) in a row the lock gives up for
+  the room and a click sprints as it does unlocked, so a browser that never grants the lock (a sandboxed frame) still
+  plays.
+- **The toggle.** `Mouse lock: On` / `Off` in the menu (overlays.md §3.5), on by default, remembered per browser in
+  localStorage (`MOUSE_LOCK_STORAGE_KEY` holds `MOUSE_LOCK_OFF_FLAG` while off; a browser that refuses storage starts
+  on and keeps the choice for the session). Off is the behaviour before #794.
+- **Where it lives.** The rules are `input/pointer-lock-policy.ts` (pure, unit-tested), the browser calls
+  `input/pointer-lock-input.ts`, the HUD's half `hud/mouse-lock.service.ts`, wired by `game-host.component.ts` through
+  `setupGame`'s `pointerLock` seam. `hud/mouse-lock.integration.spec.ts` pins the locking click, steering from the
+  virtual pointer, Escape → menu → re-lock after the cooldown, a card click under the lock and the encyclopedia's
+  release, against `testing/fake-pointer-lock.ts`, since jsdom has no Pointer Lock API.
+
+| Constant                             | Value                       | Unit | Meaning                                                          |
+| ------------------------------------ | --------------------------- | ---- | ---------------------------------------------------------------- |
+| `POINTER_LOCK_MOVEMENT_SCALE`        | 1                           | ×    | Virtual-pointer px per px of `movementX/Y`.                      |
+| `SHOULD_REQUEST_UNADJUSTED_MOVEMENT` | true                        | —    | Ask for raw mouse movement (no OS acceleration) where supported. |
+| `POINTER_LOCK_RETRY_COOLDOWN_MS`     | 1250                        | ms   | No request this long after an Escape exit or a failure.          |
+| `POINTER_LOCK_REQUEST_TIMEOUT_MS`    | 1000                        | ms   | An unanswered request counts as failed.                          |
+| `POINTER_LOCK_MAX_FAILED_REQUESTS`   | 3                           | —    | Failures in a row before the lock gives up for the room.         |
+| `VIRTUAL_CURSOR_RING_RADIUS_PX`      | 7                           | px   | The cursor's ring.                                               |
+| `VIRTUAL_CURSOR_RING_STROKE_PX`      | 2                           | px   | Its text-colour stroke.                                          |
+| `VIRTUAL_CURSOR_HALO_STROKE_PX`      | 4                           | px   | The dark halo's extra width under the ring.                      |
+| `VIRTUAL_CURSOR_DOT_RADIUS_PX`       | 1.5                         | px   | The steering point.                                              |
+| `MOUSE_LOCK_STORAGE_KEY`             | `'evolution.mouseLock.off'` | —    | Where a browser remembers the toggle is off.                     |
+
+Homes: the `POINTER_LOCK_…` and `SHOULD_…` rows `input/input-constants.ts`; the cursor and storage rows
+`hud/hud-constants.ts`.
 
 ## 5. Onboarding: the first two minutes
 

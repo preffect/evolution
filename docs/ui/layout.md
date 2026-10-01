@@ -16,7 +16,9 @@ with `HUD_MARGIN_PX` × scale; centre-relative elements (the picker band, §3.2)
 viewport centre, never at absolute y. The canvas fills the viewport; the player's cell is at the screen centre
 (game-design/controls-and-scope.md §7; the follow smoothing keeps it within a few px of it), so the **exclusion box** is the central
 square of half-side `HUD_PLAYER_EXCLUSION_PX` = 120 px (scaled): **no DOM element** (chrome, hint, toast, card or
-popup) may enter it while the player is alive and the round is `playing`. The rule holds at and above the viewport the
+popup) may enter it while the player is alive and the round is `playing`. The mouse lock's in-game cursor
+(input-and-onboarding.md §4.1) is the one exception: it is the pointer, not chrome, and goes where the system cursor
+went. The rule holds at and above the viewport the
 `UI_SCALE_MIN` floor implies (1024 × 640); below that the floor stops shrinking the chrome while the box keeps its
 120 px half-side, and the widened leaderboard overlaps it at around 794 px of width. That is under the smallest
 viewport the game targets, so it is recorded rather than solved. **The only pixels inside the box besides the

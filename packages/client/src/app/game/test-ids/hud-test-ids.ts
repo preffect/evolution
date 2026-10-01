@@ -43,6 +43,10 @@ export const HUD_TEST_ID = {
   menuResume: 'menu-resume',
   /** `Encyclopedia`: the menu gives way to the encyclopedia. */
   menuEncyclopedia: 'menu-encyclopedia',
+  /** `Mouse lock: On` / `Off`, the lock's toggle (docs/ui/input-and-onboarding.md §4.1, #794). */
+  menuMouseLock: 'menu-mouse-lock',
+  /** The in-game cursor drawn while the pointer is locked (docs/ui/input-and-onboarding.md §4.1). */
+  virtualCursor: 'virtual-cursor',
   /** `Exit game`, which asks once. */
   menuExit: 'menu-exit',
   /** The confirm row's `Exit`: leaves the room. */
