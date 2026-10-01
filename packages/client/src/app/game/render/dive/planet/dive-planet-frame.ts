@@ -4,6 +4,7 @@
 // labels (`dive-labels.ts`) and the coast in metres sit on it; close in it draws plane metres round the focus.
 // `divePlanetEarthPointAt` is the shader's `main` term for term, which is how a spec pins the labels to the sphere.
 
+import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
 import {
   DIVE_FOCUS_DEGREES,
   DIVE_PLANET_CLOUD_FADE,
@@ -80,6 +81,11 @@ export const DIVE_PLANET_FOCUS_EARTH: readonly [number, number, number] = [
   Math.cos(DIVE_PLANET_FOCUS_RADIANS[1]) * Math.sin(DIVE_PLANET_FOCUS_RADIANS[0]),
   Math.sin(DIVE_PLANET_FOCUS_RADIANS[1]),
 ];
+
+/** The ground a texel of a `width`-texel equirectangular world bake spans at the equator, in metres. */
+export function diveWorldTexelMetres(width: number): number {
+  return (RADIANS_PER_FULL_TURN * EARTH_RADIUS_M) / width;
+}
 
 export function isDivePlanetPlane(zoom: number): boolean {
   return zoom < DIVE_PLANET_PLANE_BELOW_ZOOM;

@@ -17,13 +17,19 @@ import {
   type TextureSource,
 } from 'pixi.js';
 import type { ViewportPx } from '../../camera';
-import { DIVE_PLANET_OPEN_SEA_TEXEL, DIVE_PLANET_QUAD } from '../../constants';
+import {
+  DIVE_PLANET_OPEN_SEA_TEXEL,
+  DIVE_PLANET_QUAD,
+  DIVE_PLANET_WORLD_BAKE_PX,
+  DIVE_PLANET_WORLD_PREVIEW_BAKE_PX,
+} from '../../constants';
 import { degreesToRadians } from '../../geometry';
 import type { DivePlanetBake, DiveRegionBox } from './dive-planet-bakes';
 import {
   DIVE_PLANET_FOCUS_EARTH,
   DIVE_PLANET_FOCUS_RADIANS,
   DIVE_PLANET_SUN,
+  diveWorldTexelMetres,
   type DivePlanetFrame,
 } from './dive-planet-frame';
 import {
@@ -88,9 +94,13 @@ function createUniforms(): UniformGroup {
     [UNIFORM.focusEarth]: { value: [...DIVE_PLANET_FOCUS_EARTH], type: VEC3 },
     [UNIFORM.sun]: { value: [...DIVE_PLANET_SUN], type: VEC3 },
     [UNIFORM.regionBoxRadians]: { value: [0, 0, 1, 1], type: VEC4 },
-    [UNIFORM.worldTexelMetres]: { value: 1, type: FLOAT },
-    [UNIFORM.worldPreviewTexelMetres]: { value: 1, type: FLOAT },
-    [UNIFORM.regionTexelMetres]: { value: 1, type: FLOAT },
+    // Each slot's open-sea placeholder reads as open sea only at a real texel's scale: at 1 m it would read as shallows.
+    [UNIFORM.worldTexelMetres]: { value: diveWorldTexelMetres(DIVE_PLANET_WORLD_BAKE_PX.width), type: FLOAT },
+    [UNIFORM.worldPreviewTexelMetres]: {
+      value: diveWorldTexelMetres(DIVE_PLANET_WORLD_PREVIEW_BAKE_PX.width),
+      type: FLOAT,
+    },
+    [UNIFORM.regionTexelMetres]: { value: diveWorldTexelMetres(DIVE_PLANET_WORLD_BAKE_PX.width), type: FLOAT },
   });
 }
 

@@ -105,9 +105,11 @@ describe('DiveMacroBand', () => {
     const gameCanvas = document.createElement('canvas');
     host.append(gameCanvas);
     band.stackOverGame(true);
-    expect([...host.children]).toEqual([gameCanvas, bands.canvas]);
+    expect(host.firstElementChild).toBe(gameCanvas);
+    expect(host.lastElementChild).toBe(bands.canvas);
     band.stackOverGame(false);
-    expect([...host.children]).toEqual([bands.canvas, gameCanvas]);
+    expect(host.firstElementChild).toBe(bands.canvas);
+    expect(host.lastElementChild).toBe(gameCanvas);
   });
 
   it('bakes the mockup’s tiles through the mockup', () => {

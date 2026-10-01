@@ -5,7 +5,8 @@
 import { BufferImageSource, Container, type RenderTexture, type TextureSource } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { diveCameraAt, diveGlobeRotation } from '../dive-camera';
-import { divePlanetFrame } from './dive-planet-frame';
+import { DIVE_PLANET_WORLD_BAKE_PX, DIVE_PLANET_WORLD_PREVIEW_BAKE_PX } from '../../constants';
+import { diveWorldTexelMetres, divePlanetFrame } from './dive-planet-frame';
 import { DivePlanetMesh } from './dive-planet-mesh';
 import { DIVE_PLANET_UNIFORM as UNIFORM } from './dive-planet-shader';
 
@@ -52,7 +53,11 @@ describe('DivePlanetMesh', () => {
     expect(before.destroyed).toBe(true);
     expect([mesh.textureOf('worldSdf').width, mesh.textureOf('worldSdf').height]).toEqual([2, 1]);
     expect(mesh.uniformValue(UNIFORM.worldTexelMetres)).toBe(19_500);
-    expect(mesh.uniformValue(UNIFORM.regionTexelMetres)).toBe(1);
+    // The other slots keep their placeholder's real scale, so their open sea reads as deep water, not shallows.
+    expect(mesh.uniformValue(UNIFORM.regionTexelMetres)).toBe(diveWorldTexelMetres(DIVE_PLANET_WORLD_BAKE_PX.width));
+    expect(mesh.uniformValue(UNIFORM.worldPreviewTexelMetres)).toBe(
+      diveWorldTexelMetres(DIVE_PLANET_WORLD_PREVIEW_BAKE_PX.width),
+    );
     mesh.destroy();
   });
 

@@ -41,13 +41,25 @@ describe('DiveSession’s planet', () => {
     subject.destroy();
   });
 
-  it('lays the mockup’s canvas over the game’s while the planet shows, so the shore draws over it', async () => {
+  it('lays the mockup’s canvas over the game’s while the planet shows, and back under it down at the dish', async () => {
     const { subject, app, bands, dependencies } = await started();
-    dependencies.host.append(app.canvas);
+    const { host } = dependencies;
+    host.append(app.canvas);
+    tickUntilBuilt(app, subject);
     subject.controls.scrub(4);
     app.tick();
     expect(bands.frames.at(-1)!.zoom).toBe(4);
-    expect(dependencies.host.lastElementChild).toBe(bands.canvas);
+    expect(host.firstElementChild).toBe(app.canvas);
+    expect(host.lastElementChild).toBe(bands.canvas);
+    expect(opacityOf(app)).toBe(1);
+    // Down through the shore and the drop to the dish: the game's dish draws over the slime round it.
+    for (const zoom of [1, -2, -4.3]) {
+      subject.controls.scrub(zoom);
+      app.tick();
+    }
+    expect(bands.frames.at(-1)!.zoom).toBe(-4.3);
+    expect(host.firstElementChild).toBe(bands.canvas);
+    expect(host.lastElementChild).toBe(app.canvas);
     expect(opacityOf(app)).toBe(1);
     subject.destroy();
   });
@@ -80,11 +92,14 @@ describe('DiveSession’s planet', () => {
     subject.destroy();
   });
 
-  it('brings the world’s full coast up over its quick bake across 300 ms, at once under reduced motion', async () => {
+  it('shows no planet before it has land, then brings the full coast up over the quick bake across 300 ms', async () => {
     const { subject, app, clock, dependencies } = await started(unbaked());
     const weight = (): unknown => planetUniformOf(app, DIVE_PLANET_UNIFORM.worldFineWeight);
     app.tick();
-    expect(weight()).toBe(0);
+    // A cold open draws no planet until it has land: no land-less sea, and the planet unseen.
+    const [, , planet] = app.stage.children;
+    expect(app.textureRenders).toHaveLength(0);
+    expect(planet!.alpha).toBe(0);
     (dependencies.scheduler as ManualScheduler).advanceMilliseconds(DIVE_BAKE_START_DELAY_MS);
     app.tick();
     expect(weight()).toBe(0);

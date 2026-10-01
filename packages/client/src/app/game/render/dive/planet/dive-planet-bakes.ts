@@ -14,6 +14,7 @@ import {
   EARTH_RADIUS_M,
 } from '../../constants';
 import { DEGREES_PER_TURN, HALF, degreesToRadians } from '../../geometry';
+import { diveWorldTexelMetres } from './dive-planet-frame';
 import { LandRaster } from './land-raster';
 import { bakeSignedDistance, type CoastSegment } from './signed-distance';
 
@@ -151,7 +152,7 @@ function* worldBake(
   ];
   // A segment that wraps round the antimeridian is not coast.
   const segments = segmentsOf(rings, toTexel, (start, end) => Math.abs(end[0] - start[0]) < LONGITUDE_HALF_RANGE);
-  return yield* bakeOf(raster, segments, (RADIANS_PER_FULL_TURN * EARTH_RADIUS_M) / width);
+  return yield* bakeOf(raster, segments, diveWorldTexelMetres(width));
 }
 
 /** The region's texel rows: its width over the box's shape at its middle latitude (`RS_H`). */

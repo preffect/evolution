@@ -85,6 +85,43 @@ describe('DivePlanetBand bakes', () => {
 });
 
 describe('DivePlanetBand draws', () => {
+  it('never draws a planet without land on a cold open: it fades in once the quick coast lands', () => {
+    const made: string[] = [];
+    const band = new DivePlanetBand(orderedSource(made), new ManualClock(0));
+    const stage = new Container();
+    band.attachTo(stage);
+    const planet = stage.children[0]!;
+    expect(drawn(band, 7, 0)).toEqual([]);
+    expect(planet.alpha).toBe(0);
+    expect(drawn(band, 7, 500)).toEqual([]);
+    expect(planet.alpha).toBe(0);
+    band.pumpBakes(8);
+    expect(drawn(band, 7, 1000)).toHaveLength(1);
+    expect(planet.alpha).toBe(0);
+    drawn(band, 7, 1000 + DIVE_GLOBE_CROSSFADE_MS / 2);
+    expect(planet.alpha).toBeCloseTo(0.5, 6);
+    drawn(band, 7, 1000 + DIVE_GLOBE_CROSSFADE_MS);
+    expect(planet.alpha).toBe(1);
+    band.destroy();
+  });
+
+  it('shows a planet kept from an earlier open at once, and a cold one at once under reduced motion', () => {
+    const kept = new DivePlanetBand(fakePlanetSource(), new ManualClock(0));
+    const keptStage = new Container();
+    kept.attachTo(keptStage);
+    expect(drawn(kept, 7, 0)).toHaveLength(1);
+    expect(keptStage.children[0]!.alpha).toBe(1);
+    kept.destroy();
+    const cold = new DivePlanetBand(fakePlanetSource({ isKept: false, slices: 0 }), new ManualClock(0));
+    const coldStage = new Container();
+    cold.attachTo(coldStage);
+    drawn(cold, 7, 0, true);
+    cold.pumpBakes(8);
+    drawn(cold, 7, 10, true);
+    expect(coldStage.children[0]!.alpha).toBe(1);
+    cold.destroy();
+  });
+
   it('draws through the renderer it is handed, at the sphere’s ratio, and shows or hides its sprite', () => {
     const band = new DivePlanetBand(fakePlanetSource(), new ManualClock(0));
     const stage = new Container();

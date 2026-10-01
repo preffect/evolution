@@ -155,9 +155,11 @@ WebGL context and no copy into a 2D canvas.
     region's (2048 wide over its rings' box). They bake in slices on the scheduler (`dive-bake-pump.ts`: 8 ms every
     10 ms) before the upper bands' tiles, and the lobby's autoplay waits for them. Measured in Node: about 0.1 s,
     0.5 s and 0.8 s of work, no step longer than 16 ms.
-  - Until the quick bake lands the planet is open sea. When the world's full bake lands, its coast comes up over the
-    quick one across `DIVE_GLOBE_CROSSFADE_MS` (300 ms), or at once under reduced motion
-    (`dive-globe-crossfade.ts`). This replaces the mockup's flat fallback globe (`drawGlobeFallback`).
+  - The planet never shows without land. On a cold open nothing draws until the quick bake lands; then the planet
+    fades in, and when the world's full bake lands its coast comes up over the quick one, each across
+    `DIVE_GLOBE_CROSSFADE_MS` (300 ms), or at once under reduced motion (`dive-globe-crossfade.ts`). This replaces
+    the mockup's flat fallback globe (`drawGlobeFallback`). Each coastline slot's placeholder is a texel of open sea at
+    a real texel's scale, so it never reads as shallows.
   - The finished bakes are kept by the loader, which lives for the page: a planet kept from an earlier open shows at
     once.
 - **Resolution** (`planet/dive-planet-resolution.ts`, the mockup's `target` and its guard): the upper bands' ratio,
