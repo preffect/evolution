@@ -9,10 +9,11 @@ import {
   SHORE_RING_MIN_COORDINATES,
 } from '../../constants/dive-shore-coast';
 import { degreesToRadians } from '../../geometry';
+import type { DiveCoastRing } from '../planet/dive-planet-bakes';
 import { POINT_STRIDE, pointCount, pointX, pointY } from './shore-points';
 
 /** One coastline ring: `[longitude, latitude]` pairs in degrees, closed (the dive's coastline file). */
-export type GeoRing = readonly (readonly [number, number])[];
+export type GeoRing = DiveCoastRing;
 
 /** A ring in metres: flat `[x, y, …]` (x east, y south), its winding and box, and which segments are not coast. */
 export interface LandRing {

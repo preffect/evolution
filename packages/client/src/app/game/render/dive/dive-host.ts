@@ -9,7 +9,7 @@ import type { DivePhaseStop } from '../constants';
 import { createPixiApp } from '../pixi-app';
 import type { DiveControls } from './dive-controls';
 import type { DiveFrameTimesReport } from './dive-frame-times';
-import { loadUpperBands, type UpperBandsLoader } from './dive-macro-band';
+import { loadDiveUpperBands, type DiveUpperBandsLoader } from './dive-macro-band';
 import { DiveSession, type DiveSessionDependencies } from './dive-session';
 import type { DiveView } from './dive-view';
 
@@ -58,7 +58,7 @@ export interface DiveHandleDependencies {
   readonly devicePixelRatio: number;
   /** The real Pixi app and upper bands unless a spec passes its fakes, and the cytoplasm tile a spec shrinks. */
   readonly createPixiApp?: DiveSessionDependencies['createPixiApp'];
-  readonly loadUpperBands?: UpperBandsLoader;
+  readonly loadUpperBands?: DiveUpperBandsLoader;
   readonly noiseTileSizePx?: number;
 }
 
@@ -81,7 +81,7 @@ export function createDiveHandle(options: DiveHostOptions, dependencies: DiveHan
     scheduler: dependencies.scheduler,
     devicePixelRatio: dependencies.devicePixelRatio,
     createPixiApp: dependencies.createPixiApp ?? createPixiApp,
-    loadUpperBands: dependencies.loadUpperBands ?? loadUpperBands,
+    loadUpperBands: dependencies.loadUpperBands ?? loadDiveUpperBands,
     noiseTileSizePx: dependencies.noiseTileSizePx,
     balance: options.balance,
     isMotionReduced: options.isMotionReduced,

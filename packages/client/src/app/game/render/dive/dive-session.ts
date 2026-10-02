@@ -1,13 +1,11 @@
 // The opening dive on the lobby (docs/rendering/opening-dive.md §1): the fourth `FrameLoopSession`, beside a room's,
-// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvases and the shore's own Pixi
-// app (`DiveUpperStage`); over them, the session's Pixi app clears to transparent and draws the **real** `GameRenderer` on a scripted dish scene,
-// clipped to the dish's outer wall while the slime round it shows, and faded in by the band table as the dark field
-// arrives (the canvas's opacity, so the browser composites the fade).
-//
-// The renderer's textures bake across frames (ticket #479) while the upper bands already draw, so the lobby never
-// freezes on the bake; its warm-up draw goes through `renderFrame` like any other session's (ticket #603). It never
-// installs `window.__evolutionDebug`. `destroy` frees the renderer's textures and the app in ticket #468's order
-// (`disposeLoop`) and gives the planet's WebGL context back.
+// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvas (`DiveMacroBand`), the shore
+// on a Pixi app of its own under it (`shore/`). This session's Pixi app clears to transparent and draws the planet
+// (`DivePlanetBand`) under them, and the **real** `GameRenderer` on a scripted dish scene at the bottom, clipped to the
+// dish's wall while the slime shows and faded in by the band table (the canvas's opacity, a browser-composited fade).
+// The renderer's textures bake across frames (ticket #479) while the upper bands draw, so the lobby never freezes; its
+// warm-up draw goes through `renderFrame` (ticket #603). It never installs `window.__evolutionDebug`. `destroy` frees
+// the planet, then the renderer's textures and the app in ticket #468's order (`disposeLoop`).
 
 import {
   DISH_CENTRE_TARGET,
@@ -34,22 +32,21 @@ import { DiveControls } from './dive-controls';
 import { clipDiveRendererToDish } from './dive-dish-clip';
 import { DiveFrameTimes, type DiveFrameTimesReport } from './dive-frame-times';
 import { DiveGlobeIdle } from './dive-globe-idle';
-import type { UpperBandsLoader } from './dive-macro-band';
-import { openDiveParts } from './dive-session-parts';
+import type { DiveUpperBandsLoader } from './dive-macro-band';
 import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveTextureOptions } from './dive-micro-scene';
+import { openDiveHalves } from './dive-session-open';
+import { DiveUpperLayers } from './dive-upper-layers';
 import { diveViewAt, isSameViewport, type DiveView } from './dive-view';
-import { DiveUpperStage } from './dive-upper-stage';
 
 export interface DiveSessionDependencies {
   readonly host: HTMLElement;
   /** The injected wall clock: the fall, the ambient motion and the frame times are all read on it. */
   readonly clock: Clock;
-  /** The injected scheduler the upper bands' tiles bake on (`SCHEDULER`, docs/CODE-STANDARDS.md §8). */
+  /** The injected scheduler the planet's coastlines and the upper bands' tiles bake on (docs/CODE-STANDARDS.md §8). */
   readonly scheduler: Scheduler;
   readonly devicePixelRatio: number;
   readonly createPixiApp: (options: PixiAppOptions) => Promise<PixiAppHandle>;
-  /** The mockup's bands and the shore's parts, a lazily loaded chunk each (`loadUpperBands`). */
-  readonly loadUpperBands: UpperBandsLoader;
+  readonly loadUpperBands: DiveUpperBandsLoader;
   readonly balance: () => BalanceConfig;
   readonly isMotionReduced: () => boolean;
   /** Each frame drawn: what the panel's readout, labels and slider show. */
@@ -68,7 +65,7 @@ export class DiveSession extends FrameLoopSession {
   /** The renderer's layers, clipped to the dish while the slime round it shows. */
   private readonly gameRoot = new Container();
   private readonly dishClip = new Graphics();
-  private upper: DiveUpperStage | null = null;
+  private upper: DiveUpperLayers | null = null;
   private view: DiveView | null = null;
   private lastOutputs: RenderOutputs | null = null;
   private openedAtMs = 0;
@@ -86,30 +83,32 @@ export class DiveSession extends FrameLoopSession {
   }
 
   /**
-   * Opens the app and loads the upper bands, then starts the renderer's staged bake. Answers `false`, never throws,
-   * when either half fails (no WebGL, a missing coastline, the chunk) or `destroy` ran first: the half that did
-   * arrive is given back at once, so nothing outlives a dive that never opened, and the lobby carries on without it.
+   * Opens the app and loads the upper bands (`openDiveHalves`), then starts the renderer's staged bake. Answers
+   * `false`, never throws, when either half fails or `destroy` ran first, and the lobby carries on without it.
    */
   async start(): Promise<boolean> {
     const { dependencies } = this;
-    const opened = await openDiveParts({
-      createApp: () => this.createTransparentApp(),
-      loadBands: () => dependencies.loadUpperBands(() => this.nowMs()),
-      isClosed: () => this.isDestroyed,
-    });
-    if (opened === null) return false;
-    const { pixi, bands, shorePixi } = opened;
-    this.upper = new DiveUpperStage(bands, shorePixi, {
-      host: dependencies.host,
-      devicePixelRatio: this.devicePixelRatio,
-      scheduler: dependencies.scheduler,
+    const halves = await openDiveHalves(dependencies, this.devicePixelRatio, {
       nowMs: () => this.nowMs(),
-      onBaked: () => this.requestFrame(),
+      isCancelled: () => this.isDestroyed,
     });
+    if (halves === null) return false;
+    const { pixi, bands, shorePixi } = halves;
     this.adoptPixiApp(pixi);
     if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
     pixi.app.stage.addChild(this.gameRoot, this.dishClip);
+    this.upper = new DiveUpperLayers({
+      bands,
+      host: dependencies.host,
+      stage: pixi.app.stage,
+      clock: dependencies.clock,
+      frameTimes: this.frameTimes,
+      renderToTexture: (container, target) => pixi.renderToTexture(container, target),
+      shorePixi,
+      devicePixelRatio: this.devicePixelRatio,
+    });
+    this.upper.bakeOn(dependencies.scheduler, () => this.requestFrame());
     this.showGame(0);
     this.openedAtMs = this.nowMs();
     this.controls.scheduleAutoplay(this.openedAtMs + DIVE_AUTOPLAY_DELAY_MS);
@@ -119,15 +118,6 @@ export class DiveSession extends FrameLoopSession {
       () => this.requestFrame(),
     );
     return true;
-  }
-
-  private createTransparentApp(): Promise<PixiAppHandle> {
-    return this.dependencies.createPixiApp({
-      host: this.dependencies.host,
-      devicePixelRatio: this.devicePixelRatio,
-      shouldPreserveDrawingBuffer: false,
-      isTransparent: true,
-    });
   }
 
   protected override rendererStage(_app: Application): Container {
@@ -180,17 +170,22 @@ export class DiveSession extends FrameLoopSession {
     if (this.renderer === null) this.upperBandsOnlyFrame();
   }
 
-  /** Before the renderer is current: the upper bands draw on their own, under an empty canvas. */
+  /** Before the renderer is current: the upper bands and the planet draw on their own, with no dish. */
   private upperBandsOnlyFrame(): void {
     const view = this.advanceView();
-    if (view === null) return;
-    this.drawUpperBands(view);
+    const pixi = this.pixi;
+    if (view === null || pixi === null) return;
+    const isPlanetShown = this.drawUpperBands(view);
+    this.gameRoot.visible = false;
+    this.showGame(isPlanetShown ? 1 : 0);
+    if (isPlanetShown) this.frameTimes.measureSubmit(() => pixi.app.render());
     this.finishFrame(view);
   }
 
   /**
-   * The game's canvas over the upper bands at `opacity`: the dish band's weight. The browser composites it, so the
-   * fade is the whole dish's (a group alpha), and at 0 the canvas is neither drawn nor seen.
+   * The game's canvas at `opacity`: 1 while it shows the planet, the dish band's weight at the bottom. The browser
+   * composites it, so the dish's fade is the whole dish's (a group alpha), and at 0 the canvas is neither drawn nor
+   * seen.
    */
   private showGame(opacity: number): void {
     if (this.pixi !== null) this.pixi.canvas.style.opacity = String(opacity);
@@ -230,8 +225,15 @@ export class DiveSession extends FrameLoopSession {
     if (isMotionReduced) this.controls.finishPlay();
   }
 
-  private drawUpperBands(view: DiveView): void {
-    this.upper?.draw(view, this.frameTimes, this.dependencies.isMotionReduced());
+  /** The layers above the dish; answers whether the planet shows. */
+  private drawUpperBands(view: DiveView): boolean {
+    const upper = this.upper;
+    if (upper === null) return false;
+    return upper.draw(view, {
+      screenRatio: this.devicePixelRatio,
+      nowMs: this.nowMs(),
+      isMotionReduced: this.dependencies.isMotionReduced(),
+    });
   }
 
   protected nextFrame(): RenderFrame | null {
@@ -246,11 +248,17 @@ export class DiveSession extends FrameLoopSession {
     if (view === null) return outputsBeforeAnyFrame(NO_EXTENT);
     const isWarmUp = this.isBuildingRenderer;
     const timedSubmit = (): void => this.frameTimes.measureSubmit(submit);
-    if (!isWarmUp) this.drawUpperBands(view);
     const dish = view.bands.dish;
-    if (!isWarmUp) this.showGame(dish.isActive ? dish.weight : 0);
-    // Above the dish band the renderer does no work at all: its canvas is not shown, so it is not drawn.
-    if (!dish.isActive && !isWarmUp) return outputsBeforeAnyFrame(NO_EXTENT);
+    if (!isWarmUp) {
+      const isPlanetShown = this.drawUpperBands(view);
+      this.gameRoot.visible = dish.isActive;
+      this.showGame(isPlanetShown ? 1 : dish.isActive ? dish.weight : 0);
+      // Above the dish band the renderer does no work at all: the canvas shows the planet alone, or nothing.
+      if (!dish.isActive) {
+        if (isPlanetShown) timedSubmit();
+        return outputsBeforeAnyFrame(NO_EXTENT);
+      }
+    }
     clipDiveRendererToDish(this.gameRoot, this.dishClip, view);
     renderer.setFixedZoom(diveRendererZoom(view.camera));
     renderer.parkOn(DISH_CENTRE_TARGET);

@@ -5,9 +5,20 @@
 
 import { SHORE_SEA_GRID } from '../../constants/dive-shore';
 import { DIAMETER_PER_RADIUS, HALF } from '../../geometry';
+import { distanceTransform2d } from '../planet/signed-distance';
 import type { ShoreCanvas } from './shore-canvas';
-import { FAR_SQUARED, squaredDistanceTransform } from './shore-distance';
 import { coastPoints, ringsPath, type ShorePaint } from './shore-paint';
+
+/** What a grid cell holds before the transform: 0 at a feature (land), this far from one otherwise. */
+const FAR_SQUARED = 1e20;
+
+/**
+ * The planet's squared distance transform (Felzenszwalb & Huttenlocher, the mockup's `edt2d`) run through at once: a
+ * sea grid is one step of its level's bake.
+ */
+function squaredDistanceTransform(grid: Float64Array, width: number, height: number): void {
+  Array.from(distanceTransform2d(grid, width, height));
+}
 
 /** The grid: `width × height` cells of `SHORE_SEA_GRID.cellPx` CSS px, centred on the view, distances in metres. */
 export interface SeaGrid {

@@ -48,8 +48,8 @@ export function mockupDevicePixelRatio(screenRatio: number, isMoving: boolean): 
   return Math.min(screenRatio, isMoving ? DIVE_MOVING_DEVICE_PIXEL_RATIO : DIVE_MAX_DEVICE_PIXEL_RATIO);
 }
 
-/** What the mockup's canvas draws this frame, the baked planet at `globeAlpha` over the fallback globe. */
-export function mockupFrameOf(view: DiveView, screenRatio: number, globeAlpha: number): MockupFrame {
+/** What the mockup's canvas draws this frame. */
+export function mockupFrameOf(view: DiveView, screenRatio: number): MockupFrame {
   return {
     zoom: view.camera.zoom,
     timeSeconds: view.timeSeconds,
@@ -58,6 +58,5 @@ export function mockupFrameOf(view: DiveView, screenRatio: number, globeAlpha: n
     devicePixelRatio: mockupDevicePixelRatio(screenRatio, view.isMoving),
     globeRotation: view.globeRotation,
     bands: view.bands,
-    globeAlpha,
   };
 }

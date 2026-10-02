@@ -6,7 +6,12 @@ import { ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { DIVE_BAKE_START_DELAY_MS } from '../../constants/dive';
 import { DIVE_SHORE_CANVAS_TEST_ID } from '../../constants/dive-shore';
-import { fakeDiveBands, startedDiveSession } from '../../../../../testing/dive-session-harness';
+import {
+  fakeDiveBands,
+  fakePlanetSource,
+  fakeUpperBands,
+  startedDiveSession,
+} from '../../../../../testing/dive-session-harness';
 import type { FakePixiApp } from '../../../../../testing/fake-pixi-app';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { QUICK_TILE_BAKES, TEST_SHORE_LAND } from '../../../../../testing/shore-paint-builder';
@@ -19,13 +24,10 @@ import { ShoreTiles } from './shore-tiles';
 function realShoreBands(): DiveUpperBands {
   const factory = createFakeShoreCanvasFactory();
   const tiles = new ShoreTiles(factory, QUICK_TILE_BAKES);
-  return {
-    mockup: fakeDiveBands(),
-    shore: {
-      createBand: (pixi, devicePixelRatio) =>
-        new DiveShoreBand(pixi, { land: TEST_SHORE_LAND, tiles, factory }, devicePixelRatio),
-    },
-  };
+  return fakeUpperBands(fakeDiveBands(), fakePlanetSource(), {
+    createBand: (pixi, devicePixelRatio) =>
+      new DiveShoreBand(pixi, { land: TEST_SHORE_LAND, tiles, factory }, devicePixelRatio),
+  });
 }
 
 async function openedDive() {

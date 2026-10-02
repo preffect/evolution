@@ -2,7 +2,7 @@
 // `Container` so layers and views build as in the app; the ticker records its callbacks so a test
 // runs frames by hand; `render` counts submits; the baker records its radial specs, hands out
 // recording canvases (`fake-bake-canvas.ts`) and turns every bake into a 1×1 texture.
-import { BufferImageSource, Container, Texture, type Application } from 'pixi.js';
+import { BufferImageSource, Container, Texture, type Application, type RenderTexture } from 'pixi.js';
 import type { PixiAppHandle } from '../app/game/render/pixi-app';
 import {
   createRenderTextures,
@@ -33,6 +33,8 @@ export interface FakePixiApp extends PixiAppHandle {
   readonly lifecycle: { isDestroyed: boolean };
   /** How often `unbindTextures` ran: a session must unbind before it destroys its bundle. */
   readonly unbindCalls: { count: number };
+  /** Every `renderToTexture`: what was drawn, into which target. */
+  readonly textureRenders: { readonly container: Container; readonly target: RenderTexture }[];
   /** What the staged build's warm-up asked for (ticket #603): each uploaded source, and each off-screen render. */
   readonly warmUpCalls: { readonly uploads: unknown[]; readonly offscreenRenders: Container[] };
   /** Runs every ticker callback once: one frame. */
@@ -193,8 +195,13 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const ticking = { isRunning: true };
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
   const canvas = document.createElement('canvas');
+  const textureRenders: FakePixiApp['textureRenders'] = [];
   return {
     app,
+    textureRenders,
+    renderToTexture: (container, target) => {
+      textureRenders.push({ container, target });
+    },
     canvas,
     textures: baker,
     stage,

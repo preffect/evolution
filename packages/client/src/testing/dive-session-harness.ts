@@ -1,35 +1,40 @@
 // The dive session's spec harness (docs/rendering/opening-dive.md §7): a `DiveSession` over fake Pixi apps (the game's
-// first, then the shore's) and recording stand-ins for the mockup's bands and the shore band, on a manual clock and
-// scheduler, for the session's specs.
+// first, then the shore's), a recording stand-in for the mockup's upper bands, a planet whose coastline bakes are one
+// texel each and a recording shore band, on a manual clock and scheduler, for the session's specs.
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
+import type { Geometry, Mesh, Shader, UniformGroup } from 'pixi.js';
 import { expect } from 'vitest';
 import { DiveSession, type DiveSessionDependencies } from '../app/game/render/dive/dive-session';
 import type { DiveView } from '../app/game/render/dive/dive-view';
-import type { DiveUpperBands } from '../app/game/render/dive/dive-macro-band';
+import type { DiveUpperBands, ShoreBandMaker } from '../app/game/render/dive/dive-macro-band';
+import type { DivePlanetSource } from '../app/game/render/dive/dive-planet-band';
 import type { MockupBands, MockupFrame } from '../app/game/render/dive/mockup/dive-mockup-bands';
-import { fakeShoreMaker, type FakeShoreMaker } from './fake-shore-band';
+import type { DivePlanetBake, DivePlanetBakeJob } from '../app/game/render/dive/planet/dive-planet-bakes';
+import { DIVE_PLANET_UNIFORM_GROUP } from '../app/game/render/dive/planet/dive-planet-shader';
+import { DIVE_PLANET_OPEN_SEA_TEXEL } from '../app/game/render/constants';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from './fake-pixi-app';
+import { fakeShoreMaker, type FakeShoreMaker } from './fake-shore-band';
 
 export interface FakeDiveBands extends MockupBands {
   readonly frames: MockupFrame[];
   readonly releases: { count: number };
-  /** The world's coastline bake has landed; a spec clears it to show the fallback globe first. */
-  isPlanetReady: boolean;
 }
 
+/** The mockup's bands, recorded: the planet shows under them wherever its band is active. */
 export function fakeDiveBands(): FakeDiveBands {
   const frames: MockupFrame[] = [];
   const releases = { count: 0 };
+  const canvas = document.createElement('canvas');
   return {
-    canvas: document.createElement('canvas'),
-    upperCanvas: document.createElement('canvas'),
-    isForestShown: true,
+    canvas,
     frames,
     releases,
     isBaked: true,
-    isPlanetReady: true,
-    draw: (frame) => frames.push(frame),
+    draw: (frame) => {
+      frames.push(frame);
+      return frame.bands.planet.isActive;
+    },
     pumpBakes: () => false,
     release: () => {
       releases.count += 1;
@@ -37,12 +42,54 @@ export function fakeDiveBands(): FakeDiveBands {
   };
 }
 
-/** The upper bands a spec's loader answers: the mockup's stand-in and the shore's. */
+const ONE_TEXEL = 1;
+
+/** A bake job that yields `slices` times and then lands one texel of sea. */
+export function* oneTexelBakeJob(slices = 1): DivePlanetBakeJob {
+  for (let slice = 0; slice < slices; slice += 1) yield;
+  const bake: DivePlanetBake = {
+    width: ONE_TEXEL,
+    height: ONE_TEXEL,
+    data: new Uint8Array(DIVE_PLANET_OPEN_SEA_TEXEL),
+    metresPerTexel: 1,
+  };
+  return bake;
+}
+
+/**
+ * A planet whose three bakes each land a texel after `slices` yields. Kept (the default), they were all made on an
+ * earlier open, so the planet is baked from the start; otherwise the dive bakes them on its scheduler.
+ */
+export function fakePlanetSource(
+  options: { readonly isKept?: boolean; readonly slices?: number } = {},
+): DivePlanetSource {
+  const slices = options.slices ?? 1;
+  const kept: DivePlanetSource['kept'] = new Map();
+  if (options.isKept ?? true) {
+    for (const slot of ['worldSdf', 'regionSdf'] as const) kept.set(slot, runToEnd(oneTexelBakeJob(0)));
+  }
+  return {
+    plan: {
+      regionBox: { west: -124, south: 48, east: -123, north: 49 },
+      worldPreview: () => oneTexelBakeJob(slices),
+      world: () => oneTexelBakeJob(slices),
+      region: () => oneTexelBakeJob(slices),
+    },
+    kept,
+  };
+}
+
+function runToEnd(job: DivePlanetBakeJob): DivePlanetBake {
+  for (let step = job.next(); ; step = job.next()) if (step.done === true) return step.value;
+}
+
+/** What the lazy chunks would give the session: `mockup`, a planet of one-texel bakes and a recording shore. */
 export function fakeUpperBands(
   mockup: MockupBands = fakeDiveBands(),
-  shore: FakeShoreMaker = fakeShoreMaker(),
+  planet = fakePlanetSource(),
+  shore: ShoreBandMaker = fakeShoreMaker(),
 ): DiveUpperBands {
-  return { mockup, shore };
+  return { mockup, planet, shore };
 }
 
 export interface DiveSessionHarness {
@@ -73,7 +120,7 @@ export function diveSessionHarness(overrides: Partial<DiveSessionDependencies> =
       apps.push(app);
       return Promise.resolve(app);
     },
-    loadUpperBands: () => Promise.resolve(fakeUpperBands(bands, shore)),
+    loadUpperBands: () => Promise.resolve(fakeUpperBands(bands, fakePlanetSource(), shore)),
     balance: () => DEFAULT_BALANCE,
     isMotionReduced: () => motion.isReduced,
     onView: (view) => views.push(view),
@@ -95,4 +142,11 @@ export async function startedDiveSession(
   const parts = diveSessionHarness(overrides);
   expect(await parts.subject.start()).toBe(true);
   return { ...parts, app: parts.apps[0]! };
+}
+
+/** A uniform of the planet's last draw into its texture, as the app was handed it; `undefined` before any. */
+export function planetUniformOf(app: FakePixiApp, name: string): unknown {
+  const quad = app.textureRenders.at(-1)?.container as Mesh<Geometry, Shader> | undefined;
+  const group = quad?.shader?.resources[DIVE_PLANET_UNIFORM_GROUP] as UniformGroup | undefined;
+  return group?.uniforms[name];
 }

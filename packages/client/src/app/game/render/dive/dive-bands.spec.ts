@@ -90,8 +90,8 @@ describe('diveBandStates', () => {
     expect(diveBandStates(tiny).dish.isActive).toBe(false);
   });
 
-  it('leaves the shore out of the mockup’s canvases: the shore band draws it (ticket #801)', () => {
-    expect(DIVE_MOCKUP_BAND_NAMES).toEqual(['planet', 'kelp', 'drop', 'slime']);
+  it('leaves the planet and the shore out of the mockup’s canvas: the game draws them (tickets #800, #801)', () => {
+    expect(DIVE_MOCKUP_BAND_NAMES).toEqual(['kelp', 'drop', 'slime']);
   });
 
   it('stops the slime, and with it the mockup’s whole canvas, once the view lies inside the dish', () => {
@@ -101,5 +101,13 @@ describe('diveBandStates', () => {
     expect(inside.slime.isActive).toBe(false);
     expect(isMockupDrawing(inside)).toBe(false);
     expect(inside.dish.isActive).toBe(true);
+  });
+
+  it('leaves the mockup’s canvas undrawn in orbit, where the planet on the game’s canvas is all there is', () => {
+    const orbit = statesAt(5);
+    expect(orbit.planet.isActive).toBe(true);
+    expect(isMockupDrawing(orbit)).toBe(false);
+    expect(isMockupDrawing(statesAt(4.6))).toBe(false);
+    expect(isMockupDrawing(statesAt(2))).toBe(true);
   });
 });

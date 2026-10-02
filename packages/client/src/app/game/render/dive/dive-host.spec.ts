@@ -14,11 +14,8 @@ const SHORE = DIVE_PHASE_STOPS[4] as DivePhaseStop;
 function bands(): MockupBands {
   return {
     canvas: document.createElement('canvas'),
-    upperCanvas: document.createElement('canvas'),
-    isForestShown: true,
     isBaked: true,
-    isPlanetReady: true,
-    draw: () => undefined,
+    draw: () => false,
     pumpBakes: () => false,
     release: () => undefined,
   };
