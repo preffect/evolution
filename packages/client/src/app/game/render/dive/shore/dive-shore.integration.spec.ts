@@ -32,13 +32,14 @@ function realShoreBands(): DiveUpperBands {
 
 async function openedDive() {
   const scheduler = new ManualScheduler();
-  const harness = await startedDiveSession({ scheduler, loadUpperBands: () => Promise.resolve(realShoreBands()) });
+  const upperBands = realShoreBands();
+  const harness = await startedDiveSession({ scheduler, loadUpperBands: () => Promise.resolve(upperBands) });
   const shoreApp = harness.apps[1]!;
   const bakeFor = (milliseconds: number): void => {
     for (let elapsed = 0; elapsed < milliseconds; elapsed += 10) scheduler.advanceMilliseconds(10);
   };
   bakeFor(DIVE_BAKE_START_DELAY_MS + 2000);
-  return { ...harness, shoreApp, bakeFor };
+  return { ...harness, mockup: upperBands.mockup, shoreApp, bakeFor };
 }
 
 function uniforms(shoreApp: FakePixiApp): Record<string, unknown> {
@@ -49,11 +50,9 @@ function uniforms(shoreApp: FakePixiApp): Record<string, unknown> {
 }
 
 describe('the shore band in the dive', () => {
-  it('opens on its own canvas between the planet’s and the kelp’s', async () => {
-    const { subject, dependencies, apps } = await openedDive();
-    const canvases = [...dependencies.host.children];
-    expect(canvases).toHaveLength(3);
-    expect(canvases[1]).toBe(apps[1]!.canvas);
+  it('opens on its own canvas right under the kelp’s', async () => {
+    const { subject, dependencies, apps, mockup } = await openedDive();
+    expect([...dependencies.host.children]).toEqual([apps[1]!.canvas, mockup.canvas]);
     expect(apps[1]!.canvas.dataset['testid']).toBe(DIVE_SHORE_CANVAS_TEST_ID);
     subject.destroy();
   });
