@@ -10,6 +10,8 @@ import { shoreLevelZoom } from './shore-lod';
 import { ShoreLevels, type ShoreLevelUploader } from './shore-levels';
 import type { ShoreView } from './shore-paint';
 import { bakeShoreSnapshot, type ShoreSnapshot } from './shore-snapshot';
+import { SHORE_BAKE_WAITING, type ShoreBakeStep } from './shore-pump';
+import { DIVE_BAKE_BUDGET_MS } from '../../constants/dive';
 
 interface Uploaded {
   readonly zoom: number;
@@ -173,6 +175,33 @@ describe('ShoreLevels', () => {
     subject.releaseRetired();
     expect(uploads.filter(isLetGo).every((uploaded) => uploaded.isReleased)).toBe(true);
     expect(uploads.filter((uploaded) => !isLetGo(uploaded)).every((uploaded) => !uploaded.isReleased)).toBe(true);
+  });
+
+  it('ends a pump at once while another thread bakes its level, and lands it when it is sent', () => {
+    const factory = createFakeShoreCanvasFactory();
+    const uploads: Uploaded[] = [];
+    let isSent = false;
+    let steps = 0;
+    function* awaitingBake(view: ShoreView): Generator<ShoreBakeStep, ShoreSnapshot> {
+      while (!isSent) {
+        steps += 1;
+        yield SHORE_BAKE_WAITING;
+      }
+      return { view } as unknown as ShoreSnapshot;
+    }
+    const subject = new ShoreLevels<Uploaded>(
+      { land: TEST_SHORE_LAND, tiles: bakedTestTiles(factory), factory },
+      uploaderOf(uploads),
+      awaitingBake,
+    );
+    subject.setStage(TEST_SHORE_STAGE, 1);
+    subject.focus(shoreLevelZoom(10), 1);
+    // a millisecond a read: a pump that took 'waiting' for a step would spin through its whole budget
+    expect(subject.pump(DIVE_BAKE_BUDGET_MS, counter())).toBe(false);
+    expect(steps).toBe(1);
+    isSent = true;
+    expect(subject.pump(DIVE_BAKE_BUDGET_MS, counter())).toBe(true);
+    expect(uploads[0]!.zoom).toBe(shoreLevelZoom(10));
   });
 
   it('drops a bake the camera has turned away from for the level it needs now', () => {

@@ -1,11 +1,13 @@
 // The shore's lazily loaded entry (docs/rendering/opening-dive.md §4, ticket #801): what the dive's loader gets from
 // this chunk. The land rings and the tiles are made once a page, like the mockup's bakes, so a return to the lobby
 // bakes nothing again; the coast and the tiles are also handed to the mockup's kelp and slime bands until tickets
-// #802 and #803 move them.
+// #802 and #803 move them. Each band gets its own bake worker where the platform has one (ticket #809), which ends
+// with the band.
 
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import type { MockupTile, MockupTiles } from '../mockup/dive-mockup-bands';
 import { DiveShoreBand } from './dive-shore-band';
+import { openShoreBakeThread } from './shore-bake-thread';
 import { createDomShoreCanvasFactory, type ShoreCanvasFactory } from './shore-canvas';
 import { ShoreCoast } from './shore-coast';
 import { landRingsOf, type GeoRing, type LandRings } from './shore-coast-rings';
@@ -57,6 +59,13 @@ export function createShoreParts(salishRings: readonly GeoRing[], documentRefere
     coast: new ShoreCoast(shore.land),
     tiles: shore.tiles,
     mockupTiles: mockupTilesOf(shore.tiles),
-    createBand: (renderToTexture, devicePixelRatio) => new DiveShoreBand(shore, devicePixelRatio, renderToTexture),
+    createBand: (renderToTexture, devicePixelRatio) => {
+      const page = documentReference.defaultView;
+      const thread =
+        page === null
+          ? null
+          : openShoreBakeThread(page, shore, (canvas) => page.createImageBitmap(canvas.image as HTMLCanvasElement));
+      return new DiveShoreBand(shore, devicePixelRatio, renderToTexture, thread);
+    },
   };
 }

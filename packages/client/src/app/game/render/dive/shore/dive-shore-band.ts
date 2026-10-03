@@ -13,11 +13,12 @@ import { SHORE_PALETTE } from '../../constants/dive-shore-tiles';
 import { hexToRgb } from '../../colour';
 import type { DiveView } from '../dive-view';
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
+import type { ShoreBakeThread } from './shore-bake-thread';
 import { shoreLiveFrame } from './shore-live';
 import { shoreLevelProgress } from './shore-lod';
 import { ShoreLevels } from './shore-levels';
 import { ShoreMesh, type ShoreLevelTextures, type ShoreTileTextures } from './shore-mesh';
-import type { ShoreSnapshotSources } from './shore-snapshot';
+import { bakeShoreSnapshot, type ShoreSnapshotSources } from './shore-snapshot';
 import type { ShoreTiles } from './shore-tiles';
 import { SHORE_LEVEL_UPLOADER, liveTileTextures, releaseTileTextures } from './shore-textures';
 
@@ -47,12 +48,19 @@ export class DiveShoreBand {
   private lastZoom = Number.POSITIVE_INFINITY;
   private direction = 1;
 
+  /** `thread` is the bake worker (ticket #809), or `null` where the page bakes in slices itself. */
   constructor(
     private readonly sources: DiveShoreSources,
     private readonly devicePixelRatio: number,
     renderToTexture: RenderToTexture,
+    private readonly thread: ShoreBakeThread | null = null,
   ) {
-    this.levels = new ShoreLevels(sources, SHORE_LEVEL_UPLOADER);
+    this.levels = new ShoreLevels(sources, SHORE_LEVEL_UPLOADER, thread?.bakeLevel ?? bakeShoreSnapshot);
+    thread?.listen({
+      onTile: () => this.landed(),
+      onLevel: () => this.wake(),
+      onFailed: () => this.wake(),
+    });
     this.warmUp(renderToTexture);
   }
 
@@ -90,19 +98,34 @@ export class DiveShoreBand {
     this.cancelBake = scheduler.after(DIVE_BAKE_START_DELAY_MS, () => this.slice());
   }
 
+  /** Whether the tiles bake on the page: with no worker, or once it has failed. */
+  private get isBakingTilesHere(): boolean {
+    return this.thread === null || this.thread.hasFailed;
+  }
+
+  /** Slices to run: the tiles when they bake here (the worker sends its own), then the levels. */
   private get hasWork(): boolean {
-    return !this.sources.tiles.isBaked || this.levels.hasWork;
+    return this.sources.tiles.isBaked ? this.levels.hasWork : this.isBakingTilesHere;
   }
 
   private slice(): void {
     const loop = this.bakeLoop;
     this.cancelBake = null;
     if (loop === null) return;
-    const hasFinished = this.sources.tiles.isBaked
-      ? this.levels.pump(DIVE_BAKE_BUDGET_MS, loop.nowMs)
-      : this.sources.tiles.pump(DIVE_BAKE_BUDGET_MS, loop.nowMs);
-    if (hasFinished) loop.onBaked();
+    if (this.pumpSlice(loop.nowMs)) loop.onBaked();
     if (this.hasWork) this.cancelBake = loop.scheduler.after(DIVE_BAKE_INTERVAL_MS, () => this.slice());
+  }
+
+  /** One slice: the levels once the tiles have baked, the tiles before that when they bake here. */
+  private pumpSlice(nowMs: () => number): boolean {
+    if (this.sources.tiles.isBaked) return this.levels.pump(DIVE_BAKE_BUDGET_MS, nowMs);
+    return this.isBakingTilesHere && this.sources.tiles.pump(DIVE_BAKE_BUDGET_MS, nowMs);
+  }
+
+  /** A tile from the worker landed: a still view draws once more, and the levels may start. */
+  private landed(): void {
+    this.bakeLoop?.onBaked();
+    this.wake();
   }
 
   /** New work after the slices stopped (the camera moved toward an unbaked level): they start again. */
@@ -164,8 +187,12 @@ export class DiveShoreBand {
     return this.mesh.mesh.visible;
   }
 
-  /** Everything goes back: the slices stop, the quad leaves the stage, the levels and the tiles' textures are destroyed. */
+  /**
+   * Everything goes back: the worker ends, the slices stop, the quad leaves the stage, the levels and the tiles'
+   * textures are destroyed.
+   */
   destroy(): void {
+    this.thread?.terminate();
     this.cancelBake?.();
     this.cancelBake = null;
     this.bakeLoop = null;
