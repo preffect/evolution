@@ -25,4 +25,14 @@ describe('ShoreForestTest', () => {
     expect(subject.isShown(view(2.2))).toBe(true);
     expect(subject.isShown(view(1.4))).toBe(false);
   });
+
+  it('builds the coast once per step of zoom through a fall, not on every frame', () => {
+    const falling = new ShoreForestTest(new ShoreCoast(TEST_SHORE_LAND));
+    for (let zoom = 2.99; zoom > 1.4; zoom -= 0.004) falling.isShown(view(zoom));
+    // 1.6 of zoom at 0.3 a step: six builds over 400 frames
+    expect(falling.builds).toBe(6);
+    const builds = falling.builds;
+    falling.isShown(view(1.401));
+    expect(falling.builds).toBe(builds);
+  });
 });

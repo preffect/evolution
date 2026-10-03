@@ -1,26 +1,26 @@
 [
- {
-  "type": "webgl",
-  "testid": null,
-  "inDom": false,
-  "lost": true,
-  "w": 0,
-  "h": 0
- },
- {
-  "type": "webgl",
-  "testid": null,
-  "inDom": false,
-  "lost": false,
-  "w": 0,
-  "h": 0
- },
- {
-  "type": "webgl2",
-  "testid": "dive-canvas",
-  "inDom": true,
-  "lost": false,
-  "w": 830,
-  "h": 467
- }
+  {
+    "type": "webgl",
+    "testid": null,
+    "inDom": false,
+    "lost": true,
+    "w": 0,
+    "h": 0
+  },
+  {
+    "type": "webgl",
+    "testid": null,
+    "inDom": false,
+    "lost": false,
+    "w": 0,
+    "h": 0
+  },
+  {
+    "type": "webgl2",
+    "testid": "dive-canvas",
+    "inDom": true,
+    "lost": false,
+    "w": 830,
+    "h": 467
+  }
 ]

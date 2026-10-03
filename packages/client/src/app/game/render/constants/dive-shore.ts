@@ -251,6 +251,7 @@ export const SHORE_LEVEL_DRAFT_SCALE = 0.5;
 /**
  * The planet's forest test (the mockup's `glOn` in `drawFrame`): below `belowZoom` the planet's forest shows under the
  * shore only where some of the view lies past the rock band, measured at the view's corners, edges' middles and
- * centre to `reachBands` bands plus half the view, more than `insetM` short of the band's top.
+ * centre to `reachBands` bands plus half the view, more than `insetM` short of the band's top. The coast it measures
+ * is built once per `rebuildStepZoom` of zoom, for the widest view of that step, not every frame of a fall.
  */
-export const SHORE_FOREST_TEST = { belowZoom: 3, reachBands: 3, insetM: 2 } as const;
+export const SHORE_FOREST_TEST = { belowZoom: 3, reachBands: 3, insetM: 2, rebuildStepZoom: 0.3 } as const;
