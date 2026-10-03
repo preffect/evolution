@@ -195,6 +195,18 @@ in the dive's submit, and no second WebGL context:
   fall bake while the planet shows. A bake is dropped only when the camera has turned away from it. Levels the camera
   left are given back at the start of the next frame, once a frame has drawn without them. The levels bake at the
   stage's size, which the band takes from each frame's view.
+- **The bake worker (ticket #809):** where the browser has workers and `OffscreenCanvas` with a 2D context, the
+  tiles and the levels bake in a module worker (`shore-bake.worker.ts`, its logic in `shore-bake-worker-core.ts`),
+  so no bake step lands on the page's thread. The band starts it with the dive and terminates it with the band
+  (`ShoreBakeThread`, `shore-bake-thread.ts`). The page opens it once with the land and any tiles it already has
+  (as `ImageBitmap`s), then asks for one level at a time; a newer ask replaces the one under way between two steps.
+  The worker sends each tile as it bakes, copied into a page canvas for the kelp band and the live sea, and each
+  level as `ImageBitmap`s and its data's buffers, all transferred. A level's bake on the page is then a generator
+  that yields `SHORE_BAKE_WAITING` until its level lands, so `ShoreLevels` and its drafts, order and stand-ins are
+  unchanged and the slices only poll. Upload stays on the page: a bitmap becomes an `ImageSource`, closed when the
+  level is given back. Without `OffscreenCanvas` 2D, or once the worker fails (it says so, or its script throws),
+  the page bakes in slices as above, the bake under way included. The worker is bundled by the Angular builder from
+  `new Worker(new URL('./shore-bake.worker', import.meta.url), { type: 'module' })` in the shore's chunk.
 - **Drafts:** each level bakes first at half its resolution (a quarter of the pixels, `SHORE_LEVEL_DRAFT_SCALE`),
   usable at once, and is redrawn at full resolution in place once every wanted level has its draft; a redraw under
   way is dropped for a level the camera needs and has nothing for. A fall waits only on drafts.
@@ -340,6 +352,12 @@ true picture on the frame it is reached and a fall never waits on the band once 
   8 ms slices off the frame, a step at most about 100 ms on the evidence box. Measured on SwiftShader at 19 zooms
   from 4.8 to −1.3: 0.2–3.4 ms mean (the means above 1 ms are the box's load; the median is 0.3 ms), against
   8–5,700 ms for the mockup's coast and shore (worst frames 33 s at zoom 0 and 1.1 s at 0.6, its zone layers).
+- **The shore's bakes off the main thread (ticket #809):** with the bake worker, a fresh-load autoplay fall on the
+  evidence box (SwiftShader over Vulkan, 1280 × 800) spends 44–136 ms of main-thread script on the shore over the
+  whole fall (the levels' texture uploads and the tiles' copies), against 3.0–5.2 s when the page bakes; no
+  main-thread task over 50 ms comes from a shore bake. The fall takes 11.5–12.0 s at DPR 1 and 12.9–13.8 s at DPR 2
+  (11.2 s with no floor), against 13.9–18.5 s and 17.5–20.8 s with the page's bakes, and its longest task is
+  58–99 ms, against 102–309 ms (the rest is the mockup's kelp drawing, ticket #802).
 - **The kelp band's budget (ticket #802):** at most 1 ms of script and six draw calls a frame (rock, two ribbon
   meshes, bulb, blade floor, lenses), no per-view bake; its once-a-page bakes run in 8 ms slices on the dive's pump,
   a step at most about 115 ms (Node; the coast's build). Measured on SwiftShader at 24 zooms from 2.4 to −2.8:
@@ -387,11 +405,19 @@ true picture on the frame it is reached and a fall never waits on the band once 
   dish; neither the game's upper bands nor the dish draws between the drop and the dish; the full
   coast's crossfade over the quick bake, at once under reduced motion; the autoplay held until its coastlines bake.
 - `dive-bundle.spec.ts`: the mockup's module, the planet's bakes, the shore band, the kelp band and `d3-geo` out of
-  every static import chain from `main.ts`.
+  every static import chain from `main.ts`; the shore's bake worker started in the form the builder bundles, from the
+  shore's chunk, with neither Pixi nor Angular in its import graph.
 - `shore/shore-fall.spec.ts`: the autoplay's fall against bakes as slow as the evidence box's (450 ms a level), the
   real controls and levels on one simulated main thread: every frame in the band draws its level or one at most two
   coarser and the fall arrives, at 60 fps and with frames 1 s and 3 s apart (the slow-frame cases never arrived
-  with the hold that froze at the old zoom), and without the wait it would draw wrong pictures.
+  with the hold that froze at the old zoom), and without the wait it would draw wrong pictures. With the bakes in a
+  worker (the same cost beside the main thread), at 60 fps and 1 s and 3 s apart: every frame right, no slice over
+  50 ms (on the page the longest is the bake step), and the fall no later.
+- `shore/shore-bake-worker-core.spec.ts`, `shore-bake-thread.spec.ts`: the worker's tiles sent once each (the
+  page's adopted), the level asked for last sent with its pictures and buffers transferred, a newer ask replacing
+  the one under way, a failure said once; on the page a tile adopted into a canvas, a level waited on without
+  baking, a stale or untaken one closed, a failed worker's bake finished on the page, no worker without
+  `OffscreenCanvas` 2D, the bundled worker started as a module.
 - `render/dive/shore/*.spec.ts`: the noise against the mockup's hash bit for bit, the coast's rings and distances,
   the levels' zooms and scales, each tile's bake, the paint helpers, the near strokes and cells, the kelp beds and
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and

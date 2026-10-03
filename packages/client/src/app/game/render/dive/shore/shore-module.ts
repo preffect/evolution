@@ -1,10 +1,12 @@
 // The shore's lazily loaded entry (docs/rendering/opening-dive.md §4, ticket #801): what the dive's loader gets from
 // this chunk. The land rings and the tiles are made once a page, like the mockup's bakes, so a return to the lobby
 // bakes nothing again; the kelp band (ticket #802) bakes and draws from the same land and tiles, and the planet's
-// forest test measures the shore's coast.
+// forest test measures the shore's coast. Each band gets its own bake worker where the platform has one (ticket #809),
+// which ends with the band.
 
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import { DiveShoreBand } from './dive-shore-band';
+import { openShoreBakeThread } from './shore-bake-thread';
 import { createDomShoreCanvasFactory, type ShoreCanvasFactory } from './shore-canvas';
 import { ShoreCoast } from './shore-coast';
 import { landRingsOf, type GeoRing, type LandRings } from './shore-coast-rings';
@@ -43,6 +45,13 @@ export function createShoreParts(salishRings: readonly GeoRing[], documentRefere
     tiles: shore.tiles,
     factory: shore.factory,
     forest: new ShoreForestTest(new ShoreCoast(shore.land)),
-    createBand: (renderToTexture, devicePixelRatio) => new DiveShoreBand(shore, devicePixelRatio, renderToTexture),
+    createBand: (renderToTexture, devicePixelRatio) => {
+      const page = documentReference.defaultView;
+      const thread =
+        page === null
+          ? null
+          : openShoreBakeThread(page, shore, (canvas) => page.createImageBitmap(canvas.image as HTMLCanvasElement));
+      return new DiveShoreBand(shore, devicePixelRatio, renderToTexture, thread);
+    },
   };
 }
