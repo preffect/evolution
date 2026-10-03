@@ -5,7 +5,7 @@
 // where a finer one would cover only its middle. The widest level is kept for that always, and the stand-in in use is
 // kept until the level in view lands. A fall waits above any level with no stand-in close enough (`fallFloorZoom`).
 
-import { SHORE_LEVEL_CACHE } from '../../constants/dive-shore';
+import { SHORE_LEVEL_CACHE, SHORE_LEVEL_DRAFT_SCALE } from '../../constants/dive-shore';
 import type { StageSize } from './shore-lod';
 import { SHORE_LEVEL_COUNT, shoreLevelAt, shoreLevelView, shoreLevelZoom } from './shore-lod';
 import type { ShoreView } from './shore-paint';
@@ -23,6 +23,8 @@ export type ShoreLevelBaker = (view: ShoreView, sources: ShoreSnapshotSources) =
 
 interface LevelBake {
   readonly level: number;
+  /** A first pass at `SHORE_LEVEL_DRAFT_SCALE`, or the level at full resolution. */
+  readonly isDraft: boolean;
   readonly bake: Generator<void, ShoreSnapshot>;
 }
 
@@ -36,6 +38,8 @@ export interface ShoreLevelPair<Level> {
 
 export class ShoreLevels<Level> extends SteppedQueue {
   private readonly baked = new Map<number, Level>();
+  /** The baked levels that are still their draft. */
+  private readonly drafts = new Set<number>();
   /** Levels let go, given back only once nothing draws with them (`releaseRetired`). */
   private retired: Level[] = [];
   private job: LevelBake | null = null;
@@ -83,8 +87,20 @@ export class ShoreLevels<Level> extends SteppedQueue {
       if (this.wanted.includes(candidate) || candidate === standIn) continue;
       this.retired.push(baked);
       this.baked.delete(candidate);
+      this.drafts.delete(candidate);
     }
-    if (this.job !== null && !this.wanted.includes(this.job.level)) this.job = null;
+    if (this.isJobDropped()) this.job = null;
+  }
+
+  /**
+   * Whether the bake under way is let go: the camera has turned away from its level, or it is a full redraw while a
+   * level the camera needs has nothing yet.
+   */
+  private isJobDropped(): boolean {
+    const job = this.job;
+    if (job === null) return false;
+    if (!this.wanted.includes(job.level)) return true;
+    return !job.isDraft && this.wanted.some((candidate) => !this.baked.has(candidate));
   }
 
   /**
@@ -102,23 +118,36 @@ export class ShoreLevels<Level> extends SteppedQueue {
 
   /** Whether a level still wants baking. */
   get hasWork(): boolean {
-    return this.wanted.some((level) => !this.baked.has(level));
+    return this.wanted.some((level) => !this.baked.has(level) || this.drafts.has(level));
   }
 
   protected step(): PumpStep {
     if (this.job === null) {
-      const level = this.wanted.find((candidate) => !this.baked.has(candidate));
-      if (level === undefined || this.stage.width <= 0) return 'idle';
-      this.job = {
-        level,
-        bake: this.bakeLevel(shoreLevelView(level, this.stage, this.devicePixelRatio), this.sources),
-      };
+      if (this.stage.width <= 0) return 'idle';
+      this.job = this.nextJob();
+      if (this.job === null) return 'idle';
     }
     const step = this.job.bake.next();
     if (step.done !== true) return 'stepped';
-    this.baked.set(this.job.level, this.uploader.upload(step.value));
+    const { level, isDraft } = this.job;
+    const replaced = this.baked.get(level);
+    if (replaced !== undefined) this.retired.push(replaced);
+    this.baked.set(level, this.uploader.upload(step.value));
+    if (isDraft) this.drafts.add(level);
+    else this.drafts.delete(level);
     this.job = null;
     return 'finished';
+  }
+
+  /** Every wanted level's draft first, in the camera's order; then each draft redrawn at full resolution. */
+  private nextJob(): LevelBake | null {
+    const unbaked = this.wanted.find((candidate) => !this.baked.has(candidate));
+    const level = unbaked ?? this.wanted.find((candidate) => this.drafts.has(candidate));
+    if (level === undefined) return null;
+    const isDraft = unbaked !== undefined;
+    const scale = isDraft ? SHORE_LEVEL_DRAFT_SCALE : 1;
+    const view = shoreLevelView(level, this.stage, this.devicePixelRatio, scale);
+    return { level, isDraft, bake: this.bakeLevel(view, this.sources) };
   }
 
   /** The level `zoom` is in (or the nearest coarser baked one) and the next one down. */
@@ -153,6 +182,7 @@ export class ShoreLevels<Level> extends SteppedQueue {
   clear(): void {
     this.retired.push(...this.baked.values());
     this.baked.clear();
+    this.drafts.clear();
     this.job = null;
   }
 

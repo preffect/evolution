@@ -236,3 +236,38 @@ describe('DiveControls: a floor the fall waits above', () => {
     expect(controls.tick(fallStart + fallMs / 2 + 16, zoom + 1)).toBeLessThan(zoom);
   });
 });
+
+describe('DiveControls: easing in toward a floor', () => {
+  const fallStart = DIVE_PLAY_HOLD_MS;
+  const fallMs = diveFallMs(DIVE_FIRST_PHASE);
+
+  it('slows before the floor instead of stopping dead: each step a shrinking share of the gap left', () => {
+    const controls = new DiveControls();
+    controls.playPhase(DIVE_FIRST_PHASE, 0, false);
+    const midFall = fallStart + fallMs / 2;
+    const floorZoom = controls.tick(midFall) - 0.3;
+    const steps: number[] = [];
+    let previous = controls.zoom;
+    for (let frame = 1; frame <= 20; frame += 1) {
+      const zoom = controls.tick(midFall + frame * 16, floorZoom);
+      expect(zoom).toBeGreaterThan(floorZoom);
+      steps.push(previous - zoom);
+      previous = zoom;
+    }
+    expect(steps.every((step) => step > 0)).toBe(true);
+    expect(steps.at(-1)!).toBeLessThan(steps[0]!);
+  });
+
+  it('with frames seconds apart, reaches just above the floor at once and goes on the frame after it drops', () => {
+    const controls = new DiveControls();
+    controls.playPhase(DIVE_FIRST_PHASE, 0, false);
+    let nowMs = fallStart + fallMs / 4;
+    const floorZoom = controls.tick(nowMs) - 0.5;
+    nowMs += 3000;
+    const held = controls.tick(nowMs, floorZoom);
+    expect(held).toBeGreaterThan(floorZoom);
+    expect(held - floorZoom).toBeLessThan(0.01);
+    nowMs += 3000;
+    expect(controls.tick(nowMs, floorZoom - 1)).toBeLessThan(floorZoom);
+  });
+});

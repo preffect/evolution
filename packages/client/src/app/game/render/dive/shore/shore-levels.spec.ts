@@ -13,12 +13,20 @@ import { bakeShoreSnapshot, type ShoreSnapshot } from './shore-snapshot';
 
 interface Uploaded {
   readonly zoom: number;
+  /** Baked at `SHORE_LEVEL_DRAFT_SCALE` of the stage's ratio, to be redrawn at full resolution. */
+  readonly isDraft: boolean;
   isReleased: boolean;
 }
 
 function levels(): { subject: ShoreLevels<Uploaded>; uploads: Uploaded[] } {
   const uploads: Uploaded[] = [];
   return { subject: quickLevels(uploads), uploads };
+}
+
+/** A clock that ticks once a read: a pump of budget 2 takes one step. */
+function counter(): () => number {
+  let clock = 0;
+  return () => (clock += 1);
 }
 
 function bakeEverything(subject: ShoreLevels<Uploaded>): void {
@@ -34,7 +42,7 @@ function* quickBake(view: ShoreView): Generator<void, ShoreSnapshot> {
 function uploaderOf(uploads: Uploaded[]): ShoreLevelUploader<Uploaded> {
   return {
     upload: (snapshot: ShoreSnapshot) => {
-      const uploaded = { zoom: snapshot.view.zoom, isReleased: false };
+      const uploaded = { zoom: snapshot.view.zoom, isDraft: snapshot.view.devicePixelRatio < 1, isReleased: false };
       uploads.push(uploaded);
       return uploaded;
     },
@@ -66,20 +74,51 @@ function bakeOnly(subject: ShoreLevels<Uploaded>, wanted: readonly number[]): vo
 }
 
 describe('ShoreLevels', () => {
-  it('bakes the camera’s level first, then the ones ahead, one behind, and the anchor', () => {
+  it('drafts the camera’s level first, then the ones ahead, one behind and the anchor, then redraws each in full', () => {
     const { subject, uploads } = levels();
     subject.focus(shoreLevelZoom(10), 1);
     expect(subject.hasWork).toBe(true);
     let clock = 0;
     while (uploads.length === 0) subject.pump(1, () => (clock += 0.25));
-    expect(uploads[0]!.zoom).toBe(shoreLevelZoom(10));
+    expect(uploads[0]).toEqual({ zoom: shoreLevelZoom(10), isDraft: true, isReleased: false });
     bakeEverything(subject);
     const ahead = Array.from({ length: SHORE_LEVEL_CACHE.ahead }, (_unused, index) => 11 + index);
-    expect(uploads.map((uploaded) => uploaded.zoom)).toEqual(
-      [10, ...ahead, 9, SHORE_LEVEL_CACHE.anchor].map(shoreLevelZoom),
-    );
+    const order = [10, ...ahead, 9, SHORE_LEVEL_CACHE.anchor].map(shoreLevelZoom);
+    expect(uploads.map((uploaded) => [uploaded.zoom, uploaded.isDraft])).toEqual([
+      ...order.map((zoom) => [zoom, true]),
+      ...order.map((zoom) => [zoom, false]),
+    ]);
     expect(subject.hasWork).toBe(false);
     expect(subject.isBakedAt(shoreLevelZoom(10))).toBe(true);
+  });
+
+  it('lets each draft go once its full redraw is up, and stands the draft in until then', () => {
+    const { subject, uploads } = levels();
+    subject.focus(shoreLevelZoom(10), 1);
+    for (let pass = 0; pass < 20 && uploads.length < 1; pass += 1) subject.pump(2, counter());
+    expect(subject.levelsAt(shoreLevelZoom(10)).level).toBe(uploads[0]);
+    bakeEverything(subject);
+    const draft = uploads[0]!;
+    expect(subject.levelsAt(shoreLevelZoom(10)).level!.isDraft).toBe(false);
+    subject.releaseRetired();
+    expect(draft.isReleased).toBe(true);
+  });
+
+  it('drops a full redraw under way for a level the camera needs and has nothing for', () => {
+    const { subject, uploads } = levels();
+    subject.focus(shoreLevelZoom(10), 1);
+    const clock = counter();
+    // every draft in, and the first full redraw started
+    while (uploads.length < SHORE_LEVEL_CACHE.ahead + 3) subject.pump(2, clock);
+    subject.pump(2, clock);
+    // one level on: 10, whose redraw is under way, is still kept, and the new one at the far end has nothing yet
+    subject.focus(shoreLevelZoom(11), 1);
+    while (uploads.length < SHORE_LEVEL_CACHE.ahead + 4) subject.pump(2, clock);
+    expect(uploads.at(-1)).toEqual({
+      zoom: shoreLevelZoom(11 + SHORE_LEVEL_CACHE.ahead),
+      isDraft: true,
+      isReleased: false,
+    });
   });
 
   it('answers the level in view and the next one, with no stand-in once both have baked', () => {
@@ -127,7 +166,8 @@ describe('ShoreLevels', () => {
     bakeEverything(subject);
     subject.focus(shoreLevelZoom(25), 1);
     const kept = [shoreLevelZoom(SHORE_LEVEL_CACHE.anchor), shoreLevelZoom(10 + SHORE_LEVEL_CACHE.ahead)];
-    const isLetGo = (uploaded: Uploaded): boolean => !kept.includes(uploaded.zoom);
+    // the kept levels' full redraws stay; everything else, their drafts too, goes
+    const isLetGo = (uploaded: Uploaded): boolean => uploaded.isDraft || !kept.includes(uploaded.zoom);
     expect(uploads.filter(isLetGo).length).toBeGreaterThan(0);
     expect(uploads.every((uploaded) => !uploaded.isReleased)).toBe(true);
     subject.releaseRetired();

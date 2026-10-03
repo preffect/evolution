@@ -190,13 +190,18 @@ in the dive's submit, and no second WebGL context:
   fall bake while the planet shows. A bake is dropped only when the camera has turned away from it. Levels the camera
   left are given back at the start of the next frame, once a frame has drawn without them. The levels bake at the
   stage's size, which the band takes from each frame's view.
+- **Drafts:** each level bakes first at half its resolution (a quarter of the pixels, `SHORE_LEVEL_DRAFT_SCALE`),
+  usable at once, and is redrawn at full resolution in place once every wanted level has its draft; a redraw under
+  way is dropped for a level the camera needs and has nothing for. A fall waits only on drafts.
 - **Stand-ins:** until the level in view lands, the nearest _coarser_ baked level stands in, and is kept until then:
   it covers the whole view, only softer. A finer one never does (it covers only the middle of the view; the rest
   would show the forest under it, or black).
 - **The fall waits for its levels:** a level a bake behind costs about 450 ms close in on the evidence box, and the
   autoplay crosses one in about 57 ms. So a play never goes down into a level with no baked level at most two coarser
-  than it (`ShoreLevels.fallFloorZoom`, through `DiveUpperLayers` to `DiveControls.tick`'s floor). It waits just
-  above, its waiting moved past like a pause, and goes on once the bake lands. Until the tiles and the anchor have
+  than it (`ShoreLevels.fallFloorZoom`, through `DiveUpperLayers` to `DiveControls.tick`'s floor). Near the floor it
+  eases in: each frame the gap to it shrinks by e^(−Δt / 120 ms) (`DIVE_FLOOR_EASE`), so it slows rather than stops
+  dead, and with frames seconds apart it is just above the floor at once rather than frozen where it was. The play's
+  clock is set to the zoom it shows (the ease's inverse), so once the floor drops it goes on from there. Until the tiles and the anchor have
   baked the floor is the band's top edge. A scrub and a skip do not wait: they show the nearest coarser level, softer,
   until theirs lands.
 - **The shader** (`shore-shader-*.ts`): under the snapshot the water from the ramp, the seabed and the caustics, and
@@ -305,7 +310,8 @@ in the dive's submit, and no second WebGL context:
 - `dive-bands.spec.ts`: the windows pinned literally, the cuts, the nesting, the crossfade, the 2 px and in-dish
   cuts.
 - `dive-controls.spec.ts`: play, hold, fall, arrive, pause re-base, skip, scrub, reduced motion; waiting above a
-  floor and going on from there, a pause not counted twice, a floor never pulling the dive back up.
+  floor and going on from there, a pause not counted twice, a floor never pulling the dive back up, easing in with
+  shrinking steps, and with frames 3 s apart reaching the floor at once and going on the frame after it drops.
 - `dive-readout.spec.ts`: `fmtLen`'s cases, the superscripts, the ladder's ends, the scale bar.
 - `dive-labels.spec.ts`: the fade, the far side of the planet, Victoria's place, the flip and the clamps, the
   readout's keep-out (408 px, then measured) and the stacking through the handoff at 1280 and 390.
@@ -323,7 +329,8 @@ in the dive's submit, and no second WebGL context:
   import chain from `main.ts`.
 - `shore/shore-fall.spec.ts`: the autoplay's fall against bakes as slow as the evidence box's (450 ms a level), the
   real controls and levels on one simulated main thread: every frame in the band draws its level or one at most two
-  coarser, the fall arrives, and without the wait it would not (red on the levels before the fix).
+  coarser and the fall arrives, at 60 fps and with frames 1 s and 3 s apart (the slow-frame cases never arrived
+  with the hold that froze at the old zoom), and without the wait it would draw wrong pictures.
 - `render/dive/shore/*.spec.ts`: the noise against the mockup's hash bit for bit, the coast's rings and distances,
   the levels' zooms and scales, each tile's bake, the paint helpers, the near strokes and cells, the kelp beds and
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and

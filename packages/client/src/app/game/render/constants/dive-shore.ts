@@ -241,3 +241,9 @@ export const SHORE_PATTERN_SHRINK_BELOW = 0.8;
  * most `standInSteps` coarser than it has baked: a coarser level covers the view, only softer.
  */
 export const SHORE_LEVEL_CACHE = { ahead: 5, anchor: 0, standInSteps: 2 } as const;
+
+/**
+ * Each level bakes first at this share of its resolution (a quarter of the pixels), usable at once and redrawn at full
+ * resolution in place once every level wanted has its draft: a fall waits only on drafts.
+ */
+export const SHORE_LEVEL_DRAFT_SCALE = 0.5;

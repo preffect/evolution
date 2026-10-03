@@ -46,8 +46,11 @@ export function shoreSnapshotRatio(devicePixelRatio: number): number {
   return Math.min(devicePixelRatio, SHORE_LOD.maxDevicePixelRatio);
 }
 
-/** The view level k is drawn over, for a stage of `stage` CSS px, at the ambient clock's rest. */
-export function shoreLevelView(level: number, stage: StageSize, devicePixelRatio: number): ShoreView {
+/**
+ * The view level k is drawn over, for a stage of `stage` CSS px, at the ambient clock's rest; `scale` of the snapshot's
+ * resolution (a draft's is under 1).
+ */
+export function shoreLevelView(level: number, stage: StageSize, devicePixelRatio: number, scale = 1): ShoreView {
   const zoom = shoreLevelZoom(level);
   const widthPx = Math.ceil(stage.width * SHORE_LEVEL_OVERSIZE);
   const heightPx = Math.ceil(stage.height * SHORE_LEVEL_OVERSIZE);
@@ -59,7 +62,7 @@ export function shoreLevelView(level: number, stage: StageSize, devicePixelRatio
     screenPixelsPerMetre: pixelsPerMetre / SHORE_LEVEL_OVERSIZE,
     widthPx,
     heightPx,
-    devicePixelRatio: shoreSnapshotRatio(devicePixelRatio),
+    devicePixelRatio: shoreSnapshotRatio(devicePixelRatio) * scale,
     halfWidthM: (widthPx / pixelsPerMetre) * HALF,
     halfHeightM: (heightPx / pixelsPerMetre) * HALF,
     timeSeconds: 0,
