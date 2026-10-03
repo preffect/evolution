@@ -9,7 +9,7 @@ import { SHORE_LEVEL_CACHE, SHORE_LEVEL_DRAFT_SCALE } from '../../constants/dive
 import type { StageSize } from './shore-lod';
 import { SHORE_LEVEL_COUNT, shoreLevelAt, shoreLevelView, shoreLevelZoom } from './shore-lod';
 import type { ShoreView } from './shore-paint';
-import { SteppedQueue, type PumpStep } from './shore-pump';
+import { SHORE_BAKE_WAITING, SteppedQueue, type PumpStep, type ShoreBakeStep } from './shore-pump';
 import { bakeShoreSnapshot, type ShoreSnapshot, type ShoreSnapshotSources } from './shore-snapshot';
 
 /** What a baked level becomes on the GPU, and how it is given back: the band's (`ShoreMesh`'s textures). */
@@ -18,14 +18,20 @@ export interface ShoreLevelUploader<Level> {
   release(level: Level): void;
 }
 
-/** How a level's snapshot is baked: `bakeShoreSnapshot`, or a spec's timed stand-in. */
-export type ShoreLevelBaker = (view: ShoreView, sources: ShoreSnapshotSources) => Generator<void, ShoreSnapshot>;
+/**
+ * How a level's snapshot is baked: `bakeShoreSnapshot` here, a step at a time; a worker's (`ShoreBakeThread`), which
+ * yields `SHORE_BAKE_WAITING` until the worker sends it; or a spec's timed stand-in.
+ */
+export type ShoreLevelBaker = (
+  view: ShoreView,
+  sources: ShoreSnapshotSources,
+) => Generator<ShoreBakeStep, ShoreSnapshot>;
 
 interface LevelBake {
   readonly level: number;
   /** A first pass at `SHORE_LEVEL_DRAFT_SCALE`, or the level at full resolution. */
   readonly isDraft: boolean;
-  readonly bake: Generator<void, ShoreSnapshot>;
+  readonly bake: Generator<ShoreBakeStep, ShoreSnapshot>;
 }
 
 /** The level in view and its next one, each `null` until baked. */
@@ -128,7 +134,7 @@ export class ShoreLevels<Level> extends SteppedQueue {
       if (this.job === null) return 'idle';
     }
     const step = this.job.bake.next();
-    if (step.done !== true) return 'stepped';
+    if (step.done !== true) return step.value === SHORE_BAKE_WAITING ? 'waiting' : 'stepped';
     const { level, isDraft } = this.job;
     const replaced = this.baked.get(level);
     if (replaced !== undefined) this.retired.push(replaced);

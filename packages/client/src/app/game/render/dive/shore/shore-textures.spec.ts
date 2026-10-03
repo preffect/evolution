@@ -1,7 +1,9 @@
 // The shore's bakes on the GPU (docs/rendering/opening-dive.md §4): a level's colour, distance grid, stones and water
 // table become texture sources and are destroyed together; the sea's tiles become repeating sources once all have baked.
 
-import { describe, expect, it } from 'vitest';
+import { ImageSource } from 'pixi.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { FakeBitmap, fakeWorkerSnapshot, isClosed } from '../../../../../testing/fake-shore-bake';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { bakedTestTiles } from '../../../../../testing/shore-paint-builder';
 import { shoreLevelView } from './shore-lod';
@@ -34,6 +36,22 @@ describe('SHORE_LEVEL_UPLOADER', () => {
     SHORE_LEVEL_UPLOADER.release(level);
     expect(destroyed).toBe(4);
     expect(SHORE_LEVEL_UPLOADER.upload(snapshot(false)).stones).toBeNull();
+  });
+
+  describe('a level the bake worker sent', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('uploads its bitmaps as image sources and closes them when the level is given back', () => {
+      vi.stubGlobal('ImageBitmap', FakeBitmap);
+      const sent = fakeWorkerSnapshot(shoreLevelView(3, { width: 100, height: 60 }, 1));
+      const level = SHORE_LEVEL_UPLOADER.upload(sent);
+      expect(level.colour).toBeInstanceOf(ImageSource);
+      expect(level.stones).toBeInstanceOf(ImageSource);
+      expect(isClosed(sent.colour.image)).toBe(false);
+      SHORE_LEVEL_UPLOADER.release(level);
+      expect(isClosed(sent.colour.image)).toBe(true);
+      expect(isClosed(sent.stones!.image)).toBe(true);
+    });
   });
 });
 

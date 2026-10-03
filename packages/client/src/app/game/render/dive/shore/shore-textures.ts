@@ -2,21 +2,34 @@
 // clamped) and its data texture (read texel by texel), and the live sea's tiles (repeating, mipmapped so they stay
 // smooth as they shrink). Each level's are given back when the camera leaves it.
 
-import { CanvasSource, type TextureSource } from 'pixi.js';
+import { CanvasSource, ImageSource, type TextureSource } from 'pixi.js';
 import { byteDataTexture } from '../../textures/pixi-textures';
-import type { ShoreCanvas } from './shore-canvas';
+import type { ShoreImage } from './shore-canvas';
 import type { ShoreLevelUploader } from './shore-levels';
+import { closeShoreImage, isShoreBitmap } from './shore-offscreen';
+import type { ShoreSnapshotImage } from './shore-snapshot';
 import type { ShoreLevelTextures, ShoreTileTextures } from './shore-mesh';
 import type { ShoreTile, ShoreTileSource } from './shore-tiles';
 
-function canvasSource(canvas: ShoreCanvas, isRepeating: boolean): TextureSource {
-  return new CanvasSource({
-    resource: canvas.image as HTMLCanvasElement,
+/** A picture's texture: a page canvas's, or the bitmap the bake worker sent (`shore-bake-thread.ts`). */
+function canvasSource(picture: ShoreSnapshotImage, isRepeating: boolean): TextureSource {
+  const options = {
     scaleMode: 'linear',
     addressMode: isRepeating ? 'repeat' : 'clamp-to-edge',
     autoGenerateMipmaps: isRepeating,
     mipmapFilter: 'linear',
-  });
+  } as const;
+  const { image } = picture;
+  return isShoreBitmap(image)
+    ? new ImageSource({ ...options, resource: image })
+    : new CanvasSource({ ...options, resource: image as HTMLCanvasElement });
+}
+
+/** Destroys a level's texture, and closes its bitmap when the worker sent one. */
+function releaseSource(source: TextureSource): void {
+  const image = source.resource as ShoreImage;
+  source.destroy();
+  closeShoreImage(image);
 }
 
 /** A level's textures from its snapshot; `release` destroys them. */
@@ -44,9 +57,9 @@ export const SHORE_LEVEL_UPLOADER: ShoreLevelUploader<ShoreLevelTextures> = {
     halfHeightM: snapshot.view.halfHeightM,
   }),
   release: (level) => {
-    level.colour.destroy();
+    releaseSource(level.colour);
     level.distances.destroy();
-    level.stones?.destroy();
+    if (level.stones !== null) releaseSource(level.stones);
     level.ramp.destroy();
   },
 };

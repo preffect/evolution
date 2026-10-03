@@ -110,6 +110,11 @@ export class ShoreTiles extends SteppedQueue implements ShoreTileSource {
     return null;
   }
 
+  /** Whether the tile has baked, without asking for it. */
+  has(name: ShoreTileName): boolean {
+    return this.tiles.has(name);
+  }
+
   get isBaked(): boolean {
     return this.tiles.size === SHORE_TILE_NAMES.length;
   }
@@ -137,7 +142,11 @@ export class ShoreTiles extends SteppedQueue implements ShoreTileSource {
   }
 
   private finish(name: ShoreTileName, canvas: ShoreCanvas): void {
-    const averageRgba = averageOf(canvas);
+    this.adopt(name, canvas, averageOf(canvas));
+  }
+
+  /** A tile baked elsewhere (the worker's, or the page's posted to a new worker), with its mean colour. */
+  adopt(name: ShoreTileName, canvas: ShoreCanvas, averageRgba: ShoreTile['averageRgba']): void {
     this.tiles.set(name, { canvas, sizePx: canvas.width, averageColour: cssOf(averageRgba), averageRgba });
     const index = this.wanted.indexOf(name);
     if (index >= 0) this.wanted.splice(index, 1);

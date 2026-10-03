@@ -22,12 +22,15 @@ import { shoreSeaRamp, type ShoreSeaRamp } from './shore-sea-ramp';
 import { drawBeaches, drawDriftwood } from './shore-shore-life';
 import type { ShoreTileSource } from './shore-tiles';
 
+/** A baked picture: the canvas it was drawn on, or the image a worker sent of it (`shore-bake-thread.ts`). */
+export type ShoreSnapshotImage = Pick<ShoreCanvas, 'width' | 'height' | 'image'>;
+
 /** A baked level: its view, its colour, the distance grid, the stones in the water, and the sea strokes' reach. */
 export interface ShoreSnapshot {
   readonly view: ShoreView;
-  readonly colour: ShoreCanvas;
+  readonly colour: ShoreSnapshotImage;
   readonly sea: ShoreSeaData;
-  readonly stones: ShoreCanvas | null;
+  readonly stones: ShoreSnapshotImage | null;
   /** The water's colour and the floor's share by distance to the coast. */
   readonly ramp: ShoreSeaRamp;
 }

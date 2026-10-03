@@ -56,8 +56,11 @@ export interface ShoreContext2D extends BakeContext2D {
   putImageData(pixels: ShorePixels, x: number, y: number): void;
 }
 
-/** What a shore canvas is drawn from: another shore canvas's element (a real canvas, or a fake's stand-in). */
-export type ShoreImage = HTMLCanvasElement | ShoreCanvasStandIn;
+/**
+ * What a shore canvas is drawn from: another shore canvas's element (a page canvas, a worker's offscreen one, or a
+ * fake's stand-in), or the image a worker sent of one (`shore-bake-thread.ts`).
+ */
+export type ShoreImage = HTMLCanvasElement | OffscreenCanvas | ImageBitmap | ShoreCanvasStandIn;
 
 /** A fake canvas's element: only its size. */
 export interface ShoreCanvasStandIn {
