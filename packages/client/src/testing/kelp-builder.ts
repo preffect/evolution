@@ -6,8 +6,9 @@ import type { KelpBakeSources, KelpBaked } from '../app/game/render/dive/kelp/ke
 import { encodeSignedDistance } from '../app/game/render/dive/planet/signed-distance';
 
 /**
- * Time allowed for a spec that runs the real bakes (the blade's 512² tile and the rock's and the sea's signed
- * distances, a few seconds of per-pixel work on a loaded 4-core box): far past vitest's 5 s default.
+ * Time allowed for a spec that runs the real bakes (the blade's 512² tile, the rock's and the sea's signed distances,
+ * the beads' placing: a few seconds of per-pixel work on a loaded 4-core box, past vitest's 5 s default; placing the
+ * beads alone took 5.4 s in the full client suite after PR #810's merge).
  */
 export const KELP_BAKE_TEST_TIMEOUT_MS = 120_000;
 

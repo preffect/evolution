@@ -10,6 +10,7 @@ import { diveCameraAt } from '../dive-camera';
 import { coordinateHash } from '../shore/shore-noise';
 import { areBeadsShown, cellsInView, gridCell, placeBeads, type KelpBead } from './kelp-beads';
 import { kelpBlades } from './kelp-ribbons';
+import { KELP_BAKE_TEST_TIMEOUT_MS } from '../../../../../testing/kelp-builder';
 
 const VIEWPORT = { width: 830, height: 467 };
 
@@ -39,7 +40,7 @@ describe('cellsInView', () => {
   });
 });
 
-describe('placeBeads', () => {
+describe('placeBeads', { timeout: KELP_BAKE_TEST_TIMEOUT_MS }, () => {
   const beads = placed();
 
   it('finds beads, every one on blade 0 within its share of the blade’s width and clear of the drop', () => {
