@@ -43,7 +43,8 @@ export class DiveShoreBand {
     readonly onBaked: () => void;
     readonly nowMs: () => number;
   } | null = null;
-  private lastZoom: number = SHORE_LOD.topZoom;
+  /** The last frame's zoom; above the dive at first, so the first frame faces down it. */
+  private lastZoom = Number.POSITIVE_INFINITY;
   private direction = 1;
 
   constructor(
@@ -77,11 +78,15 @@ export class DiveShoreBand {
     return this.sources.tiles.isBaked && this.levels.isBakedAt(SHORE_LOD.topZoom);
   }
 
+  /** The zoom a fall waits above: until the tiles bake, the band's edge; then the levels' own floor. */
+  get fallFloorZoom(): number {
+    return this.sources.tiles.isBaked ? this.levels.fallFloorZoom : SHORE_LOD.topZoom;
+  }
+
   /** Bakes the tiles, then the levels near the camera, a slice every interval while there is work (`DiveMacroBand`'s pace). */
   bakeOn(scheduler: Scheduler, nowMs: () => number, onBaked: () => void): void {
     this.bakeLoop = { scheduler, onBaked, nowMs };
-    // the stage's size comes with the first frame (`draw`), in orbit or not
-    this.levels.focus(SHORE_LOD.topZoom, 1);
+    // the stage's size and the camera come with the first frame (`draw`), in orbit or not
     this.cancelBake = scheduler.after(DIVE_BAKE_START_DELAY_MS, () => this.slice());
   }
 
@@ -125,7 +130,9 @@ export class DiveShoreBand {
     this.levels.releaseRetired();
     const shore = view.bands.shore;
     if (!shore.isActive) {
-      this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
+      // above the band the levels the fall will meet first bake already, while the planet shows
+      if (view.camera.zoom > SHORE_LOD.topZoom) this.follow(view);
+      else this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
       this.mesh.setLevels(null, null);
       return false;
     }

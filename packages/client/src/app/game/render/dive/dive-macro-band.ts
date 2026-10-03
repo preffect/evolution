@@ -23,6 +23,8 @@ export interface ShoreBandHandle {
   readonly view: Container;
   /** Its tiles and its top level have baked. */
   readonly isReady: boolean;
+  /** The zoom a fall must wait above until the levels below it have a stand-in (`ShoreLevels.fallFloorZoom`). */
+  readonly fallFloorZoom: number;
   bakeOn(scheduler: Scheduler, nowMs: () => number, onBaked: () => void): void;
   /** Sets the quad up for this frame; answers whether it shows. */
   draw(view: DiveView, isForestShown: boolean): boolean;

@@ -10,6 +10,7 @@ import {
   startedDiveSession as started,
 } from '../../../../testing/dive-session-harness';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
+import { SHORE_LOD } from '../constants/dive-shore';
 import { DIVE_FIRST_PHASE } from './dive-controls';
 
 describe('DiveSession.start when a half fails', () => {
@@ -95,6 +96,27 @@ describe('DiveSession: what can change around it', () => {
     band.isReady = true;
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
+    subject.destroy();
+  });
+
+  it('holds the fall above the shore’s floor while its levels bake, then lets it go on', async () => {
+    const { subject, app, clock, shore } = await started();
+    const band = shore.bands[0]!;
+    const floor = SHORE_LOD.topZoom;
+    band.fallFloorZoom = floor;
+    clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    for (let frame = 0; frame < 1000; frame += 1) {
+      clock.advanceMilliseconds(16);
+      app.tick();
+    }
+    expect(subject.controls.zoom).toBeGreaterThan(floor);
+    expect(subject.controls.isPlaying).toBe(true);
+    band.fallFloorZoom = Number.NEGATIVE_INFINITY;
+    clock.advanceMilliseconds(500);
+    app.tick();
+    expect(subject.controls.zoom).toBeLessThan(floor);
     subject.destroy();
   });
 });

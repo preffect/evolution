@@ -39,6 +39,12 @@ const viewAt = (zoom: number) =>
 
 const FRAME = { screenRatio: 1, nowMs: 0, isMotionReduced: false };
 
+/** The stage's canvases, bottom to top, by identity: fake canvases are alike, so `toEqual` would pass any order. */
+function expectStacked(host: HTMLElement, canvases: readonly HTMLCanvasElement[]): void {
+  expect(host.children).toHaveLength(canvases.length);
+  canvases.forEach((canvas, index) => expect(host.children[index]).toBe(canvas));
+}
+
 describe('DiveUpperLayers’ shore', () => {
   it('puts its quad on the dive’s own stage, over the planet', () => {
     const { stage, band } = layers();
@@ -51,9 +57,9 @@ describe('DiveUpperLayers’ shore', () => {
     const view = viewAt(0);
     expect(view.bands.planet.isActive).toBe(false);
     expect(subject.draw(view, FRAME)).toBe(true);
-    expect([...host.children]).toEqual([game.canvas, mockup.canvas]);
+    expectStacked(host, [game.canvas, mockup.canvas]);
     expect(subject.draw(viewAt(-4.3), FRAME)).toBe(false);
-    expect([...host.children]).toEqual([mockup.canvas, game.canvas]);
+    expectStacked(host, [mockup.canvas, game.canvas]);
   });
 
   it('starts the shore baking, and is baked only once the shore is ready too', () => {

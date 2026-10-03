@@ -57,6 +57,11 @@ export class DiveUpperLayers {
     this.shore.bakeOn(scheduler, () => this.parts.clock.nowMilliseconds(), onBaked);
   }
 
+  /** The zoom a play must wait above while the shore bakes what lies below it (`ShoreLevels.fallFloorZoom`). */
+  get fallFloorZoom(): number {
+    return this.shore.fallFloorZoom;
+  }
+
   /** Every bake done, the shore's tiles and top level too: the dive can fall without meeting a placeholder. */
   get isBaked(): boolean {
     return this.bakePump.isBaked && this.shore.isReady;

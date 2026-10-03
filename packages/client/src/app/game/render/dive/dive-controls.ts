@@ -40,6 +40,8 @@ interface DivePlay {
 
 export class DiveControls {
   private zoomValue = DIVE_ZOOM_TOP;
+  /** When `tick` last ran: a wait at the floor moves the play on by the time since. */
+  private lastTickMs = 0;
   private play: DivePlay | null = null;
   private arrivedStop: DivePhaseStop | null = null;
   /** When phase 1's opening plays on its own; `null` once it has, or once the reader took the controls. */
@@ -75,6 +77,7 @@ export class DiveControls {
       return;
     }
     this.zoomValue = DIVE_ZOOM_TOP;
+    this.lastTickMs = nowMs;
     this.play = { stop, startedAtMs: nowMs, pausedAtMs: null };
   }
 
@@ -87,6 +90,7 @@ export class DiveControls {
       return;
     }
     this.play = { ...play, startedAtMs: play.startedAtMs + (nowMs - play.pausedAtMs), pausedAtMs: null };
+    this.lastTickMs = nowMs;
   }
 
   /** Space or Esc: a playing opening jumps to its stop. A paused one is left alone, as is a still dive. */
@@ -104,14 +108,29 @@ export class DiveControls {
     this.zoomValue = clampDiveZoom(zoom);
   }
 
-  /** Advances a playing opening to `nowMs` and answers the zoom to draw. */
-  tick(nowMs: number): number {
+  /**
+   * Advances a playing opening to `nowMs` and answers the zoom to draw. A play never goes down to `floorZoom` (a band
+   * still baking what lies there, `ShoreLevels.fallFloorZoom`): it waits where it is, the time it waits moved past like
+   * a pause's, and goes on from there once the floor drops.
+   */
+  tick(nowMs: number, floorZoom: number = Number.NEGATIVE_INFINITY): number {
     const play = this.play;
     if (play === null || play.pausedAtMs !== null) return this.zoomValue;
-    const unit = clamp01((nowMs - play.startedAtMs - DIVE_PLAY_HOLD_MS) / diveFallMs(play.stop));
-    this.zoomValue = DIVE_ZOOM_TOP + (play.stop.zoom - DIVE_ZOOM_TOP) * diveEase(unit);
-    if (unit >= 1) this.arrive(play.stop);
+    const zoom = this.zoomAt(play, nowMs);
+    if (zoom <= floorZoom && this.zoomValue > floorZoom) {
+      this.play = { ...play, startedAtMs: play.startedAtMs + (nowMs - this.lastTickMs) };
+      this.lastTickMs = nowMs;
+      return this.zoomValue;
+    }
+    this.lastTickMs = nowMs;
+    this.zoomValue = zoom;
+    if (zoom === play.stop.zoom) this.arrive(play.stop);
     return this.zoomValue;
+  }
+
+  private zoomAt(play: DivePlay, nowMs: number): number {
+    const unit = clamp01((nowMs - play.startedAtMs - DIVE_PLAY_HOLD_MS) / diveFallMs(play.stop));
+    return unit >= 1 ? play.stop.zoom : DIVE_ZOOM_TOP + (play.stop.zoom - DIVE_ZOOM_TOP) * diveEase(unit);
   }
 
   /** The lobby plays phase 1's opening on its own at `atMs`, unless the reader moves first. */

@@ -235,5 +235,9 @@ export const SHORE_LOD = { topZoom: 4.85, cutZoom: -1.42, stepZoom: 0.15, maxDev
 /** A tile drawn under this share of its baked size is shrunk to the size it is drawn at before it fills (`patternAt`). */
 export const SHORE_PATTERN_SHRINK_BELOW = 0.8;
 
-/** The levels kept near the camera: its own, `ahead` more the way it is going, and one behind. */
-export const SHORE_LEVEL_CACHE = { ahead: 3 } as const;
+/**
+ * The levels kept near the camera: its own, `ahead` more the way it is going, and one behind; the `anchor` level (the
+ * widest, cheap to bake) is kept always, so any view has a coarser stand-in. A fall waits above a level until one at
+ * most `standInSteps` coarser than it has baked: a coarser level covers the view, only softer.
+ */
+export const SHORE_LEVEL_CACHE = { ahead: 5, anchor: 0, standInSteps: 2 } as const;

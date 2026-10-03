@@ -10,6 +10,8 @@ export interface FakeShoreBand extends ShoreBandHandle {
   readonly draws: { readonly view: DiveView; readonly isForestShown: boolean }[];
   /** Its tiles and top level have baked; a spec clears it to hold the autoplay. */
   isReady: boolean;
+  /** Where a fall waits; a spec raises it to hold one. */
+  fallFloorZoom: number;
   readonly bakes: { started: number };
   readonly lifecycle: { isDestroyed: boolean };
 }
@@ -28,6 +30,7 @@ export function fakeShoreMaker(): FakeShoreMaker {
         view: new Container(),
         draws: [],
         isReady: true,
+        fallFloorZoom: Number.NEGATIVE_INFINITY,
         bakes: { started: 0 },
         lifecycle: { isDestroyed: false },
         bakeOn: () => {

@@ -92,4 +92,14 @@ describe('DiveShoreBand', () => {
     expect(scheduler.pendingCallCount).toBe(0);
     expect(subject.view.destroyed).toBe(true);
   });
+
+  it('holds a fall at its edge until its tiles and top level have baked, and bakes ahead while the planet shows', () => {
+    const { subject } = band();
+    expect(subject.fallFloorZoom).toBe(SHORE_LOD.topZoom);
+    subject.draw(view(6), true);
+    bakeUntilReady(subject, new ManualScheduler());
+    subject.draw(view(6), true);
+    expect(subject.fallFloorZoom).toBeLessThan(SHORE_LOD.topZoom);
+    subject.destroy();
+  });
 });

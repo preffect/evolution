@@ -196,7 +196,7 @@ export class DiveSession extends FrameLoopSession {
     const isMotionReduced = this.dependencies.isMotionReduced();
     this.settleControls(nowMs, isMotionReduced);
     const isMoving = this.controls.isPlaying && !this.controls.isPaused;
-    const zoom = this.controls.tick(nowMs);
+    const zoom = this.controls.tick(nowMs, this.upper?.fallFloorZoom);
     if (!isMotionReduced) this.ambientSeconds = (nowMs - this.openedAtMs) / MILLISECONDS_PER_SECOND;
     this.globeIdle.advance({ nowMs, zoom, isMotionReduced, isPaused: this.controls.isPaused });
     const viewport = { width: pixi.app.screen.width, height: pixi.app.screen.height };
