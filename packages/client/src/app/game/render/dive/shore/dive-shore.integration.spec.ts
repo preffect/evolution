@@ -13,7 +13,11 @@ import {
   startedDiveSession,
 } from '../../../../../testing/dive-session-harness';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
-import { QUICK_TILE_BAKES, TEST_SHORE_LAND } from '../../../../../testing/shore-paint-builder';
+import {
+  QUICK_TILE_BAKES,
+  SHORE_INTEGRATION_TEST_TIMEOUT_MS,
+  TEST_SHORE_LAND,
+} from '../../../../../testing/shore-paint-builder';
 import { DiveShoreBand } from './dive-shore-band';
 import { shoreLevelZoom } from './shore-lod';
 import { SHORE_SHADER, SHORE_UNIFORM_GROUP } from './shore-shader-names';
@@ -61,7 +65,7 @@ function uniforms(band: DiveShoreBand): Record<string, unknown> {
 
 const opacityOf = (canvas: HTMLCanvasElement): number => Number(canvas.style.opacity);
 
-describe('the shore band in the dive', () => {
+describe('the shore band in the dive', { timeout: SHORE_INTEGRATION_TEST_TIMEOUT_MS }, () => {
   it('draws on the dive’s one Pixi app, over the planet, with the kelp’s canvas over it', async () => {
     const { subject, app, apps, band, mockup, dependencies, settleAt } = await openedDive();
     expect(apps).toHaveLength(1);
