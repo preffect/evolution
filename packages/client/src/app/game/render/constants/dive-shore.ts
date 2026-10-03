@@ -237,6 +237,3 @@ export const SHORE_PATTERN_SHRINK_BELOW = 0.8;
 
 /** The levels kept near the camera: its own, `ahead` more the way it is going, and one behind. */
 export const SHORE_LEVEL_CACHE = { ahead: 3 } as const;
-
-/** The shore's Pixi canvas, named apart from the room's and the dish's. */
-export const DIVE_SHORE_CANVAS_TEST_ID = 'dive-shore-canvas';

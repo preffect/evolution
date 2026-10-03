@@ -1,7 +1,6 @@
 // The opening dive on the lobby (docs/rendering/opening-dive.md §1): the fourth `FrameLoopSession`, beside a room's,
-// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvas (`DiveMacroBand`), the shore
-// on a Pixi app of its own under it (`shore/`). This session's Pixi app clears to transparent and draws the planet
-// (`DivePlanetBand`) under them, and the **real** `GameRenderer` on a scripted dish scene at the bottom, clipped to the
+// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvas (`DiveMacroBand`). This
+// session's Pixi app clears to transparent and draws the planet (`DivePlanetBand`) and the shore (`shore/`) under it, and the **real** `GameRenderer` on a scripted dish scene at the bottom, clipped to the
 // dish's wall while the slime shows and faded in by the band table (the canvas's opacity, a browser-composited fade).
 // The renderer's textures bake across frames (ticket #479) while the upper bands draw, so the lobby never freezes; its
 // warm-up draw goes through `renderFrame` (ticket #603). It never installs `window.__evolutionDebug`. `destroy` frees
@@ -93,7 +92,7 @@ export class DiveSession extends FrameLoopSession {
       isCancelled: () => this.isDestroyed,
     });
     if (halves === null) return false;
-    const { pixi, bands, shorePixi } = halves;
+    const { pixi, bands } = halves;
     this.adoptPixiApp(pixi);
     if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
@@ -105,7 +104,6 @@ export class DiveSession extends FrameLoopSession {
       clock: dependencies.clock,
       frameTimes: this.frameTimes,
       renderToTexture: (container, target) => pixi.renderToTexture(container, target),
-      shorePixi,
       devicePixelRatio: this.devicePixelRatio,
     });
     this.upper.bakeOn(dependencies.scheduler, () => this.requestFrame());
@@ -132,7 +130,6 @@ export class DiveSession extends FrameLoopSession {
   /** The stage changed size: the app follows at once (Pixi's `resizeTo` measures only on a window resize, #805). */
   resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
     this.pixi?.resize(sizePx);
-    this.upper?.resize(sizePx);
     this.requestFrame();
   }
 
@@ -175,15 +172,15 @@ export class DiveSession extends FrameLoopSession {
     const view = this.advanceView();
     const pixi = this.pixi;
     if (view === null || pixi === null) return;
-    const isPlanetShown = this.drawUpperBands(view);
+    const isUpperShown = this.drawUpperBands(view);
     this.gameRoot.visible = false;
-    this.showGame(isPlanetShown ? 1 : 0);
-    if (isPlanetShown) this.frameTimes.measureSubmit(() => pixi.app.render());
+    this.showGame(isUpperShown ? 1 : 0);
+    if (isUpperShown) this.frameTimes.measureSubmit(() => pixi.app.render());
     this.finishFrame(view);
   }
 
   /**
-   * The game's canvas at `opacity`: 1 while it shows the planet, the dish band's weight at the bottom. The browser
+   * The game's canvas at `opacity`: 1 while it shows the planet or the shore, the dish band's weight at the bottom. The browser
    * composites it, so the dish's fade is the whole dish's (a group alpha), and at 0 the canvas is neither drawn nor
    * seen.
    */
@@ -225,7 +222,7 @@ export class DiveSession extends FrameLoopSession {
     if (isMotionReduced) this.controls.finishPlay();
   }
 
-  /** The layers above the dish; answers whether the planet shows. */
+  /** The layers above the dish; answers whether the planet or the shore shows on the game's canvas. */
   private drawUpperBands(view: DiveView): boolean {
     const upper = this.upper;
     if (upper === null) return false;
@@ -250,12 +247,12 @@ export class DiveSession extends FrameLoopSession {
     const timedSubmit = (): void => this.frameTimes.measureSubmit(submit);
     const dish = view.bands.dish;
     if (!isWarmUp) {
-      const isPlanetShown = this.drawUpperBands(view);
+      const isUpperShown = this.drawUpperBands(view);
       this.gameRoot.visible = dish.isActive;
-      this.showGame(isPlanetShown ? 1 : dish.isActive ? dish.weight : 0);
-      // Above the dish band the renderer does no work at all: the canvas shows the planet alone, or nothing.
+      this.showGame(isUpperShown ? 1 : dish.isActive ? dish.weight : 0);
+      // Above the dish band the renderer does no work at all: the canvas shows the planet and the shore, or nothing.
       if (!dish.isActive) {
-        if (isPlanetShown) timedSubmit();
+        if (isUpperShown) timedSubmit();
         return outputsBeforeAnyFrame(NO_EXTENT);
       }
     }

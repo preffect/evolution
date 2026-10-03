@@ -3,7 +3,7 @@
 // bakes nothing again; the coast and the tiles are also handed to the mockup's kelp and slime bands until tickets
 // #802 and #803 move them.
 
-import type { PixiAppHandle } from '../../pixi-app';
+import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import type { MockupTile, MockupTiles } from '../mockup/dive-mockup-bands';
 import { DiveShoreBand } from './dive-shore-band';
 import { createDomShoreCanvasFactory, type ShoreCanvasFactory } from './shore-canvas';
@@ -11,14 +11,14 @@ import { ShoreCoast } from './shore-coast';
 import { landRingsOf, type GeoRing, type LandRings } from './shore-coast-rings';
 import { SHORE_TILE_NAMES, ShoreTiles, type ShoreTileName } from './shore-tiles';
 
-/** The shore's parts for one dive: its coast and tiles for the mockup, and the band on its own Pixi app. */
+/** The shore's parts for one dive: its coast and tiles for the mockup, and the band for the dive's stage. */
 export interface DiveShoreParts {
   /** The coast the mockup's kelp band and forest test build each frame. */
   readonly coast: ShoreCoast;
   readonly tiles: ShoreTiles;
   /** The tiles as the mockup reads them. */
   readonly mockupTiles: MockupTiles;
-  createBand(pixi: PixiAppHandle, devicePixelRatio: number): DiveShoreBand;
+  createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): DiveShoreBand;
 }
 
 interface PageShore {
@@ -57,6 +57,6 @@ export function createShoreParts(salishRings: readonly GeoRing[], documentRefere
     coast: new ShoreCoast(shore.land),
     tiles: shore.tiles,
     mockupTiles: mockupTilesOf(shore.tiles),
-    createBand: (pixi, devicePixelRatio) => new DiveShoreBand(pixi, shore, devicePixelRatio),
+    createBand: (renderToTexture, devicePixelRatio) => new DiveShoreBand(shore, devicePixelRatio, renderToTexture),
   };
 }

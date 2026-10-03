@@ -1,12 +1,11 @@
-// The dive's layers above the dish (docs/rendering/opening-dive.md §1, §4): the mockup's canvas (`DiveMacroBand`), the
-// planet on the dive's Pixi stage (`DivePlanetBand`) and the shore band on a Pixi app of its own right under the
-// mockup's canvas (ticket #801), their bakes in slices on the scheduler, and which canvas lies over which. While the
-// planet shows, the shore's and the mockup's canvases lie over the Pixi canvas and are left clear for it, so the shore
-// draws over the planet; otherwise they lie under it, so the game's dish draws over the slime.
+// The dive's layers above the dish (docs/rendering/opening-dive.md §1, §4): the mockup's canvas (`DiveMacroBand`), and
+// the planet (`DivePlanetBand`) and the shore band over it (ticket #801) on the dive's Pixi stage, one WebGL context;
+// their bakes in slices on the scheduler, and which canvas lies over which. While the planet or the shore shows, the
+// mockup's canvas lies over the Pixi canvas and is left clear for them, so the kelp draws over the shore; otherwise it
+// lies under it, so the game's dish draws over the slime.
 
 import type { Clock, Scheduler } from '@evolution/shared';
 import type { Container } from 'pixi.js';
-import type { PixiAppHandle } from '../pixi-app';
 import { DiveBakePump } from './dive-bake-pump';
 import { isMockupDrawing } from './dive-bands';
 import type { DiveFrameTimes } from './dive-frame-times';
@@ -24,8 +23,6 @@ export interface DiveUpperLayersParts {
   readonly clock: Clock;
   readonly frameTimes: DiveFrameTimes;
   readonly renderToTexture: RenderToTexture;
-  /** The shore band's own Pixi app. */
-  readonly shorePixi: PixiAppHandle;
   /** The dive's device pixel ratio, which the shore's levels bake at. */
   readonly devicePixelRatio: number;
 }
@@ -48,8 +45,8 @@ export class DiveUpperLayers {
     this.macro = new DiveMacroBand(parts.bands.mockup, parts.host);
     this.planet = new DivePlanetBand(parts.bands.planet, parts.clock);
     this.planet.attachTo(parts.stage);
-    this.shore = parts.bands.shore.createBand(parts.shorePixi, parts.devicePixelRatio);
-    this.macro.stackShore(this.shore.canvas);
+    this.shore = parts.bands.shore.createBand(parts.renderToTexture, parts.devicePixelRatio);
+    parts.stage.addChild(this.shore.view);
     // The planet's coastlines first: they are on screen from the first frame.
     this.bakePump = new DiveBakePump([this.planet, this.macro]);
   }
@@ -67,7 +64,8 @@ export class DiveUpperLayers {
 
   /**
    * Draws the mockup's canvas (its test says whether the planet's forest shows, so it runs while the shore draws too),
-   * the shore, then the planet into its texture when it shows; answers whether it shows.
+   * sets the shore up, then draws the planet into its texture when it shows; answers whether the Pixi canvas shows
+   * either.
    */
   draw(view: DiveView, frame: DiveUpperLayersFrame): boolean {
     const { macro, planet, shore } = this;
@@ -77,10 +75,13 @@ export class DiveUpperLayers {
     this.parts.frameTimes.measureUpperBands(() => {
       isPlanetShown = macro.draw(mockupFrame, isDrawing);
     });
-    this.parts.frameTimes.measureShore(() => shore.draw(view, isPlanetShown));
-    macro.stackOverGame(isPlanetShown);
+    let isShoreShown = false;
+    this.parts.frameTimes.measureShore(() => {
+      isShoreShown = shore.draw(view, isPlanetShown);
+    });
+    macro.stackOverGame(isPlanetShown || isShoreShown);
     planet.setIsShown(isPlanetShown);
-    if (!isPlanetShown) return false;
+    if (!isPlanetShown) return isShoreShown;
     const planetDraw = {
       view,
       bandsRatio: mockupDevicePixelRatio(frame.screenRatio, view.isMoving),
@@ -91,14 +92,9 @@ export class DiveUpperLayers {
     return true;
   }
 
-  /** The stage changed size: the shore's app follows (the game's is the session's). */
-  resize(sizePx: { readonly width: number; readonly height: number }): void {
-    this.shore.resize(sizePx);
-  }
-
   /**
-   * The planet's GPU objects go, the mockup's canvas leaves the stage, and the shore's app and its levels go back; the
-   * bakes stay for the page.
+   * The planet's and the shore's GPU objects go, and the mockup's canvas leaves the stage; the bakes stay for the
+   * page.
    */
   destroy(): void {
     this.bakePump.cancel();

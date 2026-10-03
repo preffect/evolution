@@ -22,8 +22,8 @@ const RESIZE_SETTLE_MS = 1000;
  * upper bands' canvas is hidden (the planet on the game's canvas is all there is, ticket #800).
  */
 const SHORE_SLIDER_VALUE = '3.4';
-/** The stage's canvases: the shore band's (ticket #801), the upper bands' and the game's. */
-const STAGE_CANVASES = 3;
+/** The stage's canvases: the upper bands' and the game's (the planet and the shore, tickets #800 and #801). */
+const STAGE_CANVASES = 2;
 
 async function boxOf(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
   const box = await locator.boundingBox();

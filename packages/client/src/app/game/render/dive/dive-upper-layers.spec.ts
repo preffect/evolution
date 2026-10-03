@@ -1,6 +1,7 @@
-// The layers above the dish (docs/rendering/opening-dive.md §1, §4) with the shore band in them (ticket #801): its
-// canvas right under the mockup's wherever that goes, its bake started with the others and counted in `isBaked`, the
-// mockup drawn first so the shore knows whether the planet's forest shows, its time in its own column.
+// The layers above the dish (docs/rendering/opening-dive.md §1, §4) with the shore band in them (ticket #801): its quad
+// on the dive's one Pixi stage over the planet, the mockup's canvas over the Pixi canvas while the shore shows, its
+// bake started with the others and counted in `isBaked`, the mockup drawn first so the shore knows whether the
+// planet's forest shows, its time in its own column.
 
 import { ManualClock, ManualScheduler } from '@evolution/shared';
 import { Container } from 'pixi.js';
@@ -18,20 +19,19 @@ function layers() {
   host.append(game.canvas);
   const mockup = fakeDiveBands();
   const shore = fakeShoreMaker();
-  const shorePixi = createFakePixiApp();
+  const stage = new Container();
   const clock = new ManualClock(0);
   const frameTimes = new DiveFrameTimes(clock);
   const subject = new DiveUpperLayers({
     bands: fakeUpperBands(mockup, fakePlanetSource(), shore),
     host,
-    stage: new Container(),
+    stage,
     clock,
     frameTimes,
     renderToTexture: (container, target) => game.renderToTexture(container, target),
-    shorePixi,
     devicePixelRatio: 1,
   });
-  return { subject, host, game, mockup, band: shore.bands[0]!, shorePixi, frameTimes };
+  return { subject, host, game, stage, mockup, band: shore.bands[0]!, frameTimes };
 }
 
 const viewAt = (zoom: number) =>
@@ -40,13 +40,20 @@ const viewAt = (zoom: number) =>
 const FRAME = { screenRatio: 1, nowMs: 0, isMotionReduced: false };
 
 describe('DiveUpperLayers’ shore', () => {
-  it('lies right under the mockup’s canvas, over the game’s while the planet shows and under it at the dish', () => {
-    const { subject, host, game, mockup, shorePixi } = layers();
-    expect([...host.children]).toEqual([shorePixi.canvas, mockup.canvas, game.canvas]);
-    subject.draw(viewAt(2), FRAME);
-    expect([...host.children]).toEqual([game.canvas, shorePixi.canvas, mockup.canvas]);
-    subject.draw(viewAt(-4.3), FRAME);
-    expect([...host.children]).toEqual([shorePixi.canvas, mockup.canvas, game.canvas]);
+  it('puts its quad on the dive’s own stage, over the planet', () => {
+    const { stage, band } = layers();
+    expect(stage.children.at(-1)).toBe(band.view);
+    expect(stage.children.length).toBeGreaterThan(1);
+  });
+
+  it('shows the Pixi canvas under the mockup’s while only the shore shows, and lays it back over at the dish', () => {
+    const { subject, host, game, mockup } = layers();
+    const view = viewAt(0);
+    expect(view.bands.planet.isActive).toBe(false);
+    expect(subject.draw(view, FRAME)).toBe(true);
+    expect([...host.children]).toEqual([game.canvas, mockup.canvas]);
+    expect(subject.draw(viewAt(-4.3), FRAME)).toBe(false);
+    expect([...host.children]).toEqual([mockup.canvas, game.canvas]);
   });
 
   it('starts the shore baking, and is baked only once the shore is ready too', () => {
@@ -69,10 +76,8 @@ describe('DiveUpperLayers’ shore', () => {
     expect(frameTimes.take().frames).toBe(1);
   });
 
-  it('resizes the shore with the stage and gives every part back on destroy', () => {
+  it('gives every part back on destroy', () => {
     const { subject, band, host, mockup } = layers();
-    subject.resize({ width: 500, height: 300 });
-    expect(band.sizes).toEqual([{ width: 500, height: 300 }]);
     subject.destroy();
     expect(band.lifecycle.isDestroyed).toBe(true);
     expect(mockup.releases.count).toBe(1);

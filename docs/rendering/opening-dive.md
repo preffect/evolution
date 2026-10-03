@@ -14,19 +14,18 @@ controls. This file says how the client draws it. The numbers are `render/consta
   (`render/dive/dive-host.ts`), the same seam shape as the encyclopedia preview's (`preview/preview-host.ts`). A
   component spec provides `testing/fake-dive-handle.ts` and never touches Pixi.
 - **Session:** `render/dive/dive-session.ts` is the fourth `FrameLoopSession`, beside a room's, the bench's and the
-  preview's. The panel's stage element holds three canvases:
-  - the shore band's Pixi app (`dive-shore-canvas`, §4, ticket #801), which clears to transparent
-  - the upper bands' canvas (§4): the kelp, the drop and the slime, always right over the shore's
+  preview's. The panel's stage element holds two canvases:
+  - the upper bands' canvas (§4): the kelp, the drop and the slime
   - the session's Pixi app, which clears to transparent (`PixiAppOptions.isTransparent`). Its stage holds
     `gameRoot`, with a real `GameRenderer` in it (`FrameLoopSession.rendererStage` puts the renderer's layers
-    there), the dish clip mask, and the planet (§4, ticket #800). The planet and the dish are never drawn in the same
-    frame.
+    there), the dish clip mask, the planet (§4, ticket #800) and the shore's quad over it (§4, ticket #801). The
+    dive keeps one WebGL context. The planet and the shore are never drawn in the same frame as the dish.
   - **Their order follows the band** (`render/dive/dive-upper-layers.ts`, `DiveMacroBand.stackOverGame`): while the
-    planet shows, the shore's and the upper bands' canvases lie over the Pixi canvas and are left clear for it, so
-    the coast and shore draw over the planet; otherwise they lie under it, so the game's dish draws over the slime.
-- **Start:** the app and the upper bands load in parallel, then the shore's app opens (`dive-session-open.ts`). If
-  any fails (no WebGL, a missing coastline, the chunk), or the panel closes first, what arrived is given back at
-  once and `start` answers `false`; the
+    planet or the shore shows, the upper bands' canvas lies over the Pixi canvas and is left clear for them, so the
+    kelp draws over the shore; otherwise it lies under it, so the game's dish draws over the slime.
+- **Start:** the app and the upper bands load in parallel (`dive-session-open.ts`). If either fails (no WebGL, a
+  missing coastline, the chunk), or the panel closes first, the half that arrived is given back at once and `start`
+  answers `false`; the
   stage then says "The opening dive could not load." and the lobby works on. The renderer's textures bake across
   frames (ticket #479) while the upper bands already draw, so the lobby never freezes on the bake. A failed bake
   leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
@@ -95,7 +94,8 @@ That table is the one place the windows live: the mockup's canvas and the game's
   shore's fade at 4.85) the planet on the Pixi canvas is all that draws. Close in (below zoom 3) the mockup's canvas
   says whether any of the view lies past the rock band; when none does, the planet is not drawn and the canvas paints
   its own sea and land (`MockupBands.draw` answers whether the planet shows).
-- **Between the planet and the dish** (zoom 1.35 to −3.7) the Pixi canvas draws nothing and its opacity is 0.
+- **Between the shore and the dish** (zoom −1.42 to −3.7) the Pixi canvas draws nothing and its opacity is 0. From
+  1.35 to −1.42 it draws the shore alone.
 - **The shore weight:** it is also the planar world's fade over the globe. It stays 1 below its cut, so the
   close-ups under it still draw.
 
@@ -169,8 +169,9 @@ WebGL context and no copy into a 2D canvas.
   apart step it down by 0.8, clamped to no less than 0.55 (`DIVE_PLANET_RESOLUTION_GUARD`). The render texture is made again
   only when its size changes.
 
-**The coast and the shore are the game's own** (ticket #801). `render/dive/shore/` draws them on a Pixi app of
-their own, right under the mockup's canvas so the kelp draws over it, with one quad and one draw call a frame:
+**The coast and the shore are the game's own** (ticket #801). `render/dive/shore/` draws them as one quad on the
+dive's own Pixi stage, over the planet and under the mockup's canvas, so the kelp draws over it: one draw call a frame,
+in the dive's submit, and no second WebGL context:
 
 - **Levels of detail:** a level every 0.15 zoom from 4.85 down past the −1.42 cut (`shore-lod.ts`). Level k is
   drawn at zoom z_k and covers the view at z_k at the scale of z_k − 0.15, so it is never magnified. Fades and size
@@ -184,12 +185,14 @@ their own, right under the mockup's canvas so the kelp draws over it, with one q
 - **Baking:** the tiles, then the levels, bake as generators sliced on the injected `SCHEDULER` (an 8 ms slice
   every 10 ms, from 60 ms after open), each step forcing its raster so no deferred work lands on a frame. The camera's
   level bakes first, then three ahead the way it moves and one behind (`shore-levels.ts`); until the level in view
-  lands the nearest baked one stands in. Levels the camera left are given back after the frame that last drew them.
+  lands the nearest baked one stands in. Levels the camera left are given back at the start of the next frame, once a
+  frame has drawn without them. The levels bake at the stage's size, which the band takes from each frame's view.
 - **The shader** (`shore-shader-*.ts`): under the snapshot the water from the ramp, the seabed and the caustics, and
   the flat forest fill only while the planet does not show (the mockup's forest test, which `DiveMacroBand.draw`
   answers); over it the swell and
   ripples, the glints, four breakers on iso-distance lines and the swash. These move every frame; the snapshot never
-  does. The shader is linked once, unseen, when the band opens, so the link never lands mid-fall.
+  does. The shader is linked once when the band opens, drawn into a one-pixel render texture of its own, so the link
+  never lands mid-fall.
 - **Shared with the mockup:** the coastline (`shore-coast.ts`) and the tiles (`shore-tiles.ts`) are built once for
   the page and handed to the mockup's module (`MockupCoast`, `MockupTiles`), which still draws the kelp with them
   and runs the forest test on the coast. The sea grid's distance transform is the planet's (`distanceTransform2d`).
@@ -310,9 +313,9 @@ their own, right under the mockup's canvas so the kelp draws over it, with one q
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and
   release after the frame, the quad binding every uniform the GLSL declares, the live frame (sheets, breakers,
   swash), the band's bake and draw over the fake Pixi app, the module's page cache.
-- `dive-upper-layers.spec.ts`, `dive-session-open.spec.ts`: the shore's canvas right under the mockup's wherever it
-  goes, its bake counted in `isBaked`, drawn after the mockup's forest test and timed in its own column; the three
-  opens and what is given back when one fails.
+- `dive-upper-layers.spec.ts`: the shore's quad on the dive's stage over the planet, the mockup's canvas over the
+  Pixi canvas while the shore alone shows, its bake counted in `isBaked`, drawn after the mockup's forest test and
+  timed in its own column.
 - `dive-session-start.spec.ts`: each half failing at start (the other given back), visibility reported before
   the app, reduced motion mid-fall, the autoplay held until the tiles bake. `dive-session.spec.ts` also: the idle
   spin (turning in orbit; still while paused, under reduced motion and below the turn).
@@ -330,8 +333,9 @@ their own, right under the mockup's canvas so the kelp draws over it, with one q
   the nonzero fill at texel centres, the distance transform, the exact coast, the channels, the antimeridian cut,
   the region's box, the resolution's caps and its guard.
 - `app.integration.spec.ts`: a room starting closes the dive.
-- `shore/dive-shore.integration.spec.ts`: the session, the upper stage, the real shore band, levels and quad over
-  fake apps: the shore's canvas between the planet's and the kelp's, faded in over the planet, the crossfade through
+- `shore/dive-shore.integration.spec.ts`: the session, the upper layers, the real shore band, levels and quad over
+  the fake app: the quad on the dive's one app over the planet with the kelp's canvas over it, faded in over the
+  planet, the crossfade through
   a step, hidden above its band and past its cut, its own frame-time column, given back with the dive.
 - `dive-panel.component.spec.ts`: over the recording handle: the buttons, the slider, pause, the readout, the
   labels, the flag, Space and Esc but not while typing.

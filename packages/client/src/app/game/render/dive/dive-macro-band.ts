@@ -2,35 +2,36 @@
 // (`mockup/dive-mockup-bands.js`) on its own canvas beside the Pixi canvas, which clears to transparent. The browser
 // composites the two. Uploading the canvas as a Pixi texture every frame (a readback of it) was built first and
 // dropped: the bands' drawing then took 1,498 ms a frame at zoom 3.3, against 16 ms on a canvas of their own (§6).
-// The shore band's Pixi canvas (`shore/dive-shore-band.ts`, ticket #801) always lies right under this one, so the
-// kelp draws over the shore. While the planet shows (it is the game's, on the Pixi canvas: `dive-planet-band.ts`) the
-// two lie over the Pixi canvas, so the shore draws over the planet; otherwise under it, so the game's dish draws over
-// the slime. The modules, the planet's bakes and the coastlines load with the dive — separate chunks and two JSON
+// While the planet or the shore shows (both the game's, on the Pixi canvas: `dive-planet-band.ts`,
+// `shore/dive-shore-band.ts`) this canvas lies over the Pixi canvas, so the kelp draws over them; otherwise under it,
+// so the game's dish draws over the slime. The modules, the planet's bakes and the coastlines load with the dive — separate chunks and two JSON
 // files — never with the game.
 
 import type { Scheduler } from '@evolution/shared';
+import type { Container } from 'pixi.js';
 import { DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL } from '../constants';
-import type { PixiAppHandle } from '../pixi-app';
 import type { DiveBaker } from './dive-bake-pump';
 import type { DivePlanetKeptBakes, DivePlanetSource } from './dive-planet-band';
 import type { DiveView } from './dive-view';
 import type { MockupBands, MockupFrame } from './mockup/dive-mockup-bands';
 import type { DiveCoastRing } from './planet/dive-planet-bakes';
+import type { RenderToTexture } from './planet/dive-planet-mesh';
 
 /** The shore band as the stage drives it (`shore/dive-shore-band.ts`); a spec gives a recording one. */
 export interface ShoreBandHandle {
-  readonly canvas: HTMLCanvasElement;
+  /** Its quad, which goes on the dive's stage over the planet. */
+  readonly view: Container;
   /** Its tiles and its top level have baked. */
   readonly isReady: boolean;
   bakeOn(scheduler: Scheduler, nowMs: () => number, onBaked: () => void): void;
-  draw(view: DiveView, isForestShown: boolean): void;
-  resize(sizePx: { readonly width: number; readonly height: number }): void;
+  /** Sets the quad up for this frame; answers whether it shows. */
+  draw(view: DiveView, isForestShown: boolean): boolean;
   destroy(): void;
 }
 
-/** What makes the shore band on the shore's own Pixi app (`shore/shore-module.ts`'s parts). */
+/** What makes the shore band (`shore/shore-module.ts`'s parts); it warms its shader up through `renderToTexture`. */
 export interface ShoreBandMaker {
-  createBand(pixi: PixiAppHandle, devicePixelRatio: number): ShoreBandHandle;
+  createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): ShoreBandHandle;
 }
 
 /** What the dive's lazy chunks give the session: the mockup's bands, the planet's coastline bakes and the shore. */
@@ -81,7 +82,6 @@ export const loadDiveUpperBands: DiveUpperBandsLoader = diveUpperBandsLoader((ur
 
 export class DiveMacroBand implements DiveBaker {
   private isOverGame = false;
-  private shoreCanvas: HTMLCanvasElement | null = null;
 
   constructor(
     private readonly bands: MockupBands,
@@ -110,22 +110,12 @@ export class DiveMacroBand implements DiveBaker {
     return isDrawing ? this.bands.draw(frame) : frame.bands.planet.isActive;
   }
 
-  /** The shore band's canvas goes right under this one, and moves with it. */
-  stackShore(canvas: HTMLCanvasElement): void {
-    this.shoreCanvas = canvas;
-    this.bands.canvas.before(canvas);
-  }
-
-  /**
-   * Lays the canvas, and the shore's under it, over the game's (the planet shows under them) or under it (the game's
-   * dish over the slime).
-   */
+  /** Lays the canvas over the game's (the planet or the shore shows under it) or under it (the dish over the slime). */
   stackOverGame(isOverGame: boolean): void {
     if (isOverGame === this.isOverGame) return;
     this.isOverGame = isOverGame;
     if (isOverGame) this.host.append(this.bands.canvas);
     else this.host.prepend(this.bands.canvas);
-    if (this.shoreCanvas !== null) this.bands.canvas.before(this.shoreCanvas);
   }
 
   /** The canvas leaves the stage (it and the bakes stay for the page). */

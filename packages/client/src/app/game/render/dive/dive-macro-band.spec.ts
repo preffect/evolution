@@ -1,6 +1,6 @@
-// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, the
-// shore's right under it (ticket #801), and the loader that brings the modules, the planet's bakes and the coastlines
-// in with the dive. The real module draws on
+// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, and
+// the loader that brings the modules (the shore's too, ticket #801), the planet's bakes and the coastlines in with the
+// dive. The real module draws on
 // a 2D canvas jsdom has not got, so the loader is checked up to the bands it makes, and the band over a recording
 // stand-in.
 
@@ -112,21 +112,6 @@ describe('DiveMacroBand', () => {
     band.stackOverGame(false);
     expect(host.firstElementChild).toBe(bands.canvas);
     expect(host.lastElementChild).toBe(gameCanvas);
-  });
-
-  it('keeps the shore’s canvas right under its own, over the game’s canvas and under it again', () => {
-    const host = document.createElement('div');
-    const bands = recordingBands();
-    const band = new DiveMacroBand(bands, host);
-    const gameCanvas = document.createElement('canvas');
-    const shoreCanvas = document.createElement('canvas');
-    host.append(gameCanvas, shoreCanvas);
-    band.stackShore(shoreCanvas);
-    expect([...host.children]).toEqual([shoreCanvas, bands.canvas, gameCanvas]);
-    band.stackOverGame(true);
-    expect([...host.children]).toEqual([gameCanvas, shoreCanvas, bands.canvas]);
-    band.stackOverGame(false);
-    expect([...host.children]).toEqual([shoreCanvas, bands.canvas, gameCanvas]);
   });
 
   it('bakes the mockup’s tiles through the mockup', () => {

@@ -20,11 +20,11 @@ describe('createShoreParts', () => {
     expect(parts.mockupTiles.get('rock')).toBeNull();
   });
 
-  it('makes the band on the shore’s own app', () => {
+  it('makes the band, its shader warmed up through the dive’s app', () => {
     const parts = createShoreParts(TEST_SHORE_RINGS, document);
     const pixi = createFakePixiApp();
-    const band = parts.createBand(pixi, 1);
-    expect(band.canvas).toBe(pixi.canvas);
+    const band = parts.createBand((container, target) => pixi.renderToTexture(container, target), 1);
+    expect(pixi.textureRenders.map((render) => render.container)).toEqual([band.view]);
     band.destroy();
   });
 });
