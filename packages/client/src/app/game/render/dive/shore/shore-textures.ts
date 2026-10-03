@@ -9,7 +9,8 @@ import type { ShoreLevelUploader } from './shore-levels';
 import type { ShoreLevelTextures, ShoreTileTextures } from './shore-mesh';
 import type { ShoreTile, ShoreTileSource } from './shore-tiles';
 
-function canvasSource(canvas: ShoreCanvas, isRepeating: boolean): TextureSource {
+/** A canvas as a texture: sampled smoothly, repeating and mipmapped when it is a tile. */
+export function canvasSource(canvas: ShoreCanvas, isRepeating: boolean): TextureSource {
   return new CanvasSource({
     resource: canvas.image as HTMLCanvasElement,
     scaleMode: 'linear',

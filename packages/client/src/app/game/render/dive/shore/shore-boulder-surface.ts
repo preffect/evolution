@@ -40,31 +40,40 @@ function drawGrain(paint: ShorePaint, surface: BoulderSurface): void {
   });
 }
 
+/** A joint's polyline across the stone: a fracture wandering a little either side of its line (`boulder`'s joints). */
+export function boulderJoint(place: BlobPlace, joint: number): (readonly [number, number])[] {
+  const joints = SHORE_BOULDER.joints;
+  const { x, y, radius, seed, squash } = place;
+  const angle = coordinateHash(seed, joint, joints.salts.angle) * Math.PI;
+  const startX = x + (coordinateHash(seed, joint, joints.salts.x) - HALF) * radius;
+  const startY = y + (coordinateHash(seed, joint, joints.salts.y) - HALF) * radius * squash;
+  const length = radius * (joints.length.min + coordinateHash(seed, joint, joints.salts.length) * joints.length.span);
+  const steps = Math.round(DIAMETER_PER_RADIUS / joints.step);
+  return Array.from({ length: steps + 1 }, (_unused, step): readonly [number, number] => {
+    const along = -1 + step * joints.step;
+    const wander =
+      (valueNoise(along * joints.wanderScale + joint * joints.wanderPerJoint, seed, joints.salts.wander) - HALF) *
+      radius *
+      joints.wander;
+    return [
+      startX + Math.cos(angle) * along * length - Math.sin(angle) * wander,
+      startY + Math.sin(angle) * along * length + Math.cos(angle) * wander,
+    ];
+  });
+}
+
 /** Joints: a few fractures across the stone, dark with a lit lower lip. */
 function drawJoints(paint: ShorePaint, place: BlobPlace): void {
   const joints = SHORE_BOULDER.joints;
   const context = paint.context;
-  const { x, y, radius, seed, squash } = place;
   for (let joint = 0; joint < joints.count; joint += 1) {
-    const angle = coordinateHash(seed, joint, joints.salts.angle) * Math.PI;
-    const startX = x + (coordinateHash(seed, joint, joints.salts.x) - HALF) * radius;
-    const startY = y + (coordinateHash(seed, joint, joints.salts.y) - HALF) * radius * squash;
-    const length = radius * (joints.length.min + coordinateHash(seed, joint, joints.salts.length) * joints.length.span);
     context.beginPath();
-    const steps = Math.round(DIAMETER_PER_RADIUS / joints.step);
-    for (let step = 0; step <= steps; step += 1) {
-      const along = -1 + step * joints.step;
-      const wander =
-        (valueNoise(along * joints.wanderScale + joint * joints.wanderPerJoint, seed, joints.salts.wander) - HALF) *
-        radius *
-        joints.wander;
-      const pointX = startX + Math.cos(angle) * along * length - Math.sin(angle) * wander;
-      const pointY = startY + Math.sin(angle) * along * length + Math.cos(angle) * wander;
+    boulderJoint(place, joint).forEach(([pointX, pointY], step) => {
       if (step === 0) context.moveTo(pointX, pointY);
       else context.lineTo(pointX, pointY);
-    }
+    });
     context.strokeStyle = joints.colour;
-    context.lineWidth = Math.max(pxToMetres(paint.view, joints.minPx), radius * joints.width);
+    context.lineWidth = Math.max(pxToMetres(paint.view, joints.minPx), place.radius * joints.width);
     context.stroke();
   }
 }

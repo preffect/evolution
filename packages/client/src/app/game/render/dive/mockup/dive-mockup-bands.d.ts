@@ -1,6 +1,6 @@
-// The face of the mockup's upper bands (`dive-mockup-bands.js`, ticket #797): what `dive-macro-band.ts` calls. The
-// module is the mockup's own Canvas 2D drawing, kept as JavaScript until epic #795's follow-ups move each band onto
-// the game's renderer (docs/rendering/opening-dive.md §4).
+// The face of the mockup's slime (`dive-mockup-bands.js`, ticket #797): what `dive-macro-band.ts` calls. The module is
+// the mockup's own Canvas 2D drawing, kept as JavaScript until ticket #803 moves the slime onto the game's renderer
+// (docs/rendering/opening-dive.md §4).
 
 /** One coastline ring: `[longitude, latitude]` pairs in degrees, closed. */
 export type MockupRing = readonly (readonly [number, number])[];
@@ -33,40 +33,16 @@ export interface MockupFrame {
   readonly bands: MockupBandStates;
 }
 
-/** The shore band's coast in metres (`shore/shore-coast.ts`): the kelp band and the forest test build it per frame. */
-export interface MockupCoast {
-  build(view: { readonly halfWidthM: number; readonly halfHeightM: number; readonly pixelsPerMetre: number }): void;
-  distance(x: number, y: number, maxM: number): number;
-  readonly rings: readonly { readonly points: readonly number[] }[];
-  readonly marginM: number;
-}
-
-/** A tile the shore band has baked (`shore/shore-tiles.ts`): the kelp and slime bands draw from it. */
-export interface MockupTile {
-  readonly canvas: CanvasImageSource & { readonly width: number; readonly height: number };
-  readonly averageColour: string;
-}
-
-export interface MockupTiles {
-  /** The tile, or `null` while it bakes (it then jumps the shore's queue). */
-  get(name: string): MockupTile | null;
-}
-
 export interface MockupBandsInput {
-  readonly coast: MockupCoast;
-  readonly tiles: MockupTiles;
   /** The dive's clock in milliseconds: the bake pump's budget is measured on it. */
   readonly nowMs: () => number;
 }
 
 export interface MockupBands {
-  /** The one canvas the bands draw on (kept for the page), right over the shore band's. */
+  /** The one canvas the slime draws on (kept for the page), beside the dive's Pixi canvas. */
   readonly canvas: HTMLCanvasElement;
-  /**
-   * Draws the frame; `true` when the planet (`dive-planet-band.ts`) shows: the canvas is then left clear for it, and
-   * the shore band (`shore/dive-shore-band.ts`, under this canvas) leaves its forest to it.
-   */
-  draw(frame: MockupFrame): boolean;
+  /** Draws the frame: clear round the slime while the drop shows under it (on the Pixi canvas), on the dark after. */
+  draw(frame: MockupFrame): void;
   /** Runs the texture bakes for about `budgetMs`; `true` when one finished, so a still view draws once more. */
   pumpBakes(budgetMs: number): boolean;
   readonly isBaked: boolean;

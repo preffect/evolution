@@ -1,7 +1,7 @@
 // The shore band inside the dive (docs/rendering/opening-dive.md §4, ticket #801): the session, its upper layers, the
 // shore band, its levels and its quad together, over the fake Pixi app and recording canvases (quick stand-in tiles,
 // the real levels). What is checked is what the band table and the camera hand the shore, what reaches its quad, and
-// that it draws on the dive's one Pixi app, under the kelp's canvas.
+// that it draws on the dive's one Pixi app, under the kelp's meshes and the mockup's canvas.
 
 import { ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
@@ -13,7 +13,11 @@ import {
   startedDiveSession,
 } from '../../../../../testing/dive-session-harness';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
-import { QUICK_TILE_BAKES, TEST_SHORE_LAND } from '../../../../../testing/shore-paint-builder';
+import {
+  QUICK_TILE_BAKES,
+  SHORE_INTEGRATION_TEST_TIMEOUT_MS,
+  TEST_SHORE_LAND,
+} from '../../../../../testing/shore-paint-builder';
 import { DiveShoreBand } from './dive-shore-band';
 import { shoreLevelZoom } from './shore-lod';
 import { SHORE_SHADER, SHORE_UNIFORM_GROUP } from './shore-shader-names';
@@ -61,12 +65,12 @@ function uniforms(band: DiveShoreBand): Record<string, unknown> {
 
 const opacityOf = (canvas: HTMLCanvasElement): number => Number(canvas.style.opacity);
 
-describe('the shore band in the dive', () => {
-  it('draws on the dive’s one Pixi app, over the planet, with the kelp’s canvas over it', async () => {
+describe('the shore band in the dive', { timeout: SHORE_INTEGRATION_TEST_TIMEOUT_MS }, () => {
+  it('draws on the dive’s one Pixi app, over the planet and under the kelp, with the mockup’s canvas over it', async () => {
     const { subject, app, apps, band, mockup, dependencies, settleAt } = await openedDive();
     expect(apps).toHaveLength(1);
-    expect(app.stage.children.at(-1)).toBe(band.view);
-    // below the planet's band: the shore alone keeps the game's canvas up, under the kelp's
+    expect(app.stage.children.at(-2)).toBe(band.view);
+    // below the planet's band the game's canvas stays up, under the mockup's
     settleAt(0);
     expect(band.view.visible).toBe(true);
     expect(opacityOf(app.canvas)).toBe(1);

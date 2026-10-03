@@ -106,6 +106,12 @@ export function testShorePaint(zoom: number, view?: ShoreView): TestShorePaint {
  */
 export const SHORE_TILE_BAKE_TEST_TIMEOUT_MS = 30_000;
 
+/**
+ * Time allowed for each test of the shore band inside the dive (`dive-shore.integration.spec.ts`): its first draws
+ * the real levels through the session and took 4.9 s on a loaded box, a hair under vitest's 5 s default.
+ */
+export const SHORE_INTEGRATION_TEST_TIMEOUT_MS = 30_000;
+
 /** Every tile's bake as a quick stand-in: one step, then a small recording canvas. */
 export const QUICK_TILE_BAKES = Object.fromEntries(
   SHORE_TILE_NAMES.map((name) => [

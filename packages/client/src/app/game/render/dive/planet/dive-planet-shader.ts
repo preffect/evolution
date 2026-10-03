@@ -91,14 +91,16 @@ const vec3 TERMINATOR_GLOW = vec3(.3, .13, .05);
 `;
 
 /** A texel's signed distance in texels (+ on land): the finest of its three channels that has not saturated. */
-const SIGNED_DISTANCE = /* glsl */ `
+export const DIVE_TEXELS_OF_SOURCE = /* glsl */ `
 float texelsOf(vec4 texel) {
   float red = (texel.r * ${glslFloat(CHANNEL_MAX)} - ${glslFloat(DIVE_SDF_ZERO_LEVEL)}) / ${glslFloat(DIVE_SDF_LEVELS_PER_TEXEL.red)};
   float green = (texel.g * ${glslFloat(CHANNEL_MAX)} - ${glslFloat(DIVE_SDF_ZERO_LEVEL)}) / ${glslFloat(DIVE_SDF_LEVELS_PER_TEXEL.green)};
   float blue = (texel.b * ${glslFloat(CHANNEL_MAX)} - ${glslFloat(DIVE_SDF_ZERO_LEVEL)}) / ${glslFloat(DIVE_SDF_LEVELS_PER_TEXEL.blue)};
   return abs(red) < ${glslFloat(DIVE_SDF_TRUSTED_TEXELS.red)} ? red : abs(green) < ${glslFloat(DIVE_SDF_TRUSTED_TEXELS.green)} ? green : blue;
 }
+`;
 
+const SIGNED_DISTANCE = /* glsl */ `${DIVE_TEXELS_OF_SOURCE}
 /** The world's distance to the coast in metres: its quick bake rising into its full one. */
 float worldMetres(vec2 uv) {
   float preview = ${UNIFORM.worldFineWeight} >= 1. ? 0. : texelsOf(texture(${UNIFORM.worldPreviewSdf}, uv)) * ${UNIFORM.worldPreviewTexelMetres};

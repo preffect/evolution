@@ -247,3 +247,10 @@ export const SHORE_LEVEL_CACHE = { ahead: 5, anchor: 0, standInSteps: 2 } as con
  * resolution in place once every level wanted has its draft: a fall waits only on drafts.
  */
 export const SHORE_LEVEL_DRAFT_SCALE = 0.5;
+
+/**
+ * The planet's forest test (the mockup's `glOn` in `drawFrame`): below `belowZoom` the planet's forest shows under the
+ * shore only where some of the view lies past the rock band, measured at the view's corners, edges' middles and
+ * centre to `reachBands` bands plus half the view, more than `insetM` short of the band's top.
+ */
+export const SHORE_FOREST_TEST = { belowZoom: 3, reachBands: 3, insetM: 2 } as const;

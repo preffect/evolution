@@ -9,6 +9,9 @@ import { HALF } from '../../geometry';
 import type { ShoreContext2D } from './shore-canvas';
 import { coordinateHash } from './shore-noise';
 
+/** The path calls a blob's outline is drawn with: a canvas, or a recorder that samples the outline. */
+export type BlobPathContext = Pick<ShoreContext2D, 'beginPath' | 'moveTo' | 'quadraticCurveTo' | 'closePath'>;
+
 /** A blob's place: its centre, radius, seed and vertical squash. */
 export interface BlobPlace {
   readonly x: number;
@@ -19,7 +22,7 @@ export interface BlobPlace {
 }
 
 /** The smooth closed path through `points` (quadratic curves through their midpoints). */
-function smoothClosedPath(context: ShoreContext2D, points: readonly (readonly [number, number])[]): void {
+function smoothClosedPath(context: BlobPathContext, points: readonly (readonly [number, number])[]): void {
   context.beginPath();
   const count = points.length;
   for (let index = 0; index < count; index += 1) {
@@ -38,7 +41,7 @@ function smoothClosedPath(context: ShoreContext2D, points: readonly (readonly [n
 
 /** A blob of `count` points round its centre, each `radiusShare(index)` of its radius out, squashed on y. */
 function blobPath(
-  context: ShoreContext2D,
+  context: BlobPathContext,
   place: BlobPlace,
   outline: { readonly count: number; readonly radiusShare: (index: number) => number },
 ): void {
@@ -51,7 +54,7 @@ function blobPath(
 }
 
 /** A tide pool's outline (`poolShape`). */
-export function poolPath(context: ShoreContext2D, place: BlobPlace): void {
+export function poolPath(context: BlobPathContext, place: BlobPlace): void {
   const shape = SHORE_POOL_SHAPE;
   blobPath(context, place, {
     count: shape.points,
@@ -60,7 +63,7 @@ export function poolPath(context: ShoreContext2D, place: BlobPlace): void {
 }
 
 /** A stone's outline: lobes two points wide and a little wobble (`rockPath`). */
-export function rockPath(context: ShoreContext2D, place: BlobPlace): void {
+export function rockPath(context: BlobPathContext, place: BlobPlace): void {
   const shape = SHORE_ROCK_SHAPE;
   blobPath(context, place, {
     count: shape.points,
