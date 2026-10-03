@@ -79,13 +79,14 @@ describe('DiveSession’s planet', () => {
     subject.destroy();
   });
 
-  it('draws neither the planet nor the dish between them, where the mockup’s canvas covers the view', async () => {
+  it('draws neither the planet nor the dish between them, past the shore, where the mockup’s canvas covers the view', async () => {
     const { subject, app, bands } = await started();
     tickUntilBuilt(app, subject);
-    subject.controls.scrub(-0.3);
+    // From 1.35 to −1.42 the shore keeps the game's canvas up (ticket #801); past it the drop is the mockup's alone.
+    subject.controls.scrub(-2);
     const [rendered, planetDraws] = [app.renderCalls.count, app.textureRenders.length];
     app.tick();
-    expect(bands.frames.at(-1)!.zoom).toBe(-0.3);
+    expect(bands.frames.at(-1)!.zoom).toBe(-2);
     expect(app.textureRenders.length).toBe(planetDraws);
     expect(app.renderCalls.count).toBe(rendered);
     expect(opacityOf(app)).toBe(0);

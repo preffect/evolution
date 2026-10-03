@@ -20,11 +20,12 @@ describe('DiveFrameTimes', () => {
     for (const upperMs of [4, 6]) {
       times.measureUpperBands(spend(upperMs));
       times.measurePlanet(spend(1));
+      times.measureShore(spend(3));
       times.measureSubmit(spend(2));
       times.endFrame();
     }
-    expect(times.take()).toEqual({ frames: 2, upperBandsMs: 5, planetMs: 1, dishMs: 0, submitMs: 2 });
-    expect(times.take()).toEqual({ frames: 0, upperBandsMs: 0, planetMs: 0, dishMs: 0, submitMs: 0 });
+    expect(times.take()).toEqual({ frames: 2, upperBandsMs: 5, planetMs: 1, shoreMs: 3, dishMs: 0, submitMs: 2 });
+    expect(times.take()).toEqual({ frames: 0, upperBandsMs: 0, planetMs: 0, shoreMs: 0, dishMs: 0, submitMs: 0 });
   });
 
   it('charges a submit inside the dish’s frame to the submit, not to the dish', () => {

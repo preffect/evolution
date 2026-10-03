@@ -42,8 +42,9 @@ async function opened(): Promise<{
       scheduler: new ManualScheduler(),
       devicePixelRatio: 1,
       createPixiApp: () => {
-        app = createFakePixiApp({ width: 1200, height: 675 });
-        return Promise.resolve(app);
+        const made = createFakePixiApp({ width: 1200, height: 675 });
+        app ??= made;
+        return Promise.resolve(made);
       },
       loadUpperBands: () => Promise.resolve(fakeUpperBands(bands())),
       noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,

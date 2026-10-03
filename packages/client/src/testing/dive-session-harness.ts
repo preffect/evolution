@@ -1,19 +1,20 @@
-// The dive session's spec harness (docs/rendering/opening-dive.md §7): a `DiveSession` over the fake Pixi app, a
-// recording stand-in for the mockup's upper bands and a planet whose coastline bakes are one texel each, on a manual
-// clock and scheduler, for the session's specs.
+// The dive session's spec harness (docs/rendering/opening-dive.md §7): a `DiveSession` over fake Pixi apps (the game's
+// first, then the shore's), a recording stand-in for the mockup's upper bands, a planet whose coastline bakes are one
+// texel each and a recording shore band, on a manual clock and scheduler, for the session's specs.
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import type { Geometry, Mesh, Shader, UniformGroup } from 'pixi.js';
 import { expect } from 'vitest';
 import { DiveSession, type DiveSessionDependencies } from '../app/game/render/dive/dive-session';
 import type { DiveView } from '../app/game/render/dive/dive-view';
-import type { DiveUpperBands } from '../app/game/render/dive/dive-macro-band';
+import type { DiveUpperBands, ShoreBandMaker } from '../app/game/render/dive/dive-macro-band';
 import type { DivePlanetSource } from '../app/game/render/dive/dive-planet-band';
 import type { MockupBands, MockupFrame } from '../app/game/render/dive/mockup/dive-mockup-bands';
 import type { DivePlanetBake, DivePlanetBakeJob } from '../app/game/render/dive/planet/dive-planet-bakes';
 import { DIVE_PLANET_UNIFORM_GROUP } from '../app/game/render/dive/planet/dive-planet-shader';
 import { DIVE_PLANET_OPEN_SEA_TEXEL } from '../app/game/render/constants';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from './fake-pixi-app';
+import { fakeShoreMaker, type FakeShoreMaker } from './fake-shore-band';
 
 export interface FakeDiveBands extends MockupBands {
   readonly frames: MockupFrame[];
@@ -82,15 +83,20 @@ function runToEnd(job: DivePlanetBakeJob): DivePlanetBake {
   for (let step = job.next(); ; step = job.next()) if (step.done === true) return step.value;
 }
 
-/** What the lazy chunk would give the session: `mockup`, and a planet of one-texel bakes. */
-export function fakeUpperBands(mockup: MockupBands = fakeDiveBands(), planet = fakePlanetSource()): DiveUpperBands {
-  return { mockup, planet };
+/** What the lazy chunks would give the session: `mockup`, a planet of one-texel bakes and a recording shore. */
+export function fakeUpperBands(
+  mockup: MockupBands = fakeDiveBands(),
+  planet = fakePlanetSource(),
+  shore: ShoreBandMaker = fakeShoreMaker(),
+): DiveUpperBands {
+  return { mockup, planet, shore };
 }
 
 export interface DiveSessionHarness {
   readonly subject: DiveSession;
   readonly clock: ManualClock;
   readonly bands: FakeDiveBands;
+  readonly shore: FakeShoreMaker;
   readonly apps: FakePixiApp[];
   readonly views: DiveView[];
   readonly motion: { isReduced: boolean };
@@ -100,6 +106,7 @@ export interface DiveSessionHarness {
 export function diveSessionHarness(overrides: Partial<DiveSessionDependencies> = {}): DiveSessionHarness {
   const clock = new ManualClock(0);
   const bands = fakeDiveBands();
+  const shore = fakeShoreMaker();
   const apps: FakePixiApp[] = [];
   const views: DiveView[] = [];
   const motion = { isReduced: false };
@@ -113,14 +120,14 @@ export function diveSessionHarness(overrides: Partial<DiveSessionDependencies> =
       apps.push(app);
       return Promise.resolve(app);
     },
-    loadUpperBands: () => Promise.resolve(fakeUpperBands(bands)),
+    loadUpperBands: () => Promise.resolve(fakeUpperBands(bands, fakePlanetSource(), shore)),
     balance: () => DEFAULT_BALANCE,
     isMotionReduced: () => motion.isReduced,
     onView: (view) => views.push(view),
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     ...overrides,
   };
-  return { subject: new DiveSession(dependencies), clock, bands, apps, views, motion, dependencies };
+  return { subject: new DiveSession(dependencies), clock, bands, shore, apps, views, motion, dependencies };
 }
 
 /** Ticks until the staged renderer is current: one bake per frame (ticket #479). */

@@ -3,6 +3,8 @@
 // spec drives it with plain numbers. One clock drives the zoom; the ambient motion is the session's.
 
 import {
+  DIVE_EASE_INVERSE_STEPS,
+  DIVE_FLOOR_EASE,
   DIVE_MS_PER_ZOOM_STEP,
   DIVE_PHASE_STOPS,
   DIVE_PLAY_HOLD_MS,
@@ -26,6 +28,18 @@ export function diveEase(unit: number): number {
   return 1 - Math.pow(CUBIC_OUT_SCALE - CUBIC_OUT_SCALE * clamped, CUBIC) / CUBIC_OUT_SCALE;
 }
 
+/** The unit at which `diveEase` reaches `eased` (in [0, 1]): the ease rises, so halving the interval finds it. */
+export function inverseDiveEase(eased: number): number {
+  let low = 0;
+  let high = 1;
+  for (let step = 0; step < DIVE_EASE_INVERSE_STEPS; step += 1) {
+    const middle = (low + high) * HALF;
+    if (diveEase(middle) < eased) low = middle;
+    else high = middle;
+  }
+  return (low + high) * HALF;
+}
+
 /** How long a phase's opening falls for, after the hold: `DIVE_MS_PER_ZOOM_STEP` per power of ten. */
 export function diveFallMs(stop: DivePhaseStop): number {
   return (DIVE_ZOOM_TOP - stop.zoom) * DIVE_MS_PER_ZOOM_STEP;
@@ -40,6 +54,8 @@ interface DivePlay {
 
 export class DiveControls {
   private zoomValue = DIVE_ZOOM_TOP;
+  /** When `tick` last ran: a wait at the floor moves the play on by the time since. */
+  private lastTickMs = 0;
   private play: DivePlay | null = null;
   private arrivedStop: DivePhaseStop | null = null;
   /** When phase 1's opening plays on its own; `null` once it has, or once the reader took the controls. */
@@ -75,6 +91,7 @@ export class DiveControls {
       return;
     }
     this.zoomValue = DIVE_ZOOM_TOP;
+    this.lastTickMs = nowMs;
     this.play = { stop, startedAtMs: nowMs, pausedAtMs: null };
   }
 
@@ -87,6 +104,7 @@ export class DiveControls {
       return;
     }
     this.play = { ...play, startedAtMs: play.startedAtMs + (nowMs - play.pausedAtMs), pausedAtMs: null };
+    this.lastTickMs = nowMs;
   }
 
   /** Space or Esc: a playing opening jumps to its stop. A paused one is left alone, as is a still dive. */
@@ -104,14 +122,39 @@ export class DiveControls {
     this.zoomValue = clampDiveZoom(zoom);
   }
 
-  /** Advances a playing opening to `nowMs` and answers the zoom to draw. */
-  tick(nowMs: number): number {
+  /**
+   * Advances a playing opening to `nowMs` and answers the zoom to draw. A play never goes down to `floorZoom` (a band
+   * still baking what lies there, `ShoreLevels.fallFloorZoom`): near it, it eases toward it (`DIVE_FLOOR_EASE`), and
+   * its clock is set to the zoom it shows, so once the floor drops it goes on from there, at the ease's own pace.
+   */
+  tick(nowMs: number, floorZoom: number = Number.NEGATIVE_INFINITY): number {
     const play = this.play;
     if (play === null || play.pausedAtMs !== null) return this.zoomValue;
+    const natural = this.zoomAt(play, nowMs);
+    const lowest = this.lowestAbove(floorZoom, nowMs - this.lastTickMs);
+    this.lastTickMs = nowMs;
+    if (natural >= lowest) {
+      this.zoomValue = natural;
+      if (natural === play.stop.zoom) this.arrive(play.stop);
+      return natural;
+    }
+    this.zoomValue = lowest;
+    const unit = inverseDiveEase((lowest - DIVE_ZOOM_TOP) / (play.stop.zoom - DIVE_ZOOM_TOP));
+    this.play = { ...play, startedAtMs: nowMs - DIVE_PLAY_HOLD_MS - unit * diveFallMs(play.stop) };
+    return lowest;
+  }
+
+  /** The lowest zoom this frame may reach above `floorZoom`, `elapsedMs` after the last; −∞ with no floor in the way. */
+  private lowestAbove(floorZoom: number, elapsedMs: number): number {
+    if (floorZoom === Number.NEGATIVE_INFINITY || this.zoomValue <= floorZoom) return Number.NEGATIVE_INFINITY;
+    const gap = this.zoomValue - floorZoom;
+    const eased = gap * Math.exp(-elapsedMs / DIVE_FLOOR_EASE.timeConstantMs);
+    return floorZoom + Math.min(gap, Math.max(DIVE_FLOOR_EASE.minGapZoom, eased));
+  }
+
+  private zoomAt(play: DivePlay, nowMs: number): number {
     const unit = clamp01((nowMs - play.startedAtMs - DIVE_PLAY_HOLD_MS) / diveFallMs(play.stop));
-    this.zoomValue = DIVE_ZOOM_TOP + (play.stop.zoom - DIVE_ZOOM_TOP) * diveEase(unit);
-    if (unit >= 1) this.arrive(play.stop);
-    return this.zoomValue;
+    return unit >= 1 ? play.stop.zoom : DIVE_ZOOM_TOP + (play.stop.zoom - DIVE_ZOOM_TOP) * diveEase(unit);
   }
 
   /** The lobby plays phase 1's opening on its own at `atMs`, unless the reader moves first. */

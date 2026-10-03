@@ -2,24 +2,48 @@
 // (`mockup/dive-mockup-bands.js`) on its own canvas beside the Pixi canvas, which clears to transparent. The browser
 // composites the two. Uploading the canvas as a Pixi texture every frame (a readback of it) was built first and
 // dropped: the bands' drawing then took 1,498 ms a frame at zoom 3.3, against 16 ms on a canvas of their own (§6).
-// While the planet shows (it is the game's, on the Pixi canvas: `dive-planet-band.ts`) this canvas lies over the Pixi
-// canvas, so the shore draws over the planet; otherwise under it, so the game's dish draws over the slime.
-// The module, the planet's bakes and the coastlines load with the dive — a separate chunk and two JSON files — never
-// with the game.
+// While the planet or the shore shows (both the game's, on the Pixi canvas: `dive-planet-band.ts`,
+// `shore/dive-shore-band.ts`) this canvas lies over the Pixi canvas, so the kelp draws over them; otherwise under it,
+// so the game's dish draws over the slime. The modules, the planet's bakes and the coastlines load with the dive — separate chunks and two JSON
+// files — never with the game.
 
+import type { Scheduler } from '@evolution/shared';
+import type { Container } from 'pixi.js';
 import { DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL } from '../constants';
 import type { DiveBaker } from './dive-bake-pump';
 import type { DivePlanetKeptBakes, DivePlanetSource } from './dive-planet-band';
+import type { DiveView } from './dive-view';
 import type { MockupBands, MockupFrame } from './mockup/dive-mockup-bands';
 import type { DiveCoastRing } from './planet/dive-planet-bakes';
+import type { RenderToTexture } from './planet/dive-planet-mesh';
 
-/** What the dive's lazy chunk gives the session: the mockup's bands and the planet's coastline bakes. */
+/** The shore band as the stage drives it (`shore/dive-shore-band.ts`); a spec gives a recording one. */
+export interface ShoreBandHandle {
+  /** Its quad, which goes on the dive's stage over the planet. */
+  readonly view: Container;
+  /** Its tiles and its top level have baked. */
+  readonly isReady: boolean;
+  /** The zoom a fall must wait above until the levels below it have a stand-in (`ShoreLevels.fallFloorZoom`). */
+  readonly fallFloorZoom: number;
+  bakeOn(scheduler: Scheduler, nowMs: () => number, onBaked: () => void): void;
+  /** Sets the quad up for this frame; answers whether it shows. */
+  draw(view: DiveView, isForestShown: boolean): boolean;
+  destroy(): void;
+}
+
+/** What makes the shore band (`shore/shore-module.ts`'s parts); it warms its shader up through `renderToTexture`. */
+export interface ShoreBandMaker {
+  createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): ShoreBandHandle;
+}
+
+/** What the dive's lazy chunks give the session: the mockup's bands, the planet's coastline bakes and the shore. */
 export interface DiveUpperBands {
   readonly mockup: MockupBands;
   readonly planet: DivePlanetSource;
+  readonly shore: ShoreBandMaker;
 }
 
-/** Fetches the mockup's module, the planet's bakes and the coastlines they draw from; the bands run on the dive's clock. */
+/** Fetches the modules, the planet's bakes and the coastlines they draw from; the bands run on the dive's clock. */
 export type DiveUpperBandsLoader = (nowMs: () => number) => Promise<DiveUpperBands>;
 
 /** `fetch` as the loader needs it: a spec passes its own. */
@@ -33,26 +57,30 @@ async function fetchRings(fetchJson: JsonFetch, url: string): Promise<readonly D
 
 /**
  * The loader over `fetchJson`: the chunks and the two files in parallel. The planet's finished bakes are kept with the
- * loader, which lives for the page, so a return to the lobby does not bake them again.
+ * loader, which lives for the page, so a return to the lobby does not bake them again; the shore's coast and tiles go
+ * to the mockup, whose kelp still draws with them.
  */
-export function diveUpperBandsLoader(fetchJson: JsonFetch): DiveUpperBandsLoader {
+export function diveUpperBandsLoader(fetchJson: JsonFetch, documentReference: Document): DiveUpperBandsLoader {
   const kept: DivePlanetKeptBakes = new Map();
   return async (nowMs) => {
-    const [mockupModule, planetModule, worldRings, salishRings] = await Promise.all([
+    const [mockupModule, planetModule, shoreModule, worldRings, salishRings] = await Promise.all([
       import('./mockup/dive-mockup-bands.js'),
       import('./planet/dive-planet-bakes'),
+      import('./shore/shore-module'),
       fetchRings(fetchJson, DIVE_WORLD_RINGS_URL),
       fetchRings(fetchJson, DIVE_SALISH_RINGS_URL),
     ]);
+    const shore = shoreModule.createShoreParts(salishRings, documentReference);
     return {
-      mockup: mockupModule.createMockupBands({ salishRings, nowMs }),
+      mockup: mockupModule.createMockupBands({ nowMs, coast: shore.coast, tiles: shore.mockupTiles }),
       planet: { plan: planetModule.createDivePlanetBakePlan(worldRings, salishRings), kept },
+      shore,
     };
   };
 }
 
-/** The real loader, over the page's `fetch`. */
-export const loadDiveUpperBands: DiveUpperBandsLoader = diveUpperBandsLoader((url) => fetch(url));
+/** The real loader, over the page's `fetch` and document. */
+export const loadDiveUpperBands: DiveUpperBandsLoader = diveUpperBandsLoader((url) => fetch(url), document);
 
 export class DiveMacroBand implements DiveBaker {
   private isOverGame = false;
@@ -84,7 +112,7 @@ export class DiveMacroBand implements DiveBaker {
     return isDrawing ? this.bands.draw(frame) : frame.bands.planet.isActive;
   }
 
-  /** Lays the canvas over the game's (the planet shows under it) or under it (the game's dish over the slime). */
+  /** Lays the canvas over the game's (the planet or the shore shows under it) or under it (the dish over the slime). */
   stackOverGame(isOverGame: boolean): void {
     if (isOverGame === this.isOverGame) return;
     this.isOverGame = isOverGame;

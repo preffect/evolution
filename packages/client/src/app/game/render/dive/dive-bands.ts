@@ -20,7 +20,7 @@ import {
 import { smoothstep } from '../geometry';
 import { diveViewReachM, type DiveCamera } from './dive-camera';
 
-/** The bands, top to bottom. The planet and the dish are drawn on the game's Pixi app; the rest are the mockup's for now. */
+/** The bands, top to bottom. The planet, the shore and the dish are the game's own; the rest are the mockup's for now. */
 export const DIVE_BAND = {
   planet: 'planet',
   shore: 'shore',
@@ -32,9 +32,9 @@ export const DIVE_BAND = {
 export type DiveBandName = (typeof DIVE_BAND)[keyof typeof DIVE_BAND];
 export const DIVE_BAND_NAMES: readonly DiveBandName[] = Object.values(DIVE_BAND);
 
-/** The bands the mockup's canvas draws; the planet and the dish are the game's. */
+/** The bands the mockup's canvas draws; the planet, the shore (ticket #801) and the dish are the game's. */
 export const DIVE_MOCKUP_BAND_NAMES: readonly DiveBandName[] = DIVE_BAND_NAMES.filter(
-  (name) => name !== DIVE_BAND.planet && name !== DIVE_BAND.dish,
+  (name) => name !== DIVE_BAND.planet && name !== DIVE_BAND.shore && name !== DIVE_BAND.dish,
 );
 
 export interface DiveBandState {

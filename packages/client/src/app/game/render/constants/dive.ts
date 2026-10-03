@@ -49,6 +49,14 @@ export const DIVE_GLOBE_CROSSFADE_MS = 300;
 export const DIVE_PLAY_HOLD_MS = 700;
 /** One power of ten takes this long on the way down (`dur = (Z_TOP − stop) × 900`). */
 export const DIVE_MS_PER_ZOOM_STEP = 900;
+/**
+ * How a play slows toward a floor it must not pass (a band still baking what lies there, `DiveControls.tick`): the gap
+ * to the floor shrinks by e^(−Δt / `timeConstantMs`) a frame, so the fall eases in rather than stopping dead, never
+ * closer than `minGapZoom`, and whatever the frame rate it is as near the floor as it may be.
+ */
+export const DIVE_FLOOR_EASE = { timeConstantMs: 120, minGapZoom: 1e-4 } as const;
+/** Halvings the ease's inverse takes: 2^−40 of the fall, far under a pixel. */
+export const DIVE_EASE_INVERSE_STEPS = 40;
 /** The lobby plays phase 1's opening on its own this long after it first draws, unless motion is reduced. */
 export const DIVE_AUTOPLAY_DELAY_MS = 900;
 

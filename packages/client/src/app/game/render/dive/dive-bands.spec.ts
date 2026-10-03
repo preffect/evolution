@@ -11,6 +11,7 @@ import {
   bandWeight,
   diveBandStates,
   isMockupDrawing,
+  DIVE_MOCKUP_BAND_NAMES,
 } from './dive-bands';
 import { diveCameraAt } from './dive-camera';
 
@@ -89,6 +90,10 @@ describe('diveBandStates', () => {
     expect(diveBandStates(tiny).dish.isActive).toBe(false);
   });
 
+  it('leaves the planet and the shore out of the mockup’s canvas: the game draws them (tickets #800, #801)', () => {
+    expect(DIVE_MOCKUP_BAND_NAMES).toEqual(['kelp', 'drop', 'slime']);
+  });
+
   it('stops the slime, and with it the mockup’s whole canvas, once the view lies inside the dish', () => {
     expect(statesAt(-4.3).slime.isActive).toBe(true);
     expect(isMockupDrawing(statesAt(-4.3))).toBe(true);
@@ -102,6 +107,7 @@ describe('diveBandStates', () => {
     const orbit = statesAt(5);
     expect(orbit.planet.isActive).toBe(true);
     expect(isMockupDrawing(orbit)).toBe(false);
-    expect(isMockupDrawing(statesAt(4.6))).toBe(true);
+    expect(isMockupDrawing(statesAt(4.6))).toBe(false);
+    expect(isMockupDrawing(statesAt(2))).toBe(true);
   });
 });
