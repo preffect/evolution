@@ -79,14 +79,14 @@ Each band draws in its own metres round the focus. It fades in over its window o
 once the view has passed it. `render/dive/dive-bands.ts` turns a camera into every band's `{ weight, isActive }`.
 That table is the one place the windows live: the mockup's canvas and the game's renderer both read it.
 
-| Band   | Fades in (zoom) | Stops drawing            | Drawn by                                        |
-| ------ | --------------- | ------------------------ | ----------------------------------------------- |
-| planet | always 1        | at or below 1.35         | **the game's Pixi app**: the planet shader      |
-| shore  | 4.85 → 4.4      | at or below −1.42        | **the game's shore band** (§4, ticket #801)     |
-| kelp   | 2.4 → 2.1       | at or below −1.42        | **the game's kelp band** (§4, ticket #802)      |
-| drop   | 0.35 → 0.05     | at or below −2.96        | **the game's kelp band**: beads, drop, blade    |
-| slime  | −1.95 → −2.35   | once the view is in dish | mockup: inside the drop, round the dish         |
-| dish   | −3.7 → −4.22    | while dish radius < 2 px | **the game's renderer**                         |
+| Band   | Fades in (zoom) | Stops drawing            | Drawn by                                     |
+| ------ | --------------- | ------------------------ | -------------------------------------------- |
+| planet | always 1        | at or below 1.35         | **the game's Pixi app**: the planet shader   |
+| shore  | 4.85 → 4.4      | at or below −1.42        | **the game's shore band** (§4, ticket #801)  |
+| kelp   | 2.4 → 2.1       | at or below −1.42        | **the game's kelp band** (§4, ticket #802)   |
+| drop   | 0.35 → 0.05     | at or below −2.96        | **the game's kelp band**: beads, drop, blade |
+| slime  | −1.95 → −2.35   | once the view is in dish | mockup: inside the drop, round the dish      |
+| dish   | −3.7 → −4.22    | while dish radius < 2 px | **the game's renderer**                      |
 
 - **The dish band:** it is the dark field arriving. While it fades in, the game canvas's CSS opacity is its weight,
   so the browser composites the fade as a group alpha. Above the band the opacity is 0 and the renderer does no
