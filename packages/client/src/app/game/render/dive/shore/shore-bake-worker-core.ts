@@ -3,7 +3,7 @@
 // a newer level asked for replaces the one under way. `shore-bake.worker.ts` gives it the worker's canvases and
 // messaging; a spec gives it fakes. Nothing here holds a frame up, so a step needs no budget.
 
-import { rasterise, type ShoreCanvas, type ShoreCanvasFactory, type ShoreImage } from './shore-canvas';
+import type { ShoreCanvas, ShoreCanvasFactory, ShoreImage } from './shore-canvas';
 import {
   SHORE_BAKE_MESSAGE,
   snapshotTransfers,
@@ -59,11 +59,7 @@ export class ShoreBakeWorkerCore {
       const { factory } = this.scope;
       const tiles = new ShoreTiles(factory, this.tileBakes);
       for (const tile of command.tiles) {
-        const canvas = factory.create(tile.bitmap.width, tile.bitmap.height);
-        canvas.context.drawImage(tile.bitmap, 0, 0, canvas.width, canvas.height);
-        tile.bitmap.close();
-        rasterise(canvas);
-        tiles.adopt(tile.name, canvas, tile.averageRgba);
+        tiles.adoptBitmap(tile);
         this.sent.add(tile.name);
       }
       this.sources = { land: command.land, tiles, factory };

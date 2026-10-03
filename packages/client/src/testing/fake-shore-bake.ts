@@ -75,6 +75,26 @@ export class FakeShoreBakePort implements ShoreBakePort {
   }
 }
 
+/** A worker the page can make: it records where its script is and what it was sent. */
+export class RecordingWorker extends FakeShoreBakePort {
+  static made: RecordingWorker[] = [];
+
+  constructor(
+    readonly url: URL,
+    readonly options: WorkerOptions,
+  ) {
+    super();
+    RecordingWorker.made.push(this);
+  }
+}
+
+/** An `OffscreenCanvas` that has a 2D context, as far as the platform check asks. */
+export class TwoDimensionalCanvas {
+  getContext(): object {
+    return {};
+  }
+}
+
 /** The worker's side: recorded reports, and its turns queued until the spec runs them. */
 export interface FakeShoreBakeScope extends ShoreBakeWorkerScope {
   readonly factory: FakeShoreCanvasFactory;

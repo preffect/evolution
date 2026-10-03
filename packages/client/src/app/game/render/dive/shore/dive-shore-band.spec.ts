@@ -23,7 +23,7 @@ function band(port: FakeShoreBakePort | null = null) {
   const pixi = createFakePixiApp(VIEWPORT);
   const factory = createFakeShoreCanvasFactory();
   const tiles = new ShoreTiles(factory, QUICK_TILE_BAKES);
-  const thread = port === null ? null : new ShoreBakeThread(port, tiles, factory);
+  const thread = port === null ? null : new ShoreBakeThread(port, tiles);
   const subject = new DiveShoreBand(
     { land: TEST_SHORE_LAND, tiles, factory },
     1,

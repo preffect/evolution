@@ -5,7 +5,7 @@
 // `SHORE_BAKE_WAITING` until its level lands. Where the platform cannot bake offscreen, or the worker fails, the page
 // bakes as it did before: a failed worker hands every bake under way back to the page.
 
-import { rasterise, type ShoreCanvas, type ShoreCanvasFactory } from './shore-canvas';
+import type { ShoreCanvas } from './shore-canvas';
 import type { LandRings } from './shore-coast-rings';
 import {
   SHORE_BAKE_MESSAGE,
@@ -51,7 +51,6 @@ export class ShoreBakeThread {
   constructor(
     private readonly port: ShoreBakePort,
     private readonly tiles: ShoreTiles,
-    private readonly factory: ShoreCanvasFactory,
   ) {
     port.onmessage = (event) => this.receive(event.data);
     port.onerror = () => this.fail();
@@ -122,7 +121,7 @@ export class ShoreBakeThread {
       return;
     }
     if (report.type === SHORE_BAKE_MESSAGE.tile) {
-      this.adoptTile(report);
+      this.tiles.adoptBitmap(report);
       this.listener?.onTile();
       return;
     }
@@ -133,15 +132,6 @@ export class ShoreBakeThread {
     this.dropLanded();
     this.landed = { id: report.id, snapshot: report.snapshot };
     this.listener?.onLevel();
-  }
-
-  /** The worker's tile, copied into a page canvas: the mockup's kelp and the live sea's textures read a canvas. */
-  private adoptTile(tile: ShoreTileTransfer): void {
-    const canvas = this.factory.create(tile.bitmap.width, tile.bitmap.height);
-    canvas.context.drawImage(tile.bitmap, 0, 0, canvas.width, canvas.height);
-    tile.bitmap.close();
-    rasterise(canvas);
-    this.tiles.adopt(tile.name, canvas, tile.averageRgba);
   }
 
   private dropLanded(): void {
@@ -176,13 +166,13 @@ export function closeSnapshot(snapshot: ShoreSnapshot): void {
 /** Starts the worker for a dive, or `null` where it cannot bake offscreen and the page bakes as before. */
 export function openShoreBakeThread(
   scope: Partial<Pick<typeof globalThis, 'Worker' | 'OffscreenCanvas'>>,
-  page: { readonly land: LandRings; readonly tiles: ShoreTiles; readonly factory: ShoreCanvasFactory },
+  page: { readonly land: LandRings; readonly tiles: ShoreTiles },
   toBitmap: (canvas: ShoreCanvas) => Promise<ImageBitmap>,
 ): ShoreBakeThread | null {
   if (!canBakeShoreOffscreen(scope)) return null;
   // the builder bundles the worker from this exact form: `new Worker(new URL(…, import.meta.url))`
   const worker = new Worker(new URL('./shore-bake.worker', import.meta.url), { type: 'module' });
-  const thread = new ShoreBakeThread(worker, page.tiles, page.factory);
+  const thread = new ShoreBakeThread(worker, page.tiles);
   void thread.open(page.land, toBitmap);
   return thread;
 }

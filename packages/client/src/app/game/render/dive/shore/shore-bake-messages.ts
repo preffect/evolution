@@ -7,7 +7,7 @@ import { isShoreBitmap } from './shore-offscreen';
 import type { LandRings } from './shore-coast-rings';
 import type { ShoreView } from './shore-paint';
 import type { ShoreSnapshot } from './shore-snapshot';
-import type { ShoreTile, ShoreTileName } from './shore-tiles';
+import type { ShoreTileBitmap } from './shore-tiles';
 
 export const SHORE_BAKE_MESSAGE = {
   open: 'open',
@@ -17,12 +17,8 @@ export const SHORE_BAKE_MESSAGE = {
   failed: 'failed',
 } as const;
 
-/** A baked tile on its way: its picture and its mean colour (`ShoreTile.averageRgba`). */
-export interface ShoreTileTransfer {
-  readonly name: ShoreTileName;
-  readonly bitmap: ImageBitmap;
-  readonly averageRgba: ShoreTile['averageRgba'];
-}
+/** A baked tile on its way between the threads. */
+export type ShoreTileTransfer = ShoreTileBitmap;
 
 /** Page to worker, once: the land to draw and the tiles the page already has. */
 export interface ShoreBakeOpen {

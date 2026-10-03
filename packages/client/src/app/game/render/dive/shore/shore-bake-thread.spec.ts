@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FakeBitmap,
   FakeShoreBakePort,
+  RecordingWorker,
+  TwoDimensionalCanvas,
   fakeBitmap,
   fakeWorkerSnapshot,
   isClosed,
@@ -29,8 +31,7 @@ const VIEW = shoreLevelView(0, TEST_SHORE_STAGE, 1, 1);
 
 function thread(tiles = new ShoreTiles(createFakeShoreCanvasFactory(), QUICK_TILE_BAKES)) {
   const port = new FakeShoreBakePort();
-  const factory = createFakeShoreCanvasFactory();
-  const subject = new ShoreBakeThread(port, tiles, factory);
+  const subject = new ShoreBakeThread(port, tiles);
   const listener = { onTile: vi.fn(), onLevel: vi.fn(), onFailed: vi.fn() };
   subject.listen(listener);
   return { subject, port, tiles, listener };
@@ -157,25 +158,6 @@ describe('ShoreBakeThread', () => {
     expect(isClosed(landed.colour.image)).toBe(true);
   });
 });
-
-/** A worker the page can make: it records where its script is and what it was sent. */
-class RecordingWorker extends FakeShoreBakePort {
-  static made: RecordingWorker[] = [];
-
-  constructor(
-    readonly url: URL,
-    readonly options: WorkerOptions,
-  ) {
-    super();
-    RecordingWorker.made.push(this);
-  }
-}
-
-class TwoDimensionalCanvas {
-  getContext(): object {
-    return {};
-  }
-}
 
 describe('openShoreBakeThread', () => {
   const page = {

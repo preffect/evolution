@@ -5,7 +5,7 @@
 
 import { SHORE_TILE_AVERAGE_STRIDE } from '../../constants/dive-shore';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS } from '../../colour';
-import type { ShoreCanvas, ShoreCanvasFactory } from './shore-canvas';
+import { rasterise, type ShoreCanvas, type ShoreCanvasFactory } from './shore-canvas';
 import { PeriodicNoise, shoreRandom } from './shore-noise';
 import { SteppedQueue, type PumpStep } from './shore-pump';
 import { bakeBarnaclesFar, bakeLowZoneFar, bakeMusselsFar, bakeRockweedFar } from './shore-tiles-far';
@@ -81,6 +81,13 @@ interface TileJob {
   readonly bake: Generator<void, ShoreCanvas>;
 }
 
+/** A tile another thread baked, on its way: its picture and its mean colour (`ShoreTile.averageRgba`). */
+export interface ShoreTileBitmap {
+  readonly name: ShoreTileName;
+  readonly bitmap: ImageBitmap;
+  readonly averageRgba: ShoreTile['averageRgba'];
+}
+
 /** Where a drawing gets its tiles: the baked one, or `null` while it bakes. */
 export interface ShoreTileSource {
   get(name: ShoreTileName): ShoreTile | null;
@@ -143,6 +150,18 @@ export class ShoreTiles extends SteppedQueue implements ShoreTileSource {
 
   private finish(name: ShoreTileName, canvas: ShoreCanvas): void {
     this.adopt(name, canvas, averageOf(canvas));
+  }
+
+  /**
+   * A tile another thread baked (the worker's on the page, the page's in a new worker): copied into a canvas of this
+   * set's factory, its bitmap closed, and adopted with its mean colour.
+   */
+  adoptBitmap(tile: ShoreTileBitmap): void {
+    const canvas = this.kit.factory.create(tile.bitmap.width, tile.bitmap.height);
+    canvas.context.drawImage(tile.bitmap, 0, 0, canvas.width, canvas.height);
+    tile.bitmap.close();
+    rasterise(canvas);
+    this.adopt(tile.name, canvas, tile.averageRgba);
   }
 
   /** A tile baked elsewhere (the worker's, or the page's posted to a new worker), with its mean colour. */

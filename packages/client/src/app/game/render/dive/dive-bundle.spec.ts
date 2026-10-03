@@ -58,6 +58,10 @@ describe('the dive’s lazy chunk', () => {
   it('starts the shore’s bake worker in the bundled form, from the shore’s chunk, and keeps Pixi and Angular out of it', () => {
     expect(readFileSync(SHORE_BAKE_THREAD, 'utf8')).toMatch(BUNDLED_WORKER);
     expect(graph.files.has(SHORE_BAKE_THREAD)).toBe(false);
+    // nothing imports the worker statically: its top level would run on the page (`self.onmessage` is the window's)
+    const shoreChunk = importGraph(join(SHORE_DIRECTORY, 'shore-module.ts'), { patterns: [STATIC_IMPORT] });
+    expect(shoreChunk.files.has(SHORE_BAKE_THREAD)).toBe(true);
+    expect(shoreChunk.files.has(SHORE_BAKE_WORKER)).toBe(false);
     const worker = importGraph(SHORE_BAKE_WORKER, { patterns: [STATIC_IMPORT] });
     expect(worker.files.has(join(SHORE_DIRECTORY, 'shore-snapshot.ts'))).toBe(true);
     for (const name of PACKAGES_NOT_IN_THE_WORKER) expect(worker.packages.has(name)).toBe(false);
