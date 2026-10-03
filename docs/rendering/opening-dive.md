@@ -31,9 +31,10 @@ controls. This file says how the client draws it. The numbers are `render/consta
   leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
   (`DIVE_BAKE_DEVICE_PIXEL_RATIO`).
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
-  `RenderSession` builds. `destroy` frees the planet's GPU objects (its quad, program, coastline textures and render
-  texture), then runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app). The dive holds one
-  WebGL context, the app's. The mockup's canvas and its baked tiles, and the planet's coastline bakes (kept by the
+  `RenderSession` builds. `destroy` frees the planet's and the shore's GPU objects (the planet's quad, program, coastline
+  textures and render texture; the shore's quad and its levels' and tiles' textures), then runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app). The dive holds one
+  WebGL context, the app's (Pixi's own probes, a lost `isWebGLSupported` one and a detached 1 × 1 precision test,
+  are there on main too). The mockup's canvas and its baked tiles, and the planet's coastline bakes (kept by the
   loader, `diveUpperBandsLoader`), stay for the page, so a return to the lobby does not bake them again.
 - **No debug hook:** the session never installs `window.__evolutionDebug`.
 
@@ -184,9 +185,20 @@ in the dive's submit, and no second WebGL context:
   within two cells of the coast), a stones mask and a per-level ramp of the shallows' colour by distance.
 - **Baking:** the tiles, then the levels, bake as generators sliced on the injected `SCHEDULER` (an 8 ms slice
   every 10 ms, from 60 ms after open), each step forcing its raster so no deferred work lands on a frame. The camera's
-  level bakes first, then three ahead the way it moves and one behind (`shore-levels.ts`); until the level in view
-  lands the nearest baked one stands in. Levels the camera left are given back at the start of the next frame, once a
-  frame has drawn without them. The levels bake at the stage's size, which the band takes from each frame's view.
+  level bakes first, then five ahead the way it moves, one behind and the widest level (the anchor, kept always)
+  (`shore-levels.ts`, `SHORE_LEVEL_CACHE`). Above the band the camera counts as at its top, so the first levels of the
+  fall bake while the planet shows. A bake is dropped only when the camera has turned away from it. Levels the camera
+  left are given back at the start of the next frame, once a frame has drawn without them. The levels bake at the
+  stage's size, which the band takes from each frame's view.
+- **Stand-ins:** until the level in view lands, the nearest _coarser_ baked level stands in, and is kept until then:
+  it covers the whole view, only softer. A finer one never does (it covers only the middle of the view; the rest
+  would show the forest under it, or black).
+- **The fall waits for its levels:** a level a bake behind costs about 450 ms close in on the evidence box, and the
+  autoplay crosses one in about 57 ms. So a play never goes down into a level with no baked level at most two coarser
+  than it (`ShoreLevels.fallFloorZoom`, through `DiveUpperLayers` to `DiveControls.tick`'s floor). It waits just
+  above, its waiting moved past like a pause, and goes on once the bake lands. Until the tiles and the anchor have
+  baked the floor is the band's top edge. A scrub and a skip do not wait: they show the nearest coarser level, softer,
+  until theirs lands.
 - **The shader** (`shore-shader-*.ts`): under the snapshot the water from the ramp, the seabed and the caustics, and
   the flat forest fill only while the planet does not show (the mockup's forest test, which `DiveMacroBand.draw`
   answers); over it the swell and
@@ -292,7 +304,8 @@ in the dive's submit, and no second WebGL context:
   slider.
 - `dive-bands.spec.ts`: the windows pinned literally, the cuts, the nesting, the crossfade, the 2 px and in-dish
   cuts.
-- `dive-controls.spec.ts`: play, hold, fall, arrive, pause re-base, skip, scrub, reduced motion.
+- `dive-controls.spec.ts`: play, hold, fall, arrive, pause re-base, skip, scrub, reduced motion; waiting above a
+  floor and going on from there, a pause not counted twice, a floor never pulling the dive back up.
 - `dive-readout.spec.ts`: `fmtLen`'s cases, the superscripts, the ladder's ends, the scale bar.
 - `dive-labels.spec.ts`: the fade, the far side of the planet, Victoria's place, the flip and the clamps, the
   readout's keep-out (408 px, then measured) and the stacking through the handoff at 1280 and 390.
@@ -308,6 +321,9 @@ in the dive's submit, and no second WebGL context:
   coast's crossfade over the quick bake, at once under reduced motion; the autoplay held until its coastlines bake.
 - `dive-bundle.spec.ts`: the mockup's module, the planet's bakes, the shore band and `d3-geo` out of every static
   import chain from `main.ts`.
+- `shore/shore-fall.spec.ts`: the autoplay's fall against bakes as slow as the evidence box's (450 ms a level), the
+  real controls and levels on one simulated main thread: every frame in the band draws its level or one at most two
+  coarser, the fall arrives, and without the wait it would not (red on the levels before the fix).
 - `render/dive/shore/*.spec.ts`: the noise against the mockup's hash bit for bit, the coast's rings and distances,
   the levels' zooms and scales, each tile's bake, the paint helpers, the near strokes and cells, the kelp beds and
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and
