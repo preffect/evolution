@@ -1,5 +1,6 @@
-// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, and
-// the loader that brings the module, the planet's bakes and the coastlines in with the dive. The real module draws on
+// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, the
+// shore's right under it (ticket #801), and the loader that brings the modules, the planet's bakes and the coastlines
+// in with the dive. The real module draws on
 // a 2D canvas jsdom has not got, so the loader is checked up to the bands it makes, and the band over a recording
 // stand-in.
 
@@ -40,30 +41,31 @@ function recordingBands(isPlanetUnder = true): MockupBands & { readonly frames: 
 const ringsFetch: JsonFetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([RING]) });
 
 describe('diveUpperBandsLoader', () => {
-  it('fetches both coastlines and makes the bands on the dive’s clock, and the planet’s bakes over them', async () => {
+  it('fetches both coastlines and makes the bands on the dive’s clock, the planet’s bakes and the shore over them', async () => {
     const fetched: string[] = [];
     const fetchJson: JsonFetch = (url) => {
       fetched.push(url);
       return ringsFetch(url);
     };
-    const { mockup, planet } = await diveUpperBandsLoader(fetchJson)(() => 0);
+    const { mockup, planet, shore } = await diveUpperBandsLoader(fetchJson, document)(() => 0);
     expect(fetched.sort()).toEqual([DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL].sort());
     expect(mockup.canvas).toBeInstanceOf(HTMLCanvasElement);
     expect(planet.plan.regionBox).toEqual({ west: -123.4, south: 48.4, east: -123.3, north: 48.5 });
+    expect(typeof shore.createBand).toBe('function');
     mockup.release();
   });
 
   it('keeps the planet’s finished bakes for the page: every open of one loader shares them', async () => {
-    const load = diveUpperBandsLoader(ringsFetch);
+    const load = diveUpperBandsLoader(ringsFetch, document);
     const first = await load(() => 0);
     const second = await load(() => 0);
     expect(second.planet.kept).toBe(first.planet.kept);
-    expect((await diveUpperBandsLoader(ringsFetch)(() => 0)).planet.kept).not.toBe(first.planet.kept);
+    expect((await diveUpperBandsLoader(ringsFetch, document)(() => 0)).planet.kept).not.toBe(first.planet.kept);
   });
 
   it('fails the open when a coastline is missing, naming it', async () => {
     const fetchJson: JsonFetch = () => Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
-    await expect(diveUpperBandsLoader(fetchJson)(() => 0)).rejects.toThrow(DIVE_WORLD_RINGS_URL);
+    await expect(diveUpperBandsLoader(fetchJson, document)(() => 0)).rejects.toThrow(DIVE_WORLD_RINGS_URL);
   });
 });
 
@@ -110,6 +112,21 @@ describe('DiveMacroBand', () => {
     band.stackOverGame(false);
     expect(host.firstElementChild).toBe(bands.canvas);
     expect(host.lastElementChild).toBe(gameCanvas);
+  });
+
+  it('keeps the shore’s canvas right under its own, over the game’s canvas and under it again', () => {
+    const host = document.createElement('div');
+    const bands = recordingBands();
+    const band = new DiveMacroBand(bands, host);
+    const gameCanvas = document.createElement('canvas');
+    const shoreCanvas = document.createElement('canvas');
+    host.append(gameCanvas, shoreCanvas);
+    band.stackShore(shoreCanvas);
+    expect([...host.children]).toEqual([shoreCanvas, bands.canvas, gameCanvas]);
+    band.stackOverGame(true);
+    expect([...host.children]).toEqual([gameCanvas, shoreCanvas, bands.canvas]);
+    band.stackOverGame(false);
+    expect([...host.children]).toEqual([shoreCanvas, bands.canvas, gameCanvas]);
   });
 
   it('bakes the mockup’s tiles through the mockup', () => {

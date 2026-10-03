@@ -18,10 +18,12 @@ const NARROW_STAGE_READOUT_SHARE = 0.6;
 /** How long the canvases have to follow a resize: a few frames. */
 const RESIZE_SETTLE_MS = 1000;
 /**
- * The slider's value for zoom 4 (`7.4 − zoom`): the shore over the planet, where both canvases draw. In orbit the
+ * The slider's value for zoom 4 (`7.4 − zoom`): the shore over the planet, where every canvas draws. In orbit the
  * upper bands' canvas is hidden (the planet on the game's canvas is all there is, ticket #800).
  */
 const SHORE_SLIDER_VALUE = '3.4';
+/** The stage's canvases: the shore band's (ticket #801), the upper bands' and the game's. */
+const STAGE_CANVASES = 3;
 
 async function boxOf(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
   const box = await locator.boundingBox();
@@ -66,11 +68,11 @@ test('at 1024×640 the readout takes at most 60% of the narrow stage', async ({ 
 test('the dive’s canvases follow its stage when the window shrinks from 1920 to 1024', async ({ page }) => {
   await page.setViewportSize(WIDE_DESKTOP);
   await page.goto('/');
-  await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas')).toHaveCount(2);
+  await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas')).toHaveCount(STAGE_CANVASES);
   await page.setViewportSize(SMALL_DESKTOP);
   await page.getByTestId(DIVE_PANEL_TEST_ID.slider).fill(SHORE_SLIDER_VALUE);
   await page.waitForTimeout(RESIZE_SETTLE_MS);
-  await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas:not([hidden])')).toHaveCount(2);
+  await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas:not([hidden])')).toHaveCount(STAGE_CANVASES);
   const stage = await boxOf(page.getByTestId(DIVE_PANEL_TEST_ID.stage));
   for (const canvas of await page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas').all()) {
     const box = await boxOf(canvas);

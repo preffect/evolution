@@ -1,7 +1,8 @@
-// The opening dive's upper bands as the mockup draws them (ticket #797, epic #795): the coast and the shore, the
-// boulder and the bull kelp, the drop, and the slime inside the drop, on one Canvas 2D canvas. The planet under them is
-// the game's since ticket #800 (`dive-planet-band.ts`, on the dive's Pixi canvas under this one): this canvas leaves
-// clear where it shows. `dive-macro-band.ts` lays the canvases.
+// The opening dive's upper bands as the mockup draws them (ticket #797, epic #795): the boulder and the bull kelp, the
+// drop, and the slime inside the drop, on one Canvas 2D canvas. The planet under them is the game's since ticket #800
+// (`dive-planet-band.ts`, on the dive's Pixi canvas) and the coast and the shore since ticket #801
+// (`shore/dive-shore-band.ts`, on a Pixi canvas of its own right under this one): this canvas leaves clear where they
+// show. `dive-macro-band.ts` lays the canvases.
 //
 // **This file is the mockup's code, not the game's.** It is the design artifact
 // (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu, src/00-core.js … 72-scene.js) made into one module: its page
@@ -11,17 +12,13 @@
 // angular.json): the follow-up tickets of epic #795 move each band onto the game's GPU renderer and delete its part of
 // this file, so it is never brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is
 // the contract. Which ticket deletes what (each section's header names its ticket too):
-//   ticket #801, the coast and shore: the coast in metres, the shore's tiles and layers, kelp beds, pools, boulders
+//   ticket #801 (done), the coast and shore: moved to `shore/`; the kelp band borrows its coast and tiles
 //   ticket #802, the kelp and drop: the boulder and the bull kelp, the spray beads and the drop's lens
 //   ticket #803, the slime: inside the drop (the kelp's cells, slime, diatoms, ciliates, the mockup's own pocket)
 // The core helpers, the tile pump and `drawFrame` go with the last of them.
 //
 // Units: world metres around the focus (x east, y south); z is log10 of the view's width in metres; T is seconds.
-import { geoOrthographic } from 'd3-geo';
-// The shore's sea depth takes the planet's distance transform (ticket #800 moved it to the game's code).
-import { distanceTransform2d as edt2d } from '../planet/signed-distance';
 
-const d3 = { geoOrthographic };
 /** The bands the dive's table says draw this frame, and how far each is faded in (`dive-bands.ts`). */
 let BANDS = null;
 /** The dive's clock (milliseconds); the bake pump reads it. */
@@ -127,7 +124,6 @@ function vnoise(x, y, k) {
   const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
   return lerp(lerp(hash(ix, iy, k), hash(ix + 1, iy, k), ux), lerp(hash(ix, iy + 1, k), hash(ix + 1, iy + 1, k), ux), uy);
 }
-function runSync(gen) { let r; do r = gen.next(); while (!r.done); return r.value; }
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
 // ---------- view state (world metres around the focus: x east, y south) ----------
@@ -159,197 +155,14 @@ function patXf(pat, tilePx, world, rot = 0, ox = 0, oy = 0) {
   return pat;
 }
 
-// ---------- geo data ----------
-let SALISH_RINGS = null, REG_BOX = null;
-// the Salish rings' extent (degrees): a segment along it is where the data was clipped, not coast
-const regionBox = () => {
-  let a = 180, b = 90, c = -180, d = -90;
-  for (const r of SALISH_RINGS) for (const [x, y] of r) { a = Math.min(a, x); b = Math.min(b, y); c = Math.max(c, x); d = Math.max(d, y); }
-  return [a, b, c, d];
-};
-function initGeo(salishRings) { SALISH_RINGS = salishRings; REG_BOX = regionBox(); }
-
-// ---------- the coast in metres (z 4.85 → -1.4; ticket #801) ----------
-// The Salish rings in plane metres around the focus (the same orthographic projection the globe uses, so the handoff
-// lines up). Below the data's resolution the coast is refined by deterministic midpoint displacement: each child's
-// offset comes from its parent's hash, never from the zoom, so the same infinite coastline appears at every scale
-// and the focus vertex (CENTER is a vertex of the data) stays on the waterline.
-const lproj = d3.geoOrthographic().rotate([-CENTER[0], -CENTER[1]]).scale(R_EARTH).translate([0, 0]).clipAngle(90);
-const COAST_AMP = .27, COAST_AMP_FOCUS = .1;
-let LRINGS = null, LAND_SIDE = 1;
-const landRings = () => {
-  const out = [];
-  SALISH_RINGS.forEach((r, ri) => {
-    const pts = [];
-    for (const p of r) {
-      const q = lproj(p); if (!q) continue;
-      const x = Math.abs(q[0]) < 1e-6 ? 0 : q[0], y = Math.abs(q[1]) < 1e-6 ? 0 : q[1];
-      const n = pts.length; if (n && pts[n - 2] === x && pts[n - 1] === y) continue;
-      pts.push(x, y);
-    }
-    if (pts.length >= 2 && pts[0] === pts[pts.length - 2] && pts[1] === pts[pts.length - 1]) pts.length -= 2;
-    if (pts.length < 6) return;
-    let area = 0, x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
-    const n = pts.length / 2;
-    for (let i = 0; i < n; i++) {
-      const ax = pts[2 * i], ay = pts[2 * i + 1], bx = pts[(2 * i + 2) % pts.length], by = pts[(2 * i + 3) % pts.length];
-      area += ax * by - bx * ay;
-      x0 = Math.min(x0, ax); y0 = Math.min(y0, ay); x1 = Math.max(x1, ax); y1 = Math.max(y1, ay);
-    }
-    // a segment's clip-box edges (the data was cut to a box) are not coast: they get no surf, rock or refinement
-    const [ba, bb, bc, bd] = REG_BOX, box = new Uint8Array(n);
-    for (let i = 0; i < n; i++) { const A = r[i], B = r[(i + 1) % r.length]; if (A && B && ((A[0] === B[0] && (A[0] === ba || A[0] === bc)) || (A[1] === B[1] && (A[1] === bb || A[1] === bd)))) box[i] = 1; }
-    out.push({ pts, n, sign: Math.sign(area), x0, y0, x1, y1, id: ri + 1, box });
-  });
-  return out;
-};
-// which side is land: calibrated on the ring through the focus, whose land lies to the north (−y)
-const landSide = () => {
-  for (const R of LRINGS) for (let i = 0; i < R.n; i++) if (R.pts[2 * i] === 0 && R.pts[2 * i + 1] === 0) {
-    const j = (i + 1) % R.n, bx = R.pts[2 * j], by = R.pts[2 * j + 1];
-    const cross = bx * (-50) - by * 0; // (b − a) × (p − a) with a = origin, p = (0, −50)
-    return Math.sign(cross) * R.sign;
-  }
-  return 1;
-};
-function initCoast() { LRINGS = landRings(); LAND_SIDE = landSide(); }
-
-// view window for the coast (metres), set per frame
-let CV = { x0: 0, y0: 0, x1: 0, y1: 0, m: 0, detail: 4 };
-const coast = { rings: [], segs: null, grid: null, gcell: 1, gx0: 0, gy0: 0, gw: 0, gh: 0 };
-
-function refineSeg(ax, ay, bx, by, h, depth, out, focusA, focusB) {
-  const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy);
-  const mx0 = (ax + bx) / 2, my0 = (ay + by) / 2;
-  // stop when short on screen; farther from the view it may be coarser
-  const ex = Math.max(0, CV.x0 - mx0, mx0 - CV.x1), ey = Math.max(0, CV.y0 - my0, my0 - CV.y1);
-  const far = 1 + Math.max(ex, ey) / (hx * .5);
-  if (L * s < CV.detail * far || depth > 46) { out.push(bx, by); return; }
-  const m = L * .36;
-  if (Math.max(ax, bx) + m < CV.x0 - CV.m || Math.min(ax, bx) - m > CV.x1 + CV.m || Math.max(ay, by) + m < CV.y0 - CV.m || Math.min(ay, by) - m > CV.y1 + CV.m) { out.push(bx, by); return; }
-  const r = (h >>> 0) / 4294967296 - .5;
-  let mx, my;
-  // next to the focus, below ~600 m, the shore runs east–west at every scale (the boulder sits on a waterline);
-  // above that the coast keeps the data's own shape
-  if ((focusA || focusB) && L < 600) {
-    const dir = focusA ? Math.sign(bx) || 1 : Math.sign(ax) || 1;
-    const half = L / 2;
-    if (focusA) { mx = dir * half; my = r * COAST_AMP_FOCUS * L; }
-    else { mx = dir * half; my = r * COAST_AMP_FOCUS * L; }
-  } else { mx = mx0 - dy * r * COAST_AMP; my = my0 + dx * r * COAST_AMP; }
-  refineSeg(ax, ay, mx, my, mix32(h ^ 0x68e31da4), depth + 1, out, focusA, false);
-  refineSeg(mx, my, bx, by, mix32(h ^ 0xb5297a4d), depth + 1, out, false, focusB);
-}
-// Sutherland–Hodgman against one axis-aligned edge; keeps the fill bounded so the canvas never sees huge coordinates
-function clipEdge(inp, axis, v, keepLess) {
-  const out = [], n = inp.length / 2;
-  if (!n) return out;
-  const inside = i => keepLess ? inp[2 * i + axis] <= v : inp[2 * i + axis] >= v;
-  for (let i = 0; i < n; i++) {
-    const j = (i + n - 1) % n, ci = inside(i), cj = inside(j);
-    if (ci !== cj) {
-      const ax = inp[2 * j], ay = inp[2 * j + 1], bx = inp[2 * i], by = inp[2 * i + 1];
-      const t = ((axis ? ay : ax) - v) / ((axis ? ay - by : ax - bx) || 1e-30);
-      out.push(ax + (bx - ax) * t, ay + (by - ay) * t);
-    }
-    if (ci) out.push(inp[2 * i], inp[2 * i + 1]);
-  }
-  return out;
-}
-// The focus sits on a small rocky point: the shore on either side is drawn back a little (0 at the focus, so it
-// stays on the waterline), fading out within a few kilometres.
-const POINT = { A: 90, w: 240, L: 2600 };
-// Right at the focus the waterline is pushed 0.6 m seaward, so the stranded kelp and its drop of spray lie on dry
-// stone just above the swash.
-function warpY(x, y) {
-  const r2 = (x * x + y * y) / (POINT.L * POINT.L);
-  if (r2 > 9) return y;
-  return y - POINT.A * (1 - Math.exp(-(x * x) / (POINT.w * POINT.w))) * Math.exp(-r2) + .6 * Math.exp(-(x * x + y * y) / 9);
-}
-function buildCoast() {
-  const m = Math.max(hx * 1.5, 90);
-  CV = { x0: -hx, y0: -hy, x1: hx, y1: hy, m, detail: 4 };
-  coast.rings = [];
-  const X0 = -hx - m, X1 = hx + m, Y0 = -hy - m, Y1 = hy + m;
-  const segs = [];
-  for (const R of LRINGS) {
-    const pad = Math.max(R.x1 - R.x0, R.y1 - R.y0) * .05;
-    if (R.x1 + pad < X0 || R.x0 - pad > X1 || R.y1 + pad < Y0 || R.y0 - pad > Y1) continue;
-    const out = [], flags = [];
-    const P = R.pts;
-    for (let i = 0; i < R.n; i++) {
-      const j = (i + 1) % R.n, ax = P[2 * i], ay = P[2 * i + 1], bx = P[2 * j], by = P[2 * j + 1];
-      if (i === 0) out.push(ax, ay);
-      const before = out.length;
-      if (R.box[i]) out.push(bx, by);
-      else refineSeg(ax, ay, bx, by, mix32(R.id * 7919 + i * 104729), 0, out, ax === 0 && ay === 0, bx === 0 && by === 0);
-      for (let k = before; k < out.length; k += 2) flags.push(R.box[i]);
-    }
-    out.length -= 2; // the loop closed back on the first point
-    for (let i = 1; i < out.length; i += 2) out[i] = warpY(out[i - 1], out[i]);
-    // refined segments near the view feed the distance queries
-    const n = out.length / 2;
-    for (let i = 0; i < n; i++) {
-      const j = (i + 1) % n, ax = out[2 * i], ay = out[2 * i + 1], bx = out[2 * j], by = out[2 * j + 1];
-      if (flags[i]) continue;
-      if (Math.max(ax, bx) < X0 || Math.min(ax, bx) > X1 || Math.max(ay, by) < Y0 || Math.min(ay, by) > Y1) continue;
-      segs.push(ax, ay, bx, by, R.sign * LAND_SIDE);
-    }
-    let c = clipEdge(out, 0, X0, false); c = clipEdge(c, 0, X1, true); c = clipEdge(c, 1, Y0, false); c = clipEdge(c, 1, Y1, true);
-    if (c.length >= 6) coast.rings.push({ pts: c, sign: R.sign * LAND_SIDE });
-  }
-  // spatial hash of the refined segments
-  const gc = Math.max((X1 - X0) / 48, 1e-9);
-  const gw = Math.ceil((X1 - X0) / gc) + 1, gh = Math.ceil((Y1 - Y0) / gc) + 1;
-  const grid = new Array(gw * gh);
-  const ns = segs.length / 5;
-  for (let k = 0; k < ns; k++) {
-    const ax = segs[5 * k], ay = segs[5 * k + 1], bx = segs[5 * k + 2], by = segs[5 * k + 3];
-    const i0 = clamp(Math.floor((Math.min(ax, bx) - X0) / gc), 0, gw - 1), i1 = clamp(Math.floor((Math.max(ax, bx) - X0) / gc), 0, gw - 1);
-    const j0 = clamp(Math.floor((Math.min(ay, by) - Y0) / gc), 0, gh - 1), j1 = clamp(Math.floor((Math.max(ay, by) - Y0) / gc), 0, gh - 1);
-    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) (grid[j * gw + i] || (grid[j * gw + i] = [])).push(k);
-  }
-  Object.assign(coast, { segs, grid, gcell: gc, gx0: X0, gy0: Y0, gw, gh });
-}
-// signed distance to the coast (+ land, − sea) within maxR metres; NaN when no coast is that close
-function coastDist(x, y, maxR) {
-  const { segs, grid, gcell, gx0, gy0, gw, gh } = coast;
-  const i0 = Math.max(0, Math.floor((x - maxR - gx0) / gcell)), i1 = Math.min(gw - 1, Math.floor((x + maxR - gx0) / gcell));
-  const j0 = Math.max(0, Math.floor((y - maxR - gy0) / gcell)), j1 = Math.min(gh - 1, Math.floor((y + maxR - gy0) / gcell));
-  let best = maxR * maxR, bs = NaN;
-  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
-    const cell = grid[j * gw + i]; if (!cell) continue;
-    for (const k of cell) {
-      const ax = segs[5 * k], ay = segs[5 * k + 1], dx = segs[5 * k + 2] - ax, dy = segs[5 * k + 3] - ay;
-      const L2 = dx * dx + dy * dy || 1e-30, t = clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1);
-      const ex = x - ax - t * dx, ey = y - ay - t * dy, d2 = ex * ex + ey * ey;
-      if (d2 < best) { best = d2; bs = Math.sign(dx * (y - ay) - dy * (x - ax)) * segs[5 * k + 4] || 1; }
-    }
-  }
-  return Number.isNaN(bs) ? NaN : bs * Math.sqrt(best);
-}
-function landPath() { ctx.beginPath(); for (const R of coast.rings) { const p = R.pts; ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); } }
-function seaPath() { const m = CV.m; ctx.beginPath(); ctx.rect(-hx - m, -hy - m, 2 * (hx + m), 2 * (hy + m)); for (const R of coast.rings) { const p = R.pts; ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); } }
-// offset copy of every ring toward the sea by d metres (a number, or fn(x, y) → metres; negative goes inland),
-// normals smoothed over `win` samples
-function offsetRings(d, win) {
-  const res = [];
-  for (const R of coast.rings) {
-    const p = R.pts, n = p.length / 2, o = new Float64Array(p.length);
-    const sg = R.sign;
-    for (let i = 0; i < n; i++) {
-      const a = (i - win + n) % n, b = (i + win) % n;
-      let tx = p[2 * b] - p[2 * a], ty = p[2 * b + 1] - p[2 * a + 1];
-      const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
-      // land lies where (t × (q − p)) · sign > 0, so the sea normal is −sign · (−ty, tx)
-      const dd = typeof d === 'number' ? d : d(p[2 * i], p[2 * i + 1]);
-      o[2 * i] = p[2 * i] + sg * ty * dd; o[2 * i + 1] = p[2 * i + 1] - sg * tx * dd;
-    }
-    res.push(o);
-  }
-  return res;
-}
-
+// ---------- the coast in metres: the shore band's own (`shore/shore-coast.ts`, ticket #801) ----------
+// The shore moved onto the game's renderer (`shore/dive-shore-band.ts`). The kelp band and the planet's forest test
+// still read the coast each frame, through the shore's object handed in as `coast`; ticket #802 takes them over.
+let COAST = null;
+function buildCoast() { COAST.build({ halfWidthM: hx, halfHeightM: hy, pixelsPerMetre: s }); }
+const coastDist = (x, y, maxR) => COAST.distance(x, y, maxR);
+function coastRingsPath() { for (const R of COAST.rings) { const p = R.points; ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); } }
+function seaPath() { const m = COAST.marginM; ctx.beginPath(); ctx.rect(-hx - m, -hy - m, 2 * (hx + m), 2 * (hy + m)); coastRingsPath(); }
 // ---------- baked textures: code-drawn tiles, made once ----------
 // Every bake is a generator that yields every few rows, run a few milliseconds at a time by `pump` after the first
 // frame, so the dive never stalls on one; a tile needed before its turn is finished on the spot.
@@ -373,13 +186,25 @@ function requestRender() { bakeLanded = true; }
 const WANT = [];
 let PLACEHOLDER = null;
 const placeholder = () => PLACEHOLDER || (PLACEHOLDER = (() => { const c = makeCanvas(1, 1); return { c, pat: ctx.createPattern(c, 'repeat'), n: 1, avg: 'rgba(0,0,0,0)', ph: true }; })());
+// The shore's tiles (rock, grain, the zones, foam, caustic…) are the shore band's (`shore/shore-tiles.ts`, ticket
+// #801), handed in as `tiles`: one copy is adopted here as a pattern source once it has baked there.
+let TILES = null;
+function adoptTile(name, tile) {
+  const plain = makeCanvas(tile.canvas.width, tile.canvas.height); plain.getContext('2d').drawImage(tile.canvas, 0, 0);
+  TEX[name] = { c: plain, pat: ctx.createPattern(plain, 'repeat'), n: plain.width, avg: tile.averageColour };
+}
 function tex(name) {
   if (TEX[name]) return TEX[name];
+  if (!BAKES[name]) {
+    const tile = TILES && TILES.get(name);
+    if (tile) { adoptTile(name, tile); return TEX[name]; }
+    return placeholder();
+  }
   if (!WANT.includes(name)) WANT.push(name);
   return placeholder();
 }
 // the order the dive needs them in
-const BAKE_ORDER = ['rock', 'grain', 'lichenBlack', 'kelpbedFar', 'swell', 'barnacleFar', 'musselFar', 'rockweedFar', 'lowzoneFar', 'seabed', 'caustic', 'foam', 'kelpbed', 'ripple', 'glint', 'sand', 'barnacle', 'mussel', 'lowzone', 'rockweed', 'blade', 'cells', 'cellsDark'];
+const BAKE_ORDER = ['blade', 'cells', 'cellsDark'];
 function pump(budgetMs) {
   const t0 = nowMs();
   while (nowMs() - t0 < budgetMs) {
@@ -412,63 +237,6 @@ function wrapDraw(g, N, x, y, r, fn) {
   }
 }
 
-// bedrock: diorite and greenstone, glacially smoothed, speckled, cracked (self-similar: drawn by octaves)
-BAKES.rock = function* () {
-  const N = 512, A = hexRgb(PAL.ROCK_DARK), B = hexRgb(PAL.ROCK_BASE), C = hexRgb(PAL.ROCK_LIGHT);
-  const c = yield* imgBakeG(N, N, (x, y) => {
-    const n = pfbm(x / N * 6, y / N * 6, 6, 6, 5, 11), m = pfbm(x / N * 40, y / N * 40, 40, 40, 2, 23);
-    let v = clamp((n - .5) * 1.7 + .5, 0, 1) * .8 + m * .2;
-    const h = hash(x, y, 7); if (h > .94) v -= .22; else if (h < .04) v += .18;
-    const col = ramp3(A, B, C, clamp(v, 0, 1));
-    return col;
-  });
-  const g = c.getContext('2d'), r = rng(31);
-  g.lineCap = 'round';
-  for (let k = 0; k < 9; k++) {
-    let x = r() * N, y = r() * N, a = r() * 6.28;
-    const pts = [[x, y]];
-    for (let i = 0; i < 14; i++) { a += (r() - .5) * .9; x += Math.cos(a) * 14; y += Math.sin(a) * 14; pts.push([x, y]); }
-    wrapDraw(g, N, 0, 0, 1e9, (ox, oy) => {
-      g.beginPath(); pts.forEach(([px0, py0], i) => i ? g.lineTo(px0 + ox, py0 + oy) : g.moveTo(px0 + ox, py0 + oy));
-      g.strokeStyle = 'rgba(25,22,18,.35)'; g.lineWidth = 1.2; g.stroke();
-      g.translate(1, 1); g.strokeStyle = 'rgba(210,205,190,.25)'; g.lineWidth = .8; g.stroke(); g.translate(-1, -1);
-    });
-  }
-  return c;
-};
-// crystals in the stone: dark grains, pale feldspar, a few glints, on transparent (self-similar)
-BAKES.grain = function* () {
-  const N = 512, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(131);
-  for (let k = 0; k < 2600; k++) {
-    if (k % 400 === 399) yield;
-    const x = r() * N, y = r() * N, t = r(), rr = .6 + r() * r() * 3.2, a = r() * 3.14;
-    g.fillStyle = t < .45 ? 'rgba(18,18,14,.75)' : t < .85 ? 'rgba(225,220,205,.55)' : 'rgba(150,120,95,.5)';
-    wrapDraw(g, N, x, y, rr * 2, (X, Y) => { g.beginPath(); g.ellipse(X, Y, rr * 1.4, rr, a, 0, 7); g.fill(); });
-  }
-  return c;
-};
-// black tar lichen (Verrucaria) of the splash zone: mottled, with holes that let the rock through
-BAKES.lichenBlack = function* () {
-  const N = 512, C = hexRgb(PAL.LICHEN_BLACK);
-  return yield* imgBakeG(N, N, (x, y) => { const n = pfbm(x / N * 16, y / N * 16, 16, 16, 4, 41), m = pfbm(x / N * 64, y / N * 64, 64, 64, 2, 43); return [C[0] + m * 40, C[1] + m * 36, C[2] + m * 30, clamp((n - .42) * 4, 0, 1) * (150 + m * 90)]; });
-};
-// acorn barnacles (Balanus), true scale: tile = 0.24 m
-BAKES.barnacle = function* () {
-  const N = 1024, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(51);
-  const items = [];
-  for (let k = 0; k < 520; k++) {
-    const x = r() * N, y = r() * N;
-    const clump = pnoise(x / N * 5, y / N * 5, 5, 5, 3);
-    if (clump < .38 && r() < .8) continue;
-    items.push([x, y, 10 + r() * 28 * (.6 + clump * .6), r()]);
-  }
-  items.sort((a, b) => a[1] - b[1]);
-  // four baked barnacles, turned and scaled, instead of one gradient set per shell
-  const spr = [0, 1, 2, 3].map(k => { const sc = makeCanvas(96, 96), sg = sc.getContext('2d'); barnacle(sg, 44, 44, 36, k * .23); return sc; });
-  let n = 0;
-  for (const [x, y, rr, t] of items) { if (++n % 60 === 0) yield; wrapDraw(g, N, x, y, rr * 1.4, (X, Y) => { g.drawImage(spr[Math.floor(t * 4) & 3], X - rr * 44 / 36, Y - rr * 44 / 36, rr * 96 / 36, rr * 96 / 36); }); }
-  return c;
-};
 function barnacle(g, X, Y, rr, t) {
   g.fillStyle = 'rgba(20,18,14,.35)'; g.beginPath(); g.ellipse(X + rr * .22, Y + rr * .28, rr * 1.05, rr, 0, 0, 7); g.fill();
   const gr = g.createRadialGradient(X - rr * .35, Y - rr * .4, rr * .1, X, Y, rr);
@@ -481,228 +249,9 @@ function barnacle(g, X, Y, rr, t) {
   g.fillStyle = '#3c372e'; g.beginPath(); g.ellipse(X, Y, rr * .3, rr * .17, t * 3, 0, 7); g.fill();
   g.strokeStyle = 'rgba(240,236,224,.7)'; g.lineWidth = Math.max(.5, rr * .06); g.beginPath(); g.ellipse(X, Y, rr * .3, rr * .17, t * 3, Math.PI, Math.PI * 1.7); g.stroke();
 }
-// rockweed (Fucus): forked olive fronds with swollen tips, true scale: tile = 0.9 m
-BAKES.rockweed = function* () {
-  const N = 512, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(61);
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  // record each clump's strokes once, then replay them at every wrapped offset so the seams match
-  const frond = (ops, x, y, a, len, w, d) => {
-    const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
-    ops.push(['s', x, y, (x + x2) / 2 + Math.cos(a + 1.57) * len * .12, (y + y2) / 2 + Math.sin(a + 1.57) * len * .12, x2, y2, w, d > 2 ? PAL.ROCKWEED_LIGHT : PAL.ROCKWEED_BASE]);
-    if (d > 0 && r() < .5) ops.push(['b', (x + x2) / 2, (y + y2) / 2, w, a]);
-    if (d < 3) { frond(ops, x2, y2, a - .32 - r() * .2, len * .85, w * .9, d + 1); frond(ops, x2, y2, a + .32 + r() * .2, len * .85, w * .9, d + 1); }
-    else ops.push(['t', x2, y2, w, a]);
-  };
-  for (let k = 0; k < 44; k++) {
-    yield;
-    const x = r() * N, y = r() * N, a0 = r() * 6.28, ops = [];
-    for (let b = 0; b < 3; b++) frond(ops, x, y, a0 + b * 2.1 + r() * .5, 16 + r() * 10, 9, 0);
-    wrapDraw(g, N, x, y, 140, (X, Y) => {
-      const ox = X - x, oy = Y - y;
-      // shade on the rock first (down-right of the light), then the fronds
-      g.strokeStyle = 'rgba(0,0,0,.3)';
-      for (const o of ops) if (o[0] === 's') { g.lineWidth = o[7] + 3; g.beginPath(); g.moveTo(o[1] + ox + 2, o[2] + oy + 3); g.quadraticCurveTo(o[3] + ox + 2, o[4] + oy + 3, o[5] + ox + 2, o[6] + oy + 3); g.stroke(); }
-      for (const o of ops) {
-        if (o[0] === 's') {
-          g.strokeStyle = PAL.ROCKWEED_DARK; g.lineWidth = o[7] + 1.6; g.beginPath(); g.moveTo(o[1] + ox, o[2] + oy); g.quadraticCurveTo(o[3] + ox, o[4] + oy, o[5] + ox, o[6] + oy); g.stroke();
-          g.strokeStyle = o[8]; g.lineWidth = o[7]; g.stroke();
-          g.strokeStyle = 'rgba(210,190,110,.35)'; g.lineWidth = 1; g.stroke();
-        } else if (o[0] === 'b') {
-          for (const sd of [-1, 1]) { const bx = o[1] + ox + Math.cos(o[4] + 1.57) * sd * o[3] * .28, by = o[2] + oy + Math.sin(o[4] + 1.57) * sd * o[3] * .28;
-            const gr = g.createRadialGradient(bx - 1, by - 1, .5, bx, by, o[3] * .32); gr.addColorStop(0, '#d8c27a'); gr.addColorStop(1, PAL.ROCKWEED_BASE);
-            g.fillStyle = gr; g.beginPath(); g.ellipse(bx, by, o[3] * .34, o[3] * .26, o[4], 0, 7); g.fill(); }
-        } else { g.fillStyle = '#b3a04c'; g.beginPath(); g.ellipse(o[1] + ox, o[2] + oy, o[3] * .8, o[3] * .55, o[4], 0, 7); g.fill(); }
-      }
-    });
-  }
-  return c;
-};
-// blue mussels in clumps, true scale: tile = 0.5 m
-BAKES.mussel = function* () {
-  const N = 512, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(71);
-  for (let k = 0; k < 420; k++) {
-    const x = r() * N, y = r() * N; if (pnoise(x / N * 4, y / N * 4, 4, 4, 9) < .45) continue;
-    const L = 16 + r() * 22, a = r() * 6.28;
-    wrapDraw(g, N, x, y, L, (X, Y) => {
-      g.save(); g.translate(X, Y); g.rotate(a);
-      g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(2, 3, L * .5, L * .26, 0, 0, 7); g.fill();
-      const gr = g.createLinearGradient(0, -L * .25, 0, L * .25); gr.addColorStop(0, PAL.MUSSEL_SHEEN); gr.addColorStop(.35, '#26304a'); gr.addColorStop(1, PAL.MUSSEL_DARK);
-      g.fillStyle = gr; g.beginPath(); g.moveTo(-L * .5, 0); g.quadraticCurveTo(-L * .2, -L * .3, L * .5, -L * .05); g.quadraticCurveTo(L * .1, L * .3, -L * .5, 0); g.fill();
-      g.strokeStyle = 'rgba(180,195,220,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-L * .3, -L * .08); g.quadraticCurveTo(0, -L * .2, L * .35, -L * .07); g.stroke();
-      g.restore();
-    });
-  }
-  return c;
-};
-// the low zone: pink coralline crusts and bright surfgrass, true scale: tile = 0.7 m
-BAKES.lowzone = function* () {
-  const N = 512, c = yield* imgBakeG(N, N, (x, y) => {
-    const n = pfbm(x / N * 6, y / N * 6, 6, 6, 4, 81), m = pfbm(x / N * 24, y / N * 24, 24, 24, 2, 83);
-    const a = clamp((n - .42) * 4, 0, 1);
-    const P = hexRgb(PAL.CORALLINE), L = hexRgb(PAL.CORALLINE_LIGHT);
-    return [lerp(P[0], L[0], m), lerp(P[1], L[1], m), lerp(P[2], L[2], m), a * 230];
-  });
-  const g = c.getContext('2d'), r = rng(85);
-  g.lineCap = 'round';
-  for (let k = 0; k < 160; k++) {
-    const x = r() * N, y = r() * N; if (pnoise(x / N * 3, y / N * 3, 3, 3, 87) < .5) continue;
-    const a = .6 + (r() - .5) * .6, L = 30 + r() * 50, col = r() < .5 ? PAL.SURFGRASS : '#57b44f';
-    wrapDraw(g, N, x, y, L, (X, Y) => {
-      g.strokeStyle = col; g.lineWidth = 2.2;
-      g.beginPath(); g.moveTo(X, Y); g.quadraticCurveTo(X + Math.cos(a) * L * .5 + 6, Y + Math.sin(a) * L * .5, X + Math.cos(a) * L, Y + Math.sin(a) * L); g.stroke();
-    });
-  }
-  return c;
-};
-// sand and fine gravel of a pocket beach (self-similar)
-BAKES.sand = function* () {
-  const N = 256, A = hexRgb(PAL.SAND_WET), B = hexRgb(PAL.SAND_BASE), C = hexRgb(PAL.SAND_LIGHT);
-  return yield* imgBakeG(N, N, (x, y) => { const n = pfbm(x / N * 8, y / N * 8, 8, 8, 4, 91); const h = hash(x, y, 93); return ramp3(A, B, C, clamp(n * .8 + .2 + (h > .9 ? .15 : h < .08 ? -.2 : 0), 0, 1)); });
-};
-// wind ripples on the water, neutral grey for soft-light (self-similar, animated by drifting)
-BAKES.ripple = function* () {
-  const N = 256;
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N * 6.2832, v = y / N * 6.2832;
-    const h = Math.sin(u * 3 + v * 2 + 1.3 * Math.sin(v * 2)) * .5 + Math.sin(u * 5 - v * 4 + 2) * .3 + Math.sin(u * 2 + v * 7 + 1.7 * Math.sin(u * 3)) * .25
-      + (pfbm(x / N * 8, y / N * 8, 8, 8, 3, 97) - .5) * 1.2;
-    const g0 = 128 + h * 42;
-    return [g0, g0, g0];
-  });
-};
-// long swell from the open strait: soft crests (neutral grey for soft-light), true scale: tile = 90 m
-BAKES.swell = function* () {
-  const N = 256;
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N, w = pfbm(u * 3, v * 3, 3, 3, 3, 701);
-    const h = Math.sin((v * 7 + u * 1 + w * 1.4) * 6.2832) * .6 + Math.sin((v * 11 - u * 2 + w * 2) * 6.2832) * .25 + (pfbm(u * 12, v * 12, 12, 12, 2, 703) - .5) * .5;
-    const g0 = 128 + h * 36;
-    return [g0, g0, g0];
-  });
-};
-// sun glints: sparse bright specks (added with 'lighter', drifting against the ripples)
-BAKES.glint = function* () {
-  const N = 256, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(101);
-  for (let k = 0; k < 60; k++) {
-    const x = r() * N, y = r() * N, rr = .6 + r() * 1.6;
-    const gr = g.createRadialGradient(x, y, 0, x, y, rr * 2.5); gr.addColorStop(0, 'rgba(255,252,235,.95)'); gr.addColorStop(1, 'rgba(255,252,235,0)');
-    g.fillStyle = gr; g.fillRect(x - rr * 3, y - rr * 3, rr * 6, rr * 6);
-  }
-  return c;
-};
-// a bull kelp canopy seen from above: bulbs trailing blades down-current, true scale: tile = 24 m
-BAKES.kelpbed = function* () {
-  const N = 512, c = makeCanvas(N, N), g = c.getContext('2d'), r = rng(111), k = N / 24;
-  g.lineCap = 'round';
-  for (let i = 0; i < 120; i++) {
-    const x = r() * N, y = r() * N, a = .45 + (r() - .5) * .5, Ls = [0, 1, 2, 3, 4].map(() => (1.4 + r() * 1.6) * k);
-    wrapDraw(g, N, x, y, 3.2 * k, (X, Y) => {
-      for (let b = 0; b < 5; b++) {
-        const aa = a + (b - 2) * .12, L = Ls[b];
-        g.strokeStyle = b % 2 ? 'rgba(120,92,34,.8)' : 'rgba(146,112,44,.8)'; g.lineWidth = .1 * k;
-        g.beginPath(); g.moveTo(X, Y); g.quadraticCurveTo(X + Math.cos(aa) * L * .5 + 2, Y + Math.sin(aa) * L * .5 - 2, X + Math.cos(aa) * L, Y + Math.sin(aa) * L); g.stroke();
-      }
-      g.fillStyle = PAL.KELP_DARK; g.beginPath(); g.arc(X + 1, Y + 1, .08 * k, 0, 7); g.fill();
-      g.fillStyle = PAL.KELP_LIGHT; g.beginPath(); g.arc(X, Y, .065 * k, 0, 7); g.fill();
-    });
-  }
-  return c;
-};
-
-// lacy sea foam: a white sheet torn into holes, streaked, with loose bubbles; true scale: tile = 2.4 m
-BAKES.foam = function* () {
-  const N = 512, G = 14, jit = (x, y, k) => hash(x, y, 601 + k) * .9 + .05;
-  const c = yield* imgBakeG(N, N, (x, y) => {
-    let u = x / N, v = y / N;
-    u += (pfbm(u * 4, v * 4, 4, 4, 2, 608) - .5) * .06; v += (pfbm(u * 4 + 3, v * 4, 4, 4, 2, 609) - .5) * .06;
-    const [d1, d2] = vor(((u % 1) + 1) % 1, ((v % 1) + 1) % 1, G, jit);
-    const e = (d2 - d1) * G;
-    const sheet = pfbm(u * 5, v * 5, 5, 5, 4, 605);
-    const hole = clamp((e - .08) / .5, 0, 1) * clamp((sheet - .35) * 3, 0, 1);
-    const al = clamp(1 - hole, 0, 1) * clamp((sheet - .2) * 2.5, 0, 1);
-    return [246, 250, 249, al * 235];
-  });
-  const g = c.getContext('2d'), r = rng(607);
-  for (let k = 0; k < 420; k++) { const x = r() * N, y = r() * N, rr = .8 + r() * 3.2; wrapDraw(g, N, x, y, rr + 1, (X, Y) => { g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = .9; g.beginPath(); g.arc(X, Y, rr, 0, 7); g.stroke(); }); }
-  return c;
-};
-// the shallow sea floor: sand with ripple marks, cobbles, weed tufts; true scale: tile = 5 m
-BAKES.seabed = function* () {
-  const N = 512, A = hexRgb('#1f2a20'), B = hexRgb('#3d4a33'), C = hexRgb('#79784f');
-  const c = yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N;
-    const rip = Math.sin((u * 9 + v * 3 + pfbm(u * 3, v * 3, 3, 3, 2, 611) * 1.5) * 6.2832) * .5 + .5;
-    const n = pfbm(u * 6, v * 6, 6, 6, 4, 613);
-    return ramp3(A, B, C, clamp(n * .7 + rip * .3, 0, 1));
-  });
-  const g = c.getContext('2d'), r = rng(615);
-  for (let k = 0; k < 90; k++) {
-    const x = r() * N, y = r() * N, rr = 4 + r() * 14, t = r();
-    if (pnoise(x / N * 3, y / N * 3, 3, 3, 617) < .45) continue;
-    wrapDraw(g, N, x, y, rr * 1.4, (X, Y) => {
-      g.fillStyle = 'rgba(20,20,16,.35)'; g.beginPath(); g.ellipse(X + rr * .2, Y + rr * .25, rr, rr * .8, t, 0, 7); g.fill();
-      const gr = g.createRadialGradient(X - rr * .35, Y - rr * .35, rr * .1, X, Y, rr);
-      gr.addColorStop(0, '#8a8a78'); gr.addColorStop(.6, '#56594a'); gr.addColorStop(1, '#2c2f27');
-      g.fillStyle = gr; g.beginPath(); g.ellipse(X, Y, rr, rr * .8, t, 0, 7); g.fill();
-    });
-  }
-  for (let k = 0; k < 40; k++) {
-    const x = r() * N, y = r() * N, col = r() < .5 ? 'rgba(70,120,50,.8)' : 'rgba(120,80,40,.75)';
-    const fr = [...Array(7)].map(() => [r() * 6.28, 6 + r() * 14]);
-    wrapDraw(g, N, x, y, 24, (X, Y) => { g.strokeStyle = col; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); for (const [a, L] of fr) { g.moveTo(X, Y); g.quadraticCurveTo(X + Math.cos(a) * L * .6 + 3, Y + Math.sin(a) * L * .6, X + Math.cos(a) * L, Y + Math.sin(a) * L); } g.stroke(); });
-  }
-  return c;
-};
 // A zone's cover seen from farther away: its own bake at a larger true size, kept only in slow-noise patches so the
 // zone reads as a mosaic, not a stripe of paint. Its alpha doubles as the patch mask for the near tile (zoneFill).
 const FAR = { barnacle: [25, .24], mussel: [12, .5], rockweed: [8, .9], lowzone: [8, .7] };
-const patch = (u, v, seed, cover) => clamp((pfbm(u * 6, v * 6, 6, 6, 5, seed) - (1 - cover)) * 6 + .5, 0, 1);
-BAKES.barnacleFar = function* () {
-  const N = 512, L = hexRgb(PAL.BARNACLE_LIGHT), B = hexRgb(PAL.BARNACLE_BASE), D = hexRgb(PAL.BARNACLE_DARK);
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N, a = patch(u, v, 501, .62);
-    const h = hash(x, y, 503), n = pfbm(u * 96, v * 96, 96, 96, 2, 505);
-    const c = h > .82 ? B : ramp3(D, B, L, clamp(n * .8 + .3, 0, 1));
-    return [c[0], c[1], c[2], a * 245];
-  });
-};
-BAKES.musselFar = function* () {
-  const N = 512, D = hexRgb(PAL.MUSSEL_DARK), S = hexRgb(PAL.MUSSEL_SHEEN);
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N, a = clamp((pfbm(u * 8, v * 8, 8, 8, 4, 521) - .56) * 14, 0, 1);
-    const n = pfbm(u * 64, v * 64, 64, 64, 2, 523), sh = hash(x, y, 525) > .88 ? .7 : 0;
-    return [lerp(D[0], S[0], n * .35 + sh), lerp(D[1], S[1], n * .35 + sh), lerp(D[2], S[2], n * .35 + sh), a * 240];
-  });
-};
-// rockweed mats: strands lying downslope (tile y runs toward the sea), golden at the tips
-BAKES.rockweedFar = function* () {
-  const N = 512, D = hexRgb(PAL.ROCKWEED_DARK), B = hexRgb(PAL.ROCKWEED_BASE), L = hexRgb(PAL.ROCKWEED_LIGHT);
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N, a = patch(u, v, 511, .72);
-    const st = pfbm(u * 36 + pfbm(u * 4, v * 4, 4, 4, 2, 513) * 5, v * 14, 36, 14, 3, 515), cl = pfbm(u * 16, v * 16, 16, 16, 4, 517);
-    const gl = hash(x, y, 519) > .985 ? .5 : 0;
-    const c = ramp3(D, B, L, clamp((st - .5) * 1.8 + .3 + cl * .35 + gl, 0, 1));
-    return [c[0], c[1], c[2], a * clamp((cl - .3) * 4, 0, 1) * 245];
-  });
-};
-// the low zone: bright surfgrass streaks and pink coralline crust
-BAKES.lowzoneFar = function* () {
-  const N = 512, G = hexRgb(PAL.SURFGRASS), P = hexRgb(PAL.CORALLINE), PL = hexRgb(PAL.CORALLINE_LIGHT);
-  return yield* imgBakeG(N, N, (x, y) => {
-    const u = x / N, v = y / N, a = patch(u, v, 531, .72);
-    const g = pfbm(u * 60, v * 8, 60, 8, 3, 533), pk = pfbm(u * 10, v * 10, 10, 10, 3, 535);
-    const pink = pk > .7, c = pink ? ramp3(P, P, PL, pfbm(u * 40, v * 40, 40, 40, 2, 537) * .5) : [G[0] * (.5 + g * .45), G[1] * (.5 + g * .45), G[2] * (.55 + g * .4)];
-    return [c[0] * .8 + 14, c[1] * .8 + 12, c[2] * .8 + 14, a * (pink ? 110 : clamp(g * 1.6 - .3, 0, 1) * 225)];
-  });
-};
-
-// a kelp canopy seen from far off: mottled golden-brown clumps, true scale: tile = 150 m
-BAKES.kelpbedFar = function* () {
-  const N = 256, D = hexRgb('#4c3812'), B = hexRgb('#7c5e22'), L = hexRgb('#a7843c');
-  return yield* imgBakeG(N, N, (x, y) => { const u = x / N, v = y / N, n = pfbm(u * 12, v * 12, 12, 12, 4, 621), m = pfbm(u * 48, v * 48, 48, 48, 2, 623);
-    const c = ramp3(D, B, L, clamp(m * .8 + .1, 0, 1)); return [c[0], c[1], c[2], clamp((n - .36) * 3, 0, 1) * 230]; });
-};
-
 // ---------- sprites ----------
 // soft round glow (white; tinted by drawing into a colour via 'source-in' copies)
 function glowSprite(hex, N = 64) {
@@ -714,11 +263,8 @@ const SPR = {};
 function sprite(name, make) { return SPR[name] || (SPR[name] = make()); }
 
 
-// ---------- the shore (metres, z 4.85 → -1.4; ticket #801) ----------
+// ---------- what the kelp band keeps of the shore's code: the focal rock's boulder and its zone cover (ticket #802) ----------
 const FOCAL_ROCK = { x: .15, y: -.55, r: 1.6 };
-const FIXED_POOL = { x: -9, y: -6, rx: 3.2, ry: 2 };
-const KELP_PATCHES = [[180, 70, 30], [-140, 95, 38], [420, 120, 44], [-420, 60, 26], [40, 150, 32], [760, 180, 54], [-800, 150, 48]];
-const KELP_BED_LABEL = [180, 70];
 // intertidal zones from the forest edge down to the water, as half-widths of strokes centred on the waterline
 const ZONE = { band: 16, lichen: 12.5, barnacle: 8, mussel: 6.2, rockweed: 4.6, low: 1.7 };
 
@@ -735,105 +281,10 @@ function strokeTrue(name, tileWorld, width, alpha = 1) {
   if (st.w > 0) { ctx.globalAlpha = alpha * st.w; ctx.strokeStyle = st.pat; ctx.stroke(); }
   ctx.globalAlpha = 1;
 }
-function fillTrue(name, tileWorld, alpha = 1, rule) {
-  const st = trueStyle(name, tileWorld);
-  if (st.w < 1) { ctx.globalAlpha = alpha * (1 - st.w); ctx.fillStyle = st.avg; ctx.fill(rule); }
-  if (st.w > 0) { ctx.globalAlpha = alpha * st.w; ctx.fillStyle = st.pat; ctx.fill(rule); }
-  ctx.globalAlpha = 1;
-}
-// a self-similar tile at two octaves (see `octaves`)
-function strokeOct(name, tile0, width, alpha = 1, target = 380) {
-  const t = tex(name); ctx.lineWidth = width;
-  octaves(tile0, t.n, 4, (w, a) => { ctx.globalAlpha = alpha * a; ctx.strokeStyle = patXf(t.pat, t.n, w); ctx.stroke(); }, target);
-  ctx.globalAlpha = 1;
-}
 function fillOct(name, tile0, alpha = 1, rule, target = 380, rot = 0, ox = 0, oy = 0) {
   const t = tex(name);
   octaves(tile0, t.n, 4, (w, a) => { ctx.globalAlpha = alpha * a; ctx.fillStyle = patXf(t.pat, t.n, w, rot, ox % w, oy % w); ctx.fill(rule); }, target);
   ctx.globalAlpha = 1;
-}
-function ringsPath(rings) { ctx.beginPath(); for (const p of rings) { ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); } }
-const capHalf = w => Math.min(w, CV.m * .9);
-// ---- wide strokes along the coast ----
-// A stroke of half-width w can only paint the view from segments within w of it, and with round joins and caps a
-// polyline cut into the runs that pass that test paints exactly the same pixels there. At close range the coast
-// strokes are thousands of pixels wide over thousands of vertices, and every kept segment is a view-sized quad for
-// the GPU, so the runs are also thinned (radial decimation at a few percent of the width, never under a pixel),
-// which moves an edge by at most that much. Dashed strokes keep every vertex (the dash phase follows arc length).
-// runs: [{ p: flat [x, y, ...], u0: arc length of the run's first point, closed }]
-function nearRuns(polys, w, closed = true, seam = true) {
-  const runs = [], x0 = -hx - w, x1 = hx + w, y0 = -hy - w, y1 = hy + w;
-  for (const P of polys) {
-    const n = P.length / 2, segs = closed ? n : n - 1;
-    if (n < 2) continue;
-    let run = null, u = 0, first = null;
-    for (let i = 0; i < segs; i++) {
-      const j = (i + 1) % n, ax = P[2 * i], ay = P[2 * i + 1], bx = P[2 * j], by = P[2 * j + 1];
-      const keep = !(Math.max(ax, bx) < x0 || Math.min(ax, bx) > x1 || Math.max(ay, by) < y0 || Math.min(ay, by) > y1);
-      if (keep) { if (!run) { run = { p: [ax, ay], u0: u, closed: false, P, i0: i }; if (i === 0) first = run; runs.push(run); } run.p.push(bx, by); }
-      else run = null;
-      u += Math.hypot(bx - ax, by - ay);
-    }
-    // a closed ring kept whole stays closed; a run through the seam joins the run that starts at vertex 0 (not for
-    // dashes, whose phase restarts at vertex 0 as it did on the whole ring)
-    if (closed && seam && run && first && run !== first) { const f = first.p; for (let i = 2; i < f.length; i++) run.p.push(f[i]); runs.splice(runs.indexOf(first), 1); }
-    else if (closed && run && run === first && run.p.length / 2 === segs + 1) { run.p.length -= 2; run.closed = true; }
-  }
-  return runs;
-}
-function runsPath(runs, tol) {
-  ctx.beginPath();
-  for (const R of runs) {
-    const p = R.p, m = p.length;
-    // keep a vertex each time the arc length along the whole ring passes a multiple of tol: the choice is the same
-    // from frame to frame, so a thinned edge does not shimmer as the culled runs change
-    let u = R.u0, cell = tol > 0 ? Math.floor(u / tol) : 0;
-    ctx.moveTo(p[0], p[1]);
-    for (let i = 2; i < m; i += 2) {
-      u += Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]);
-      const c = tol > 0 ? Math.floor(u / tol) : cell + 1;
-      if (c !== cell || i === m - 2) { cell = c; ctx.lineTo(p[i], p[i + 1]); }
-    }
-    if (R.closed) ctx.closePath();
-  }
-}
-// the path for a solid stroke of half-width w (metres) along the polylines, near the view only; thinned to a small
-// fraction of the narrowest width that will be stroked on it (tw)
-function strokeNearPath(polys, w, closed = true, tw = w) { runsPath(nearRuns(polys, w, closed), Math.max(tw * .015, px(.35))); }
-// A dashed stroke near the view. Canvas restarts the dash pattern at every subpath, so each run starts a little
-// earlier on its ring, at the arc length where the pattern would begin a period, then all of them are stroked as one
-// path (overlaps blend once, as on the whole ring).
-function strokeNearDashed(polys, w, offset, period, paint) {
-  const runs = nearRuns(polys, w, true, false);
-  for (const R of runs) {
-    let e = R.u0 % period;
-    const P = R.P, pre = [];
-    for (let i = R.i0; i > 0 && e > 0; i--) {
-      const ax = P[2 * i], ay = P[2 * i + 1], bx = P[2 * i - 2], by = P[2 * i - 1], L = Math.hypot(bx - ax, by - ay);
-      if (L >= e) { const t = e / L; pre.push(ax + (bx - ax) * t, ay + (by - ay) * t); e = 0; }
-      else { pre.push(bx, by); e -= L; }
-    }
-    if (pre.length) { const q = []; for (let i = pre.length - 2; i >= 0; i -= 2) q.push(pre[i], pre[i + 1]); R.p = q.concat(R.p); }
-  }
-  runsPath(runs, 0); ctx.lineDashOffset = offset; paint();
-}
-// a view-sized scratch layer (device pixels), for patterns that need a mask
-const LAYER = { c: null, g: null, pats: {} };
-function layer() {
-  const W = Math.round(cw * dpr), H = Math.round(ch * dpr);
-  if (!LAYER.c || LAYER.c.width !== W || LAYER.c.height !== H) { LAYER.c = makeCanvas(W, H); LAYER.g = LAYER.c.getContext('2d'); LAYER.pats = {}; }
-  const g = LAYER.g;
-  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, W, H);
-  g.setTransform(dpr, 0, 0, dpr, dpr * cw / 2, dpr * ch / 2);
-  return g;
-}
-function layerPat(name, tileWorld, rot = 0) {
-  // a tile still baking is drawn through the placeholder, never cached: a cached placeholder outlived the bake and
-  // the sea floor stayed blank (ticket #797's evidence: seconds a frame at zoom 2.5 on the software GL box)
-  const t = tex(name), pat = t.ph ? t.pat : LAYER.pats[name] || (LAYER.pats[name] = LAYER.g.createPattern(t.c, 'repeat'));
-  const k = tileWorld * s / t.n, c = Math.cos(rot) * k, sn = Math.sin(rot) * k;
-  pat.setTransform(new DOMMatrix([c, sn, -sn, c, 0, 0]));
-  return pat;
 }
 // The near tile masked by its own far tile (the patch mosaic), once per frame per zone in a view-sized layer that the
 // zone's band and the focal rock both draw from.
@@ -886,485 +337,10 @@ function zoneFill(name, alpha, rule, near = true, box = null) {
   }
   ctx.restore();
 }
-// The shallows and the sea-floor mask are both functions of one number: how far a pixel of sea is from the coast.
-// They used to be stacks of 28 and 6 round-joined strokes of the rings, up to ~270 px wide: exact, but every join is
-// a disc the size of the view, so the GPU paid thousands of view-sized overdraws a frame. Instead the distance comes
-// from an exact Euclidean distance transform of the land mask (edt2d, as the planet's coast bakes use) on the same 1/6-res
-// grid, plus a 4× coarser grid for land beyond it (the wide strokes reached up to 0.9 × CV.m past the view); each
-// pixel then composites the very strokes that would have covered it, with the same anti-aliased edge.
-const SEA_K = 6, SEA_KC = 4, SEA_PAD = 8, SEA_COARSE_MAX = 12000;
-const SEA = { mc: null, mg: null, cc: null, cg: null, frame: -1, W: 0, H: 0, d: null };
-function landGrid(g, c, W, H, scale, rings) {
-  if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
-  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
-  g.setTransform(scale, 0, 0, scale, W / 2, H / 2);
-  g.beginPath(); for (const p of rings) { g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.closePath(); }
-  g.fillStyle = '#fff'; g.fill('nonzero');
-  const img = g.getImageData(0, 0, W, H).data, f = new Float64Array(W * H);
-  for (let i = 0; i < f.length; i++) f[i] = img[i * 4 + 3] >= 128 ? 0 : 1e20;
-  return f;
-}
-// distance (metres) from each cell of the W × H grid (k px a cell, centred on the view) to the nearest land
-function seaDistance(rings, W, H) {
-  if (SEA.frame === frameNo && SEA.W === W && SEA.H === H) return SEA.d;
-  if (!SEA.mc) { SEA.mc = makeCanvas(1, 1); SEA.mg = SEA.mc.getContext('2d', { willReadFrequently: true }); SEA.cc = makeCanvas(1, 1); SEA.cg = SEA.cc.getContext('2d', { willReadFrequently: true }); }
-  const cell = SEA_K / s;
-  // fine: the grid plus a pad, so land just past the edge is measured exactly too
-  const FW = W + 2 * SEA_PAD, FH = H + 2 * SEA_PAD;
-  const f = landGrid(SEA.mg, SEA.mc, FW, FH, s / SEA_K, rings);
-  runSync(edt2d(f, FW, FH));
-  // coarse: land past the fine grid matters only where it is nearer than the farthest fine distance, and never past
-  // the widest stroke's reach; land inside the fine grid is left out (the fine grid has it exactly)
-  let far = 0;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = f[(y + SEA_PAD) * FW + x + SEA_PAD]; if (v > far) far = v; }
-  const reach = Math.min(capHalf(9000), far >= 1e19 ? 1e30 : Math.sqrt(far) * cell);
-  let kf = SEA_KC, mc = 0, CW = 0, CH = 0;
-  for (;;) {
-    mc = Math.ceil(reach * s / (SEA_K * kf)) + 1; CW = Math.ceil(FW / kf) + 2 * mc; CH = Math.ceil(FH / kf) + 2 * mc;
-    if (CW * CH <= SEA_COARSE_MAX) break;
-    kf *= 2;
-  }
-  const c = landGrid(SEA.cg, SEA.cc, CW, CH, s / (SEA_K * kf), rings);
-  // coarse cell (i, j) spans fine-grid columns (i - CW/2) * kf + FW/2 … + kf
-  for (let j = 0; j < CH; j++) {
-    const y0 = (j - CH / 2) * kf + FH / 2;
-    if (y0 < 0 || y0 + kf > FH) continue;
-    for (let i = 0; i < CW; i++) { const x0 = (i - CW / 2) * kf + FW / 2; if (x0 >= 0 && x0 + kf <= FW) c[j * CW + i] = 1e20; }
-  }
-  runSync(edt2d(c, CW, CH));
-  const d = SEA.d && SEA.d.length === W * H ? SEA.d : new Float32Array(W * H);
-  let dmax = 0;
-  const cc = cell * kf, q = k => k >= 1e19 ? 1e9 : (Math.sqrt(k) - .5) * cc;
-  for (let y = 0; y < H; y++) {
-    // the fine cell's centre in coarse cell units (bilinear between coarse centres)
-    const cy = ((y + SEA_PAD + .5 - FH / 2) / kf + CH / 2) - .5, j0 = clamp(Math.floor(cy), 0, CH - 2), fy = clamp(cy - j0, 0, 1);
-    for (let x = 0; x < W; x++) {
-      const fv = f[(y + SEA_PAD) * FW + x + SEA_PAD];
-      let dd = fv === 0 ? 0 : (Math.sqrt(fv) - .5) * cell;
-      if (fv > 0) {
-        const cx = ((x + SEA_PAD + .5 - FW / 2) / kf + CW / 2) - .5, i0 = clamp(Math.floor(cx), 0, CW - 2), fx = clamp(cx - i0, 0, 1);
-        const a = q(c[j0 * CW + i0]), b = q(c[j0 * CW + i0 + 1]), e = q(c[(j0 + 1) * CW + i0]), g2 = q(c[(j0 + 1) * CW + i0 + 1]);
-        const dc = lerp(lerp(a, b, fx), lerp(e, g2, fx), fy);
-        if (dc < dd) dd = dc;
-      }
-      d[y * W + x] = dd;
-      if (dd > dmax) dmax = dd;
-    }
-  }
-  Object.assign(SEA, { frame: frameNo, W, H, d, dmax });
-  return d;
-}
-const seaGrid = () => [Math.ceil(cw / SEA_K) + 4, Math.ceil(ch / SEA_K) + 4];
-function gridCanvas(o, W, H) {
-  if (!o.c || o.c.width !== W || o.c.height !== H) { o.c = makeCanvas(W, H); o.g = o.c.getContext('2d'); o.img = o.g.createImageData(W, H); }
-  return o;
-}
-// the sea-floor mask and the shallows: low-res canvases the ramps are written into
-const DMASK = { c: null, g: null, img: null };
-const DMASK_W = [34, 25, 18, 12, 7, 3.5];
-// Both ramps are a function of the distance alone: tabulated per frame (premultiplied RGBA at steps of a quarter
-// cell, interpolated), then looked up per cell. paint(d, out) composites the strokes covering distance d.
-const LUT_MAX = 4096, LUT = { v: new Float32Array(4 * (LUT_MAX + 2)) };
-function rampLut(hwMax, pw, paint) {
-  const top = Math.min(SEA.dmax, hwMax + pw);
-  let step = pw / 4, n = Math.ceil(top / step) + 1;
-  if (n > LUT_MAX) { step = top / (LUT_MAX - 1); n = LUT_MAX; }
-  const v = LUT.v, o = [0, 0, 0, 0];
-  for (let i = 0; i <= n; i++) { paint(i * step, o); v[4 * i] = o[0]; v[4 * i + 1] = o[1]; v[4 * i + 2] = o[2]; v[4 * i + 3] = o[3]; }
-  return { v, step, n };
-}
-function rampImage(img, d, L) {
-  const px8 = img.data, v = L.v, inv = 1 / L.step, n = L.n;
-  for (let p = 0, m = d.length; p < m; p++) {
-    let f = d[p] * inv; if (f > n) f = n;
-    const i = f | 0, t = f - i, a = 4 * i, b = a + 4, o = 4 * p;
-    const A = v[a + 3] + (v[b + 3] - v[a + 3]) * t;
-    if (A <= 0) { px8[o + 3] = 0; continue; }
-    px8[o] = (v[a] + (v[b] - v[a]) * t) / A; px8[o + 1] = (v[a + 1] + (v[b + 1] - v[a + 1]) * t) / A; px8[o + 2] = (v[a + 2] + (v[b + 2] - v[a + 2]) * t) / A;
-    px8[o + 3] = A * 255 + .5;
-  }
-}
-// how much sea floor shows through: a smooth ramp from the waterline to ~30 m out (low-res, scaled up)
-function depthMask(rings) {
-  const [W, H] = seaGrid(), k = SEA_K, d = seaDistance(rings, W, H), pw = k / s;
-  gridCanvas(DMASK, W, H);
-  const hw = DMASK_W.map(capHalf);
-  rampImage(DMASK.img, d, rampLut(hw[0], pw, (dd, o) => {
-    let keep = 1;
-    for (let j = 0; j < hw.length; j++) { const cov = clamp((hw[j] - dd) / pw + .5, 0, 1); if (cov <= 0) break; keep *= 1 - .26 * cov; }
-    o[0] = o[1] = o[2] = 255 * (1 - keep); o[3] = 1 - keep;
-  }));
-  DMASK.g.putImageData(DMASK.img, 0, 0);
-  return { c: DMASK.c, W, H, k };
-}
-// the depth ramp, drawn at a sixth of the resolution so the steps melt into one smooth gradient when scaled up
-const SHALLOW = { c: null, g: null, img: null };
-const SHALLOW_N = 28;
-function drawShallows(rings) {
-  const [W, H] = seaGrid(), k = SEA_K, d = seaDistance(rings, W, H), pw = k / s;
-  gridCanvas(SHALLOW, W, H);
-  const FARC = hexRgb('#134660'), NEAR = hexRgb('#22716c');
-  const hw = new Float64Array(SHALLOW_N), cr = new Float64Array(SHALLOW_N), cg = new Float64Array(SHALLOW_N), cb = new Float64Array(SHALLOW_N), al = new Float64Array(SHALLOW_N);
-  for (let i = 0; i < SHALLOW_N; i++) {
-    const t = i / (SHALLOW_N - 1);
-    hw[i] = capHalf(9000 * Math.pow(3 / 9000, t));
-    cr[i] = Math.round(lerp(FARC[0], NEAR[0], t)); cg[i] = Math.round(lerp(FARC[1], NEAR[1], t)); cb[i] = Math.round(lerp(FARC[2], NEAR[2], t));
-    al[i] = +(.045 + .13 * t).toFixed(3);
-  }
-  rampImage(SHALLOW.img, d, rampLut(hw[0], pw, (dp, o) => {
-    // source-over, widest stroke first, premultiplied
-    let A = 0, R = 0, G = 0, B = 0;
-    for (let i = 0; i < SHALLOW_N; i++) {
-      const cov = clamp((hw[i] - dp) / pw + .5, 0, 1); if (cov <= 0) break;
-      const a = al[i] * cov, ia = 1 - a;
-      R = R * ia + cr[i] * a; G = G * ia + cg[i] * a; B = B * ia + cb[i] * a; A = A * ia + a;
-    }
-    o[0] = R; o[1] = G; o[2] = B; o[3] = A;
-  }));
-  SHALLOW.g.putImageData(SHALLOW.img, 0, 0);
-  ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(SHALLOW.c, cw / 2 - W / 2 * k, ch / 2 - H / 2 * k, W * k, H * k);
-  ctx.restore();
-}
-// block-culled scatter near the coast: fn(x, y, a, b, d) for grid cells whose coast distance d is in [d0, d1]
-function nearCoastCells(cell, d0, d1, k, fn, max = 4000) {
-  const B = 4, blk = cell * B, reach = Math.max(Math.abs(d0), Math.abs(d1)) + blk;
-  const bx0 = Math.floor(-hx / blk) - 1, bx1 = Math.floor(hx / blk) + 1, by0 = Math.floor(-hy / blk) - 1, by1 = Math.floor(hy / blk) + 1;
-  if ((bx1 - bx0 + 1) * (by1 - by0 + 1) * B * B > max * 4) return;
-  let n = 0;
-  for (let bi = bx0; bi <= bx1; bi++) for (let bj = by0; bj <= by1; bj++) {
-    const cx = (bi + .5) * blk, cy = (bj + .5) * blk;
-    const dc = coastDist(cx, cy, reach);
-    if (Number.isNaN(dc) || dc < d0 - blk || dc > d1 + blk) continue;
-    for (let i = bi * B; i < bi * B + B; i++) for (let j = bj * B; j < bj * B + B; j++) {
-      const a = hash(i, j, k + 2); if (a > .999) continue;
-      const x = (i + hash(i, j, k)) * cell, y = (j + hash(i, j, k + 1)) * cell;
-      if (!vis(x, y, cell * 2)) continue;
-      const d = coastDist(x, y, Math.max(Math.abs(d0), Math.abs(d1)) + cell);
-      if (Number.isNaN(d) || d < d0 || d > d1) continue;
-      if (++n > max) return;
-      fn(x, y, a, hash(i, j, k + 3), d, i, j);
-    }
-  }
-}
-
-function drawWorld(glOn) {
-  if (BANDS.shore.isActive) drawShore(glOn);
+// the bands that lie over the shore; the shore itself is the shore band's, on its own canvas under this one's
+function drawWorld() {
   if (BANDS.kelp.isActive) drawFocal();
   drawCloseUp();
-}
-
-function drawShore(glOn) {
-  const rings = coast.rings.map(r => r.pts);
-  if (!glOn) {
-    ctx.fillStyle = PAL.SEA_MID; ctx.fillRect(-hx - CV.m, -hy - CV.m, 2 * (hx + CV.m), 2 * (hy + CV.m));
-    ringsPath(rings); ctx.fillStyle = '#1c3320'; ctx.fill('nonzero');
-  }
-  // ---- the sea ----
-  ctx.save();
-  seaPath(); ctx.clip('evenodd');
-  ctx.fillStyle = PAL.SEA_DEEP; ctx.fillRect(-hx - CV.m, -hy - CV.m, 2 * (hx + CV.m), 2 * (hy + CV.m));
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  drawShallows(rings);
-  // the sea floor through the shallows, with the sun's caustic net on it, fading smoothly with depth
-  if (z < 2.9) {
-    const A = sstep(2.9, 2.4, z);
-    const g = layer();
-    g.fillStyle = layerPat('seabed', 5); g.fillRect(-cw / 2 - 2, -ch / 2 - 2, cw + 4, ch + 4);
-    g.globalCompositeOperation = 'lighter';
-    for (const [tile, rot, vx, vy, a] of [[.9, .3, .06, .025, .17], [.55, 1.2, -.04, .05, .12]]) {
-      const pat = layerPat('caustic', tile, rot), k2 = tile * s;
-      pat.setTransform(new DOMMatrix([Math.cos(rot) * k2 / 512, Math.sin(rot) * k2 / 512, -Math.sin(rot) * k2 / 512, Math.cos(rot) * k2 / 512, (T * vx * s) % k2, (T * vy * s) % k2]));
-      g.globalAlpha = a; g.fillStyle = pat; g.fillRect(-cw / 2 - 2, -ch / 2 - 2, cw + 4, ch + 4);
-    }
-    g.globalAlpha = 1; g.globalCompositeOperation = 'destination-in';
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    const m = depthMask(rings);
-    g.imageSmoothingQuality = 'high'; g.drawImage(m.c, (cw / 2 - m.W / 2 * m.k) * dpr, (ch / 2 - m.H / 2 * m.k) * dpr, m.W * m.k * dpr, m.H * m.k * dpr);
-    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = A * .42; ctx.drawImage(LAYER.c, 0, 0); ctx.restore();
-  }
-  drawKelpBeds();
-  // the swell: long soft crests some tens of metres apart, drifting shoreward
-  const swA = sstep(3.4, 2.9, z) * sstep(-.2, .6, z);
-  if (swA > 0) { ctx.globalAlpha = 1; viewPat('swell', 90, .35 * swA, .15, 0, (T * 1.6) % 90, 'soft-light'); }
-  // wind ripples and sun glints, at their true size (a few metres), gone once they are sub-pixel
-  const rw = 16, rA = sstep(70, 240, rw * s);
-  if (rA > 0) {
-    const drift = T * .5;
-    ctx.globalAlpha = 1;
-    viewPat('ripple', rw, .8 * rA, .4, drift, drift * .6, 'soft-light');
-    viewPat('ripple', rw * .37, .5 * rA, 1.9, -drift * .6, drift * .8, 'soft-light');
-    const tw = .5 + .5 * Math.sin(T * 2.1);
-    viewPat('glint', 9, .45 * tw * rA, 0, -drift * .7, drift * .4, 'lighter');
-    viewPat('glint', 9, .45 * (1 - tw) * rA, 1.3, drift * .5, -drift * .3, 'lighter');
-  }
-  drawSurf();
-  ctx.restore();
-
-  // ---- the land's edge ----
-  ctx.save();
-  ringsPath(rings); ctx.clip('nonzero');
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  // the forest's shadow on the upper shore, then the bare rock band and its zones
-  strokeNearPath(rings, ZONE.band + 4); ctx.lineWidth = 2 * (ZONE.band + 4); ctx.strokeStyle = 'rgba(6,12,6,.55)'; ctx.stroke();
-  strokeNearPath(rings, ZONE.band + 1.5); ctx.lineWidth = 2 * (ZONE.band + 1.5); ctx.strokeStyle = 'rgba(18,26,14,.5)'; ctx.stroke();
-  if (ZONE.band * s < 3) {
-    const bw = Math.max(2 * ZONE.band, px(1.6));
-    strokeNearPath(rings, bw / 2); ctx.lineWidth = bw; ctx.strokeStyle = '#8d887b'; ctx.stroke();
-  } else {
-    // each zone reaches up the shore a distance that wanders with the rock (two noise octaves); a zone's band is the
-    // ring and its offset copy (even-odd), built once a frame and used as a clip, so each layer on it is a plain rect
-    const reach = (D, k) => (x, y) => -D * (1 + .5 * (vnoise(x / 38, y / 38, k) - .5) * 2 + .22 * (vnoise(x / 7, y / 7, k + 1) - .5) * 2);
-    const offs = {};
-    const off = (D, k) => offs[k] || (offs[k] = offsetRings(reach(D, k), 3));
-    const band = (D, k) => { const o = off(D, k); ringsPath(rings); for (const q of o) { ctx.moveTo(q[0], q[1]); for (let i = 2; i < q.length; i += 2) ctx.lineTo(q[i], q[i + 1]); ctx.closePath(); } };
-    // the band's extent in the view: the coast near it, out to the farthest the zone can reach (1.72 D)
-    const bandBox = D => {
-      const e = D * 1.72, segs = coast.segs, n = segs.length / 5;
-      let x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
-      for (let i = 0; i < n; i++) {
-        const ax = segs[5 * i], ay = segs[5 * i + 1], bx = segs[5 * i + 2], by = segs[5 * i + 3];
-        if (Math.max(ax, bx) < -hx - e || Math.min(ax, bx) > hx + e || Math.max(ay, by) < -hy - e || Math.min(ay, by) > hy + e) continue;
-        x0 = Math.min(x0, ax, bx); y0 = Math.min(y0, ay, by); x1 = Math.max(x1, ax, bx); y1 = Math.max(y1, ay, by);
-      }
-      return x1 < x0 ? [0, 0, 0, 0] : [x0 - e, y0 - e, x1 + e, y1 + e];
-    };
-    const inBand = (D, k, fn) => {
-      const box = bandBox(D), r = viewRect(box);
-      if (!r) return;
-      ctx.save(); band(D, k); ctx.clip('evenodd');
-      ctx.beginPath(); ctx.rect(r[0] / s, r[1] / s, r[2] / s, r[3] / s);
-      fn(box); ctx.restore();
-    };
-    inBand(ZONE.band, 401, () => {
-      ctx.fillStyle = PAL.ROCK_BASE; ctx.fill();
-      fillOct('rock', 8, 1, undefined, 700);
-      fillOct('rock', 30, .35, undefined, 1400);
-    });
-    // the forest's edge throws its shade down onto the rock
-    const edge = off(ZONE.band, 401);
-    strokeNearPath(edge, 3.5); ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(8,14,6,.4)'; ctx.stroke();
-    strokeNearPath(edge, 1.5); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(8,14,6,.35)'; ctx.stroke();
-    inBand(ZONE.lichen, 411, () => fillOct('lichenBlack', 10, .65, undefined, 900));
-    inBand(ZONE.barnacle, 421, box => { ctx.fillStyle = 'rgba(40,36,30,.18)'; ctx.fill(); zoneFill('barnacle', .95, undefined, true, box); });
-    inBand(ZONE.mussel, 431, box => zoneFill('mussel', .7, undefined, true, box));
-    inBand(ZONE.rockweed, 441, box => zoneFill('rockweed', .95, undefined, true, box));
-    inBand(ZONE.low, 451, box => zoneFill('lowzone', .95, undefined, true, box));
-    // wet rock at the waterline
-    strokeNearPath(rings, .5); ctx.lineWidth = 2 * .5; ctx.strokeStyle = 'rgba(30,34,32,.45)'; ctx.stroke();
-  }
-  drawBeaches();
-  if (z < 2.9) drawPools();
-  if (z < 2.6) drawDriftwood();
-  ctx.restore();
-  if (z < 2.45) drawBoulders();
-}
-
-// sand coves where a slow noise says so, never near the focus (the scene there is rock)
-function drawBeaches() {
-  const lines = [];
-  for (const R of coast.rings) {
-    const p = R.pts, n = p.length / 2;
-    let open = null;
-    for (let i = 0; i < n; i++) {
-      const x = p[2 * i], y = p[2 * i + 1];
-      const beach = vnoise(x / 520 + 11.3, y / 520 + 4.1, 131) * .75 + vnoise(x / 130, y / 130, 133) * .25 > .66 && Math.hypot(x, y) > 350;
-      if (beach) { if (!open) lines.push(open = []); open.push(x, y); }
-      else open = null;
-    }
-  }
-  if (!lines.length) return;
-  const at = w => strokeNearPath(lines, w, false);
-  at(11); ctx.lineWidth = 2 * 11; ctx.strokeStyle = PAL.SAND_BASE; ctx.stroke();
-  if (11 * s > 4) strokeOct('sand', 2, 2 * 11, 1);
-  ctx.lineWidth = 2 * 11; ctx.strokeStyle = 'rgba(60,44,20,.18)'; ctx.stroke();
-  // drift line and wet sand
-  at(3); ctx.lineWidth = 2 * 3; ctx.strokeStyle = rgba(PAL.SAND_WET, .75); ctx.stroke();
-  at(1); ctx.lineWidth = 2 * 1; ctx.strokeStyle = 'rgba(60,52,40,.35)'; ctx.stroke();
-}
-
-const SURF_DASH = [5, 1.6, 9, 3, 3, 1.2, 7, 2.2], SURF_DASH_PERIOD = SURF_DASH.reduce((a, b) => a + b);
-function drawSurf() {
-  if (z > 3.6) {
-    // far out: a bright rim of surf along the coast
-    ringsPath(coast.rings.map(r => r.pts));
-    ctx.lineWidth = Math.max(px(2.4), 8); ctx.strokeStyle = rgba(PAL.FOAM, .45 * sstep(4.8, 4.3, z)); ctx.stroke();
-    return;
-  }
-  const W = [];
-  const period = 9;
-  for (let k = 0; k < 4; k++) {
-    const ph = ((T / period + k / 4) % 1 + 1) % 1;
-    const d = 1.2 + 30 * Math.pow(1 - ph, 1.25);
-    W.push({ d, a: Math.pow(Math.sin(ph * Math.PI), .8) * (.25 + .6 * ph), w: .16 + .75 * ph * ph, k });
-  }
-  for (const wv of W) {
-    if (wv.w * s < .5) continue;
-    // each breaker wanders in and out along the shore, so the lines are never parallel
-    const o = offsetRings((x, y) => wv.d * (1 + .35 * (vnoise(x / 22 + wv.k * 3.1, y / 22, 471) - .5) * 2), 3 + Math.round(wv.d / 6));
-    strokeNearPath(o, wv.w * 1.6, true, wv.w * .9);
-    ctx.lineWidth = wv.w * 3.2; ctx.strokeStyle = rgba(PAL.FOAM, wv.a * .1); ctx.stroke();
-    ctx.setLineDash(SURF_DASH);
-    strokeNearDashed(o, wv.w * .9, wv.k * 11 + T * .4, SURF_DASH_PERIOD, () => {
-      ctx.lineWidth = wv.w * .45; ctx.strokeStyle = rgba(PAL.FOAM, wv.a * .6); ctx.stroke();
-      strokeTrue('foam', 2.4, wv.w * 1.8, Math.min(1, wv.a * 1.3));
-    });
-    ctx.setLineDash([]);
-  }
-  // the swash: foam lace hugging the waterline
-  const sw = offsetRings(.45 + .25 * Math.sin(T * 2 * Math.PI / period), 2);
-  strokeNearPath(sw, Math.max(.6, px(1.2)), true, Math.max(.15, px(.6)));
-  strokeTrue('foam', 1.3, Math.max(.3, px(1.2)), .9);
-  ctx.lineWidth = 1.2; ctx.strokeStyle = rgba(PAL.FOAM, .12); ctx.stroke();
-}
-
-// ---- kelp beds offshore ----
-function kelpBeds() {
-  const beds = [];
-  for (const [x, y, r] of KELP_PATCHES) beds.push({ x, y, r, seed: Math.round(x * 7 + y) });
-  if (z < 3.8) {
-    const cell = 150;
-    const x0 = Math.floor(-hx / cell) - 1, x1 = Math.floor(hx / cell) + 1, y0 = Math.floor(-hy / cell) - 1, y1 = Math.floor(hy / cell) + 1;
-    if ((x1 - x0) * (y1 - y0) < 900) for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) {
-      if (hash(i, j, 141) > .5) continue;
-      const x = (i + hash(i, j, 142)) * cell, y = (j + hash(i, j, 143)) * cell;
-      if (Math.hypot(x, y) < 1200) continue; // near the focus the fixed beds rule
-      beds.push({ x, y, r: 22 + hash(i, j, 144) * 50, seed: i * 31 + j });
-    }
-  }
-  return beds.filter(b => {
-    if (!vis(b.x, b.y, b.r * 1.6)) return false;
-    const d = coastDist(b.x, b.y, 400);
-    return !Number.isNaN(d) && d < -b.r * .5 - 10 && d > -380;
-  });
-}
-function bedPath(b) {
-  ctx.beginPath();
-  for (let k = 0; k < 13; k++) {
-    const a = hash(k, b.seed, 151) * 6.28, rr = b.r * (.2 + hash(k, b.seed, 152) * .35), dd = hash(k, b.seed, 153) * .75;
-    const cx = b.x + Math.cos(a) * b.r * dd, cy = b.y + Math.sin(a) * b.r * dd * .6;
-    ctx.moveTo(cx + rr * 1.3, cy); ctx.ellipse(cx, cy, rr * 1.3, rr * .8, .5, 0, 7);
-  }
-}
-function drawKelpBeds() {
-  if (z > 4.1) return;
-  const A = sstep(4.1, 3.6, z);
-  for (const b of kelpBeds()) {
-    bedPath(b);
-    ctx.fillStyle = `rgba(60,48,20,${.22 * A})`; ctx.fill();
-    ctx.lineWidth = b.r * .15; ctx.strokeStyle = `rgba(60,48,20,${.1 * A})`; ctx.stroke();
-    ctx.save(); ctx.clip();
-    const near = sstep(40, 90, 24 * s);
-    if (near < 1) { bedPath(b); fillTrue('kelpbedFar', 150, .9 * A * (1 - near)); }
-    if (near > 0) { bedPath(b); fillTrue('kelpbed', 24, .95 * A * near); }
-    ctx.restore();
-    if (z < 2.3) kelpPlants(b);
-  }
-}
-// single plants in a bed: bulb and a sheaf of blades streaming down-current, swaying
-function kelpPlants(b) {
-  const cell = 2.4, A = sstep(2.3, 1.9, z);
-  const i0 = Math.floor((b.x - b.r * 1.4) / cell), i1 = Math.floor((b.x + b.r * 1.4) / cell);
-  const j0 = Math.floor((b.y - b.r) / cell), j1 = Math.floor((b.y + b.r) / cell);
-  if ((i1 - i0) * (j1 - j0) > 2500) return;
-  ctx.lineCap = 'round';
-  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
-    if (hash(i, j, 161) > .6) continue;
-    const x = (i + hash(i, j, 162)) * cell, y = (j + hash(i, j, 163)) * cell;
-    if (Math.hypot((x - b.x) / 1.3, (y - b.y) / .8) > b.r * .8 || !vis(x, y, 3)) continue;
-    const sway = Math.sin(T * .8 + i * .7 + j * 1.3) * .12;
-    ctx.globalAlpha = A;
-    for (let k = 0; k < 6; k++) {
-      const a = .5 + sway + (k - 2.5) * .11 + (hash(i, j, 164 + k) - .5) * .2, L = 1.2 + hash(i, j, 170 + k) * 1.8;
-      ctx.strokeStyle = k % 2 ? '#7a5d22' : '#937030'; ctx.lineWidth = .11;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(a) * L * .5 + .15, y + Math.sin(a) * L * .5 - .1, x + Math.cos(a + sway) * L, y + Math.sin(a + sway) * L); ctx.stroke();
-    }
-    ctx.fillStyle = 'rgba(20,14,4,.5)'; ctx.beginPath(); ctx.arc(x + .03, y + .04, .075, 0, 7); ctx.fill();
-    const g = ctx.createRadialGradient(x - .025, y - .03, .005, x, y, .065);
-    g.addColorStop(0, PAL.KELP_GLOW); g.addColorStop(.6, PAL.KELP_BASE); g.addColorStop(1, PAL.KELP_DARK);
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, .065, 0, 7); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-// ---- tide pools ----
-function poolShape(x, y, r, seed, sq = .65) {
-  ctx.beginPath();
-  const n = 12, P = [];
-  for (let k = 0; k < n; k++) { const a = k / n * 6.2832, rr = r * (.78 + .36 * hash(seed, k, 181)); P.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr * sq]); }
-  for (let k = 0; k < n; k++) { const a = P[k], b = P[(k + 1) % n], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; k ? ctx.quadraticCurveTo(a[0], a[1], m[0], m[1]) : ctx.moveTo(m[0], m[1]); }
-  const a = P[0], b = P[1]; ctx.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
-  ctx.closePath();
-}
-function pool(x, y, r, seed, sq) {
-  if (r * s < 1.2) return;
-  // wet rim, pink crust, the water with the sky's reflection
-  poolShape(x, y, r * 1.12, seed, sq); ctx.fillStyle = 'rgba(28,30,28,.55)'; ctx.fill();
-  poolShape(x, y, r * 1.04, seed, sq); ctx.fillStyle = rgba(PAL.CORALLINE, .75); ctx.fill();
-  poolShape(x, y, r, seed, sq);
-  const g = ctx.createRadialGradient(x - r * .15, y - r * .1, r * .05, x, y, r);
-  g.addColorStop(0, '#0d3f4a'); g.addColorStop(.7, '#1b5d63'); g.addColorStop(1, '#3a8584');
-  ctx.fillStyle = g; ctx.fill();
-  if (r * s > 25) {
-    ctx.save(); ctx.clip();
-    ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = patXf(tex('rock').pat, 512, r * 1.6); ctx.globalAlpha = .45; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    // sea lettuce and anemones on the bottom
-    for (let k = 0; k < 9; k++) {
-      const ax = x + (hash(seed, k, 191) - .5) * r * 1.3, ay = y + (hash(seed, k, 192) - .5) * r * sq * 1.2, ar = r * (.03 + hash(seed, k, 193) * .05);
-      if (k < 4) { ctx.fillStyle = 'rgba(90,170,80,.55)'; ctx.beginPath(); ctx.ellipse(ax, ay, ar * 2.4, ar * 1.3, k, 0, 7); ctx.fill(); }
-      else {
-        ctx.fillStyle = 'rgba(70,150,110,.7)'; ctx.beginPath(); ctx.arc(ax, ay, ar, 0, 7); ctx.fill();
-        ctx.strokeStyle = 'rgba(150,220,170,.6)'; ctx.lineWidth = ar * .18;
-        for (let t = 0; t < 12; t++) { const a = t / 12 * 6.28; ctx.beginPath(); ctx.moveTo(ax + Math.cos(a) * ar * .5, ay + Math.sin(a) * ar * .5); ctx.lineTo(ax + Math.cos(a) * ar * 1.25, ay + Math.sin(a) * ar * 1.25); ctx.stroke(); }
-      }
-    }
-    // sky in the surface, and a glint that breathes
-    const sk = ctx.createLinearGradient(x - r, y - r, x + r * .2, y + r * .4);
-    sk.addColorStop(0, 'rgba(200,235,240,.32)'); sk.addColorStop(.5, 'rgba(200,235,240,.06)'); sk.addColorStop(1, 'rgba(200,235,240,0)');
-    ctx.fillStyle = sk; ctx.fillRect(x - r * 1.2, y - r, r * 2.4, r * 2);
-    ctx.restore();
-  }
-  poolShape(x, y, r, seed, sq); ctx.strokeStyle = 'rgba(215,240,240,.5)'; ctx.lineWidth = Math.max(px(1), r * .02); ctx.stroke();
-  const gl = .5 + .5 * Math.sin(T * 1.7 + seed);
-  ctx.fillStyle = `rgba(255,255,245,${.55 * gl})`; ctx.beginPath(); ctx.ellipse(x - r * .45, y - r * .3 * sq, r * .09, r * .035, -.5, 0, 7); ctx.fill();
-}
-function drawPools() {
-  const A = sstep(2.9, 2.5, z);
-  ctx.globalAlpha = A;
-  nearCoastCells(7, 1.8, 10, 201, (x, y, a, b, d, i, j) => {
-    if (a > .3) return;
-    if (Math.hypot(x - FOCAL_ROCK.x, y - FOCAL_ROCK.y) < 4 || Math.hypot(x - FIXED_POOL.x, y - FIXED_POOL.y) < 6) return;
-    ctx.globalAlpha = A;
-    pool(x, y, .5 + b * b * 2.6, i * 131 + j, .5 + a);
-  }, 1500);
-  ctx.globalAlpha = A;
-  pool(FIXED_POOL.x, FIXED_POOL.y, FIXED_POOL.rx, 77, FIXED_POOL.ry / FIXED_POOL.rx);
-  ctx.globalAlpha = 1;
-}
-
-// ---- driftwood on the upper shore ----
-function drawDriftwood() {
-  const A = sstep(2.6, 2.25, z);
-  nearCoastCells(40, ZONE.band - 5, ZONE.band - 1, 211, (x, y, a, b) => {
-    if (a > .5) return;
-    const gx = coastDist(x + 1, y, 30) - coastDist(x - 1, y, 30), gy = coastDist(x, y + 1, 30) - coastDist(x, y - 1, 30);
-    const ang = Math.atan2(gy, gx) + Math.PI / 2 + (b - .5) * .5;
-    const L = 3 + b * 9, W = .35 + a * .9;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.globalAlpha = A;
-    ctx.fillStyle = 'rgba(10,10,8,.4)'; ctx.beginPath(); ctx.ellipse(W * .35, W * .5, L / 2, W * .62, 0, 0, 7); ctx.fill();
-    const g = ctx.createLinearGradient(0, -W / 2, 0, W / 2);
-    g.addColorStop(0, PAL.DRIFT_LIGHT); g.addColorStop(.45, PAL.DRIFT_BASE); g.addColorStop(1, PAL.DRIFT_DARK);
-    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(-L / 2, -W / 2, L, W, W / 2); ctx.fill();
-    if (W * s > 6) {
-      ctx.strokeStyle = 'rgba(90,82,70,.5)'; ctx.lineWidth = Math.max(px(.8), W * .03);
-      for (let k = 0; k < 5; k++) { const yy = (k / 4 - .5) * W * .7; ctx.beginPath(); ctx.moveTo(-L / 2 + W * .4, yy); ctx.bezierCurveTo(-L / 6, yy + W * .06, L / 6, yy - W * .06, L / 2 - W * .4, yy); ctx.stroke(); }
-      ctx.fillStyle = '#c9c1b0'; ctx.beginPath(); ctx.ellipse(L / 2 - W * .12, 0, W * .12, W * .48, 0, 0, 7); ctx.fill();
-      ctx.strokeStyle = 'rgba(110,100,86,.8)'; ctx.beginPath(); ctx.ellipse(L / 2 - W * .12, 0, W * .06, W * .26, 0, 0, 7); ctx.stroke();
-    }
-    ctx.restore();
-  }, 400);
-  ctx.globalAlpha = 1;
 }
 
 // ---- boulders ----
@@ -1455,21 +431,6 @@ function boulder(x, y, r, seed, d, detail = 1) {
     ctx.restore();
   }
 }
-function drawBoulders() {
-  const A = sstep(2.45, 2.15, z);
-  ctx.globalAlpha = A;
-  const list = [];
-  nearCoastCells(4.2, -5, ZONE.band - 2, 231, (x, y, a, b, d, i, j) => {
-    const p = d < 0 ? .25 : d < 6 ? .55 : .35;
-    if (a > p) return;
-    if (Math.hypot(x - FOCAL_ROCK.x, y - FOCAL_ROCK.y) < 3.6 || Math.hypot((x - FIXED_POOL.x) / 1.3, y - FIXED_POOL.y) < 5) return;
-    list.push([x, y, .35 + b * b * 1.4, i * 7 + j, d]);
-  }, 2500);
-  list.sort((p, q) => p[1] - q[1]);
-  for (const [x, y, r, seed, d] of list) { ctx.globalAlpha = A; boulder(x, y, r, seed, d); }
-  ctx.globalAlpha = 1;
-}
-
 // ---------- the boulder and the bull kelp (z 2.4 → -2.4; ticket #802) ----------
 const BULB = { x: .9, y: .45, r: .065 };
 const BLADE_PTS = [
@@ -1661,7 +622,7 @@ function drawFocal() {
   }
   drawFocalRock();
   if (z > -.3) {
-    ctx.save(); ctx.beginPath(); for (const R of coast.rings) { const p = R.pts; ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); }
+    ctx.save(); ctx.beginPath(); coastRingsPath();
     rockPath(FOCAL_ROCK.x, FOCAL_ROCK.y, FOCAL_ROCK.r, 999, .8 + hash(999, 1, 9) * .1); ctx.clip('nonzero');
     drawStipe(false); ctx.restore();
   }
@@ -2396,13 +1357,14 @@ function drawFrame(f) {
       if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
     }
   }
-  if (glOn) ctx.clearRect(0, 0, cw, ch);
+  // the shore band's canvas lies right under this one (ticket #801) and covers the view while it draws
+  if (glOn || (worldA > 0 && z > -1.42)) ctx.clearRect(0, 0, cw, ch);
   else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); }
 
-  if (worldA > 0) {
+  if (worldA > 0 && (BANDS.kelp.isActive || BANDS.drop.isActive || BANDS.slime.isActive)) {
     ctx.save(); ctx.globalAlpha = worldA;
     worldXf();
-    drawWorld(glOn);
+    drawWorld();
     ctx.restore();
   }
   frameNo++;
@@ -2413,11 +1375,7 @@ function drawFrame(f) {
 // next draw, since every one checks its size. The tile bakes and the coastline bakes stay for the page.
 function freeScreenCanvases() {
   if (cv) { cv.width = 1; cv.height = 1; dpr = 0; }
-  LAYER.c = null; LAYER.g = null; LAYER.pats = {};
   for (const name of Object.keys(ZLAYER)) delete ZLAYER[name];
-  for (const o of [DMASK, SHALLOW]) { o.c = null; o.g = null; o.img = null; }
-  for (const c of [SEA.mc, SEA.cc]) if (c) { c.width = 1; c.height = 1; }
-  SEA.frame = -1;
 }
 
 // ---------- the module's face (dive-mockup-bands.d.ts) ----------
@@ -2425,7 +1383,7 @@ function freeScreenCanvases() {
 export function createMockupBands(input) {
   nowMs = input.nowMs;
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
-  if (!SALISH_RINGS) { initGeo(input.salishRings); initCoast(); }
+  COAST = input.coast; TILES = input.tiles;
   return {
     canvas: cv,
     draw(frame) { return drawFrame(frame); },

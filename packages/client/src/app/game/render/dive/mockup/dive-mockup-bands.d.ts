@@ -33,18 +33,38 @@ export interface MockupFrame {
   readonly bands: MockupBandStates;
 }
 
+/** The shore band's coast in metres (`shore/shore-coast.ts`): the kelp band and the forest test build it per frame. */
+export interface MockupCoast {
+  build(view: { readonly halfWidthM: number; readonly halfHeightM: number; readonly pixelsPerMetre: number }): void;
+  distance(x: number, y: number, maxM: number): number;
+  readonly rings: readonly { readonly points: readonly number[] }[];
+  readonly marginM: number;
+}
+
+/** A tile the shore band has baked (`shore/shore-tiles.ts`): the kelp and slime bands draw from it. */
+export interface MockupTile {
+  readonly canvas: CanvasImageSource & { readonly width: number; readonly height: number };
+  readonly averageColour: string;
+}
+
+export interface MockupTiles {
+  /** The tile, or `null` while it bakes (it then jumps the shore's queue). */
+  get(name: string): MockupTile | null;
+}
+
 export interface MockupBandsInput {
-  readonly salishRings: readonly MockupRing[];
+  readonly coast: MockupCoast;
+  readonly tiles: MockupTiles;
   /** The dive's clock in milliseconds: the bake pump's budget is measured on it. */
   readonly nowMs: () => number;
 }
 
 export interface MockupBands {
-  /** The one canvas the bands draw on (kept for the page); the dive lays it under the game's canvas. */
+  /** The one canvas the bands draw on (kept for the page), right over the shore band's. */
   readonly canvas: HTMLCanvasElement;
   /**
-   * Draws the frame; `true` when the planet (`dive-planet-band.ts`) shows under the canvas, which is then left clear
-   * for it wherever the shore does not draw (close in, only while some of the view lies past the rock band).
+   * Draws the frame; `true` when the planet (`dive-planet-band.ts`) shows: the canvas is then left clear for it, and
+   * the shore band (`shore/dive-shore-band.ts`, under this canvas) leaves its forest to it.
    */
   draw(frame: MockupFrame): boolean;
   /** Runs the texture bakes for about `budgetMs`; `true` when one finished, so a still view draws once more. */

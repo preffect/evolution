@@ -42,15 +42,15 @@ describe('DiveSession’s planet', () => {
   });
 
   it('lays the mockup’s canvas over the game’s while the planet shows, and back under it down at the dish', async () => {
-    const { subject, app, bands, dependencies } = await started();
+    const { subject, app, bands, shore, dependencies } = await started();
     const { host } = dependencies;
     host.append(app.canvas);
+    const shoreCanvas = shore.bands[0]!.canvas;
     tickUntilBuilt(app, subject);
     subject.controls.scrub(4);
     app.tick();
     expect(bands.frames.at(-1)!.zoom).toBe(4);
-    expect(host.firstElementChild).toBe(app.canvas);
-    expect(host.lastElementChild).toBe(bands.canvas);
+    expect([...host.children]).toEqual([app.canvas, shoreCanvas, bands.canvas]);
     expect(opacityOf(app)).toBe(1);
     // Down through the shore and the drop to the dish: the game's dish draws over the slime round it.
     for (const zoom of [1, -2, -4.3]) {
@@ -58,8 +58,7 @@ describe('DiveSession’s planet', () => {
       app.tick();
     }
     expect(bands.frames.at(-1)!.zoom).toBe(-4.3);
-    expect(host.firstElementChild).toBe(bands.canvas);
-    expect(host.lastElementChild).toBe(app.canvas);
+    expect([...host.children]).toEqual([shoreCanvas, bands.canvas, app.canvas]);
     expect(opacityOf(app)).toBe(1);
     subject.destroy();
   });

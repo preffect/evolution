@@ -1,14 +1,11 @@
 // The opening dive on the lobby (docs/rendering/opening-dive.md §1): the fourth `FrameLoopSession`, beside a room's,
-// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's own canvas (`DiveMacroBand`). The
-// session's Pixi app clears to transparent and draws the planet (`DivePlanetBand`) under that canvas from orbit to the
-// shore, and the **real** `GameRenderer` on a scripted dish scene over it at the bottom, clipped to the dish's outer
-// wall while the slime round it shows, and faded in by the band table as the dark field arrives (the canvas's
-// opacity, so the browser composites the fade).
-//
-// The renderer's textures bake across frames (ticket #479) while the upper bands already draw, so the lobby never
-// freezes on the bake; its warm-up draw goes through `renderFrame` like any other session's (ticket #603). It never
-// installs `window.__evolutionDebug`. `destroy` frees the planet, then the renderer's textures and the app in ticket
-// #468's order (`disposeLoop`).
+// the bench's and the encyclopedia preview's. The upper bands draw on the mockup's canvas (`DiveMacroBand`), the shore
+// on a Pixi app of its own under it (`shore/`). This session's Pixi app clears to transparent and draws the planet
+// (`DivePlanetBand`) under them, and the **real** `GameRenderer` on a scripted dish scene at the bottom, clipped to the
+// dish's wall while the slime shows and faded in by the band table (the canvas's opacity, a browser-composited fade).
+// The renderer's textures bake across frames (ticket #479) while the upper bands draw, so the lobby never freezes; its
+// warm-up draw goes through `renderFrame` (ticket #603). It never installs `window.__evolutionDebug`. `destroy` frees
+// the planet, then the renderer's textures and the app in ticket #468's order (`disposeLoop`).
 
 import {
   DISH_CENTRE_TARGET,
@@ -96,7 +93,7 @@ export class DiveSession extends FrameLoopSession {
       isCancelled: () => this.isDestroyed,
     });
     if (halves === null) return false;
-    const { pixi, bands } = halves;
+    const { pixi, bands, shorePixi } = halves;
     this.adoptPixiApp(pixi);
     if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
@@ -108,6 +105,8 @@ export class DiveSession extends FrameLoopSession {
       clock: dependencies.clock,
       frameTimes: this.frameTimes,
       renderToTexture: (container, target) => pixi.renderToTexture(container, target),
+      shorePixi,
+      devicePixelRatio: this.devicePixelRatio,
     });
     this.upper.bakeOn(dependencies.scheduler, () => this.requestFrame());
     this.showGame(0);
@@ -133,6 +132,7 @@ export class DiveSession extends FrameLoopSession {
   /** The stage changed size: the app follows at once (Pixi's `resizeTo` measures only on a window resize, #805). */
   resizeStage(sizePx: { readonly width: number; readonly height: number }): void {
     this.pixi?.resize(sizePx);
+    this.upper?.resize(sizePx);
     this.requestFrame();
   }
 

@@ -23,9 +23,10 @@ import { DIVE_FIRST_PHASE } from './dive-controls';
 const opacityOf = (app: FakePixiApp): number => Number(app.canvas.style.opacity);
 
 describe('DiveSession.start', () => {
-  it('lays the upper bands’ canvas first in the stage, under the game’s, and the renderer in a root of its own', async () => {
-    const { subject, app, bands, dependencies } = await started();
-    expect(dependencies.host.firstElementChild).toBe(bands.canvas);
+  it('lays the shore’s and the upper bands’ canvases first in the stage, under the game’s, and the renderer in a root of its own', async () => {
+    const { subject, app, bands, shore, dependencies } = await started();
+    expect(dependencies.host.firstElementChild).toBe(shore.bands[0]!.canvas);
+    expect(shore.bands[0]!.canvas.nextElementSibling).toBe(bands.canvas);
     expect(app.canvas.dataset['testid']).toBe(DIVE_CANVAS_TEST_ID);
     tickUntilBuilt(app, subject);
     expect(subject.isBuildingRenderer).toBe(false);
