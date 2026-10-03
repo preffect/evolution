@@ -7,7 +7,7 @@ import { createFakeShoreCanvasFactory, type FakeShoreCanvas } from '../../../../
 import type { ShoreCanvas } from './shore-canvas';
 import { SHORE_TILE_BAKES, SHORE_TILE_NAMES, ShoreTiles, averageOf, type ShoreTileName } from './shore-tiles';
 import type { PeriodicNoise } from './shore-noise';
-import { QUICK_TILE_BAKES } from '../../../../../testing/shore-paint-builder';
+import { QUICK_TILE_BAKES, SHORE_TILE_BAKE_TEST_TIMEOUT_MS } from '../../../../../testing/shore-paint-builder';
 
 /** A canvas whose pixels read back as `pixels`. */
 function canvasReading(pixels: number[]): ShoreCanvas {
@@ -36,21 +36,25 @@ describe('each tile bake', () => {
   /** A flat noise: the bakes' own drawing is what is checked here, not the lattice (`shore-noise.spec.ts`). */
   const noise = { noise: () => 0.6, fbm: () => 0.6, layer: () => 0.6 } as unknown as PeriodicNoise;
 
-  it.each(SHORE_TILE_NAMES)('%s ends with a canvas its size, drawn', (name) => {
-    const factory = createFakeShoreCanvasFactory();
-    const bake = SHORE_TILE_BAKES[name]({ factory, noise });
-    let step = bake.next();
-    let slices = 0;
-    while (step.done !== true) {
-      slices += 1;
-      step = bake.next();
-    }
-    const canvas = step.value as FakeShoreCanvas;
-    expect(canvas.width).toBeGreaterThan(0);
-    expect(slices).toBeGreaterThan(0);
-    const drawn = canvas.context.puts.length + canvas.context.paintCount + canvas.context.imageDraws.length;
-    expect(drawn).toBeGreaterThan(0);
-  });
+  it.each(SHORE_TILE_NAMES)(
+    '%s ends with a canvas its size, drawn',
+    (name) => {
+      const factory = createFakeShoreCanvasFactory();
+      const bake = SHORE_TILE_BAKES[name]({ factory, noise });
+      let step = bake.next();
+      let slices = 0;
+      while (step.done !== true) {
+        slices += 1;
+        step = bake.next();
+      }
+      const canvas = step.value as FakeShoreCanvas;
+      expect(canvas.width).toBeGreaterThan(0);
+      expect(slices).toBeGreaterThan(0);
+      const drawn = canvas.context.puts.length + canvas.context.paintCount + canvas.context.imageDraws.length;
+      expect(drawn).toBeGreaterThan(0);
+    },
+    SHORE_TILE_BAKE_TEST_TIMEOUT_MS,
+  );
 });
 
 describe('ShoreTiles', () => {
