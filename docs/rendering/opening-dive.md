@@ -98,7 +98,8 @@ That table is the one place the windows live: the mockup's canvas and the game's
   zoom 3) the planet's forest test (`shore/shore-forest-test.ts`, the mockup's `glOn`, which the mockup's canvas ran
   until ticket #802) says whether any of the view lies past the rock band; when none does, the planet is not drawn and
   the shore lays its own flat forest. It builds the shore's coast for the view only while the planet's band is active
-  below zoom 3, where the mockup built it every frame of the shore.
+  below zoom 3, and then once per 0.3 of zoom for that step's widest view
+  (`SHORE_FOREST_TEST.rebuildStepZoom`), where the mockup built it every frame of the shore.
 - **Between the drop and the dish** (zoom −2.96 to −3.7) the Pixi canvas draws nothing and its opacity is 0. From 1.35
   to −1.42 it draws the shore and the kelp, and from −1.42 to −2.96 the kelp band's blade, beads and drop.
 - **The shore weight:** it is also the planar world's fade over the globe. It stays 1 below its cut, so the
