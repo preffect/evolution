@@ -1,6 +1,10 @@
-# Dive baselines (ticket #797, added in PR #799's round-two review; retaken for ticket #805)
+# Dive baselines (ticket #797, added in PR #799's round-two review; retaken for ticket #805, on the GPU for ticket #804)
 
-The opening dive on the lobby (`docs/rendering/opening-dive.md`), SwiftShader, DPR 1. Each 1280 shot is the stage
+The opening dive on the lobby (`docs/rendering/opening-dive.md`), on the GPU (a GTX 1080 Ti, ANGLE / Vulkan), DPR 1.
+Taken on the GPU since ticket #804: under software GL the resolution governor drops the canvas to its floor (0.35), so
+a SwiftShader shot shows the governed look, not the dive's. Every shot here drew at a canvas ratio of 1. Retake them
+with `capture.cjs` (`CLIENT_DIR=packages/client node qa/baselines/dive/capture.cjs <client port> qa/baselines/dive`) on
+a box with a GPU, and check that the renderer line it prints names the GPU, not SwiftShader. Each 1280 shot is the stage
 alone (830 × 467 CSS px, the right-hand column since ticket #805) in a 1280 × 800 viewport, taken after the autoplay
 reached the phase-1 stop and the upper bands had baked, then scrubbed to the zoom with the slider (value = 7.4 − zoom) and left 2.5 s to settle. Zoom is
 log10 of the view's width in metres. The micro scene's cells drift, so compare the look, not pixel positions.
