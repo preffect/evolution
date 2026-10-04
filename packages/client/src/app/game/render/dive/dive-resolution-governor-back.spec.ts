@@ -13,14 +13,25 @@ import {
   governorFeed as feed,
 } from '../../../../testing/dive-governor-feed';
 
-const { windowFrames, stepRatio, floorResolution, stepUpAfterMs, probeFailMs, maxStepUpAfterMs, uselessStepHoldMs } =
-  DIVE_RESOLUTION_GOVERNOR;
+const {
+  windowFrames,
+  stepRatio,
+  floorResolution,
+  stepUpAfterMs,
+  probeFailMs,
+  maxStepUpAfterMs,
+  uselessStepHoldMs,
+  sustainedMs,
+} = DIVE_RESOLUTION_GOVERNOR;
 
 describe('DiveResolutionGovernor stepping back', () => {
   it('keeps a step down that helped', () => {
     const subject = feed(1);
     // 36 ms at full resolution: a notch gives about 25 ms, which helped, and the next about 18 ms, on budget.
-    subject.frames(windowFrames * 10, gpuBound(36));
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
+    // On budget at the second notch: it stays there until the wait for a notch up.
+    subject.frames(Math.floor(stepUpAfterMs / 20), gpuBound(36));
     expect(subject.changes).toEqual([stepRatio, stepRatio * stepRatio]);
   });
 
@@ -46,13 +57,14 @@ describe('DiveResolutionGovernor stepping back', () => {
     const expected = [1, 2, 4].map((factor) => uselessStepHoldMs * factor);
     waits.forEach((waitMs, index) => {
       expect(waitMs).toBeGreaterThanOrEqual(expected[index]!);
-      expect(waitMs).toBeLessThan(expected[index]! + SLOW_MS * (windowFrames + 1) * 3);
+      expect(waitMs).toBeLessThan(expected[index]! + SLOW_MS * (windowFrames + 1) * 3 + sustainedMs * 2);
     });
   });
 
   it('steps one notch back up after a stretch on budget, and on up to the dive’s ratio', () => {
     const subject = feed(1);
-    subject.frames(windowFrames * 3, gpuBound(36));
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
     const low = subject.governor.resolution;
     expect(low).toBeCloseTo(stepRatio * stepRatio, 12);
     const waitedMs = subject.smoothUntilChange(stepUpAfterMs * 2);
@@ -66,14 +78,14 @@ describe('DiveResolutionGovernor stepping back', () => {
 
   it('backs off a notch that did not fit: each failed try waits twice as long, so it never pumps', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.untilChange(SLOW_MS, sustainedMs * 4);
     const fits = subject.governor.resolution;
     const waits: number[] = [];
     for (let attempt = 0; attempt < 6; attempt += 1) {
       waits.push(subject.smoothUntilChange(maxStepUpAfterMs * 2));
       expect(subject.governor.resolution).toBe(1);
       // The notch up is too much: its frames run over at once, and it steps back down within the probe's window.
-      subject.frames(windowFrames + 1, SLOW_MS);
+      subject.untilChange(SLOW_MS, sustainedMs * 4);
       expect(subject.governor.resolution).toBe(fits);
     }
     const expected = [1, 2, 4, 8, 16, 16].map((factor) => Math.min(maxStepUpAfterMs, stepUpAfterMs * factor));
@@ -85,10 +97,11 @@ describe('DiveResolutionGovernor stepping back', () => {
 
   it('puts the wait back once a notch up holds past the probe’s window', () => {
     const subject = feed(1);
-    subject.frames(windowFrames * 3, gpuBound(36));
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
+    subject.untilChange(gpuBound(36), sustainedMs * 4);
     // Fail the first try at the middle notch: the next waits twice as long.
     subject.smoothUntilChange(maxStepUpAfterMs);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.untilChange(SLOW_MS, sustainedMs * 4);
     expect(subject.smoothUntilChange(maxStepUpAfterMs)).toBeGreaterThanOrEqual(stepUpAfterMs * 2);
     // That notch holds: the try at the top waits the first wait again.
     subject.frames(Math.ceil(probeFailMs / SMOOTH_MS) + windowFrames, SMOOTH_MS);
@@ -101,7 +114,7 @@ describe('DiveResolutionGovernor stepping back', () => {
     const subject = feed(2, 1.5);
     subject.frames(1, SMOOTH_MS);
     expect(subject.governor.resolution).toBe(1.5);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.untilChange(SLOW_MS, sustainedMs * 4);
     // The rung under 1.5 on the ladder from 2 (2 × 0.84² ≈ 1.41), not the one under 2 (1.68, clipped to 1.5 again).
     expect(subject.governor.resolution).toBeCloseTo(2 * stepRatio * stepRatio, 12);
     // Still, the ceiling lifts; the governed rung stays.

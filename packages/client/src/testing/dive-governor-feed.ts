@@ -47,12 +47,17 @@ export class FrameFeed {
     return this.governor.resolution;
   }
 
-  /** Smooth frames until the resolution changes or `limitMs` passes; answers how long that took. */
-  smoothUntilChange(limitMs: number): number {
+  /** Frames `gap` apart until the resolution changes or `limitMs` passes; answers how long that took. */
+  untilChange(gap: FrameGap, limitMs: number): number {
     const startedMs = this.nowMs;
     const before = this.governor.resolution;
-    while (this.governor.resolution === before && this.nowMs - startedMs < limitMs) this.frames(1, SMOOTH_MS);
+    while (this.governor.resolution === before && this.nowMs - startedMs < limitMs) this.frames(1, gap);
     return this.nowMs - startedMs;
+  }
+
+  /** Smooth frames until the resolution changes or `limitMs` passes; answers how long that took. */
+  smoothUntilChange(limitMs: number): number {
+    return this.untilChange(SMOOTH_MS, limitMs);
   }
 }
 

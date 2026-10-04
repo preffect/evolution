@@ -67,7 +67,12 @@ describe('DiveSession resolution governor', () => {
   it('gives the resolution back when fewer pixels do not quicken the frames (a slow CPU, not the GPU)', async () => {
     const parts = await inTheDrop();
     const slowCpuFrameMs = DIVE_TARGET_FRAME_MS * 2;
-    frames(parts, FRAMES_TO_JUDGE * 2, slowCpuFrameMs);
+    // Over budget throughout for long enough to step, then a window more to see the step did not help.
+    frames(
+      parts,
+      FRAMES_TO_JUDGE * 2 + Math.ceil(DIVE_RESOLUTION_GOVERNOR.sustainedMs / slowCpuFrameMs),
+      slowCpuFrameMs,
+    );
     const [stepped, restored] = parts.app.resolutions;
     expect(stepped).toBeLessThan(1);
     expect(restored).toBe(1);

@@ -9,7 +9,10 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  * - `windowFrames`: it judges the median gap of this many drawn frames in a row, so one long task (a bake landing, a
  *   texture upload) never moves it; or of `minWindowFrames` once they span `windowMs`, so software GL's frames,
  *   seconds apart, are judged within a second or two. Every change starts the window again.
- * - `slowFrameRatio`: a median over the target times this is over budget (the mockup's 21 ms governor at 60 Hz).
+ * - `slowFrameRatio`: a median over the target times this is over budget (the mockup's 21 ms governor at 60 Hz). It
+ *   steps down only when the window is over budget throughout: at most `sustainedFastFrames` of its frames on time. A
+ *   GPU behind misses every vsync; a busy page misses some (a 33 ms gap among 16.7 ms ones), and fewer pixels would not
+ *   help it. And it must stay so for `sustainedMs` of windows in a row: a burst of a busy page's work is shorter.
  * - `stepRatio`: one notch of resolution, about 0.7× the pixels. Over budget it steps down one notch; a median past
  *   `leapRatio` times the target, which no page's own work explains, steps as many notches as the pixels must shrink
  *   by for the GPU's share of the frame to fit (the cost of a fragment-bound frame scales with its pixels).
@@ -30,6 +33,8 @@ export const DIVE_RESOLUTION_GOVERNOR = {
   minWindowFrames: 3,
   windowMs: 1000,
   slowFrameRatio: 1.3,
+  sustainedFastFrames: 1,
+  sustainedMs: 500,
   leapRatio: 3,
   stepRatio: 0.84,
   floorResolution: 0.35,

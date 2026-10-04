@@ -14,7 +14,7 @@ import {
   governorFeed as feed,
 } from '../../../../testing/dive-governor-feed';
 
-const { windowFrames, minWindowFrames, windowMs, stepRatio, floorResolution, maxGapMs, leapRatio } =
+const { windowFrames, minWindowFrames, windowMs, stepRatio, floorResolution, maxGapMs, leapRatio, sustainedMs } =
   DIVE_RESOLUTION_GOVERNOR;
 
 describe('diveResolutionLadder', () => {
@@ -61,13 +61,36 @@ describe('DiveResolutionGovernor', () => {
     expect(subject.changes).toEqual([]);
   });
 
-  it('steps one notch down once a window of frames runs a little over budget, and not before', () => {
+  it('steps one notch down once frames run a little over budget throughout for a while, and not before', () => {
     const subject = feed(1);
-    // The first frame only starts the clock: a window is that many gaps after it.
-    subject.frames(windowFrames, SLOW_MS);
-    expect(subject.governor.resolution).toBe(1);
-    subject.frames(1, SLOW_MS);
+    const waitedMs = subject.untilChange(SLOW_MS, sustainedMs * 4);
     expect(subject.governor.resolution).toBeCloseTo(stepRatio, 12);
+    // The first frame starts the clock, a window fills, and it stays over budget for `sustainedMs`.
+    expect(waitedMs).toBeGreaterThanOrEqual(SLOW_MS * windowFrames + sustainedMs);
+    expect(waitedMs).toBeLessThan(SLOW_MS * (windowFrames + 2) + sustainedMs);
+  });
+
+  it('never steps down for a busy page’s missed vsyncs: 33 ms gaps among 16.7 ms ones (ticket #804’s review)', () => {
+    const missed = DIVE_TARGET_FRAME_MS * 2;
+    const cpuMs = 14;
+    // Every other frame misses, then bursts of three in a row every few seconds: the GPU is never behind.
+    const alternating = feed(2);
+    for (let frame = 0; frame < 2000; frame += 1)
+      alternating.frames(1, frame % 2 === 0 ? missed : SMOOTH_MS, { cpuMs });
+    expect(alternating.changes).toEqual([]);
+    const bursts = feed(2);
+    for (let burst = 0; burst < 20; burst += 1) {
+      bursts.frames(3, missed, { cpuMs });
+      bursts.frames(200, SMOOTH_MS, { cpuMs });
+    }
+    expect(bursts.changes).toEqual([]);
+  });
+
+  it('still steps down when the GPU is behind on every frame', () => {
+    const subject = feed(2);
+    subject.untilChange(gpuBound(DIVE_TARGET_FRAME_MS * 2, 2), sustainedMs * 4);
+    expect(subject.changes).toHaveLength(1);
+    expect(subject.governor.resolution).toBeLessThan(2);
   });
 
   it('never moves for one long task among smooth frames (a bake landing, an upload)', () => {
@@ -90,8 +113,9 @@ describe('DiveResolutionGovernor', () => {
   it('judges frames seconds apart once a few of them span its window, not after a full window of them', () => {
     const subject = feed(2);
     const gapMs = windowMs / (minWindowFrames - 1);
-    // The first frame starts the clock; `minWindowFrames − 1` gaps are short of the window's span.
-    subject.frames(minWindowFrames, gapMs);
+    // The first frame starts the clock; `minWindowFrames − 1` gaps are short of the window's span; the next is judged
+    // over budget throughout, and the one after, `sustainedMs` on, steps.
+    subject.frames(minWindowFrames + 1, gapMs);
     expect(subject.changes).toEqual([]);
     subject.frames(1, gapMs);
     expect(subject.changes).toEqual([floorResolution]);
@@ -138,7 +162,7 @@ describe('DiveResolutionGovernor', () => {
 
   it('starts the window again after a step: the frame carrying the resize and the old resolution’s never count', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.untilChange(SLOW_MS, sustainedMs * 4);
     expect(subject.changes).toHaveLength(1);
     // A full window at the new resolution is needed again, plus the frame that only starts the clock, before the
     // governor judges anything: here that the step did not help, so it is undone.

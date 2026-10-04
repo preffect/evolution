@@ -31,6 +31,20 @@ export function diveResolutionLadder(top: number): number[] {
   return ladder;
 }
 
+/** A frame gap over this is over budget. */
+const SLOW_FRAME_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.slowFrameRatio;
+
+/**
+ * Whether a window's frames were over budget nearly all of them (`sustainedFastFrames` at most on time): a GPU behind
+ * misses every vsync, a busy page now and then (ticket #804's review: scattered 33 ms gaps among 16.7 ms ones on a
+ * slow CPU stepped the canvas to the floor while the GPU idled).
+ */
+function isSustainedOverBudget(gapsMs: readonly number[]): boolean {
+  const sorted = [...gapsMs].sort((first, second) => first - second);
+  const fastest = sorted[Math.min(DIVE_RESOLUTION_GOVERNOR.sustainedFastFrames, sorted.length - 1)] ?? 0;
+  return fastest > SLOW_FRAME_MS;
+}
+
 /** The median of a few numbers: the middle one, or the mean of the middle two. */
 function medianOf(values: readonly number[]): number {
   const sorted = [...values].sort((first, second) => first - second);
@@ -61,6 +75,8 @@ export class DiveResolutionGovernor {
   private gapsMs: number[] = [];
   private cpusMs: number[] = [];
   private onBudgetSinceMs: number | null = null;
+  /** Since when every window judged has been over budget throughout. */
+  private overBudgetSinceMs: number | null = null;
   private steppedUpAtMs: number | null = null;
   private stepUpAfterMs: number = DIVE_RESOLUTION_GOVERNOR.stepUpAfterMs;
   /** The last step down, until the window after it says whether it helped. */
@@ -129,14 +145,18 @@ export class DiveResolutionGovernor {
   private judge(nowMs: number): void {
     const gapMs = medianOf(this.gapsMs);
     const cpuMs = medianOf(this.cpusMs);
+    const isSustained = isSustainedOverBudget(this.gapsMs);
     this.gapsMs.shift();
     this.cpusMs.shift();
     if (this.isUselessStepUndone(nowMs, gapMs)) return;
-    if (gapMs > DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.slowFrameRatio) {
+    if (gapMs > SLOW_FRAME_MS) {
+      // Over budget: a step only when nearly every frame is; scattered missed vsyncs are the page's, and wait it out.
       this.onBudgetSinceMs = null;
-      if (nowMs >= this.stepDownHeldUntilMs) this.stepDown(nowMs, diveNotchesDown(gapMs, cpuMs), gapMs);
+      this.overBudgetSinceMs = isSustained ? (this.overBudgetSinceMs ?? nowMs) : null;
+      if (this.isOverBudgetLongEnough(nowMs)) this.stepDown(nowMs, diveNotchesDown(gapMs, cpuMs), gapMs);
       return;
     }
+    this.overBudgetSinceMs = null;
     this.onBudgetSinceMs ??= nowMs;
     if (this.steppedUpAtMs !== null && nowMs - this.steppedUpAtMs > DIVE_RESOLUTION_GOVERNOR.probeFailMs) {
       // The notch up held: the next one is tried after the first wait again.
@@ -144,6 +164,13 @@ export class DiveResolutionGovernor {
       this.stepUpAfterMs = DIVE_RESOLUTION_GOVERNOR.stepUpAfterMs;
     }
     if (nowMs - this.onBudgetSinceMs >= this.stepUpAfterMs) this.stepUp(nowMs);
+  }
+
+  /** Over budget throughout for `sustainedMs`, and not holding off after a step that did not help. */
+  private isOverBudgetLongEnough(nowMs: number): boolean {
+    const since = this.overBudgetSinceMs;
+    if (since === null || nowMs < this.stepDownHeldUntilMs) return false;
+    return nowMs - since >= DIVE_RESOLUTION_GOVERNOR.sustainedMs;
   }
 
   /**
@@ -200,5 +227,6 @@ export class DiveResolutionGovernor {
   private restartWindow(): void {
     this.gapsMs = [];
     this.cpusMs = [];
+    this.overBudgetSinceMs = null;
   }
 }
