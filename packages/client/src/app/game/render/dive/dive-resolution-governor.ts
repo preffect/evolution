@@ -108,6 +108,8 @@ export class DiveResolutionGovernor {
       this.gapsMs.push(frame.nowMs - last);
       this.cpusMs.push(frame.cpuMs);
       if (this.isWindowFull()) this.judge(frame.nowMs);
+    } else if (last !== null) {
+      this.restartWindow();
     }
     // A step restarts the window with this frame unseen: the next one carries the canvas's resize.
     this.lastFrameMs = this.resolution === before ? frame.nowMs : null;

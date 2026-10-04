@@ -15,7 +15,7 @@ import type { DiveView } from '../dive-view';
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import type { ShoreBakeThread } from './shore-bake-thread';
 import { shoreLiveFrame } from './shore-live';
-import { shoreLevelProgress, shoreSnapshotRatio } from './shore-lod';
+import { shoreLevelProgress } from './shore-lod';
 import { ShoreLevels } from './shore-levels';
 import { ShoreMesh, type ShoreLevelTextures, type ShoreTileTextures } from './shore-mesh';
 import { bakeShoreSnapshot, type ShoreSnapshotSources } from './shore-snapshot';
@@ -47,13 +47,6 @@ export class DiveShoreBand {
   /** The last frame's zoom; above the dive at first, so the first frame faces down it. */
   private lastZoom = Number.POSITIVE_INFINITY;
   private direction = 1;
-  /**
-   * The ratio its levels bake at: the governed canvas's (`DiveView.deviceRatio`, ticket #804) under the snapshots' cap,
-   * taken only while the band does not show. A new ratio drops every level (`ShoreLevels.setStage`), so a step of the
-   * resolution governor never takes the level in view away; under software GL the levels then bake at the floor's
-   * eighth of the pixels, off the cores the rasteriser needs.
-   */
-  private bakeRatio: number;
 
   /** `thread` is the bake worker (ticket #809), or `null` where the page bakes in slices itself. */
   constructor(
@@ -62,7 +55,6 @@ export class DiveShoreBand {
     renderToTexture: RenderToTexture,
     private readonly thread: ShoreBakeThread | null = null,
   ) {
-    this.bakeRatio = shoreSnapshotRatio(devicePixelRatio);
     this.levels = new ShoreLevels(sources, SHORE_LEVEL_UPLOADER, thread?.bakeLevel ?? bakeShoreSnapshot);
     thread?.listen({
       onTile: () => this.landed(),
@@ -147,7 +139,7 @@ export class DiveShoreBand {
     const zoom = view.camera.zoom;
     if (zoom !== this.lastZoom) this.direction = zoom < this.lastZoom ? 1 : -1;
     this.lastZoom = zoom;
-    this.levels.setStage(view.camera.viewport, this.bakeRatio);
+    this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
     this.levels.focus(zoom, this.direction);
     this.wake();
   }
@@ -161,10 +153,9 @@ export class DiveShoreBand {
     this.levels.releaseRetired();
     const shore = view.bands.shore;
     if (!shore.isActive) {
-      this.bakeRatio = shoreSnapshotRatio(Math.min(this.devicePixelRatio, view.deviceRatio));
       // above the band the levels the fall will meet first bake already, while the planet shows
       if (view.camera.zoom > SHORE_LOD.topZoom) this.follow(view);
-      else this.levels.setStage(view.camera.viewport, this.bakeRatio);
+      else this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
       this.mesh.setLevels(null, null);
       return false;
     }

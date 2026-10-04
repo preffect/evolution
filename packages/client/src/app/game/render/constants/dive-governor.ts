@@ -23,7 +23,7 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   tried for `uselessStepHoldMs`, doubled for each in a row, up to `maxStepUpAfterMs`. A leap is never undone: the
  *   camera moves through bands of different cost while software GL's slow frames fill a window.
  * - `maxGapMs`: a longer gap is not a frame (the ticker stopped off screen, the tab hidden) and starts the window
- *   again; software GL's slowest frames (about 2 s on the evidence box) still count.
+ *   again; software GL's slowest frames (up to about 13 s at DPR 2 on the evidence box) still count.
  */
 export const DIVE_RESOLUTION_GOVERNOR = {
   windowFrames: 6,
@@ -38,5 +38,5 @@ export const DIVE_RESOLUTION_GOVERNOR = {
   maxStepUpAfterMs: 48_000,
   helpRatio: 0.9,
   uselessStepHoldMs: 6000,
-  maxGapMs: 5000,
+  maxGapMs: 15_000,
 } as const;
