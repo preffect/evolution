@@ -16,7 +16,7 @@ import type { DiveView } from './dive-view';
 import type { DivePlanetBake, DivePlanetBakeJob, DivePlanetBakePlan } from './planet/dive-planet-bakes';
 import { divePlanetFrame } from './planet/dive-planet-frame';
 import { DivePlanetMesh, type DivePlanetTextureSlot, type RenderToTexture } from './planet/dive-planet-mesh';
-import { DivePlanetResolution } from './planet/dive-planet-resolution';
+import { divePlanetRatioAt } from './planet/dive-planet-resolution';
 
 /** The coastline bakes finished so far, kept for the page by the loader. */
 export type DivePlanetKeptBakes = Map<DivePlanetTextureSlot, DivePlanetBake>;
@@ -29,7 +29,7 @@ export interface DivePlanetSource {
 
 export interface DivePlanetDraw {
   readonly view: DiveView;
-  /** The upper bands' ratio cap this frame (`upperBandsDevicePixelRatio`): the planet renders at most at it. */
+  /** The dive canvas's ratio this frame (`DiveView.deviceRatio`, the governor's): the planet renders at most at it. */
   readonly bandsRatio: number;
   readonly nowMs: number;
   readonly isMotionReduced: boolean;
@@ -48,7 +48,6 @@ export class DivePlanetBand implements DiveBaker {
   private readonly landFade = new DiveGlobeCrossfade();
   /** The world's full coast over its quick one. */
   private readonly crossfade = new DiveGlobeCrossfade();
-  private readonly resolution = new DivePlanetResolution();
 
   constructor(
     private readonly source: DivePlanetSource,
@@ -110,7 +109,6 @@ export class DivePlanetBand implements DiveBaker {
   /** Draws the planet for this frame into its texture, through the app's renderer. */
   draw(frame: DivePlanetDraw, render: RenderToTexture): void {
     const { view } = frame;
-    this.resolution.noteFrame(frame.nowMs);
     const isMotionReduced = frame.isMotionReduced;
     this.mesh.view.alpha = this.landFade.alphaAt({ nowMs: frame.nowMs, isPlanetReady: this.hasLand, isMotionReduced });
     const worldFineWeight = this.crossfade.alphaAt({
@@ -124,7 +122,7 @@ export class DivePlanetBand implements DiveBaker {
       camera: view.camera,
       globeRotation: view.globeRotation,
       timeSeconds: view.timeSeconds,
-      ratio: this.resolution.ratioAt(view.camera.zoom, frame.bandsRatio),
+      ratio: divePlanetRatioAt(view.camera.zoom, frame.bandsRatio),
       isRegionReady: this.source.kept.has('regionSdf'),
       worldFineWeight,
     });

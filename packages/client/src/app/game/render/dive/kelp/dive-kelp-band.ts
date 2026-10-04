@@ -59,7 +59,6 @@ export class DiveKelpBand {
 
   constructor(
     private readonly sources: DiveKelpSources,
-    private readonly devicePixelRatio: number,
     private readonly renderToTexture: RenderToTexture,
   ) {
     const { programs } = this;
@@ -143,7 +142,7 @@ export class DiveKelpBand {
       this.show(null);
       return false;
     }
-    updateFrame(this.programs, frame, this.devicePixelRatio);
+    updateFrame(this.programs, frame, view.deviceRatio);
     this.show(frame);
     return true;
   }

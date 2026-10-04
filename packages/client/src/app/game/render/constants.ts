@@ -18,5 +18,6 @@ export * from './constants/world-render';
 export * from './constants/bench';
 export * from './constants/preview';
 export * from './constants/dive';
+export * from './constants/dive-governor';
 export * from './constants/dive-planet';
 export * from './constants/dive-script';

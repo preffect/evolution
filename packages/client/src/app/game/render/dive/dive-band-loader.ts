@@ -47,7 +47,7 @@ export type SlimeBandHandle = MeshBandHandle;
 /** What makes the kelp band (`kelp/kelp-module.ts`'s parts): its bakes, which the dive's pump runs, and the band. */
 export interface KelpBandMaker {
   readonly bakes: DiveBaker;
-  createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): KelpBandHandle;
+  createBand(renderToTexture: RenderToTexture): KelpBandHandle;
 }
 
 /** What makes the slime band (`slime/slime-module.ts`'s parts): the band and its bakes, drawn at its pixel ratio. */

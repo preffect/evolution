@@ -3,8 +3,11 @@
 // or the dive closed meanwhile, the app is given back at once if it arrived, so nothing outlives a dive that never
 // opened (the bands hold nothing yet but the bakes they keep for the page).
 
+import type { Clock, Scheduler } from '@evolution/shared';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
 import type { DiveUpperBands, DiveUpperBandsLoader } from './dive-band-loader';
+import type { DiveFrameTimes } from './dive-frame-times';
+import { DiveUpperLayers } from './dive-upper-layers';
 
 export interface DiveHalvesSource {
   readonly host: HTMLElement;
@@ -48,4 +51,28 @@ export async function openDiveHalves(
     return null;
   }
   return { pixi, bands };
+}
+
+/** What the upper layers are built with beside the opened halves. */
+export interface DiveUpperLayersOpening {
+  readonly clock: Clock;
+  readonly scheduler: Scheduler;
+  readonly frameTimes: DiveFrameTimes;
+  readonly devicePixelRatio: number;
+  /** A bake landed: a still dive draws once more. */
+  readonly onBaked: () => void;
+}
+
+/** The upper bands on the opened app's stage, their bakes started on the scheduler. */
+export function openDiveUpperLayers({ pixi, bands }: DiveHalves, opening: DiveUpperLayersOpening): DiveUpperLayers {
+  const upper = new DiveUpperLayers({
+    bands,
+    stage: pixi.app.stage,
+    clock: opening.clock,
+    frameTimes: opening.frameTimes,
+    renderToTexture: (container, target) => pixi.renderToTexture(container, target),
+    devicePixelRatio: opening.devicePixelRatio,
+  });
+  upper.bakeOn(opening.scheduler, opening.onBaked);
+  return upper;
 }

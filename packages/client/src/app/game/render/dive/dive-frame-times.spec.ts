@@ -59,4 +59,24 @@ describe('DiveFrameTimes', () => {
     expect(outputs).toBe('outputs');
     expect(times.take()).toMatchObject({ dishMs: 3, submitMs: 7 });
   });
+
+  it('keeps the last frame’s time handing work to the GPU, the planet’s draw and the submit, apart (ticket #804)', () => {
+    const { times, spend } = harness();
+    times.measureUpperBands(spend(1));
+    times.measurePlanet(spend(40));
+    times.measureShore(spend(2));
+    times.measureKelp(spend(3));
+    times.measureSlime(spend(4));
+    times.measureDish(() => {
+      spend(5)();
+      times.measureSubmit(spend(300));
+    });
+    // Until the frame ends, the last one's stands.
+    expect(times.lastFrameIssueMs).toBe(0);
+    times.endFrame();
+    expect(times.lastFrameIssueMs).toBe(340);
+    times.measureSubmit(spend(9));
+    times.endFrame();
+    expect(times.lastFrameIssueMs).toBe(9);
+  });
 });

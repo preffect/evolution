@@ -36,6 +36,11 @@ export interface PixiAppHandle {
    */
   resize(sizePx: { readonly width: number; readonly height: number }): void;
   /**
+   * Renders at `resolution` device px per CSS px from the next frame, the CSS size kept: the opening dive's resolution
+   * governor (docs/rendering/opening-dive.md §6). The back buffer is made again, so a caller changes it rarely.
+   */
+  setResolution(resolution: number): void;
+  /**
    * Points the shaders Pixi keeps for the app's lifetime back at a built-in texture. The particle pipe's one shader
    * still holds the last `ParticleContainer`'s texture after the container is gone, so destroying that texture
    * first logs `[BindGroup] a 'textureSource' was destroyed while still bound` (ticket #503). Runs before a bundle
@@ -95,6 +100,9 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     textures: createPixiTextureBaker(createDomBakeCanvasFactory(options.host.ownerDocument)),
     resize: (sizePx) => {
       app.renderer.resize(sizePx.width, sizePx.height);
+    },
+    setResolution: (resolution) => {
+      app.renderer.resolution = resolution;
     },
     unbindTextures: () => {
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;

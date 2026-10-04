@@ -6,13 +6,7 @@
 // while the upper bands draw; its warm-up draw goes through `renderFrame` (#603). It never installs
 // `window.__evolutionDebug`. `destroy` frees the bands, the renderer's textures, the app (#468's `disposeLoop`).
 
-import {
-  DISH_CENTRE_TARGET,
-  MILLISECONDS_PER_SECOND,
-  type BalanceConfig,
-  type Clock,
-  type Scheduler,
-} from '@evolution/shared';
+import { MILLISECONDS_PER_SECOND, type BalanceConfig, type Clock, type Scheduler } from '@evolution/shared';
 import { Container, Graphics, type Application } from 'pixi.js';
 import {
   DIVE_AUTOPLAY_DELAY_MS,
@@ -20,21 +14,20 @@ import {
   DIVE_MAX_DEVICE_PIXEL_RATIO,
   DIVE_PROBE_FRAME_MS,
 } from '../constants';
-import { OWN_CELL_CHROME } from '../effects/own-cell-indicators-layer';
 import { FrameLoopSession } from '../frame-loop-session';
 import type { GameRenderer } from '../game-renderer';
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
-import { NO_HUD_INPUTS, outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from '../render-io';
+import { outputsBeforeAnyFrame, type RenderOutputs } from '../render-io';
 import type { RenderFrame } from '../../net/world-store';
-import { diveRendererZoom } from './dive-camera';
 import { DiveControls } from './dive-controls';
-import { DiveDishFade, clipDiveRendererToDish, dishClipBounds } from './dive-dish-clip';
+import { DiveDishFade, aimDiveRendererAtDish, dishClipBounds } from './dive-dish-clip';
 import { DiveFrameTimes, type DiveFrameTimesReport } from './dive-frame-times';
 import { DiveGlobeIdle } from './dive-globe-idle';
 import type { DiveUpperBandsLoader } from './dive-band-loader';
-import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveTextureOptions } from './dive-micro-scene';
-import { openDiveHalves } from './dive-session-open';
-import { DiveUpperLayers } from './dive-upper-layers';
+import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveRenderInputs, diveTextureOptions } from './dive-micro-scene';
+import { openDiveHalves, openDiveUpperLayers } from './dive-session-open';
+import { DiveCanvasResolution } from './dive-canvas-resolution';
+import type { DiveUpperLayers } from './dive-upper-layers';
 import { diveViewAt, isSameViewport, type DiveView } from './dive-view';
 
 export interface DiveSessionDependencies {
@@ -71,6 +64,7 @@ export class DiveSession extends FrameLoopSession {
   private openedAtMs = 0;
   private ambientSeconds = 0;
   private readonly globeIdle = new DiveGlobeIdle();
+  private readonly canvasResolution: DiveCanvasResolution;
   private isFrameRequested = true;
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
@@ -81,6 +75,13 @@ export class DiveSession extends FrameLoopSession {
     super(dependencies.clock);
     this.devicePixelRatio = Math.min(dependencies.devicePixelRatio, DIVE_MAX_DEVICE_PIXEL_RATIO);
     this.frameTimes = new DiveFrameTimes(dependencies.clock);
+    this.canvasResolution = new DiveCanvasResolution({
+      top: this.devicePixelRatio,
+      clock: dependencies.clock,
+      issueMs: () => this.frameTimes.lastFrameIssueMs,
+      isSettled: () => (this.upper?.isBaked ?? false) && !this.isBuildingRenderer,
+      setResolution: (resolution) => this.pixi?.setResolution(resolution),
+    });
   }
 
   /**
@@ -94,20 +95,18 @@ export class DiveSession extends FrameLoopSession {
       isCancelled: () => this.isDestroyed,
     });
     if (halves === null) return false;
-    const { pixi, bands } = halves;
+    const { pixi } = halves;
     this.adoptPixiApp(pixi);
     if (!this.isVisible) pixi.app.ticker.stop();
     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
     pixi.app.stage.addChild(this.gameRoot, this.dishClip);
-    this.upper = new DiveUpperLayers({
-      bands,
-      stage: pixi.app.stage,
+    this.upper = openDiveUpperLayers(halves, {
       clock: dependencies.clock,
+      scheduler: dependencies.scheduler,
       frameTimes: this.frameTimes,
-      renderToTexture: (container, target) => pixi.renderToTexture(container, target),
       devicePixelRatio: this.devicePixelRatio,
+      onBaked: () => this.requestFrame(),
     });
-    this.upper.bakeOn(dependencies.scheduler, () => this.requestFrame());
     this.showGame(0);
     this.openedAtMs = this.nowMs();
     this.controls.scheduleAutoplay(this.openedAtMs + DIVE_AUTOPLAY_DELAY_MS);
@@ -137,6 +136,7 @@ export class DiveSession extends FrameLoopSession {
   /** Off screen: the ticker stops and nothing draws until it is back. Kept for `start` when it comes first. */
   setIsVisible(isVisible: boolean): void {
     this.isVisible = isVisible;
+    this.canvasResolution.interrupt();
     if (isVisible) this.pixi?.app.ticker.start();
     else this.pixi?.app.ticker.stop();
   }
@@ -157,6 +157,7 @@ export class DiveSession extends FrameLoopSession {
       // The ambient time is read off the open, so moving the open back moves the scene on.
       this.openedAtMs -= DIVE_PROBE_FRAME_MS;
       this.requestFrame();
+      this.canvasResolution.interrupt();
       this.frame();
     }
     return this.frameTimes.take();
@@ -164,8 +165,10 @@ export class DiveSession extends FrameLoopSession {
 
   /** One animation frame: through the renderer, or the upper bands alone while it bakes. */
   override frame(): void {
-    super.frame();
-    if (this.renderer === null) this.upperBandsOnlyFrame();
+    this.canvasResolution.timeFrame(() => {
+      super.frame();
+      if (this.renderer === null) this.upperBandsOnlyFrame();
+    });
   }
 
   /** Before the renderer is current: the upper bands and the planet draw on their own, with no dish. */
@@ -202,7 +205,9 @@ export class DiveSession extends FrameLoopSession {
     this.globeIdle.advance({ nowMs, zoom, isMotionReduced, isPaused: this.controls.isPaused });
     const viewport = { width: pixi.app.screen.width, height: pixi.app.screen.height };
     const hasResized = this.view === null || !isSameViewport(this.view.camera.viewport, viewport);
-    if (isMotionReduced && !isMoving && !this.isFrameRequested && !hasResized) return null;
+    const isStill = isMotionReduced && !isMoving && !this.isFrameRequested && !hasResized;
+    this.canvasResolution.noteFrame({ nowMs, isMoving, isDrawn: !isStill });
+    if (isStill) return null;
     this.isFrameRequested = false;
     this.view = diveViewAt({
       zoom,
@@ -211,6 +216,7 @@ export class DiveSession extends FrameLoopSession {
       isMoving,
       globeIdleSpinDegrees: this.globeIdle.spinDegrees,
       hasSlimePictures: this.hasSlimePictures(),
+      deviceRatio: this.canvasResolution.resolution,
     });
     return this.view;
   }
@@ -229,7 +235,6 @@ export class DiveSession extends FrameLoopSession {
     const upper = this.upper;
     if (upper === null) return false;
     return upper.draw(view, {
-      screenRatio: this.devicePixelRatio,
       nowMs: this.nowMs(),
       isMotionReduced: this.dependencies.isMotionReduced(),
     });
@@ -259,17 +264,8 @@ export class DiveSession extends FrameLoopSession {
         return outputsBeforeAnyFrame(NO_EXTENT);
       }
     }
-    clipDiveRendererToDish(this.gameRoot, this.dishClip, view);
-    renderer.setFixedZoom(diveRendererZoom(view.camera));
-    renderer.parkOn(DISH_CENTRE_TARGET);
-    const inputs: RenderInputs = {
-      ...NO_HUD_INPUTS,
-      ownCellIndicators: this.scene.ownCellIndicators(frame),
-      ownCellChrome: OWN_CELL_CHROME.lens,
-      // The dive ends on your cell, not the vent; its bacteria grow from specks with no far-dot halo (opening-dive §4).
-      isVentShown: false,
-      isFarDotShown: false,
-    };
+    aimDiveRendererAtDish(renderer, this.gameRoot, this.dishClip, view);
+    const inputs = diveRenderInputs(this.scene, frame);
     return this.frameTimes.measureDish(() => renderer.render(frame, DIVE_OWN_PLAYER_ID, inputs, timedSubmit));
   }
 

@@ -10,7 +10,7 @@ import { DiveBakePump } from './dive-bake-pump';
 import type { DiveFrameTimes } from './dive-frame-times';
 import type { DiveUpperBands, KelpBandHandle, ShoreBandHandle, SlimeBandHandle } from './dive-band-loader';
 import { DivePlanetBand } from './dive-planet-band';
-import { upperBandsDevicePixelRatio, type DiveView } from './dive-view';
+import type { DiveView } from './dive-view';
 import type { RenderToTexture } from './planet/dive-planet-mesh';
 
 export interface DiveUpperLayersParts {
@@ -26,8 +26,6 @@ export interface DiveUpperLayersParts {
 
 /** What a frame of the layers needs beside its view. */
 export interface DiveUpperLayersFrame {
-  /** The screen's device pixel ratio, as far as the dive renders it. */
-  readonly screenRatio: number;
   readonly nowMs: number;
   readonly isMotionReduced: boolean;
 }
@@ -44,7 +42,7 @@ export class DiveUpperLayers {
     this.planet = new DivePlanetBand(parts.bands.planet, parts.clock);
     this.planet.attachTo(parts.stage);
     this.shore = parts.bands.shore.createBand(parts.renderToTexture, parts.devicePixelRatio);
-    this.kelp = parts.bands.kelp.createBand(parts.renderToTexture, parts.devicePixelRatio);
+    this.kelp = parts.bands.kelp.createBand(parts.renderToTexture);
     const slime = parts.bands.slime.createBand(parts.renderToTexture, parts.devicePixelRatio);
     this.slime = slime.band;
     parts.stage.addChild(this.shore.view, this.kelp.view);
@@ -111,7 +109,7 @@ export class DiveUpperLayers {
     if (!isPlanetShown) return isPixiShown;
     const planetDraw = {
       view,
-      bandsRatio: upperBandsDevicePixelRatio(frame.screenRatio, view.isMoving),
+      bandsRatio: view.deviceRatio,
       nowMs: frame.nowMs,
       isMotionReduced: frame.isMotionReduced,
     };

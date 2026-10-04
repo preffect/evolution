@@ -21,6 +21,12 @@ export interface DiveFrameTimesReport {
 type Column = Exclude<keyof DiveFrameTimesReport, 'frames'>;
 
 const COLUMNS: readonly Column[] = ['upperBandsMs', 'planetMs', 'shoreMs', 'kelpMs', 'slimeMs', 'dishMs', 'submitMs'];
+/**
+ * The columns that hand work to the GPU process (the planet's draw into its texture, the submit). A GPU behind blocks
+ * them once its queue is full, so that time is the GPU's, not the page's: the resolution governor leaves it out of a
+ * frame's CPU work.
+ */
+const GPU_ISSUE_COLUMNS: ReadonlySet<Column> = new Set(['planetMs', 'submitMs']);
 
 function zeroTotals(): Record<Column, number> {
   return Object.fromEntries(COLUMNS.map((column) => [column, 0])) as Record<Column, number>;
@@ -29,6 +35,8 @@ function zeroTotals(): Record<Column, number> {
 export class DiveFrameTimes {
   private frames = 0;
   private totals = zeroTotals();
+  private frameIssueMs = 0;
+  private lastFrameIssueMsValue = 0;
 
   constructor(private readonly clock: Clock) {}
 
@@ -39,7 +47,9 @@ export class DiveFrameTimes {
   }
 
   private measure(column: Column, work: () => void): void {
-    this.totals[column] += this.timed(work);
+    const elapsedMs = this.timed(work);
+    this.totals[column] += elapsedMs;
+    if (GPU_ISSUE_COLUMNS.has(column)) this.frameIssueMs += elapsedMs;
   }
 
   measureUpperBands(work: () => void): void {
@@ -79,6 +89,13 @@ export class DiveFrameTimes {
 
   endFrame(): void {
     this.frames += 1;
+    this.lastFrameIssueMsValue = this.frameIssueMs;
+    this.frameIssueMs = 0;
+  }
+
+  /** The last frame's time handing work to the GPU (`GPU_ISSUE_COLUMNS`). */
+  get lastFrameIssueMs(): number {
+    return this.lastFrameIssueMsValue;
   }
 
   /** The mean per frame of each since the last take; zeros when no frame was drawn. */

@@ -27,9 +27,8 @@ describe('createKelpParts', () => {
 
   it('makes the band on the dive’s app, its programs warmed up through it', () => {
     const pixi = createFakePixiApp();
-    const band = createKelpParts(share(), () => 0).createBand(
-      (container, target) => pixi.renderToTexture(container, target),
-      1,
+    const band = createKelpParts(share(), () => 0).createBand((container, target) =>
+      pixi.renderToTexture(container, target),
     );
     expect(pixi.textureRenders.map((render) => render.container)).toEqual([band.view]);
     band.destroy();

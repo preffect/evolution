@@ -48,7 +48,7 @@ function fall(isFloorHeld: boolean, frameMs = FRAME_AT_60_FPS_MS): FallReport {
   const thread: MainThread = { nowMs: 0 };
   const bakes = new KelpBakes({ land: TEST_SHORE_LAND, factory: createFakeShoreCanvasFactory() }, timedBake(thread));
   const pixi = createFakePixiApp();
-  const band = new DiveKelpBand({ bakes, tiles: bakedTestTiles() }, 1, (container, target) =>
+  const band = new DiveKelpBand({ bakes, tiles: bakedTestTiles() }, (container, target) =>
     pixi.renderToTexture(container, target),
   );
   const baker = kelpBaker(bakes, () => thread.nowMs);

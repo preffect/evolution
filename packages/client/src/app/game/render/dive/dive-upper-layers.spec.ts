@@ -55,7 +55,7 @@ function layers() {
 const viewAt = (zoom: number) =>
   diveViewAt({ zoom, viewport: { width: 830, height: 467 }, timeSeconds: 0, isMoving: false, globeIdleSpinDegrees: 0 });
 
-const FRAME = { screenRatio: 1, nowMs: 0, isMotionReduced: false };
+const FRAME = { nowMs: 0, isMotionReduced: false };
 
 describe('DiveUpperLayers’ shore, kelp and slime', () => {
   it('puts the shore’s quad over the planet and the kelp’s meshes over the shore, the slime under everything', () => {

@@ -4,9 +4,11 @@
 // canvas) its fade is a group alpha of its own (`DiveDishFade`), as the canvas's opacity was when the slime had a
 // canvas of its own.
 
+import { DISH_CENTRE_TARGET } from '@evolution/shared';
 import { AlphaFilter, Rectangle, type Container, type Graphics } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import { WHITE } from '../constants';
+import type { GameRenderer } from '../game-renderer';
 import { HALF } from '../geometry';
 import { DIVE_DISH_CLIP_RADIUS_WU } from './dive-bands';
 import { diveRendererZoom } from './dive-camera';
@@ -28,6 +30,13 @@ export function clipDiveRendererToDish(root: Container, clip: Graphics, view: Di
   const { x, y, radius } = dishClipCircle(view);
   clip.circle(x, y, radius).fill(hexToNumber(WHITE));
   root.mask = clip;
+}
+
+/** The renderer on the dish this frame: clipped to its wall while the slime shows, at the dive's scale, on its centre. */
+export function aimDiveRendererAtDish(renderer: GameRenderer, root: Container, clip: Graphics, view: DiveView): void {
+  clipDiveRendererToDish(root, clip, view);
+  renderer.setFixedZoom(diveRendererZoom(view.camera));
+  renderer.parkOn(DISH_CENTRE_TARGET);
 }
 
 /** The box round the dish's clip, within the stage: nothing of the masked dish draws outside it. */

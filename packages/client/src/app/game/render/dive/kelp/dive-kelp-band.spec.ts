@@ -24,7 +24,7 @@ const view = (zoom: number) =>
 function band(tiles: ShoreTileSource = bakedTestTiles()) {
   const pixi = createFakePixiApp(VIEWPORT);
   const bakes = new KelpBakes({ land: TEST_SHORE_LAND, factory: createFakeShoreCanvasFactory() }, quickKelpBake());
-  const subject = new DiveKelpBand({ bakes, tiles }, 1, (container, target) => pixi.renderToTexture(container, target));
+  const subject = new DiveKelpBand({ bakes, tiles }, (container, target) => pixi.renderToTexture(container, target));
   pixi.app.stage.addChild(subject.view);
   return { subject, pixi, bakes };
 }
@@ -114,6 +114,27 @@ describe('DiveKelpBand', () => {
     const uniforms = rock.shader.resources[KELP_UNIFORM_GROUP]!.uniforms;
     expect(uniforms['uView']![0]).toBe(VIEWPORT.width);
     expect(uniforms['uFrame']![1]).toBeCloseTo(view(2.3).bands.kelp.weight, 6);
+    subject.destroy();
+  });
+
+  it('judges its device px at the ratio the governed canvas renders at this frame (ticket #804)', () => {
+    const { subject, bakes } = band();
+    bake(bakes);
+    const governed = 0.59;
+    subject.draw(
+      diveViewAt({
+        zoom: 2.3,
+        viewport: VIEWPORT,
+        timeSeconds: 0,
+        isMoving: false,
+        globeIdleSpinDegrees: 0,
+        deviceRatio: governed,
+      }),
+    );
+    const rock = subject.view.children[0] as unknown as {
+      shader: { resources: Record<string, { uniforms: Record<string, Float32Array> }> };
+    };
+    expect(rock.shader.resources[KELP_UNIFORM_GROUP]!.uniforms['uView']![3]).toBeCloseTo(governed, 6);
     subject.destroy();
   });
 

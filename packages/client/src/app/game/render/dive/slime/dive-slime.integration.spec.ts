@@ -37,8 +37,8 @@ async function openedDive() {
   const made: DiveSlimeBand[] = [];
   const kelp = fakeKelpMaker();
   const slime = {
-    createBand: (renderToTexture: RenderToTexture, devicePixelRatio: number) => {
-      const band = new DiveSlimeBand({ bakes, tiles: bakedTestTiles(), factory }, devicePixelRatio, renderToTexture);
+    createBand: (renderToTexture: RenderToTexture) => {
+      const band = new DiveSlimeBand({ bakes, tiles: bakedTestTiles(), factory }, renderToTexture);
       made.push(band);
       return { band, bakes: slimeBaker(bakes, () => 0) };
     },

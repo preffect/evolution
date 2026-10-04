@@ -33,6 +33,8 @@ export interface FakePixiApp extends PixiAppHandle {
   readonly lifecycle: { isDestroyed: boolean };
   /** How often `unbindTextures` ran: a session must unbind before it destroys its bundle. */
   readonly unbindCalls: { count: number };
+  /** Every `setResolution`, in order. */
+  readonly resolutions: number[];
   /** Every `renderToTexture`: what was drawn, into which target. */
   readonly textureRenders: { readonly container: Container; readonly target: RenderTexture }[];
   /** What the staged build's warm-up asked for (ticket #603): each uploaded source, and each off-screen render. */
@@ -170,6 +172,12 @@ function recordingWarmUp(): Pick<FakePixiApp, 'warmUp' | 'warmUpCalls'> {
   };
 }
 
+/** Every resolution the app was set to render at, recorded (the dive's governor, ticket #804). */
+function recordingResolution(): Pick<FakePixiApp, 'resolutions' | 'setResolution'> {
+  const resolutions: number[] = [];
+  return { resolutions, setResolution: (resolution) => resolutions.push(resolution) };
+}
+
 /** The handle's teardown, recorded: how often it unbound its textures, and whether it was destroyed. */
 function recordingLifecycle(): Pick<FakePixiApp, 'lifecycle' | 'unbindCalls' | 'unbindTextures' | 'destroy'> {
   const lifecycle = { isDestroyed: false };
@@ -198,6 +206,7 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const textureRenders: FakePixiApp['textureRenders'] = [];
   return {
     app,
+    ...recordingResolution(),
     textureRenders,
     renderToTexture: (container, target) => {
       textureRenders.push({ container, target });

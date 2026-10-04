@@ -20,7 +20,7 @@ export interface KelpShoreShare {
 /** The kelp's parts for one dive: its bakes for the dive's pump, and the band for its stage. */
 export interface DiveKelpParts {
   readonly bakes: DiveBaker;
-  createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): DiveKelpBand;
+  createBand(renderToTexture: RenderToTexture): DiveKelpBand;
 }
 
 /** Made on the first dive of the page and kept: the bakes outlive the lobby. */
@@ -32,7 +32,6 @@ export function createKelpParts(shore: KelpShoreShare, nowMs: () => number): Div
   const bakes = pageBakes;
   return {
     bakes: kelpBaker(bakes, nowMs),
-    createBand: (renderToTexture, devicePixelRatio) =>
-      new DiveKelpBand({ bakes, tiles: shore.tiles }, devicePixelRatio, renderToTexture),
+    createBand: (renderToTexture) => new DiveKelpBand({ bakes, tiles: shore.tiles }, renderToTexture),
   };
 }
