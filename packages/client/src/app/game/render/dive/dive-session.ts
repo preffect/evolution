@@ -77,7 +77,10 @@ export class DiveSession extends FrameLoopSession {
   /** The resolution the app renders at: it was opened at the dive's ratio. */
   private appliedResolution: number;
   private isProbing = false;
-  /** How long the last animation frame's own work took (the session's whole `frame`): the governor's CPU share. */
+  /**
+   * How long the last animation frame's own work took: the session's whole `frame`, less the time it spent handing work
+   * to the GPU (`DiveFrameTimes.lastFrameIssueMs`), which a GPU behind blocks. The governor's CPU share.
+   */
   private lastFrameWorkMs = 0;
   private isFrameRequested = true;
   private isDestroyed = false;
@@ -180,7 +183,7 @@ export class DiveSession extends FrameLoopSession {
     const startedMs = this.nowMs();
     super.frame();
     if (this.renderer === null) this.upperBandsOnlyFrame();
-    this.lastFrameWorkMs = this.nowMs() - startedMs;
+    this.lastFrameWorkMs = Math.max(0, this.nowMs() - startedMs - this.frameTimes.lastFrameIssueMs);
   }
 
   /** Before the renderer is current: the upper bands and the planet draw on their own, with no dish. */
@@ -237,8 +240,7 @@ export class DiveSession extends FrameLoopSession {
 
   /**
    * The resolution governor hears this frame's start, the gap since the last frame drawn and that frame's own work
-   * (its draw calls are queued for the GPU process, so a GPU behind shows in the gap, not here), and the canvas takes
-   * the resolution it answers: at most the upper bands' ratio while the dive falls (the mockup's
+   * (`lastFrameWorkMs`), and the canvas takes the resolution it answers: at most the upper bands' ratio while the dive falls (the mockup's
    * `DIVE_DPR`). Frames are judged only once every bake has landed and the renderer is built.
    */
   private govern(nowMs: number, isMoving: boolean): void {

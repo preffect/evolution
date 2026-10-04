@@ -75,6 +75,15 @@ describe('DiveSession resolution governor', () => {
     parts.subject.destroy();
   });
 
+  it('counts a frame held up in its submit as the GPU’s (its queue full), not the page’s, and steps down', async () => {
+    const parts = await inTheDrop();
+    // Software GL at DPR 2: the page blocks inside the submit until the GPU process has room.
+    (parts.app.app as { render: () => void }).render = () => parts.clock.advanceMilliseconds(SOFTWARE_FRAME_MS);
+    frames(parts, FRAMES_TO_JUDGE, 0);
+    expect(parts.app.resolutions).toEqual([DIVE_RESOLUTION_GOVERNOR.floorResolution]);
+    parts.subject.destroy();
+  });
+
   it('never touches the resolution while frames are smooth', async () => {
     const parts = await inTheDrop();
     frames(parts, 600, DIVE_TARGET_FRAME_MS);
