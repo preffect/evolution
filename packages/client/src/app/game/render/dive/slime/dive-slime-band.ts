@@ -140,16 +140,20 @@ export class DiveSlimeBand {
     for (const name of SLIME_MESH_NAMES) meshes[name].visible = shown[name];
   }
 
-  /** One frame: its parts set up and shown (the stand-in's until it is ready), or all hidden; answers whether it shows. */
+  /**
+   * One frame: its parts set up and shown (the stand-in's until it is ready), or all hidden; answers whether it shows.
+   * What has landed is made and uploaded on the first frame after, wherever the camera is: the autoplay waits for the
+   * bakes in orbit, so the upload never lands on the frame the fall reaches the slime.
+   */
   draw(view: DiveView): boolean {
+    this.ensureCaustic();
+    this.ensureScatters();
+    this.ensureTextures();
     const frame = slimeFrameOf(view);
     if (!frame.isShown) {
       this.show(SLIME_NOTHING_SHOWN);
       return false;
     }
-    this.ensureCaustic();
-    this.ensureScatters();
-    this.ensureTextures();
     updateSlimeFrame(this.programs, frame, {
       devicePixelRatio: this.devicePixelRatio,
       hasCells: this.textures !== null,

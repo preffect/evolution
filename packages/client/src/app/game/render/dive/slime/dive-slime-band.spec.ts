@@ -104,6 +104,16 @@ describe('DiveSlimeBand', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
     subject.destroy();
   });
 
+  it('uploads its textures on the first frame after its bakes land, in orbit, never on the frame the fall reaches it', () => {
+    const { app, subject, bakeAll } = band();
+    bakeAll();
+    expect(subject.draw(viewAt(5))).toBe(false);
+    expect(app.textureRenders).toHaveLength(2);
+    subject.draw(viewAt(-2.2));
+    expect(app.textureRenders).toHaveLength(2);
+    subject.destroy();
+  });
+
   it('hides everything outside its band', () => {
     const { subject } = band();
     expect(subject.draw(viewAt(-1.9))).toBe(false);

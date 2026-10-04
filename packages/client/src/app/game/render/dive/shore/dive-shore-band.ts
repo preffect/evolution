@@ -91,7 +91,7 @@ export class DiveShoreBand {
     return this.sources.tiles.isBaked ? this.levels.fallFloorZoom : SHORE_LOD.topZoom;
   }
 
-  /** Bakes the tiles, then the levels near the camera, a slice every interval while there is work (`DiveMacroBand`'s pace). */
+  /** Bakes the tiles, then the levels near the camera, a slice every interval while there is work (`DiveBakePump`'s pace). */
   bakeOn(scheduler: Scheduler, nowMs: () => number, onBaked: () => void): void {
     this.bakeLoop = { scheduler, onBaked, nowMs };
     // the stage's size and the camera come with the first frame (`draw`), in orbit or not

@@ -62,7 +62,7 @@ test('at 1024×640 the readout takes at most 60% of the narrow stage', async ({ 
   expect(readout.width).toBeLessThanOrEqual(stage.width * NARROW_STAGE_READOUT_SHARE + LAYOUT_EPSILON_PX);
 });
 
-test('the dive’s canvases follow its stage when the window shrinks from 1920 to 1024', async ({ page }) => {
+test('the dive’s canvas follows its stage when the window shrinks from 1920 to 1024', async ({ page }) => {
   await page.setViewportSize(WIDE_DESKTOP);
   await page.goto('/');
   await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas')).toHaveCount(STAGE_CANVASES);
