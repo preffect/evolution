@@ -31,11 +31,11 @@ export function diveResolutionLadder(top: number): number[] {
   return ladder;
 }
 
-/** The median of a few numbers. */
+/** The median of a few numbers: the middle one, or the mean of the middle two. */
 function medianOf(values: readonly number[]): number {
   const sorted = [...values].sort((first, second) => first - second);
-  const middle = Math.floor(sorted.length * HALF);
-  return sorted.length % 2 === 1 ? (sorted[middle] ?? 0) : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) * HALF;
+  const lastIndex = sorted.length - 1;
+  return ((sorted[Math.floor(lastIndex * HALF)] ?? 0) + (sorted[Math.ceil(lastIndex * HALF)] ?? 0)) * HALF;
 }
 
 /**
@@ -50,7 +50,8 @@ export function diveNotchesDown(gapMs: number, cpuMs: number): number {
   if (gapMs < DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.leapRatio) return 1;
   const pixelShare = budgetMs / gpuMs;
   // The scale shrinks both sides, so the pixels go by its square: a notch is stepRatio² of them.
-  return Math.max(1, Math.ceil(Math.log(pixelShare) / (2 * Math.log(DIVE_RESOLUTION_GOVERNOR.stepRatio))));
+  const { stepRatio } = DIVE_RESOLUTION_GOVERNOR;
+  return Math.max(1, Math.ceil(Math.log(pixelShare) / Math.log(stepRatio * stepRatio)));
 }
 
 export class DiveResolutionGovernor {
@@ -159,7 +160,10 @@ export class DiveResolutionGovernor {
     }
     this.level = step.fromLevel;
     this.stepDownHeldUntilMs = nowMs + this.uselessStepHoldMs;
-    this.uselessStepHoldMs = Math.min(DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs, this.uselessStepHoldMs * 2);
+    this.uselessStepHoldMs = Math.min(
+      DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs,
+      this.uselessStepHoldMs * DIVE_RESOLUTION_GOVERNOR.backoffFactor,
+    );
     this.restartWindow();
     return true;
   }
@@ -172,7 +176,10 @@ export class DiveResolutionGovernor {
     const target = Math.min(this.ladder.length - 1, level + notches - 1);
     if (target === this.level) return;
     if (this.steppedUpAtMs !== null && nowMs - this.steppedUpAtMs <= DIVE_RESOLUTION_GOVERNOR.probeFailMs) {
-      this.stepUpAfterMs = Math.min(DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs, this.stepUpAfterMs * 2);
+      this.stepUpAfterMs = Math.min(
+        DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs,
+        this.stepUpAfterMs * DIVE_RESOLUTION_GOVERNOR.backoffFactor,
+      );
     }
     this.steppedUpAtMs = null;
     this.stepToCheck = notches === 1 ? { fromLevel: this.level, gapMs } : null;

@@ -15,7 +15,7 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   by for the GPU's share of the frame to fit (the cost of a fragment-bound frame scales with its pixels).
  * - `floorResolution`: never fewer device px per css px than this (an 830 css px stage stays 290 px wide).
  * - `stepUpAfterMs`: on budget this long in a row, it tries one notch up. A step down within `probeFailMs` of a step
- *   up means that notch did not fit: the wait before the next try doubles, up to `maxStepUpAfterMs`; a notch up that
+ *   up means that notch did not fit: the wait before the next try grows by `backoffFactor`, up to `maxStepUpAfterMs`; a notch up that
  *   holds puts the wait back. So it never pumps: a level that fits stays, and the one above is tried ever more
  *   rarely.
  * - `helpRatio`: a one-notch step down must bring the next window's median gap under the last one's times this. One
@@ -36,6 +36,7 @@ export const DIVE_RESOLUTION_GOVERNOR = {
   stepUpAfterMs: 3000,
   probeFailMs: 2000,
   maxStepUpAfterMs: 48_000,
+  backoffFactor: 2,
   helpRatio: 0.9,
   uselessStepHoldMs: 6000,
   maxGapMs: 15_000,

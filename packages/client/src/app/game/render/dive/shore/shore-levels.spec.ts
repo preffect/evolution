@@ -7,18 +7,12 @@ import { SHORE_LEVEL_CACHE, SHORE_LOD } from '../../constants/dive-shore';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { TEST_SHORE_LAND, TEST_SHORE_STAGE, bakedTestTiles } from '../../../../../testing/shore-paint-builder';
 import { SHORE_LEVEL_COUNT, shoreLevelZoom } from './shore-lod';
-import { ShoreLevels, type ShoreLevelUploader } from './shore-levels';
+import { ShoreLevels } from './shore-levels';
+import { bakeOnly, quickLevels, uploaderOf, type Uploaded } from '../../../../../testing/shore-levels-builder';
 import type { ShoreView } from './shore-paint';
 import { bakeShoreSnapshot, type ShoreSnapshot } from './shore-snapshot';
 import { SHORE_BAKE_WAITING, type ShoreBakeStep } from './shore-pump';
 import { DIVE_BAKE_BUDGET_MS } from '../../constants/dive';
-
-interface Uploaded {
-  readonly zoom: number;
-  /** Baked at `SHORE_LEVEL_DRAFT_SCALE` of the stage's ratio, to be redrawn at full resolution. */
-  readonly isDraft: boolean;
-  isReleased: boolean;
-}
 
 function levels(): { subject: ShoreLevels<Uploaded>; uploads: Uploaded[] } {
   const uploads: Uploaded[] = [];
@@ -33,46 +27,6 @@ function counter(): () => number {
 
 function bakeEverything(subject: ShoreLevels<Uploaded>): void {
   for (let pass = 0; pass < 20 && subject.hasWork; pass += 1) subject.pump(Number.POSITIVE_INFINITY, () => 0);
-}
-
-/** A bake with no drawing: it lands the view it was asked for. */
-function* quickBake(view: ShoreView): Generator<void, ShoreSnapshot> {
-  yield;
-  return { view } as unknown as ShoreSnapshot;
-}
-
-function uploaderOf(uploads: Uploaded[]): ShoreLevelUploader<Uploaded> {
-  return {
-    upload: (snapshot: ShoreSnapshot) => {
-      const uploaded = { zoom: snapshot.view.zoom, isDraft: snapshot.view.devicePixelRatio < 1, isReleased: false };
-      uploads.push(uploaded);
-      return uploaded;
-    },
-    release: (uploaded) => {
-      uploaded.isReleased = true;
-    },
-  };
-}
-
-/** Levels whose bakes draw nothing (`bakeShoreSnapshot` has its own spec below): the rules of what is kept and drawn. */
-function quickLevels(uploads: Uploaded[] = []): ShoreLevels<Uploaded> {
-  const factory = createFakeShoreCanvasFactory();
-  const subject = new ShoreLevels<Uploaded>(
-    { land: TEST_SHORE_LAND, tiles: bakedTestTiles(factory), factory },
-    uploaderOf(uploads),
-    quickBake,
-  );
-  subject.setStage(TEST_SHORE_STAGE, 1);
-  return subject;
-}
-
-/** Bakes exactly `wanted`, one step a pump, each with the camera on it going up the dive, so the earlier stay kept. */
-function bakeOnly(subject: ShoreLevels<Uploaded>, wanted: readonly number[]): void {
-  let clock = 0;
-  for (const level of wanted) {
-    subject.focus(shoreLevelZoom(level), -1);
-    while (!subject.isBakedAt(shoreLevelZoom(level))) subject.pump(2, () => (clock += 1));
-  }
 }
 
 describe('ShoreLevels', () => {
@@ -258,20 +212,21 @@ describe('ShoreLevels.fallFloorZoom', () => {
     expect(subject.fallFloorZoom).toBe(Number.NEGATIVE_INFINITY);
   });
 
-  it('never holds a fall for the level past the cut: it serves only zooms the band never draws (ticket #804)', () => {
+  it('never holds a fall for the level past the cut, which serves only zooms the band never draws (ticket #804)', () => {
     const last = SHORE_LEVEL_COUNT - 1;
-    expect(shoreLevelZoom(last)).toBeLessThanOrEqual(SHORE_LOD.cutZoom);
-    expect(shoreLevelZoom(last - 1)).toBeGreaterThan(SHORE_LOD.cutZoom);
-    const subject = quickLevels();
-    // The level before the last has a stand-in two coarser; the last one's nearest is three coarser.
-    bakeOnly(subject, [0, last - 1 - SHORE_LEVEL_CACHE.standInSteps]);
-    subject.focus(shoreLevelZoom(last - 1) + SHORE_LOD.stepZoom / 2, 1);
-    expect(subject.fallFloorZoom).toBe(Number.NEGATIVE_INFINITY);
-    // One level up the same gap still holds: the floor is the band's, above its cut.
-    const above = quickLevels();
-    bakeOnly(above, [0, last - 2 - SHORE_LEVEL_CACHE.standInSteps]);
-    above.focus(shoreLevelZoom(last - 2) + SHORE_LOD.stepZoom / 2, 1);
-    expect(above.fallFloorZoom).toBe(shoreLevelZoom(last - 1));
+    expect([shoreLevelZoom(last) <= SHORE_LOD.cutZoom, shoreLevelZoom(last - 1) > SHORE_LOD.cutZoom]).toEqual([
+      true,
+      true,
+    ]);
+    /** The floor with the level `level` ahead three steps from its nearest baked level (the stand-in allows two). */
+    const floorPast = (level: number): number => {
+      const subject = quickLevels();
+      bakeOnly(subject, [0, level - 1 - SHORE_LEVEL_CACHE.standInSteps]);
+      subject.focus(shoreLevelZoom(level - 1) + SHORE_LOD.stepZoom / 2, 1);
+      return subject.fallFloorZoom;
+    };
+    expect(floorPast(last)).toBe(Number.NEGATIVE_INFINITY);
+    expect(floorPast(last - 1)).toBe(shoreLevelZoom(last - 1));
   });
 });
 

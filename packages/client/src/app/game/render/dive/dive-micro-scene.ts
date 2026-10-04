@@ -25,6 +25,8 @@ import {
   type RandomSource,
 } from '@evolution/shared';
 import type { RenderFrame } from '../../net/world-store';
+import { OWN_CELL_CHROME } from '../effects/own-cell-indicators-layer';
+import { NO_HUD_INPUTS, type RenderInputs } from '../render-io';
 import type { RenderTextureOptions } from '../render-textures';
 import type { OwnCellIndicators } from '../../state/own-cell-indicators';
 import {
@@ -174,6 +176,18 @@ export function createDiveMicroScene(): DiveMicroScene {
       return previewRenderFrame({ renderTick: timeSeconds / TICK_INTERVAL_S, scene, balance });
     },
     ownCellIndicators: (frame) => actionSubjectOwnCellIndicators(frame, frame.balance),
+  };
+}
+
+/** What the renderer is told beside the scene: the self ring, and the dive's own switches (opening-dive §4). */
+export function diveRenderInputs(scene: DiveMicroScene, frame: RenderFrame): RenderInputs {
+  return {
+    ...NO_HUD_INPUTS,
+    ownCellIndicators: scene.ownCellIndicators(frame),
+    ownCellChrome: OWN_CELL_CHROME.lens,
+    // The dive ends on your cell, not the vent; its bacteria grow from specks with no far-dot halo.
+    isVentShown: false,
+    isFarDotShown: false,
   };
 }
 

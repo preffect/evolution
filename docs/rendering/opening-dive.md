@@ -229,7 +229,9 @@ in the dive's submit, and no second WebGL context:
   dead, and with frames seconds apart it is just above the floor at once rather than frozen where it was. The play's
   clock is set to the zoom it shows (the ease's inverse), so once the floor drops it goes on from there. Until the tiles and the anchor have
   baked the floor is the band's top edge. A scrub and a skip do not wait: they show the nearest coarser level, softer,
-  until theirs lands.
+  until theirs lands. The last level (z = −1.45) serves only zooms past the band's cut, which the band never draws, so
+  it never holds a fall: it did until ticket #804, below the cut, where the band no longer follows the camera, and under
+  software GL at DPR 2 a fall could wait there for good.
 - **The shader** (`shore-shader-*.ts`): under the snapshot the water from the ramp, the seabed and the caustics, and
   the flat forest fill only while the planet does not show (the forest test, `shore/shore-forest-test.ts`); over it
   the swell and
@@ -452,6 +454,52 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     −3.6); held frames within the software rasteriser's reach of main's (6–15 fps against 6–13 in the slime, 2–4
     against 2–5 at the dish), a flushed frame 0.75–1.3× main's (the slime's quads over the whole drop at −2.1, the
     dish's group fade at −3.9 to −4.3).
+- **The frame budget per band (ticket #804):** every band shares one 16.7 ms frame (60 fps). On the evidence box's
+  GPU (a GTX 1080 Ti, ANGLE over Vulkan) each band takes at most a fifth of it with its GPU work forced to finish, so
+  a GPU about five times slower still holds 60 fps at full resolution; past that the resolution governor (below) steps
+  the canvas down. Measured with `probeFrames` (10 frames back to back, then a pixel read back) at 11 zooms on an
+  830 × 467 stage, DPR 1 and 2:
+
+  | band (zooms)                  | script a frame     | draw calls   | GPU frame, flushed (budget) | held, GPU |
+  | ----------------------------- | ------------------ | ------------ | --------------------------- | --------- |
+  | planet (7.4 to 4.4)           | ≤ 2 ms (0.2–0.3)   | ≤ 3 (2–3)    | ≤ 3.3 ms (0.7–2.5)          | 60 fps    |
+  | shore (4.4 to 0.35)           | ≤ 1 ms (0.4–0.5)   | ≤ 6 (3–6)    | ≤ 3.3 ms (1.1–1.2)          | 60 fps    |
+  | kelp and drop (0.35 to −1.95) | ≤ 1 ms (0.1–0.3)   | ≤ 6 (2–6)    | ≤ 3.3 ms (0.4–1.2)          | 60 fps    |
+  | slime (−1.95 to −3.7)         | ≤ 1.5 ms (0.6–1.4) | ≤ 13 (12–13) | ≤ 3.3 ms (0.9–1.7)          | 60 fps    |
+  | dish (below −3.7)             | ≤ 3 ms (1.7–2.3)   | ≤ 23 (21–23) | ≤ 3.3 ms (2.5–3.2)          | 60 fps    |
+
+  A real autoplay fall on the GPU (`qa/evidence/pr-<N>/`, per band) holds 60 fps in every band at DPR 1 and 2, its
+  p95 frame 16.8 ms, with no main-thread task over 100 ms in the fall; with the CPU four times slower (DevTools'
+  throttling, the laptop stand-in) it holds 54–60 fps, as main does, the dish's p95 33 ms its own script.
+
+- **The resolution governor (ticket #804):** `dive/dive-resolution-governor.ts`, its numbers in
+  `constants/dive-governor.ts`. Every band draws on the dive's one canvas, so the governor sets that canvas's device
+  px per CSS px (`PixiAppHandle.setResolution`) and the drop's lens, the slime and the dish shrink with it; the bands'
+  shaders read the ratio from the view (`DiveView.deviceRatio`) for their coverage and least sizes, so the detail they
+  judge in device px (the barnacles under half a device px, the strokes' antialiasing) thins with it, and the planet
+  renders at most at it (§4).
+  - **What it judges:** the gap between two drawn frames, the median of six (or of three once they span a second, for
+    software GL's frames seconds apart), against 1.3 × 16.7 ms; and the frame's own work on the page's thread less the
+    time it spent handing work to the GPU (the planet's draw and the submit, which a GPU behind blocks). Not while a
+    band still bakes or the renderer builds (their slices slow the frames whatever the resolution), not off screen,
+    not a still frame under reduced motion, not the evidence probe.
+  - **Down:** a notch is × 0.84 (about 0.7× the pixels). A median a little over steps one notch; past 3 × the target
+    it leaps as far as the GPU's share of the frame must shrink by its pixels to fit, so software GL reaches the floor
+    in one change. Never below 0.35 device px per CSS px. Never when the page's own work alone is over budget. A
+    one-notch step that does not bring the next window's median under 0.9 × the last is undone (the slowness was the
+    page's, not the GPU's) and steps down wait 6 s, doubling for each in a row to 48 s.
+  - **Up:** after 3 s on budget, one notch. A step down within 2 s of a step up means that notch did not fit: the wait
+    before the next try doubles, to 48 s; a notch that holds puts it back to 3 s. So it never pumps.
+  - **While falling:** at most the mockup's 1.5 at DPR 2 (`upperBandsDevicePixelRatio`), sharp at the screen's ratio
+    again on arrival.
+  - **The cost of a change:** the canvas's back buffer is made again: a few ms on a GPU, about 1 s under software GL
+    (once, at the leap).
+  - **Under software GL** (SwiftShader, Chromium with GPU acceleration off: VMs, remote desktops), held frames at the
+    floor take 13–102 ms flushed at DPR 1 (8–38 fps), against 79–700 ms at full resolution on main, and 14–98 ms at
+    DPR 2 against 304–2,520 ms. In a fresh-load autoplay fall at DPR 1 the kelp, the drop, the slime and the dish run at
+    4–13 fps, against 1.4–2.9; the planet and the shore stay at 2–3 fps while the shore's bake worker shares the box's
+    cores with the software rasteriser. The drop's lens at −2.3, 550 ms a frame when ticket #802 landed and 183 ms on
+    main, is 27 ms at the floor.
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:
   - the upper bands: the planet's forest test
   - the planet: its uniforms and its draw into its render texture

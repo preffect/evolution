@@ -172,6 +172,12 @@ function recordingWarmUp(): Pick<FakePixiApp, 'warmUp' | 'warmUpCalls'> {
   };
 }
 
+/** Every resolution the app was set to render at, recorded (the dive's governor, ticket #804). */
+function recordingResolution(): Pick<FakePixiApp, 'resolutions' | 'setResolution'> {
+  const resolutions: number[] = [];
+  return { resolutions, setResolution: (resolution) => resolutions.push(resolution) };
+}
+
 /** The handle's teardown, recorded: how often it unbound its textures, and whether it was destroyed. */
 function recordingLifecycle(): Pick<FakePixiApp, 'lifecycle' | 'unbindCalls' | 'unbindTextures' | 'destroy'> {
   const lifecycle = { isDestroyed: false };
@@ -198,13 +204,9 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
   const canvas = document.createElement('canvas');
   const textureRenders: FakePixiApp['textureRenders'] = [];
-  const resolutions: number[] = [];
   return {
     app,
-    resolutions,
-    setResolution: (resolution) => {
-      resolutions.push(resolution);
-    },
+    ...recordingResolution(),
     textureRenders,
     renderToTexture: (container, target) => {
       textureRenders.push({ container, target });
