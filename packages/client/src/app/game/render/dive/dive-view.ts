@@ -17,6 +17,16 @@ export interface DiveView {
   readonly isMoving: boolean;
 }
 
+/** What every band's frame starts with (`kelp-frame.ts`, `slime-frame.ts`): the stage, its scale, zoom and clock. */
+export interface DiveStageFrame {
+  readonly stageWidthPx: number;
+  readonly stageHeightPx: number;
+  /** Css px per metre (the mockup's `s`). */
+  readonly pixelsPerMetre: number;
+  readonly zoom: number;
+  readonly timeSeconds: number;
+}
+
 export interface DiveViewInputs {
   readonly zoom: number;
   readonly viewport: ViewportPx;

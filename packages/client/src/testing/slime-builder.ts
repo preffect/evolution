@@ -16,6 +16,13 @@ import { SLIME_PICTURE_BOXES } from '../app/game/render/constants/dive-slime-dia
  */
 export const SLIME_BAKE_TEST_TIMEOUT_MS = 120_000;
 
+/**
+ * Time allowed for a spec that opens slime bands over the fake Pixi app (ten programs and their warm-up each): under a
+ * second alone, but past vitest's 5 s default in the full client suite under coverage on a loaded 4-core box (12 s
+ * seen for three bands).
+ */
+export const SLIME_BAND_TEST_TIMEOUT_MS = 60_000;
+
 /** The cell tiles' size in a spec that runs the real cell bake: the field's work goes as its square. */
 export const SLIME_TEST_CELL_TILE_PX = 32;
 

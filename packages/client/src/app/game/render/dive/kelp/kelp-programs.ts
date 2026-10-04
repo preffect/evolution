@@ -3,7 +3,7 @@
 // GLSL with one uniform group holding every uniform it declares, and every sampler bound to an empty texture until
 // the bakes land.
 
-import { bindTexture, uniformProgram, uniformVector, type UniformProgram } from '../dive-shader-program';
+import { bindTexture, programMaker, uniformVector, type UniformProgram } from '../dive-shader-program';
 import { KELP_BULB_APOPHYSIS_VECTORS, KELP_BULB_FRAGMENT_SOURCE, KELP_BULB_UNIFORM } from './kelp-shader-bulb';
 import { KELP_COMMON_UNIFORM, KELP_OCTAVE_SLOTS, KELP_WORLD_VERTEX_SOURCE } from './kelp-shader-common';
 import { KELP_FLOOR_FRAGMENT_SOURCE, KELP_FLOOR_UNIFORM, KELP_FLOOR_VERTEX_SOURCE } from './kelp-shader-floor';
@@ -31,14 +31,7 @@ const VECTOR_COUNTS: Readonly<Record<string, number>> = {
   [KELP_COMMON_UNIFORM.octaves]: KELP_OCTAVE_SLOTS,
 };
 
-function program(
-  sources: { readonly vertex: string; readonly fragment: string },
-  names: readonly string[],
-  samplers: readonly string[],
-): KelpProgram {
-  const common = [KELP_COMMON_UNIFORM.view, KELP_COMMON_UNIFORM.frame];
-  return uniformProgram(KELP_UNIFORM_GROUP, sources, { names: [...common, ...names], counts: VECTOR_COUNTS }, samplers);
-}
+const program = programMaker(KELP_UNIFORM_GROUP, VECTOR_COUNTS, [KELP_COMMON_UNIFORM.view, KELP_COMMON_UNIFORM.frame]);
 
 const ROCK = KELP_ROCK_UNIFORM;
 const RIBBON = KELP_RIBBON_UNIFORM;

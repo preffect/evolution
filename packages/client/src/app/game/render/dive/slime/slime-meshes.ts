@@ -3,7 +3,8 @@
 // dark past the pocket's wall, the rods, the specks and the drop's skin. The scatters' quads are made once from their
 // grids and only uniforms change; the floor, the dark past the wall, the pocket and the skin share one unit quad.
 
-import { Container, Geometry, Mesh, State, type Shader } from 'pixi.js';
+import { Container, Geometry, type Mesh, type Shader } from 'pixi.js';
+import { hiddenMesh } from '../dive-shader-program';
 import { CELL_QUAD_INDICES, CELL_QUAD_POSITIONS } from '../../constants';
 import { POINT_STRIDE } from '../shore/shore-points';
 import type { SlimePrograms } from './slime-programs';
@@ -104,26 +105,20 @@ export function moteGeometry(motes: readonly SlimeMote[]): Geometry {
   ]);
 }
 
-function meshOf(geometry: Geometry, shader: Shader): SlimeMesh {
-  const mesh = new Mesh({ geometry, shader, state: State.for2d() });
-  mesh.visible = false;
-  return mesh;
-}
-
 /** Every mesh, hidden, in its place under `root`; the plankton's container is filled by `SlimeOrganisms`. */
 export function createSlimeMeshes(programs: SlimePrograms, scatters: SlimeScatters, plankton: Container): SlimeMeshSet {
   const quad = unitQuadGeometry();
   const set: SlimeMeshSet = {
     root: new Container(),
-    floor: meshOf(quad, programs.floor.shader),
-    clouds: meshOf(cloudGeometry(scatters.clouds), programs.clouds.shader),
-    diatoms: meshOf(diatomGeometry(scatters.diatoms), programs.diatoms.shader),
-    pocket: meshOf(quad, programs.pocket.shader),
+    floor: hiddenMesh(quad, programs.floor.shader),
+    clouds: hiddenMesh(cloudGeometry(scatters.clouds), programs.clouds.shader),
+    diatoms: hiddenMesh(diatomGeometry(scatters.diatoms), programs.diatoms.shader),
+    pocket: hiddenMesh(quad, programs.pocket.shader),
     plankton,
-    outside: meshOf(quad, programs.outside.shader),
-    rods: meshOf(rodGeometry(scatters.rods), programs.rods.shader),
-    motes: meshOf(moteGeometry(scatters.motes), programs.motes.shader),
-    skin: meshOf(quad, programs.skin.shader),
+    outside: hiddenMesh(quad, programs.outside.shader),
+    rods: hiddenMesh(rodGeometry(scatters.rods), programs.rods.shader),
+    motes: hiddenMesh(moteGeometry(scatters.motes), programs.motes.shader),
+    skin: hiddenMesh(quad, programs.skin.shader),
   };
   set.root.addChild(
     set.floor,

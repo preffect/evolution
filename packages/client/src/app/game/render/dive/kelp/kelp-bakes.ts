@@ -6,7 +6,7 @@
 import { KELP_BLADE_COVER, KELP_FOCAL_ROCK, KELP_ROCK_DISTANCE, KELP_SEA_DISTANCE } from '../../constants/dive-kelp';
 import { SHORE_COAST_REFINE } from '../../constants/dive-shore-coast';
 import { SHORE_FOCAL_ROCK } from '../../constants/dive-shore-objects';
-import type { DiveBaker } from '../dive-bake-pump';
+import { queueBaker, type DiveBaker } from '../dive-bake-pump';
 import { boulderPlace } from '../shore/shore-boulder';
 import type { ShoreCanvas, ShoreCanvasFactory } from '../shore/shore-canvas';
 import { ShoreCoast } from '../shore/shore-coast';
@@ -166,10 +166,5 @@ export class KelpBakes extends SteppedQueue {
 
 /** The bakes on the dive's pump, timed on `nowMs`, the open dive's clock. */
 export function kelpBaker(bakes: KelpBakes, nowMs: () => number): DiveBaker {
-  return {
-    pumpBakes: (budgetMs) => bakes.pump(budgetMs, nowMs),
-    get isBaked() {
-      return bakes.isBaked;
-    },
-  };
+  return queueBaker(bakes, nowMs);
 }

@@ -4,7 +4,7 @@
 // its samplers bound to an empty texture until the bakes land.
 
 import { SLIME_ORGANISMS, SLIME_PLANKTON_KIND } from '../../constants/dive-slime-plankton';
-import { bindTexture, uniformProgram, uniformVector, type UniformProgram } from '../dive-shader-program';
+import { bindTexture, programMaker, uniformVector, type UniformProgram } from '../dive-shader-program';
 import { KELP_FLOOR_VERTEX_SOURCE } from '../kelp/kelp-shader-floor';
 import {
   SLIME_BACTERIA_FRAGMENT_SOURCE,
@@ -62,13 +62,7 @@ const VECTOR_COUNTS: Readonly<Record<string, number>> = {
   [SLIME_DIATOM_UNIFORM.entries]: SLIME_DIATOM_ENTRIES,
 };
 
-function program(
-  sources: { readonly vertex: string; readonly fragment: string },
-  names: readonly string[],
-  samplers: readonly string[] = [],
-): SlimeProgram {
-  return uniformProgram(SLIME_UNIFORM_GROUP, sources, { names, counts: VECTOR_COUNTS }, samplers);
-}
+const program = programMaker(SLIME_UNIFORM_GROUP, VECTOR_COUNTS);
 
 export function createPennateProgram(): SlimeProgram {
   const { pennate, box, reach, bright, dark } = SLIME_PENNATE_UNIFORM;

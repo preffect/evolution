@@ -11,6 +11,7 @@ import { SLIME_GLOW } from '../../constants/dive-slime';
 import { SLIME_GLASS, SLIME_LINE_MIN_PX } from '../../constants/dive-slime-diatoms';
 import type { BakeGradient } from '../../textures/texture-bake';
 import type { ShoreContext2D } from '../shore/shore-canvas';
+import { radiiGradient } from '../shore/shore-gradients';
 
 /** A context drawing in an object's unit, `unitPx` css px to the unit (the object's length on screen). */
 export interface GlassPen {
@@ -62,16 +63,15 @@ export function bodyGradient(
   centre: { readonly x: number; readonly y: number; readonly radius: number },
   colours: BodyColours,
 ): BakeGradient {
-  const { x, y, radius } = centre;
   const body = SLIME_GLASS.body;
-  const gradient = context.createRadialGradient(
-    x + radius * body.lightX,
-    y + radius * body.lightY,
-    radius * body.core,
-    x + radius * body.farX,
-    y + radius * body.farY,
-    radius * body.reach,
-  );
+  const gradient = radiiGradient(context, centre, {
+    fromX: body.lightX,
+    fromY: body.lightY,
+    fromRadius: body.core,
+    toX: body.farX,
+    toY: body.farY,
+    toRadius: body.reach,
+  });
   gradient.addColorStop(0, hexWithAlpha(colours.light, colours.alpha));
   gradient.addColorStop(body.stop, hexWithAlpha(colours.base, colours.alpha));
   gradient.addColorStop(1, hexWithAlpha(colours.dark, colours.alpha * body.darkAlpha));
@@ -81,10 +81,22 @@ export function bodyGradient(
 /** A white glint (`glint`). */
 export function drawGlint(context: ShoreContext2D, x: number, y: number, radius: number): void {
   const { stops, alphas } = SLIME_GLASS.glint;
+  fillWhiteDisc(context, { x, y, radius }, [
+    [stops[0], alphas[0]],
+    [stops[1], alphas[1]],
+    [stops[2], alphas[2]],
+  ]);
+}
+
+/** A white disc fading out from its centre by `stops` (offset, alpha): a glint's light. */
+export function fillWhiteDisc(
+  context: ShoreContext2D,
+  disc: { readonly x: number; readonly y: number; readonly radius: number },
+  stops: readonly (readonly [number, number])[],
+): void {
+  const { x, y, radius } = disc;
   const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-  gradient.addColorStop(stops[0], hexWithAlpha(WHITE, alphas[0]));
-  gradient.addColorStop(stops[1], hexWithAlpha(WHITE, alphas[1]));
-  gradient.addColorStop(stops[2], hexWithAlpha(WHITE, alphas[2]));
+  for (const [offset, alpha] of stops) gradient.addColorStop(offset, hexWithAlpha(WHITE, alpha));
   context.fillStyle = gradient;
   context.beginPath();
   context.arc(x, y, radius, 0, RADIANS_PER_FULL_TURN);

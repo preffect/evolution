@@ -2,7 +2,7 @@
 // group holding every `vec4` (or array of them) it declares, and every sampler bound to an empty texture until its
 // bakes land. The kelp band's five programs (ticket #802) and the slime band's (ticket #803) are made with it.
 
-import { GlProgram, Shader, Texture, UniformGroup } from 'pixi.js';
+import { GlProgram, Mesh, Shader, State, Texture, UniformGroup, type Geometry } from 'pixi.js';
 import { RGBA_CHANNELS } from '../colour';
 
 const VEC4 = 'vec4<f32>';
@@ -35,6 +35,27 @@ export function uniformProgram(
   for (const sampler of samplers) resources[sampler] = Texture.EMPTY.source;
   const shader = new Shader({ glProgram: new GlProgram(sources), resources });
   return { shader, uniforms: group };
+}
+
+/** A band's maker of programs: each under `groupName`, holding `common` and its own names, arrays sized by `counts`. */
+export function programMaker(
+  groupName: string,
+  counts: Readonly<Record<string, number>>,
+  common: readonly string[] = [],
+): (
+  sources: { readonly vertex: string; readonly fragment: string },
+  names: readonly string[],
+  samplers?: readonly string[],
+) => UniformProgram {
+  return (sources, names, samplers = []) =>
+    uniformProgram(groupName, sources, { names: [...common, ...names], counts }, samplers);
+}
+
+/** A mesh over `geometry` with `shader`, blended as a 2D sprite, hidden until a frame shows it. */
+export function hiddenMesh(geometry: Geometry, shader: Shader): Mesh<Geometry, Shader> {
+  const mesh = new Mesh({ geometry, shader, state: State.for2d() });
+  mesh.visible = false;
+  return mesh;
 }
 
 /** A uniform's vector (or vectors) to write into. */

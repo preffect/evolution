@@ -18,7 +18,7 @@ import {
 import { SLIME_MOTES, SLIME_RODS } from '../../constants/dive-slime-bacteria';
 import { HALF, smoothstep } from '../../geometry';
 import type { DiveCamera } from '../dive-camera';
-import type { DiveView } from '../dive-view';
+import type { DiveStageFrame, DiveView } from '../dive-view';
 import { cellsInView } from '../kelp/kelp-beads';
 
 /** The pocket's widths in its radii, its alpha, and how far its quad reaches (metres). */
@@ -39,13 +39,7 @@ export interface SlimeSkinFrame {
 }
 
 /** What the slime band draws this frame. */
-export interface SlimeFrame {
-  readonly stageWidthPx: number;
-  readonly stageHeightPx: number;
-  /** Css px per metre (the mockup's `s`). */
-  readonly pixelsPerMetre: number;
-  readonly zoom: number;
-  readonly timeSeconds: number;
+export interface SlimeFrame extends DiveStageFrame {
   /** The slime's fade (`DIVE_SLIME_WINDOW`, the mockup's `inA`). */
   readonly slimeAlpha: number;
   /** The dish's dark field arriving (its band's weight, the mockup's `df`). */

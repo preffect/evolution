@@ -2,7 +2,8 @@
 // order: the rock, the stipe and blades 4 to 1 (each after its shadow), the bulb, blade 0, the blade floor, then the
 // beads and the drop. Six draw calls at most a frame; their geometry is uploaded once and only uniforms change.
 
-import { Container, Geometry, Mesh, State, type Shader } from 'pixi.js';
+import { Container, Geometry, type Mesh, type Shader } from 'pixi.js';
+import { hiddenMesh } from '../dive-shader-program';
 import { CELL_QUAD_INDICES, CELL_QUAD_POSITIONS } from '../../constants';
 import { KELP_BEADS, KELP_DROP } from '../../constants/dive-kelp-drop';
 import { KELP_BLADE_LOOK, KELP_BULB, KELP_QUAD_REACH, KELP_STIPE_LOOK } from '../../constants/dive-kelp';
@@ -96,23 +97,17 @@ export function lensGeometry(beads: readonly KelpBead[]): Geometry {
   });
 }
 
-function meshOf(geometry: Geometry, shader: Shader): Mesh<Geometry, Shader> {
-  const mesh = new Mesh({ geometry, shader, state: State.for2d() });
-  mesh.visible = false;
-  return mesh;
-}
-
 /** Every mesh, hidden, in its place under `root`; the lenses wait for the beads (`lensGeometry`, swapped in). */
 export function createKelpMeshes(shaders: KelpShaders): KelpMeshSet {
   const rockReach = SHORE_FOCAL_ROCK.radiusM * KELP_QUAD_REACH.rockRadii;
   const set: KelpMeshSet = {
     root: new Container(),
-    rock: meshOf(squareGeometry(SHORE_FOCAL_ROCK.x, SHORE_FOCAL_ROCK.y, rockReach), shaders.rock),
-    ribbonsBack: meshOf(kelpRibbonGeometry(backRibbonDraws()), shaders.ribbons),
-    bulb: meshOf(squareGeometry(KELP_BULB.x, KELP_BULB.y, KELP_QUAD_REACH.bulbM), shaders.bulb),
-    ribbonsFront: meshOf(kelpRibbonGeometry(frontRibbonDraws()), shaders.ribbons),
-    floor: meshOf(squareGeometry(0, 0, 1), shaders.floor),
-    lenses: meshOf(lensGeometry([]), shaders.lenses),
+    rock: hiddenMesh(squareGeometry(SHORE_FOCAL_ROCK.x, SHORE_FOCAL_ROCK.y, rockReach), shaders.rock),
+    ribbonsBack: hiddenMesh(kelpRibbonGeometry(backRibbonDraws()), shaders.ribbons),
+    bulb: hiddenMesh(squareGeometry(KELP_BULB.x, KELP_BULB.y, KELP_QUAD_REACH.bulbM), shaders.bulb),
+    ribbonsFront: hiddenMesh(kelpRibbonGeometry(frontRibbonDraws()), shaders.ribbons),
+    floor: hiddenMesh(squareGeometry(0, 0, 1), shaders.floor),
+    lenses: hiddenMesh(lensGeometry([]), shaders.lenses),
   };
   set.root.addChild(set.rock, set.ribbonsBack, set.bulb, set.ribbonsFront, set.floor, set.lenses);
   return set;

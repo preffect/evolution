@@ -4,7 +4,7 @@
 // a time on the dive's bake pump (`DiveBaker`), before the autoplay falls into the band. The sprites are drawn at the
 // dive's device pixel ratio; kept for the page at that ratio, so a return to the lobby bakes nothing again.
 
-import type { DiveBaker } from '../dive-bake-pump';
+import { queueBaker, type DiveBaker } from '../dive-bake-pump';
 import type { ShoreCanvas, ShoreCanvasFactory } from '../shore/shore-canvas';
 import { SteppedQueue, type PumpStep } from '../shore/shore-pump';
 import {
@@ -91,10 +91,5 @@ export class SlimeBakes extends SteppedQueue {
 
 /** The bakes on the dive's pump, timed on `nowMs`, the open dive's clock. */
 export function slimeBaker(bakes: SlimeBakes, nowMs: () => number): DiveBaker {
-  return {
-    pumpBakes: (budgetMs) => bakes.pump(budgetMs, nowMs),
-    get isBaked() {
-      return bakes.isBaked;
-    },
-  };
+  return queueBaker(bakes, nowMs);
 }

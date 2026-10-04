@@ -14,7 +14,7 @@ import {
 } from '../../constants/dive-slime-bacteria';
 import { HALF } from '../../geometry';
 import type { ShoreContext2D } from '../shore/shore-canvas';
-import { drawGlow } from './slime-glass';
+import { drawGlow, fillWhiteDisc } from './slime-glass';
 
 /** A rod's outline round the origin, `length` long and `width` wide (`stadium`). */
 export function stadiumPath(context: ShoreContext2D, length: number, width: number): void {
@@ -91,14 +91,10 @@ function rodGlint(context: ShoreContext2D): void {
   const { length, width, glint } = SLIME_ROD_SPRITE;
   const x = length * glint.x;
   const y = width * HALF * glint.y;
-  const radius = width * glint.radius;
-  const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-  gradient.addColorStop(0, hexWithAlpha(WHITE, glint.alpha));
-  gradient.addColorStop(1, hexWithAlpha(WHITE, 0));
-  context.fillStyle = gradient;
-  context.beginPath();
-  context.arc(x, y, radius, 0, RADIANS_PER_FULL_TURN);
-  context.fill();
+  fillWhiteDisc(context, { x, y, radius: width * glint.radius }, [
+    [0, glint.alpha],
+    [1, 0],
+  ]);
 }
 
 /** One rod round the origin of `context`, in the sprite's px (`rodArt` at the sprite's size, its glow full). */
