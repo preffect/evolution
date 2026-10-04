@@ -470,7 +470,9 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
 
   A real autoplay fall on the GPU (`qa/evidence/pr-815/`, per band) holds 60 fps in every band at DPR 1 and 2, its
   p95 frame 16.8 ms, with no main-thread task over 100 ms in the fall; with the CPU four times slower (DevTools'
-  throttling, the laptop stand-in) it holds 54–60 fps, as main does, the dish's p95 33 ms its own script.
+  throttling, the laptop stand-in) it holds 54–60 fps, as main does, the dish's p95 33 ms its own script, and the
+  canvas stays at the top: 1.5 while falling at DPR 2 and 2 on arrival, 1 at DPR 1, unchanged through a minute held at
+  the dish (two runs each).
 
 - **The resolution governor (ticket #804):** `dive/dive-resolution-governor.ts`, its numbers in
   `constants/dive-governor.ts`. Every band draws on the dive's one canvas, so the governor sets that canvas's device
@@ -483,13 +485,17 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     time it spent handing work to the GPU (the planet's draw and the submit, which a GPU behind blocks). Not while a
     band still bakes or the renderer builds (their slices slow the frames whatever the resolution), not off screen,
     not a still frame under reduced motion, not the evidence probe.
+  - **Over budget throughout:** a step down needs every window judged over the last 500 ms to be over budget with at
+    most one frame of six on time. A GPU behind misses every vsync; a busy page misses some (33 ms gaps among 16.7 ms
+    ones, a CPU four times slower), and those wait it out: ticket #804's review saw them step the canvas to the floor.
   - **Down:** a notch is × 0.84 (about 0.7× the pixels). A median a little over steps one notch; past 3 × the target
     it leaps as far as the GPU's share of the frame must shrink by its pixels to fit, so software GL reaches the floor
     in one change. Never below 0.35 device px per CSS px. Never when the page's own work alone is over budget. A
-    one-notch step that does not bring the next window's median under 0.9 × the last is undone (the slowness was the
-    page's, not the GPU's) and steps down wait 6 s, doubling for each in a row to 48 s.
+    one-notch step that does not bring the next window's median under 0.9 × that of the over-budget windows before it
+    is undone (the slowness was the page's, not the GPU's) and steps down wait 6 s, doubling for each in a row to 48 s.
   - **Up:** after 3 s on budget, one notch. A step down within 2 s of a step up means that notch did not fit: the wait
-    before the next try doubles, to 48 s; a notch that holds puts it back to 3 s. So it never pumps.
+    before the next try doubles, to 48 s; a notch that holds puts it back to 3 s. A view held on budget never steps:
+    its scattered missed vsyncs are not over budget throughout.
   - **While falling:** at most the mockup's 1.5 at DPR 2 (`upperBandsDevicePixelRatio`), sharp at the screen's ratio
     again on arrival.
   - **The cost of a change:** the canvas's back buffer is made again: a few ms on a GPU, about 1 s under software GL
