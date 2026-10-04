@@ -3,10 +3,10 @@
 // draws with them, and until the level in view has baked the nearest coarser baked one stands in, never a finer one.
 
 import { describe, expect, it } from 'vitest';
-import { SHORE_LEVEL_CACHE } from '../../constants/dive-shore';
+import { SHORE_LEVEL_CACHE, SHORE_LOD } from '../../constants/dive-shore';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { TEST_SHORE_LAND, TEST_SHORE_STAGE, bakedTestTiles } from '../../../../../testing/shore-paint-builder';
-import { shoreLevelZoom } from './shore-lod';
+import { SHORE_LEVEL_COUNT, shoreLevelZoom } from './shore-lod';
 import { ShoreLevels, type ShoreLevelUploader } from './shore-levels';
 import type { ShoreView } from './shore-paint';
 import { bakeShoreSnapshot, type ShoreSnapshot } from './shore-snapshot';
@@ -256,6 +256,22 @@ describe('ShoreLevels.fallFloorZoom', () => {
     bakeOnly(subject, [0, 40]);
     subject.focus(shoreLevelZoom(40), 1);
     expect(subject.fallFloorZoom).toBe(Number.NEGATIVE_INFINITY);
+  });
+
+  it('never holds a fall for the level past the cut: it serves only zooms the band never draws (ticket #804)', () => {
+    const last = SHORE_LEVEL_COUNT - 1;
+    expect(shoreLevelZoom(last)).toBeLessThanOrEqual(SHORE_LOD.cutZoom);
+    expect(shoreLevelZoom(last - 1)).toBeGreaterThan(SHORE_LOD.cutZoom);
+    const subject = quickLevels();
+    // The level before the last has a stand-in two coarser; the last one's nearest is three coarser.
+    bakeOnly(subject, [0, last - 1 - SHORE_LEVEL_CACHE.standInSteps]);
+    subject.focus(shoreLevelZoom(last - 1) + SHORE_LOD.stepZoom / 2, 1);
+    expect(subject.fallFloorZoom).toBe(Number.NEGATIVE_INFINITY);
+    // One level up the same gap still holds: the floor is the band's, above its cut.
+    const above = quickLevels();
+    bakeOnly(above, [0, last - 2 - SHORE_LEVEL_CACHE.standInSteps]);
+    above.focus(shoreLevelZoom(last - 2) + SHORE_LOD.stepZoom / 2, 1);
+    expect(above.fallFloorZoom).toBe(shoreLevelZoom(last - 1));
   });
 });
 

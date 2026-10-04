@@ -5,7 +5,7 @@
 // where a finer one would cover only its middle. The widest level is kept for that always, and the stand-in in use is
 // kept until the level in view lands. A fall waits above any level with no stand-in close enough (`fallFloorZoom`).
 
-import { SHORE_LEVEL_CACHE, SHORE_LEVEL_DRAFT_SCALE } from '../../constants/dive-shore';
+import { SHORE_LEVEL_CACHE, SHORE_LEVEL_DRAFT_SCALE, SHORE_LOD } from '../../constants/dive-shore';
 import type { StageSize } from './shore-lod';
 import { SHORE_LEVEL_COUNT, shoreLevelAt, shoreLevelView, shoreLevelZoom } from './shore-lod';
 import type { ShoreView } from './shore-paint';
@@ -111,10 +111,13 @@ export class ShoreLevels<Level> extends SteppedQueue {
 
   /**
    * The zoom a fall must stay above: the first level ahead of the camera with no baked level at most
-   * `SHORE_LEVEL_CACHE.standInSteps` coarser, or −∞ when every level ahead has one.
+   * `SHORE_LEVEL_CACHE.standInSteps` coarser, or −∞ when every level ahead has one. A level at or past the band's cut
+   * serves only zooms the band never draws, so it never holds a fall: the last one did, below the cut, where the band
+   * no longer follows the camera, and on a slow box the fall could wait there for good (ticket #804).
    */
   get fallFloorZoom(): number {
     for (let level = 0; level < SHORE_LEVEL_COUNT; level += 1) {
+      if (shoreLevelZoom(level) <= SHORE_LOD.cutZoom) break;
       if (shoreLevelZoom(level) >= this.focusZoom) continue;
       const nearest = this.coarserBaked(level, 0);
       if (nearest === null || level - nearest > SHORE_LEVEL_CACHE.standInSteps) return shoreLevelZoom(level);
