@@ -468,7 +468,7 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   | slime (−1.95 to −3.7)         | ≤ 1.5 ms (0.6–1.4) | ≤ 13 (12–13) | ≤ 3.3 ms (0.9–1.7)          | 60 fps    |
   | dish (below −3.7)             | ≤ 3 ms (1.7–2.3)   | ≤ 23 (21–23) | ≤ 3.3 ms (2.5–3.2)          | 60 fps    |
 
-  A real autoplay fall on the GPU (`qa/evidence/pr-<N>/`, per band) holds 60 fps in every band at DPR 1 and 2, its
+  A real autoplay fall on the GPU (`qa/evidence/pr-815/`, per band) holds 60 fps in every band at DPR 1 and 2, its
   p95 frame 16.8 ms, with no main-thread task over 100 ms in the fall; with the CPU four times slower (DevTools'
   throttling, the laptop stand-in) it holds 54–60 fps, as main does, the dish's p95 33 ms its own script.
 
