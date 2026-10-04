@@ -2,7 +2,8 @@
 // joints are, the bakes' boxes and the textures; each frame, the view, the fades, and which parts draw.
 
 import { RGBA_CHANNELS } from '../../colour';
-import { KELP_BULB, KELP_SPLINE, KELP_VECTOR_LANE } from '../../constants/dive-kelp';
+import { KELP_BLADE_COVER, KELP_BULB, KELP_SPLINE, KELP_VECTOR_LANE } from '../../constants/dive-kelp';
+import { KELP_DROP } from '../../constants/dive-kelp-drop';
 import { SHORE_BOULDER } from '../../constants/dive-shore-boulders';
 import { boulderJoint } from '../shore/shore-boulder-surface';
 import type { BlobPlace } from '../shore/shore-shapes';
@@ -68,6 +69,10 @@ export function bindBaked(
     bindTexture(program, KELP_ROCK_UNIFORM.seaDistance, textures.seaDistance);
   }
   uniformVector(rock, KELP_ROCK_UNIFORM.rock).set([place.x, place.y, place.radius, place.squash]);
+  const cover = uniformVector(rock, KELP_ROCK_UNIFORM.cover);
+  cover.set(boxUniform(baked.bladeCover));
+  cover.set([baked.bladeCover.metresPerTexel, KELP_BLADE_COVER.insetM], RGBA_CHANNELS);
+  bindTexture(rock, KELP_ROCK_UNIFORM.bladeCover, textures.bladeCover);
   uniformVector(rock, KELP_ROCK_UNIFORM.joints).set(jointPoints(place));
   const means = uniformVector(rock, KELP_ROCK_UNIFORM.means);
   means.set(textures.means.barnacleFar, KELP_ROCK_MEAN.barnacleFar * RGBA_CHANNELS);
@@ -101,15 +106,26 @@ export function updateFrame(programs: KelpPrograms, frame: KelpFrame, devicePixe
     uniformVector(program, KELP_COMMON_UNIFORM.view).set(view);
     uniformVector(program, KELP_COMMON_UNIFORM.frame).set([frame.timeSeconds, alpha, 0, frame.zoom]);
   }
+  for (const program of [programs.rock, programs.ribbons, programs.floor, programs.lenses]) {
+    uniformVector(program, KELP_COMMON_UNIFORM.octaves).set(frame.octaves);
+  }
   const ribbon = uniformVector(programs.ribbons, KELP_RIBBON_UNIFORM.ribbon);
   ribbon.set([frame.ribbonReachM, frame.shadowReachM, frame.bladeWidthPx]);
   uniformVector(programs.ribbons, KELP_RIBBON_UNIFORM.shown).set([flag(frame.hasBlades), flag(frame.isStipeShown)]);
   const texels = uniformVector(programs.rock, KELP_ROCK_UNIFORM.texels);
   texels.set([frame.foamAlpha, frame.barnacleAlpha], KELP_VECTOR_LANE.z);
-  uniformVector(programs.lenses, KELP_LENS_UNIFORM.lens).set([
-    flag(frame.hasBeads),
-    flag(frame.isDropShown),
-    frame.dropInside,
-  ]);
+  updateDrop(programs, frame);
   for (const program of Object.values(programs)) program.uniforms.update();
+}
+
+/** The beads' and the drop's switches, and the drop for the floor, which leaves its covered inside undrawn. */
+function updateDrop(programs: KelpPrograms, frame: KelpFrame): void {
+  const isDropShown = flag(frame.isDropShown);
+  uniformVector(programs.lenses, KELP_LENS_UNIFORM.lens).set([flag(frame.hasBeads), isDropShown, frame.dropInside]);
+  uniformVector(programs.floor, KELP_FLOOR_UNIFORM.drop).set([
+    KELP_DROP.x,
+    KELP_DROP.y,
+    KELP_DROP.radiusM,
+    isDropShown,
+  ]);
 }

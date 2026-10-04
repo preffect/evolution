@@ -29,6 +29,7 @@ export interface KelpTextures {
   readonly bladeTile: TextureSource;
   readonly rockDistance: TextureSource;
   readonly seaDistance: TextureSource;
+  readonly bladeCover: TextureSource;
   readonly tiles: Readonly<Record<KelpShoreTileName, TextureSource>>;
   /** The far tiles' and the foam's mean colours: what stands in for each once it shrinks below a few pixels. */
   readonly means: { readonly barnacleFar: KelpMean; readonly rockweedFar: KelpMean; readonly foam: KelpMean };
@@ -58,6 +59,7 @@ export function kelpTextures(baked: KelpBaked, tiles: ShoreTileSource): KelpText
     bladeTile: canvasSource(baked.bladeTile, true),
     rockDistance: distanceTexture(baked.rock),
     seaDistance: distanceTexture(baked.sea),
+    bladeCover: distanceTexture(baked.bladeCover),
     tiles: sources,
     means: { barnacleFar: mean('barnacleFar'), rockweedFar: mean('rockweedFar'), foam: mean('foam') },
   };
@@ -69,6 +71,7 @@ export function releaseKelpTextures(textures: KelpTextures): void {
     textures.bladeTile,
     textures.rockDistance,
     textures.seaDistance,
+    textures.bladeCover,
     ...Object.values(textures.tiles),
   ]) {
     source.destroy();

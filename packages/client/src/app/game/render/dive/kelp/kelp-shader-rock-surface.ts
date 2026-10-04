@@ -9,7 +9,7 @@ import { SHORE_ZONE_FADE, SHORE_ZONE_TILES } from '../../constants/dive-shore';
 import { KELP_ROCK_BARNACLE_COVER, KELP_ROCK_MEAN } from '../../constants/dive-kelp';
 import { glslFloat } from '../../cells/cell-shader-source';
 import { DIAMETER_PER_RADIUS } from '../../geometry';
-import { KELP_COMMON_UNIFORM as COMMON, glslCss, glslHex } from './kelp-shader-common';
+import { KELP_COMMON_UNIFORM as COMMON, KELP_OCTAVE_SLOT, glslCss, glslHex } from './kelp-shader-common';
 
 export const KELP_ROCK_UNIFORM = {
   /** The stone's centre (metres), radius and squash. */
@@ -22,6 +22,9 @@ export const KELP_ROCK_UNIFORM = {
   joints: 'uJoints',
   /** The barnacles' far tile's, the rockweed's far tile's and the foam's mean colour and coverage. */
   means: 'uMeans',
+  /** The blade cover bake's box, then its metres a texel and the depth past which the rock is drawn plain. */
+  cover: 'uCover',
+  bladeCover: 'uBladeCover',
   rockDistance: 'uRockDistance',
   seaDistance: 'uSeaDistance',
   rockTile: 'uRockTile',
@@ -44,6 +47,8 @@ const POINTS_PER_VECTOR = 2;
 export const KELP_ROCK_JOINT_VECTORS = (KELP_ROCK_JOINT_POINTS * BOULDER.joints.count) / POINTS_PER_VECTOR;
 export { KELP_ROCK_MEAN };
 const MEAN_COUNT = Object.keys(KELP_ROCK_MEAN).length;
+/** The cover's vectors: its box, then its metres a texel and its depth. */
+export const KELP_ROCK_COVER_VECTORS = 2;
 
 const SAMPLERS = [
   UNIFORM.rockDistance,
@@ -56,6 +61,7 @@ const SAMPLERS = [
   UNIFORM.rockweedFarTile,
   UNIFORM.foamTile,
   UNIFORM.causticTile,
+  UNIFORM.bladeCover,
 ];
 
 export const KELP_ROCK_UNIFORMS_SOURCE = /* glsl */ `
@@ -65,6 +71,7 @@ uniform vec4 ${UNIFORM.seaBox};
 uniform vec4 ${UNIFORM.texels};
 uniform vec4 ${UNIFORM.joints}[${KELP_ROCK_JOINT_VECTORS}];
 uniform vec4 ${UNIFORM.means}[${MEAN_COUNT}];
+uniform vec4 ${UNIFORM.cover}[${KELP_ROCK_COVER_VECTORS}];
 ${SAMPLERS.map((name) => `uniform sampler2D ${name};`).join('\n')}
 `;
 
@@ -125,19 +132,19 @@ const ROCKWEED = BOULDER.rockweed;
 const VOLUME = BOULDER.volume;
 const LIGHT = BOULDER.lightPool;
 
-/** The stone's colour at `world` inside its outline, opaque. */
+/** The stone's colour at `world` inside its outline, opaque; `isPlain` keeps only its lit gradient. */
 const STONE_SOURCE = /* glsl */ `
-vec3 stoneColour(vec2 world) {
+vec3 stoneColour(vec2 world, bool isPlain) {
   vec2 centre = ${UNIFORM.rock}.xy;
   float radius = ${UNIFORM.rock}.z;
   float squash = ${UNIFORM.rock}.w;
   float t = conicT(world, vec3(centre + radius * vec2(${float(body.lightX)}, ${float(body.lightY)}), radius * ${float(body.core)}), vec3(centre + radius * vec2(${float(body.centreX)}, ${float(body.centreY)}), radius * ${float(body.outer)}));
   vec3 colour = stops3(vec4(${glslHex(rampLight)}, 1.0), vec4(${glslHex(rampMiddle)}, 1.0), vec4(${glslHex(rampDark)}, 1.0), ${float(body.middleStop)}, t).rgb;
-  if (radius * ${COMMON.view}.z <= ${float(BOULDER.detailFromPx)}) return colour;
-  vec3 tiles = octaves(radius * ${float(BOULDER.rock.tileRadii)}, ${float(BOULDER.rock.targetPx)});
+  if (isPlain || radius * ${COMMON.view}.z <= ${float(BOULDER.detailFromPx)}) return colour;
+  vec3 tiles = ${COMMON.octaves}[${KELP_OCTAVE_SLOT.rock}].xyz;
   colour = overlay(colour, texture(${UNIFORM.rockTile}, world / tiles.x), ${float(BOULDER.rock.greenAlpha)});
   colour = overlay(colour, texture(${UNIFORM.rockTile}, world / tiles.y), ${float(BOULDER.rock.greenAlpha)} * tiles.z);
-  tiles = octaves(radius * ${float(BOULDER.grain.tileRadii)}, ${float(BOULDER.grain.targetPx)});
+  tiles = ${COMMON.octaves}[${KELP_OCTAVE_SLOT.grain}].xyz;
   colour = paintOn(colour, texture(${UNIFORM.grainTile}, world / tiles.x), ${float(BOULDER.grain.greenAlpha)});
   colour = paintOn(colour, texture(${UNIFORM.grainTile}, world / tiles.y), ${float(BOULDER.grain.greenAlpha)} * tiles.z);
   if (radius * ${COMMON.view}.z > ${float(BOULDER.joints.fromPx)}) {

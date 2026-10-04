@@ -55,16 +55,8 @@ void main() {
 /** The stops a `stops5` list holds: a shorter list repeats its last. */
 const STOP_SLOTS = 5;
 
-/** A stops list of up to five, and a disc and an ellipse in a lens's unit. */
+/** A disc and an ellipse in a lens's unit. */
 const UNIT_SOURCE = /* glsl */ `
-vec4 stops5(vec4 colours[${STOP_SLOTS}], float at[${STOP_SLOTS}], int count, float t) {
-  float clamped = clamp(t, 0.0, 1.0);
-  for (int stop = 1; stop < ${STOP_SLOTS}; stop++) {
-    if (stop >= count) break;
-    if (clamped <= at[stop]) return premultiplied(mix(colours[stop - 1], colours[stop], (clamped - at[stop - 1]) / max(at[stop] - at[stop - 1], 1e-6)));
-  }
-  return premultiplied(colours[count - 1]);
-}
 float unitDisc(vec2 point, vec2 centre, float radius, float unitPx) {
   return clamp((radius - length(point - centre)) * unitPx + 0.5, 0.0, 1.0);
 }
@@ -77,23 +69,42 @@ float unitEllipse(vec2 point, vec2 centre, vec2 radii, float angle, float unitPx
 const slots = (count: number): number[] =>
   Array.from({ length: STOP_SLOTS }, (_unused, index) => Math.min(index, count - 1));
 
-function colours(list: readonly (readonly number[])[], alphas: readonly number[]): string {
-  const vectors = slots(list.length).map((index) => glslRgba(list[index] ?? [], alphas[index] ?? 0));
-  return `vec4[${STOP_SLOTS}](${vectors.join(', ')})`;
+/** A gradient of up to five stops as a GLSL function of \`t\` over constant tables, so no pixel copies an array. */
+function stopsFunction(
+  name: string,
+  gradient: {
+    readonly colours: readonly (readonly number[])[];
+    readonly alphas: readonly number[];
+    readonly stops: readonly number[];
+  },
+): string {
+  const vectors = slots(gradient.colours.length).map((index) =>
+    glslRgba(gradient.colours[index] ?? [], gradient.alphas[index] ?? 0),
+  );
+  const positions = slots(gradient.stops.length).map((index) => float(gradient.stops[index] ?? 1));
+  const count = gradient.stops.length;
+  return `
+const vec4 ${name}_COLOURS[${STOP_SLOTS}] = vec4[${STOP_SLOTS}](${vectors.join(', ')});
+const float ${name}_AT[${STOP_SLOTS}] = float[${STOP_SLOTS}](${positions.join(', ')});
+vec4 ${name.toLowerCase()}Stops(float t) {
+  float clamped = clamp(t, 0.0, 1.0);
+  for (int stop = 1; stop < ${count}; stop++) {
+    if (clamped <= ${name}_AT[stop]) {
+      float span = max(${name}_AT[stop] - ${name}_AT[stop - 1], 1e-6);
+      return premultiplied(mix(${name}_COLOURS[stop - 1], ${name}_COLOURS[stop], (clamped - ${name}_AT[stop - 1]) / span));
+    }
+  }
+  return premultiplied(${name}_COLOURS[${count - 1}]);
+}
+`;
 }
 
-function stops(positions: readonly number[]): string {
-  return `float[${STOP_SLOTS}](${slots(positions.length)
-    .map((index) => float(positions[index] ?? 1))
-    .join(', ')})`;
-}
-
-const SPRITE_SOURCE = /* glsl */ `
+const SPRITE_SOURCE = /* glsl */ `${stopsFunction('BODY', BEAD.body)}
 vec4 beadSprite(vec2 point, float unitPx) {
   vec4 colour = paint(${glslRgb(BEAD.shadow.colour)}, ${float(BEAD.shadow.alpha)} * unitEllipse(point, ${glslVec2(BEAD.shadow.x, BEAD.shadow.y)}, ${glslVec2(BEAD.shadow.radiusX, BEAD.shadow.radiusY)}, 0.0, unitPx));
   float body = unitDisc(point, vec2(0.0), 1.0, unitPx);
   float t = (length(point) - ${float(BEAD.body.inner)}) / ${float(1 - BEAD.body.inner)};
-  colour = over(colour, stops5(${colours(BEAD.body.colours, BEAD.body.alphas)}, ${stops(BEAD.body.stops)}, ${BEAD.body.stops.length}, t) * body);
+  colour = over(colour, bodyStops(t) * body);
   vec4 caustic = stops2(${glslRgba(BEAD.caustic.colour, BEAD.caustic.alpha)}, ${glslRgba(BEAD.caustic.colour, 0)}, length(point - ${glslVec2(BEAD.caustic.x, BEAD.caustic.y)}) / ${float(BEAD.caustic.radius)});
   colour = over(colour, caustic * body);
   colour = over(colour, paint(${glslRgb(BEAD.highlight.colour)}, ${float(BEAD.highlight.alpha)} * unitEllipse(point, ${glslVec2(BEAD.highlight.x, BEAD.highlight.y)}, ${glslVec2(BEAD.highlight.radiusX, BEAD.highlight.radiusY)}, ${float(BEAD.highlight.turn)}, unitPx)));
@@ -113,18 +124,24 @@ const SKY_SOURCE = /* glsl */ `
 vec4 skyLights(vec4 colour, vec2 point, float outside, float unitPx) {
   vec2 window = turn(point - ${glslVec2(WINDOW.x, WINDOW.y)}, ${float(-WINDOW.turn)}) / vec2(1.0, ${float(WINDOW.squash)});
   float windowAt = length(window) / ${float(WINDOW.radius)};
-  vec4 sky = stops3(${glslRgba(WHITE, WINDOW.alphas[0])}, ${glslRgba(WHITE, WINDOW.alphas[1])}, ${glslRgba(WHITE, 0)}, ${float(WINDOW.middleStop)}, windowAt);
-  colour = over(colour, sky * outside * clamp((1.0 - windowAt) * ${float(WINDOW.radius * WINDOW.squash)} * unitPx + 0.5, 0.0, 1.0));
+  float margin = 1.0 / unitPx;
+  if (windowAt < 1.0 + margin / ${float(WINDOW.radius * WINDOW.squash)}) {
+    vec4 sky = stops3(${glslRgba(WHITE, WINDOW.alphas[0])}, ${glslRgba(WHITE, WINDOW.alphas[1])}, ${glslRgba(WHITE, 0)}, ${float(WINDOW.middleStop)}, windowAt);
+    colour = over(colour, sky * outside * clamp((1.0 - windowAt) * ${float(WINDOW.radius * WINDOW.squash)} * unitPx + 0.5, 0.0, 1.0));
+  }
   vec2 glintAt = point - ${glslVec2(GLINT.x, GLINT.y)};
-  float inBox = step(abs(glintAt.x), ${float(GLINT.halfBox)}) * step(abs(glintAt.y), ${float(GLINT.halfBox)});
-  vec4 glint = stops3(${glslRgba(WHITE, GLINT.alphas[0])}, ${glslRgba(WHITE, GLINT.alphas[1])}, ${glslRgba(WHITE, 0)}, ${float(GLINT.middleStop)}, length(glintAt) / ${float(GLINT.radius)});
-  colour = over(colour, glint * outside * inBox);
+  if (abs(glintAt.x) <= ${float(GLINT.halfBox)} && abs(glintAt.y) <= ${float(GLINT.halfBox)}) {
+    vec4 glint = stops3(${glslRgba(WHITE, GLINT.alphas[0])}, ${glslRgba(WHITE, GLINT.alphas[1])}, ${glslRgba(WHITE, 0)}, ${float(GLINT.middleStop)}, length(glintAt) / ${float(GLINT.radius)});
+    colour = over(colour, glint * outside);
+  }
+  vec2 fleckAt = point - ${glslVec2(FLECK.x, FLECK.y)};
+  if (length(fleckAt) > ${float(Math.max(FLECK.radiusX, FLECK.radiusY))} + margin) return colour;
   float fleck = unitEllipse(point, ${glslVec2(FLECK.x, FLECK.y)}, ${glslVec2(FLECK.radiusX, FLECK.radiusY)}, ${float(FLECK.turn)}, unitPx);
   return over(colour, paint(vec3(1.0), ${float(FLECK.alpha)} * outside * fleck));
 }
 `;
 
-const LENS_SOURCE = /* glsl */ `
+const LENS_SOURCE = /* glsl */ `${stopsFunction('WATER', WATER)}
 vec4 lens(vec2 world, vec4 shape, float inside, float magnification) {
   float strength = mix(magnification, 1.0, inside);
   float outside = 1.0 - inside;
@@ -137,10 +154,13 @@ vec4 lens(vec2 world, vec4 shape, float inside, float magnification) {
   if (within > 0.0) {
     vec4 inner = bladeFloor(shape.xy + (world - shape.xy) / strength);
     float t = conicT(point, vec3(${glslVec2(WATER.centreX, WATER.centreY)}, ${float(WATER.inner)}), vec3(0.0, 0.0, 1.0));
-    inner = over(inner, stops5(${colours(WATER.colours, WATER.alphas)}, ${stops(WATER.stops)}, ${WATER.stops.length}, t) * outside);
+    inner = over(inner, waterStops(t) * outside);
     float fade = 1.0 - inside * ${float(CAUSTIC.fade)};
-    vec4 gathered = stops3(${glslRgba(CAUSTIC.colour, CAUSTIC.alphas[0])}, ${glslRgba(CAUSTIC.colour, CAUSTIC.alphas[1])}, ${glslRgba(CAUSTIC.colour, 0)}, ${float(CAUSTIC.middleStop)}, length(point - ${glslVec2(CAUSTIC.x, CAUSTIC.y)}) / ${float(CAUSTIC.radius)}) * fade;
-    inner = vec4(inner.rgb + gathered.rgb, min(1.0, inner.a + gathered.a));
+    float gatheredAt = length(point - ${glslVec2(CAUSTIC.x, CAUSTIC.y)}) / ${float(CAUSTIC.radius)};
+    if (gatheredAt < 1.0) {
+      vec4 gathered = stops3(${glslRgba(CAUSTIC.colour, CAUSTIC.alphas[0])}, ${glslRgba(CAUSTIC.colour, CAUSTIC.alphas[1])}, ${glslRgba(CAUSTIC.colour, 0)}, ${float(CAUSTIC.middleStop)}, gatheredAt) * fade;
+      inner = vec4(inner.rgb + gathered.rgb, min(1.0, inner.a + gathered.a));
+    }
     if (outside > 0.0) inner = skyLights(inner, point, outside, unitPx);
     colour = over(colour, inner * within);
   }

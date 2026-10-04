@@ -200,6 +200,9 @@ export const KELP_CLOSE_BARNACLES = {
   turnPerRoll: 7,
 } as const;
 
+/** A barnacle smaller than this many device px in radius is not drawn: it would cover under a pixel. */
+export const KELP_BARNACLE_MIN_PX = 0.5;
+
 /** One barnacle (`barnacle(g, X, Y, rr, t)`): numbers of its radius; `t` turns it by `turn` and wobbles its plates. */
 export const KELP_BARNACLE_LOOK = {
   shadow: { x: 0.22, y: 0.28, radiusX: 1.05, radiusY: 1, colour: [20, 18, 14], alpha: 0.35 },
@@ -240,6 +243,16 @@ export const KELP_RIBBON_KIND = { bladeEven: 0, bladeOdd: 1, stipe: 2 } as const
 
 /** Where each mean colour sits in the rock shader's `uMeans`. */
 export const KELP_ROCK_MEAN = { barnacleFar: 0, rockweedFar: 1, foam: 2 } as const;
+
+/**
+ * Where the blades cover the rock, as a signed distance (+ inside a blade): over the blades' box and `marginM` more,
+ * a texel each `metresPerTexel`. Deeper than `insetM` inside a blade the rock is drawn plain (its lit gradient only):
+ * the blade over it lets 4 % through, and its grain, cover and barnacles would cost a full shading for nothing.
+ */
+export const KELP_BLADE_COVER = { metresPerTexel: 0.01, marginM: 0.05, insetM: 0.004 } as const;
+
+/** Which self-similar tile each of the kelp shaders' `uOctaves` vectors holds (`kelpOctaves`). */
+export const KELP_OCTAVE_SLOT = { blade: 0, rock: 1, grain: 2 } as const;
 
 /** A uniform vector's lanes, for the kelp's packed uniforms. */
 export const KELP_VECTOR_LANE = { x: 0, y: 1, z: 2, w: 3 } as const;

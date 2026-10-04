@@ -3,7 +3,7 @@
 // a time on the dive's bake pump (`DiveBaker`), before the autoplay falls into the band. Kept for the page, as the
 // shore's tiles are, so a return to the lobby bakes nothing again.
 
-import { KELP_FOCAL_ROCK, KELP_ROCK_DISTANCE, KELP_SEA_DISTANCE } from '../../constants/dive-kelp';
+import { KELP_BLADE_COVER, KELP_FOCAL_ROCK, KELP_ROCK_DISTANCE, KELP_SEA_DISTANCE } from '../../constants/dive-kelp';
 import { SHORE_COAST_REFINE } from '../../constants/dive-shore-coast';
 import { SHORE_FOCAL_ROCK } from '../../constants/dive-shore-objects';
 import type { DiveBaker } from '../dive-bake-pump';
@@ -12,6 +12,7 @@ import type { ShoreCanvas, ShoreCanvasFactory } from '../shore/shore-canvas';
 import { ShoreCoast } from '../shore/shore-coast';
 import type { LandRings } from '../shore/shore-coast-rings';
 import { PeriodicNoise, shoreRandom } from '../shore/shore-noise';
+import { POINT_STRIDE } from '../shore/shore-points';
 import { SteppedQueue, type PumpStep } from '../shore/shore-pump';
 import type { BlobPlace } from '../shore/shore-shapes';
 import { bakeBladeTile } from './kelp-blade-tile';
@@ -25,13 +26,15 @@ import {
   type KelpBox,
   type KelpDistanceBake,
 } from './kelp-outline';
-import { kelpBlades } from './kelp-ribbons';
+import { kelpBlades, type Ribbon } from './kelp-ribbons';
 
 /** Everything the band draws from once baked. */
 export interface KelpBaked {
   readonly bladeTile: ShoreCanvas;
   readonly rock: KelpDistanceBake;
   readonly sea: KelpDistanceBake;
+  /** Where the blades lie (+ inside one): the rock under them is drawn plain. */
+  readonly bladeCover: KelpDistanceBake;
   /**
    * Whether the rock adds to the land where it lies on it: the mockup clipped the stipe's dry run to the coast's
    * rings and the rock's outline by the nonzero rule, so where their windings cancel the stipe is left under the rock.
@@ -65,6 +68,30 @@ export function isRockKeptOnLand(landWinding: number, rockSignedArea: number): b
   return landWinding === 0 || Math.sign(landWinding) === Math.sign(rockSignedArea);
 }
 
+/** A ribbon's outline as a closed polygon: down its left margin, back up its right (`ribbonPath`). */
+export function bladeOutline(ribbon: Ribbon): number[] {
+  const left = ribbon.samples.flatMap((sample) => [
+    sample.x - sample.tangentY * sample.leftM,
+    sample.y + sample.tangentX * sample.leftM,
+  ]);
+  const right = [...ribbon.samples]
+    .reverse()
+    .flatMap((sample) => [sample.x + sample.tangentY * sample.rightM, sample.y - sample.tangentX * sample.rightM]);
+  return [...left, ...right];
+}
+
+/** The box round flat point lists, `marginM` more every way. */
+function boxOf(polygons: readonly (readonly number[])[], marginM: number): KelpBox {
+  const xValues = polygons.flatMap((points) => points.filter((_value, index) => index % POINT_STRIDE === 0));
+  const yValues = polygons.flatMap((points) => points.filter((_value, index) => index % POINT_STRIDE === 1));
+  return [
+    Math.min(...xValues) - marginM,
+    Math.min(...yValues) - marginM,
+    Math.max(...xValues) + marginM,
+    Math.max(...yValues) + marginM,
+  ];
+}
+
 /** The coast built over the sea box, a segment every few texels (its window: the box's widest half each way). */
 function coastOver(land: LandRings, box: KelpBox, segmentM: number): ShoreCoast {
   const coast = new ShoreCoast(land);
@@ -91,11 +118,18 @@ export function* bakeKelp(sources: KelpBakeSources): Generator<void, KelpBaked> 
   yield;
   const rings = coast.rings.map((ring) => ring.points);
   const sea = yield* bakeOutlineDistance(rings, seaBox, KELP_SEA_DISTANCE.metresPerTexel);
+  const blades = kelpBlades().map(bladeOutline);
+  const bladeCover = yield* bakeOutlineDistance(
+    blades,
+    boxOf(blades, KELP_BLADE_COVER.marginM),
+    KELP_BLADE_COVER.metresPerTexel,
+  );
   const beads = yield* placeBeads(kelpBlades()[0]?.samples ?? []);
   return {
     bladeTile,
     rock,
     sea,
+    bladeCover,
     isRockOnLandKept: isRockKeptOnLand(windingAt(rings, place.x, place.y), signedArea(outline)),
     beads,
   };

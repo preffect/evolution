@@ -102,7 +102,14 @@ void main() {
   vec4 colour = contactShadows(world);
   float inside = rockAt(world);
   float stone = cover(inside);
-  if (stone > 0.0) colour = over(colour, vec4(stoneColour(world), 1.0) * stone);
+  // deep under a blade, which lets only 4 % through, the stone is drawn plain and nothing more
+  float underBlade = bakedDistance(${UNIFORM.bladeCover}, ${UNIFORM.cover}[0], ${UNIFORM.cover}[1].x, world);
+  bool isPlain = underBlade > ${UNIFORM.cover}[1].y;
+  if (stone > 0.0) colour = over(colour, vec4(stoneColour(world, isPlain), 1.0) * stone);
+  if (isPlain) {
+    fragColour = colour * ${COMMON.frame}.y;
+    return;
+  }
   colour = over(colour, rimLight(world, inside));
   colour = waterline(colour, world, stone);
   if (${UNIFORM.texels}.w > 0.0 && stone > 0.0) {

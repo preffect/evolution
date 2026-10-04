@@ -52,6 +52,9 @@ describe('KelpBakes', () => {
       expect(metresAt(baked.sea, 0, -2)).toBeGreaterThan(1);
       expect(metresAt(baked.sea, 0, 2)).toBeLessThan(-1);
       expect(baked.beads.length).toBeGreaterThan(0);
+      // blade 0 runs through the focus: covered there; nothing far off the blades
+      expect(metresAt(baked.bladeCover, 0, 0)).toBeGreaterThan(0.03);
+      expect(metresAt(baked.bladeCover, 1.5, -1.5)).toBeLessThan(0);
       expect(typeof baked.isRockOnLandKept).toBe('boolean');
     },
     KELP_BAKE_TEST_TIMEOUT_MS,

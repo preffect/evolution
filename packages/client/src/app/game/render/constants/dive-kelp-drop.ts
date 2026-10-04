@@ -94,12 +94,13 @@ export const KELP_LENS_LOOK = {
 } as const;
 
 /**
- * The blade under everything once the view is inside its margins (`fillBladeClose`, below the kelp band's cut): its
+ * The blade under everything once the view is inside its margins (`fillBladeClose`, at and below the kelp band's cut,
+ * where the mockup left a gap at the cut itself with nothing behind the beads): its
  * colour, its grain at two octaves along blade 0, and the translucent midline glow `halfWidthShare` of the blade's
  * width either side of the focus, flat once it is `flatAboveViews` view diagonals wide.
  */
 export const KELP_BLADE_FLOOR = {
-  showBelowZoom: -1.42,
+  showAtOrBelowZoom: -1.42,
   colour: '#8a6a2a',
   glow: { halfWidthShare: 0.3, colour: [214, 170, 84], alpha: 0.2, flatAboveViews: 4 },
 } as const;

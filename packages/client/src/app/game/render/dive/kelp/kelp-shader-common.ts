@@ -4,8 +4,8 @@
 // bit for bit, and the signed distance bakes' lookups. GLSL ES 3.00, as template strings.
 
 import { CHANNEL_MAX, hexToRgb } from '../../colour';
+import { KELP_OCTAVE_SLOT } from '../../constants/dive-kelp';
 import { SHORE_HASH, SHORE_UINT32_RANGE } from '../../constants/dive-shore-noise';
-import { SHORE_OCTAVE } from '../../constants/dive-shore';
 import { glslFloat } from '../../cells/cell-shader-source';
 import { DIVE_TEXELS_OF_SOURCE } from '../planet/dive-planet-shader';
 
@@ -15,6 +15,8 @@ export const KELP_COMMON_UNIFORM = {
   view: 'uView',
   /** The ambient clock (s), the band's alpha, a shader's own fade, and the zoom. */
   frame: 'uFrame',
+  /** The self-similar tiles' octaves this frame (\`KELP_OCTAVE_SLOT\`). */
+  octaves: 'uOctaves',
 } as const;
 
 /** `vec3(r, g, b)` of 0–255 channels. */
@@ -148,14 +150,15 @@ vec4 stops3(vec4 first, vec4 middle, vec4 last, float at, float t) {
 }
 `;
 
-/** The self-similar tiles at two neighbouring octaves (\`octaves\`): the coarse tile, the fine one, the fine one's weight. */
+export { KELP_OCTAVE_SLOT };
+export const KELP_OCTAVE_SLOTS = Object.keys(KELP_OCTAVE_SLOT).length;
+
+/**
+ * The self-similar tiles at two neighbouring octaves (\`octaves\`), worked out once a frame (\`kelpOctaves\`) rather
+ * than per pixel: each vector the coarse tile, the fine one and the fine one's weight.
+ */
 export const KELP_OCTAVE_SOURCE = /* glsl */ `
-vec3 octaves(float tileM, float targetPx) {
-  float level = log(${VIEW}.z * tileM / targetPx) / log(${glslFloat(SHORE_OCTAVE.ratio)});
-  float whole = floor(level);
-  float coarse = tileM / pow(${glslFloat(SHORE_OCTAVE.ratio)}, whole);
-  return vec3(coarse, coarse / ${glslFloat(SHORE_OCTAVE.ratio)}, smoothstep(0.0, 1.0, level - whole));
-}
+uniform vec4 ${KELP_COMMON_UNIFORM.octaves}[${KELP_OCTAVE_SLOTS}];
 `;
 
 /** The coordinate hash (\`hash\`, \`coordinateHash\`), bit for bit in 32-bit unsigned arithmetic. */

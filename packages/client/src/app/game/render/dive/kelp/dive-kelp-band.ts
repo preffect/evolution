@@ -11,7 +11,7 @@ import type { DiveView } from '../dive-view';
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import type { ShoreTileSource } from '../shore/shore-tiles';
 import { focalRockPlace, type KelpBakes } from './kelp-bakes';
-import { isKelpFrameShown, kelpFrameOf, type KelpFrame } from './kelp-frame';
+import { isKelpFrameShown, kelpFrameOf, kelpStandInOf, type KelpFrame } from './kelp-frame';
 import { createKelpMeshes, lensGeometry, type KelpMeshSet } from './kelp-meshes';
 import {
   createBulbProgram,
@@ -135,13 +135,10 @@ export class DiveKelpBand {
     lenses.visible = shown.hasBeads || shown.isDropShown;
   }
 
-  /** One frame: its parts set up and shown, or all hidden; answers whether any shows. */
+  /** One frame: its parts set up and shown (the stand-in's until it is ready), or all hidden; answers whether any shows. */
   draw(view: DiveView): boolean {
-    if (!this.ensureTextures()) {
-      this.show(null);
-      return false;
-    }
-    const frame = kelpFrameOf(view);
+    const whole = kelpFrameOf(view);
+    const frame = this.ensureTextures() ? whole : kelpStandInOf(whole);
     if (!isKelpFrameShown(frame)) {
       this.show(null);
       return false;

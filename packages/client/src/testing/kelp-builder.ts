@@ -35,6 +35,7 @@ export function quickKelpBake(slices = 1): (sources: KelpBakeSources) => Generat
       bladeTile: sources.factory.create(QUICK_TILE_PX, QUICK_TILE_PX),
       rock: flatDistance(1),
       sea: flatDistance(-1),
+      bladeCover: flatDistance(-1),
       isRockOnLandKept: true,
       beads: [{ x: 0, y: 0, radiusM: 0.001 }],
     };

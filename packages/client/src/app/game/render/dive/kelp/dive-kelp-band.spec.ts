@@ -43,16 +43,21 @@ describe('DiveKelpBand', () => {
     subject.destroy();
   });
 
-  it('shows nothing and holds a fall above its band until its bakes and the shore’s tiles land', () => {
+  it('holds a fall above its band until its bakes and the shore’s tiles land, showing only what needs no bake', () => {
     const tiles = { ...bakedTestTiles(), isBaked: false } as ShoreTileSource;
     const { subject, bakes } = band(tiles);
     expect(subject.isReady).toBe(false);
     expect(subject.fallFloorZoom).toBe(DIVE_KELP_WINDOW.fadeFromZoom);
-    expect(subject.draw(view(1))).toBe(false);
+    const visible = (): boolean[] => subject.view.children.map((mesh) => mesh.visible);
+    // a scrub to 10 m before the bakes: the blades and the bulb, not the rock (its outline is a bake)
+    expect(subject.draw(view(1))).toBe(true);
+    expect(visible()).toEqual([false, true, true, true, false, false]);
     bake(bakes);
     expect(subject.isReady).toBe(false);
-    expect(subject.draw(view(1))).toBe(false);
-    expect(subject.view.children.every((mesh) => !mesh.visible)).toBe(true);
+    // inside the blade: the floor and the drop, which need no bake either
+    expect(subject.draw(view(-2))).toBe(true);
+    expect(visible()).toEqual([false, false, false, false, true, true]);
+    expect(subject.draw(view(3))).toBe(false);
     subject.destroy();
   });
 

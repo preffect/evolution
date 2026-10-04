@@ -10,6 +10,7 @@ import { KELP_BLADE_ANGLE } from './kelp-ribbons';
 import {
   KELP_COMMON_UNIFORM as COMMON,
   KELP_FRAGMENT_HEAD,
+  KELP_OCTAVE_SLOT,
   KELP_OCTAVE_SOURCE,
   KELP_PAINT_SOURCE,
   glslHex,
@@ -17,7 +18,11 @@ import {
   glslVec2,
 } from './kelp-shader-common';
 
-export const KELP_FLOOR_UNIFORM = { bladeTile: 'uBladeTile' } as const;
+export const KELP_FLOOR_UNIFORM = {
+  bladeTile: 'uBladeTile',
+  /** The drop's centre and radius (metres), and 1 while it draws: its lens covers the floor inside it. */
+  drop: 'uDrop',
+} as const;
 
 const FLOOR = KELP_BLADE_FLOOR;
 const GLOW = FLOOR.glow;
@@ -28,7 +33,7 @@ const float = glslFloat;
 export const KELP_BLADE_FLOOR_SOURCE = /* glsl */ `
 vec4 bladeFloor(vec2 world) {
   vec4 colour = vec4(${glslHex(FLOOR.colour)}, 1.0);
-  vec3 tiles = octaves(${float(SURFACE.tileM)}, ${float(SURFACE.targetPx)});
+  vec3 tiles = ${COMMON.octaves}[${KELP_OCTAVE_SLOT.blade}].xyz;
   vec2 along = turn(world, ${float(-KELP_BLADE_ANGLE)});
   colour = over(colour, texture(${KELP_FLOOR_UNIFORM.bladeTile}, along / tiles.x) * ${float(SURFACE.alpha)});
   colour = over(colour, texture(${KELP_FLOOR_UNIFORM.bladeTile}, along / tiles.y) * ${float(SURFACE.alpha)} * tiles.z);
@@ -58,9 +63,13 @@ void main() {
 
 export const KELP_FLOOR_FRAGMENT_SOURCE = /* glsl */ `${KELP_FRAGMENT_HEAD}
 uniform sampler2D ${KELP_FLOOR_UNIFORM.bladeTile};
+uniform vec4 ${KELP_FLOOR_UNIFORM.drop};
 in vec2 vWorld;
 ${KELP_PAINT_SOURCE}${KELP_OCTAVE_SOURCE}${KELP_BLADE_FLOOR_SOURCE}
+// inside the drop, a device px in from its rim, the lens over it is opaque: nothing of the floor shows there
 void main() {
+  vec4 drop = ${KELP_FLOOR_UNIFORM.drop};
+  if (drop.w > 0.5 && length(vWorld - drop.xy) < drop.z - px(1.0) / ${COMMON.view}.w) discard;
   fragColour = bladeFloor(vWorld) * ${COMMON.frame}.y;
 }
 `;

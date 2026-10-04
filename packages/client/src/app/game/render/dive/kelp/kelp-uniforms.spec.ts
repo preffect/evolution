@@ -19,6 +19,8 @@ import {
 } from './kelp-programs';
 import { KELP_BULB_UNIFORM } from './kelp-shader-bulb';
 import { KELP_LENS_UNIFORM } from './kelp-shader-lens';
+import { KELP_FLOOR_UNIFORM } from './kelp-shader-floor';
+import { KELP_DROP } from '../../constants/dive-kelp-drop';
 import { KELP_RIBBON_UNIFORM } from './kelp-shader-ribbon';
 import { KELP_ROCK_UNIFORM } from './kelp-shader-rock-surface';
 import type { KelpTextures } from './kelp-textures';
@@ -70,6 +72,7 @@ describe('bindBaked and updateFrame', () => {
       bladeTile: source(),
       rockDistance: source(),
       seaDistance: source(),
+      bladeCover: source(),
       tiles: Object.fromEntries(
         ['rock', 'grain', 'barnacle', 'barnacleFar', 'rockweed', 'rockweedFar', 'foam', 'caustic'].map((name) => [
           name,
@@ -84,6 +87,7 @@ describe('bindBaked and updateFrame', () => {
         bladeTile: {} as never,
         rock: bake,
         sea: { ...bake, metresPerTexel: 2 },
+        bladeCover: { ...bake, metresPerTexel: 0.25 },
         isRockOnLandKept: false,
         beads: [],
       },
@@ -96,6 +100,8 @@ describe('bindBaked and updateFrame', () => {
     expect([...uniformVector(subject.rock, KELP_ROCK_UNIFORM.means).slice(0, 4)]).toEqual(
       means.barnacleFar.map(Math.fround),
     );
+    expect(subject.rock.shader.resources[KELP_ROCK_UNIFORM.bladeCover]).toBe(textures.bladeCover);
+    expect(uniformVector(subject.rock, KELP_ROCK_UNIFORM.cover)[4]).toBe(0.25);
     expect(uniformVector(subject.bulb, KELP_BULB_UNIFORM.apophyses)[0]).toBe(Math.fround(apophysisEnds()[0]!));
 
     const frame = kelpFrameOf(view(-2.1));
@@ -109,5 +115,14 @@ describe('bindBaked and updateFrame', () => {
     expect(uniformVector(subject.ribbons, KELP_RIBBON_UNIFORM.ribbon)[3]).toBe(0);
     expect([...uniformVector(subject.ribbons, KELP_RIBBON_UNIFORM.shown).slice(0, 2)]).toEqual([0, 0]);
     expect(uniformVector(subject.rock, 'uFrame')[0]).toBe(3);
+    for (const program of [subject.rock, subject.ribbons, subject.floor, subject.lenses]) {
+      expect([...uniformVector(program, 'uOctaves')]).toEqual([...frame.octaves]);
+    }
+    // the floor knows where the drop is and that it draws, to leave its covered inside undrawn
+    expect([...uniformVector(subject.floor, KELP_FLOOR_UNIFORM.drop)]).toEqual(
+      [KELP_DROP.x, KELP_DROP.y, KELP_DROP.radiusM, 1].map(Math.fround),
+    );
+    updateFrame(subject, kelpFrameOf(view(-2.5)), 2);
+    expect(uniformVector(subject.floor, KELP_FLOOR_UNIFORM.drop)[3]).toBe(0);
   });
 });

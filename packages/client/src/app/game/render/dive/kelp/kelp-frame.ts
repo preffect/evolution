@@ -15,9 +15,12 @@ import {
 } from '../../constants/dive-kelp';
 import { SHORE_BOULDER } from '../../constants/dive-shore-boulders';
 import { SHORE_FOCAL_ROCK } from '../../constants/dive-shore-objects';
+import { RGBA_CHANNELS } from '../../colour';
+import { SHORE_OCTAVE } from '../../constants/dive-shore';
 import { smoothstep } from '../../geometry';
 import type { DiveView } from '../dive-view';
 import { areBeadsShown, cellsInView } from './kelp-beads';
+import { KELP_OCTAVE_SLOT, KELP_OCTAVE_SLOTS } from './kelp-shader-common';
 
 /** What the kelp band draws this frame. */
 export interface KelpFrame {
@@ -49,6 +52,32 @@ export interface KelpFrame {
   readonly shadowReachM: number;
   /** Blade 0's width in css px: the blades' level of detail. */
   readonly bladeWidthPx: number;
+  /** The self-similar tiles' octaves this frame, a vector each (\`KELP_OCTAVE_SLOT\`). */
+  readonly octaves: Float32Array;
+}
+
+/** A self-similar tile's two octaves at a scale (\`octaves\`): the coarse tile, the fine one, the fine one's weight. */
+export function octavesOf(tileM: number, targetPx: number, pixelsPerMetre: number): readonly [number, number, number] {
+  const ratio = SHORE_OCTAVE.ratio;
+  const level = Math.log((pixelsPerMetre * tileM) / targetPx) / Math.log(ratio);
+  const whole = Math.floor(level);
+  const coarse = tileM / ratio ** whole;
+  return [coarse, coarse / ratio, smoothstep(0, 1, level - whole)];
+}
+
+/** The blade's grain, the rock's and its crystals' octaves, packed for \`uOctaves\`. */
+function kelpOctaves(pixelsPerMetre: number): Float32Array {
+  const surface = KELP_BLADE_LOOK.surface;
+  const radius = SHORE_FOCAL_ROCK.radiusM;
+  const { rock, grain } = SHORE_BOULDER;
+  const packed = new Float32Array(KELP_OCTAVE_SLOTS * RGBA_CHANNELS);
+  packed.set(octavesOf(surface.tileM, surface.targetPx, pixelsPerMetre), KELP_OCTAVE_SLOT.blade * RGBA_CHANNELS);
+  packed.set(octavesOf(radius * rock.tileRadii, rock.targetPx, pixelsPerMetre), KELP_OCTAVE_SLOT.rock * RGBA_CHANNELS);
+  packed.set(
+    octavesOf(radius * grain.tileRadii, grain.targetPx, pixelsPerMetre),
+    KELP_OCTAVE_SLOT.grain * RGBA_CHANNELS,
+  );
+  return packed;
 }
 
 function isRockInView(view: DiveView): boolean {
@@ -89,7 +118,7 @@ function dropParts(view: DiveView): Pick<KelpFrame, 'isFloorShown' | 'hasBeads' 
   const isActive = view.bands.drop.isActive;
   const { camera } = view;
   return {
-    isFloorShown: isActive && camera.zoom < KELP_BLADE_FLOOR.showBelowZoom,
+    isFloorShown: isActive && camera.zoom <= KELP_BLADE_FLOOR.showAtOrBelowZoom,
     hasBeads: isActive && areBeadsShown(camera),
     isDropShown:
       isActive &&
@@ -118,7 +147,17 @@ export function kelpFrameOf(view: DiveView): KelpFrame {
     ribbonReachM: KELP_RIBBON_REACH.strokeM + KELP_RIBBON_REACH.px / scale,
     shadowReachM: KELP_RIBBON_REACH.px / scale,
     bladeWidthPx: KELP_BLADE.widthM * scale,
+    octaves: kelpOctaves(scale),
   };
+}
+
+/**
+ * What draws before the band's bakes have landed (a scrub or a skip can get there first; a play waits): the parts
+ * that need no bake (the blades, the bulb, the blade floor and the drop, without their grain), so the labels point
+ * at the kelp; the rock, the stipe and the beads wait for their bakes.
+ */
+export function kelpStandInOf(frame: KelpFrame): KelpFrame {
+  return { ...frame, isRockShown: false, isStipeShown: false, hasBeads: false };
 }
 
 /** Whether anything of the band draws this frame. */

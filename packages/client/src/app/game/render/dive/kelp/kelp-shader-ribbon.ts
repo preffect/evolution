@@ -13,6 +13,7 @@ import {
   KELP_COMMON_UNIFORM as COMMON,
   KELP_DISTANCE_SOURCE,
   KELP_FRAGMENT_HEAD,
+  KELP_OCTAVE_SLOT,
   KELP_OCTAVE_SOURCE,
   KELP_PAINT_SOURCE,
   KELP_VERTEX_HEAD,
@@ -91,7 +92,7 @@ float ruffles(float u, float lateral, vec2 halves, float crest) {
 /** Blade 0's grain at two octaves, laid along it. */
 const GRAIN_SOURCE = /* glsl */ `
 vec4 grain(vec4 colour, vec2 world, float alpha) {
-  vec3 tiles = octaves(${float(LOOK.surface.tileM)}, ${float(LOOK.surface.targetPx)});
+  vec3 tiles = ${COMMON.octaves}[${KELP_OCTAVE_SLOT.blade}].xyz;
   vec2 along = turn(world, ${float(-KELP_BLADE_ANGLE)});
   colour = over(colour, texture(${UNIFORM.bladeTile}, along / tiles.x) * ${float(LOOK.surface.alpha)} * alpha);
   return over(colour, texture(${UNIFORM.bladeTile}, along / tiles.y) * ${float(LOOK.surface.alpha)} * tiles.z * alpha);

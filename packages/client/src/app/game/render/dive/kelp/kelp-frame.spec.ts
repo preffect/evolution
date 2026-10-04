@@ -8,7 +8,7 @@ import { KELP_RIBBON_REACH } from '../../constants/dive-kelp';
 import { SHORE_BOULDER } from '../../constants/dive-shore-boulders';
 import { smoothstep } from '../../geometry';
 import { diveViewAt } from '../dive-view';
-import { isKelpFrameShown, kelpFrameOf } from './kelp-frame';
+import { isKelpFrameShown, kelpFrameOf, kelpStandInOf, octavesOf } from './kelp-frame';
 
 const VIEWPORT = { width: 830, height: 467 };
 const frameAt = (zoom: number, timeSeconds = 0) =>
@@ -35,13 +35,14 @@ describe('kelpFrameOf', () => {
     expect(frameAt(-0.29).isStipeShown).toBe(true);
     expect(frameAt(-0.3).isStipeShown).toBe(false);
     const atCut = frameAt(-1.42);
+    // the floor takes over at the cut itself, so the beads never lie on black there (the mockup left that gap)
     expect([atCut.isRockShown, atCut.hasBlades, atCut.isBulbShown, atCut.isFloorShown]).toEqual([
       false,
       false,
       false,
-      false,
+      true,
     ]);
-    expect(frameAt(-1.43).isFloorShown).toBe(true);
+    expect(frameAt(-1.41).isFloorShown).toBe(false);
     expect(frameAt(-1.41).hasBlades).toBe(true);
   });
 
@@ -80,5 +81,23 @@ describe('kelpFrameOf', () => {
     expect(frame.ribbonReachM).toBe(KELP_RIBBON_REACH.strokeM + KELP_RIBBON_REACH.px / frame.pixelsPerMetre);
     expect(frame.shadowReachM).toBe(KELP_RIBBON_REACH.px / frame.pixelsPerMetre);
     expect(frame.bladeWidthPx).toBeCloseTo(0.11 * frame.pixelsPerMetre, 12);
+  });
+
+  it('stands in with only the parts that need no bake: no rock, no stipe, no beads', () => {
+    const whole = frameAt(-0.2);
+    expect([whole.isRockShown, whole.isStipeShown, whole.hasBeads]).toEqual([true, true, true]);
+    const standIn = kelpStandInOf(whole);
+    expect([standIn.isRockShown, standIn.isStipeShown, standIn.hasBeads]).toEqual([false, false, false]);
+    expect([standIn.hasBlades, standIn.isBulbShown, standIn.isDropShown]).toEqual([true, true, true]);
+  });
+
+  it('works the self-similar tiles’ octaves out once a frame, as the mockup’s `octaves` did per fill', () => {
+    // a 0.4 m tile at 1000 px/m against 420 px: level log4(400 / 420) is just under 0, so the coarse tile is 1.6 m
+    const [coarse, fine, weight] = octavesOf(0.4, 420, 1000);
+    expect(coarse).toBeCloseTo(1.6, 12);
+    expect(fine).toBeCloseTo(0.4, 12);
+    expect(weight).toBeCloseTo(smoothstep(0, 1, Math.log(400 / 420) / Math.log(4) + 1), 12);
+    const frame = frameAt(0);
+    expect([...frame.octaves.slice(0, 3)]).toEqual(octavesOf(0.4, 420, frame.pixelsPerMetre).map(Math.fround));
   });
 });

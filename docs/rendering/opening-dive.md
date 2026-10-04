@@ -248,7 +248,13 @@ true picture on the frame it is reached and a fall never waits on the band once 
     barnacle cover on its face and the rockweed skirt (each its far tile's mean colour, the far mosaic, the near tile
     masked by it, as `zoneFill`), its volume and light pool. Where the sea is: the stone seen through it, drifting
     caustics added, the collar and the foam's lace. Below 0.45, single barnacles on the mockup's grid, found from the
-    pixel's own cell and its neighbours and drawn in its order, under its 5,000-cell cap.
+    pixel's own cell and its neighbours and drawn in its order, under its 5,000-cell cap. A neighbouring cell is looked
+    at only when the pixel lies within the largest barnacle's reach of the shared edge, and a barnacle is drawn only
+    within its own reach (its shadow's offset and radius) and when it covers at least half a device px: the rest paint
+    nothing, so this changes no pixel (PR #812's review measured the barnacles at 60–70 % of the frame without it).
+    Deeper than 4 mm inside any blade (the blade cover bake), the stone is drawn plain, its lit gradient only, and
+    nothing more: the blade over it lets 4 % through, and its grain, cover, joints and barnacles would cost a full
+    shading for nothing.
   - **the ribbons** (`kelp-ribbons.ts`, `kelp-ribbon-geometry.ts`, `kelp-shader-ribbon.ts`): the stipe and blades 4
     to 1, then, after the bulb, blade 0, each a strip of quads between its margins after its offset shadow. Each
     vertex carries the ribbon's frame and widths; the vertex shader pushes the strip out by the strokes' reach (a
@@ -258,24 +264,29 @@ true picture on the frame it is reached and a fall never waits on the band once 
     the nonzero rule the mockup clipped them with (`isRockKeptOnLand`).
   - **the bulb** (`kelp-shader-bulb.ts`): one quad: the apophyses, its shadow, the float on its golden gradient with
     the light gathered at its far edge, growth rings, the window highlight, the glint and the outline.
-  - **the blade floor** (`kelp-shader-floor.ts`): below the kelp's cut, a quad over the stage: the blade's colour,
-    grain and midline glow through the focus (`fillBladeClose`).
+  - **the blade floor** (`kelp-shader-floor.ts`): from the kelp's cut down (at the cut itself too, where the mockup
+    left the beads on black), a quad over the stage: the blade's colour, grain and midline glow through the focus
+    (`fillBladeClose`). Inside the drop, a device px in from its rim, it is left undrawn: the drop's lens over it is
+    opaque there.
   - **the lenses** (`kelp-shader-lens.ts`): a quad round each spray bead (placed once a page on the mockup's grid,
     on blade 0 and clear of the drop, `kelp-beads.ts`) and the drop last. A small bead is the mockup's sprite look,
     drawn analytically; a big one and the drop are lenses: the blade floor sampled magnified about the centre (the
     refraction, per pixel), the water's tint, the caustic, the sky window and its glint, and the rim; sinking in
     relaxes the drop's magnification and fades its lights.
 - **What it is told each frame** (`kelp-frame.ts`): which parts draw, each by the mockup's own test (its size on
-  screen, its zoom cut, a grid's cell cap), the two bands' fades, the foam's flicker, the close barnacles' fade and
-  how far the camera is inside the drop; `kelp-uniforms.ts` writes it into the five programs (`kelp-programs.ts`).
+  screen, its zoom cut, a grid's cell cap), the two bands' fades, the foam's flicker, the close barnacles' fade, how
+  far the camera is inside the drop, and the self-similar tiles' two octaves (`octavesOf`, the same for every pixel,
+  so no pixel works out a logarithm); `kelp-uniforms.ts` writes it into the five programs (`kelp-programs.ts`).
 - **Bakes, once a page** (`kelp-bakes.ts`, kept by `kelp-module.ts`): the blade's grain tile (the mockup's
   `BAKES.blade`), the rock's outline (1 cm texels) and the coast round the rock and the stipe (2 cm texels, the coast
-  refined to two of them, filled as the shore fills its land) as signed distances in the planet's encoding, and the
-  beads' places. They run on the dive's bake pump after the planet's coastlines (the longest step about 115 ms in
+  refined to two of them, filled as the shore fills its land) and where the blades lie (1 cm texels) as signed
+  distances in the planet's encoding, and the beads' places. They run on the dive's bake pump after the planet's coastlines (the longest step about 115 ms in
   Node), and the band draws the rock's surface and foam with the shore's own tiles.
-- **Ready before the fall:** the band is ready once its bakes and the shore's tiles have landed; until then it draws
-  nothing and a fall waits above its band (`fallFloorZoom`, the controls' eased floor), and the autoplay waits for
-  it (`isBaked`). Its programs compile and link, and its textures upload, unseen into a pixel of its own while the
+- **Ready before the fall:** the band is ready once its bakes and the shore's tiles have landed; until then a fall
+  waits above its band (`fallFloorZoom`, the controls' eased floor), and the autoplay waits for it (`isBaked`). A
+  scrub or a skip does not wait: it gets the stand-in (`kelpStandInOf`), the parts that need no bake (the blades and
+  the bulb without their grain, the blade floor and the drop), so the labels point at the kelp; the rock, the stipe
+  and the beads come with their bakes. Its programs compile and link, and its textures upload, unseen into a pixel of its own while the
   dive is in orbit, so neither lands mid-fall.
 - **Fades:** the mockup's alpha leaked between its strokes; the band applies each band's fade to all of its parts.
 - **The lazy chunk:** its constants are `render/constants/dive-kelp*.ts`, imported directly, never through the barrel
@@ -432,7 +443,7 @@ true picture on the frame it is reached and a fall never waits on the band once 
   (+ inside, exact at the outline), the beads (the mockup's grid cell bit for bit, on blade 0, clear of the drop, in
   its order, shown by its tests), the blade's tile, the bakes stepped and kept, the nonzero rule for the rock on the
   land, each part's switch per zoom (`kelp-frame.spec.ts`), the five programs (GLSL ES 3.00, every uniform held and
-  declared, every function defined), the meshes' order by identity, the uniforms written, the textures made and
+  declared, every function defined), what they leave undrawn and why no pixel changes (`kelp-shader-culling.spec.ts`), the meshes' order by identity, the uniforms written, the textures made and
   given back, the band (warm-up, readiness, textures once, parts shown, destroy) and the module's page bakes.
 - `kelp/kelp-fall.spec.ts`: a phase played before the kelp's bakes land, on one simulated main thread with the real
   controls and band: no frame shows the band before it is ready and the fall arrives, at 60 fps and with frames 1 s
