@@ -1,6 +1,6 @@
 // The dive session's planet (docs/rendering/opening-dive.md §1, §3, §4) over the fake Pixi app: it draws on the game's
-// canvas from the first frame, while the renderer still bakes; the mockup's canvas lies over it while it shows, so the
-// shore draws over it; neither it nor the dish draws between them; the world's full coast comes up over its quick
+// canvas from the first frame, while the renderer still bakes; the mockup's canvas lies over the game's while the
+// planet, the shore or the drop shows on it; neither the game's upper bands nor the dish draws between them; the world's full coast comes up over its quick
 // bake once it lands; and the lobby's autoplay waits for its coastlines.
 
 import { ManualScheduler } from '@evolution/shared';
@@ -41,22 +41,27 @@ describe('DiveSession’s planet', () => {
     subject.destroy();
   });
 
-  it('lays the mockup’s canvas over the game’s while the planet shows, and back under it down at the dish', async () => {
+  it('lays the mockup’s canvas over the game’s while the planet, the shore or the drop shows, and under it at the dish', async () => {
     const { subject, app, bands, dependencies } = await started();
     const { host } = dependencies;
     host.append(app.canvas);
     tickUntilBuilt(app, subject);
     subject.controls.scrub(4);
     app.tick();
-    expect(bands.frames.at(-1)!.zoom).toBe(4);
+    // No slime yet: the mockup's canvas is hidden, but stacked over for when it draws.
+    expect(bands.frames).toHaveLength(0);
     expect(host.firstElementChild).toBe(app.canvas);
     expect(host.lastElementChild).toBe(bands.canvas);
     expect(opacityOf(app)).toBe(1);
-    // Down through the shore and the drop to the dish: the game's dish draws over the slime round it.
-    for (const zoom of [1, -2, -4.3]) {
-      subject.controls.scrub(zoom);
-      app.tick();
-    }
+    // In the drop the slime draws over the drop, which the game's canvas shows under it.
+    subject.controls.scrub(-2);
+    app.tick();
+    expect(bands.frames.at(-1)!.zoom).toBe(-2);
+    expect(host.lastElementChild).toBe(bands.canvas);
+    expect(opacityOf(app)).toBe(1);
+    // Down to the dish: the game's dish draws over the slime round it.
+    subject.controls.scrub(-4.3);
+    app.tick();
     expect(bands.frames.at(-1)!.zoom).toBe(-4.3);
     expect(host.firstElementChild).toBe(bands.canvas);
     expect(host.lastElementChild).toBe(app.canvas);
@@ -79,14 +84,14 @@ describe('DiveSession’s planet', () => {
     subject.destroy();
   });
 
-  it('draws neither the planet nor the dish between them, past the shore, where the mockup’s canvas covers the view', async () => {
+  it('draws neither the game’s upper bands nor the dish between them, past the drop, where the slime covers the view', async () => {
     const { subject, app, bands } = await started();
     tickUntilBuilt(app, subject);
-    // From 1.35 to −1.42 the shore keeps the game's canvas up (ticket #801); past it the drop is the mockup's alone.
-    subject.controls.scrub(-2);
+    // The shore keeps the game's canvas up to −1.42 (ticket #801) and the drop to −2.96 (#802); then the slime alone.
+    subject.controls.scrub(-3.3);
     const [rendered, planetDraws] = [app.renderCalls.count, app.textureRenders.length];
     app.tick();
-    expect(bands.frames.at(-1)!.zoom).toBe(-2);
+    expect(bands.frames.at(-1)!.zoom).toBe(-3.3);
     expect(app.textureRenders.length).toBe(planetDraws);
     expect(app.renderCalls.count).toBe(rendered);
     expect(opacityOf(app)).toBe(0);

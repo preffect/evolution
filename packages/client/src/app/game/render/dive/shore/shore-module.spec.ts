@@ -1,5 +1,5 @@
-// The shore's lazily loaded entry (docs/rendering/opening-dive.md §4): its land and tiles are made once a page, its
-// coast is fresh for each dive, and the mockup reads its tiles by name.
+// The shore's lazily loaded entry (docs/rendering/opening-dive.md §4): its land and tiles are made once a page and
+// shared with the kelp, and each dive gets its own forest test.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RecordingWorker, TwoDimensionalCanvas, fakeBitmap } from '../../../../../testing/fake-shore-bake';
@@ -10,17 +10,13 @@ import { SHORE_BAKE_MESSAGE } from './shore-bake-messages';
 import { createShoreParts } from './shore-module';
 
 describe('createShoreParts', () => {
-  it('keeps one tile set for the page and gives each dive its own coast', () => {
+  it('keeps one land, tile set and canvas factory for the page and gives each dive its own forest test', () => {
     const first = createShoreParts(TEST_SHORE_RINGS, document);
     const second = createShoreParts(TEST_SHORE_RINGS, document);
     expect(second.tiles).toBe(first.tiles);
-    expect(second.coast).not.toBe(first.coast);
-  });
-
-  it('answers the mockup no tile for a name it does not bake, and none while a tile bakes', () => {
-    const parts = createShoreParts(TEST_SHORE_RINGS, document);
-    expect(parts.mockupTiles.get('blade')).toBeNull();
-    expect(parts.mockupTiles.get('rock')).toBeNull();
+    expect(second.land).toBe(first.land);
+    expect(second.factory).toBe(first.factory);
+    expect(second.forest).not.toBe(first.forest);
   });
 
   it('makes the band, its shader warmed up through the dive’s app', () => {

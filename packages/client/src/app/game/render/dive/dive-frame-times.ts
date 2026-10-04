@@ -1,6 +1,6 @@
-// What a dive frame costs, per band (docs/rendering/opening-dive.md §6): the upper bands' canvas drawing, the planet
-// (its uniforms and its draw into its render texture), the shore band (its uniforms and its one draw call, ticket
-// #801), the game renderer's dish (its CPU work outside the submit) and the submit itself (the game canvas's draw
+// What a dive frame costs, per band (docs/rendering/opening-dive.md §6): the upper bands (the planet's forest test and
+// the mockup's slime canvas), the planet (its uniforms and its draw into its render texture), the shore band (its
+// uniforms, ticket #801), the kelp band (its uniforms, ticket #802), the game renderer's dish (its CPU work outside the submit) and the submit itself (the game canvas's draw
 // calls; the upper bands' canvas is composited by the browser, never uploaded). Script milliseconds on the injected
 // clock: the evidence box has no GPU, so this is the number
 // the bands are compared by. A reader takes the means since its last take.
@@ -12,6 +12,7 @@ export interface DiveFrameTimesReport {
   readonly upperBandsMs: number;
   readonly planetMs: number;
   readonly shoreMs: number;
+  readonly kelpMs: number;
   readonly dishMs: number;
   readonly submitMs: number;
 }
@@ -21,6 +22,7 @@ export class DiveFrameTimes {
   private upperBandsTotalMs = 0;
   private planetTotalMs = 0;
   private shoreTotalMs = 0;
+  private kelpTotalMs = 0;
   private dishTotalMs = 0;
   private submitTotalMs = 0;
 
@@ -42,6 +44,10 @@ export class DiveFrameTimes {
 
   measureShore(work: () => void): void {
     this.shoreTotalMs += this.timed(work);
+  }
+
+  measureKelp(work: () => void): void {
+    this.kelpTotalMs += this.timed(work);
   }
 
   measureSubmit(work: () => void): void {
@@ -71,6 +77,7 @@ export class DiveFrameTimes {
       upperBandsMs: perFrame(this.upperBandsTotalMs),
       planetMs: perFrame(this.planetTotalMs),
       shoreMs: perFrame(this.shoreTotalMs),
+      kelpMs: perFrame(this.kelpTotalMs),
       dishMs: perFrame(this.dishTotalMs),
       submitMs: perFrame(this.submitTotalMs),
     };
@@ -78,6 +85,7 @@ export class DiveFrameTimes {
     this.upperBandsTotalMs = 0;
     this.planetTotalMs = 0;
     this.shoreTotalMs = 0;
+    this.kelpTotalMs = 0;
     this.dishTotalMs = 0;
     this.submitTotalMs = 0;
     return report;

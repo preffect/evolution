@@ -1,6 +1,6 @@
 // The page's side of the shore's bake worker (docs/rendering/opening-dive.md §4, ticket #809): the tiles and the
 // levels bake in `shore-bake.worker.ts`, so no bake step lands on the page's thread; the page only copies each tile
-// into a canvas of its own (the mockup's kelp and the live sea read them) and uploads each level. A level's bake is
+// into a canvas of its own (the kelp band and the live sea read them) and uploads each level. A level's bake is
 // a generator like the page's own (`bakeShoreSnapshot`), so `ShoreLevels` runs either: this one yields
 // `SHORE_BAKE_WAITING` until its level lands. Where the platform cannot bake offscreen, or the worker fails, the page
 // bakes as it did before: a failed worker hands every bake under way back to the page.

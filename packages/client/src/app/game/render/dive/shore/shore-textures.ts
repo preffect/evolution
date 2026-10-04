@@ -12,7 +12,7 @@ import type { ShoreLevelTextures, ShoreTileTextures } from './shore-mesh';
 import type { ShoreTile, ShoreTileSource } from './shore-tiles';
 
 /** A picture's texture: a page canvas's, or the bitmap the bake worker sent (`shore-bake-thread.ts`). */
-function canvasSource(picture: ShoreSnapshotImage, isRepeating: boolean): TextureSource {
+export function canvasSource(picture: ShoreSnapshotImage, isRepeating: boolean): TextureSource {
   const options = {
     scaleMode: 'linear',
     addressMode: isRepeating ? 'repeat' : 'clamp-to-edge',

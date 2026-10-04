@@ -1,21 +1,19 @@
-// The opening dive's upper bands as the mockup draws them (ticket #797, epic #795): the boulder and the bull kelp, the
-// drop, and the slime inside the drop, on one Canvas 2D canvas. The planet under them is the game's since ticket #800
-// (`dive-planet-band.ts`, on the dive's Pixi canvas) and the coast and the shore since ticket #801
-// (`shore/dive-shore-band.ts`, on a Pixi canvas of its own right under this one): this canvas leaves clear where they
-// show. `dive-macro-band.ts` lays the canvases.
+// The opening dive's slime as the mockup draws it (ticket #797, epic #795): inside the drop, round the dish, on one
+// Canvas 2D canvas. Everything above it is the game's own since tickets #800–#802 (the planet, the coast and shore,
+// the kelp and the drop, all on the dive's Pixi canvas): this canvas draws only while the slime does, over the Pixi
+// canvas while the drop still shows there and under it once the game's dish does. `dive-macro-band.ts` lays them.
 //
 // **This file is the mockup's code, not the game's.** It is the design artifact
 // (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu, src/00-core.js … 72-scene.js) made into one module: its page
 // globals became module state set by `createMockupBands`, its timers became the dive's frame loop, and the parts the
 // game draws itself (the dish wall, the bacteria in the dish, the light, you) hand over to the game's renderer. It
 // is plain JavaScript on purpose and sits outside eslint, prettier, jscpd and coverage (.prettierignore, .jscpd.json,
-// angular.json): the follow-up tickets of epic #795 move each band onto the game's GPU renderer and delete its part of
-// this file, so it is never brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is
-// the contract. Which ticket deletes what (each section's header names its ticket too):
-//   ticket #801 (done), the coast and shore: moved to `shore/`; the kelp band borrows its coast and tiles
-//   ticket #802, the kelp and drop: the boulder and the bull kelp, the spray beads and the drop's lens
+// angular.json): ticket #803 moves the slime onto the game's GPU renderer and deletes this file, so it is never
+// brought up to docs/CODE-STANDARDS.md. Do not add to it. docs/rendering/opening-dive.md is the contract. Which
+// ticket deleted what:
+//   ticket #801 (done), the coast and shore: moved to `shore/`
+//   ticket #802 (done), the kelp and drop: moved to `kelp/`, with the planet's forest test (`shore/shore-forest-test.ts`)
 //   ticket #803, the slime: inside the drop (the kelp's cells, slime, diatoms, ciliates, the mockup's own pocket)
-// The core helpers, the tile pump and `drawFrame` go with the last of them.
 //
 // Units: world metres around the focus (x east, y south); z is log10 of the view's width in metres; T is seconds.
 
@@ -48,19 +46,6 @@ const PAL = {
   DIATOM_PLASTID_LIGHT: '#d7a441', DIATOM_PLASTID_DARK: '#8a5e14',
   // game: the own cell, seat 0 (Cyan)
   YOU_BASE: '#22c1d6', YOU_RIM: '#a6f4ff', YOU_NUC: '#6fdcef',
-  // shore: sea
-  SEA_DEEP: '#0d3a52', SEA_MID: '#145068', SEA_SHELF: '#1c6678', SEA_SHALLOW: '#2e8c92', SEA_REEF: '#3f9f98', FOAM: '#eef8f6',
-  // shore: rock and intertidal zones
-  ROCK_DARK: '#4a463f', ROCK_BASE: '#7a756a', ROCK_LIGHT: '#a39d8e', ROCK_WET: '#3e3c37',
-  LICHEN_BLACK: '#1f1e1c', LICHEN_ORANGE: '#d88a2c', LICHEN_GREY: '#a9ad96',
-  BARNACLE_LIGHT: '#e2dccb', BARNACLE_BASE: '#b3ab98', BARNACLE_DARK: '#5d574b',
-  ROCKWEED_DARK: '#3a3013', ROCKWEED_BASE: '#62531f', ROCKWEED_LIGHT: '#9a8636',
-  MUSSEL_DARK: '#141a26', MUSSEL_SHEEN: '#5a6784',
-  CORALLINE: '#c98c9b', CORALLINE_LIGHT: '#ecc0c9', SURFGRASS: '#3f9a45',
-  SAND_BASE: '#b9a57d', SAND_LIGHT: '#d9c9a3', SAND_WET: '#8c7c5c',
-  DRIFT_BASE: '#a8a194', DRIFT_LIGHT: '#d8d2c4', DRIFT_DARK: '#6c665b',
-  // kelp (Nereocystis): golden-olive, translucent
-  KELP_DARK: '#4f3812', KELP_BASE: '#8a6a2a', KELP_LIGHT: '#c29a48', KELP_GLOW: '#e5c27a', STIPE_BASE: '#5f4418',
   // inside the drop (brightfield) and the kelp's surface cells
   CELL_WALL: '#e3c98a', CELL_BASE: '#9c7a34', CELL_DARK: '#6e5220', PHAEO: '#6b4f16', PHAEO_LIGHT: '#b98c38',
   WATER_TINT: '#7fc9cf',
@@ -118,12 +103,6 @@ function pfbm(x, y, px, py, oct, k) {
   for (let i = 0; i < oct; i++) { a += b * pnoise(x, y, px, py, k + i * 17); w += b; x *= 2; y *= 2; px *= 2; py *= 2; b *= .5; }
   return a / w;
 }
-// plain value noise on the plane (world-stable choices: beaches, meadows)
-function vnoise(x, y, k) {
-  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
-  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
-  return lerp(lerp(hash(ix, iy, k), hash(ix + 1, iy, k), ux), lerp(hash(ix, iy + 1, k), hash(ix + 1, iy + 1, k), ux), uy);
-}
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
 // ---------- view state (world metres around the focus: x east, y south) ----------
@@ -140,29 +119,6 @@ function forCells(cell, k, fn, max = 5000, pad = 1) {
   if ((x1 - x0 + 1) * (y1 - y0 + 1) > max) return;
   for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) fn(i, j, (i + hash(i, j, k)) * cell, (j + hash(i, j, k + 1)) * cell, hash(i, j, k + 2), hash(i, j, k + 3));
 }
-// A self-similar texture drawn at two neighbouring octaves (ratio `ratio`) whose weights follow the zoom, so it has
-// detail at every scale without ever popping. fn(tileWorldSize, alpha) draws one layer.
-function octaves(tileWorld0, tilePx, ratio, fn, targetPx = 380) {
-  const lvl = Math.log((s * tileWorld0) / targetPx) / Math.log(ratio);
-  const k = Math.floor(lvl), f = lvl - k;
-  fn(tileWorld0 / Math.pow(ratio, k), 1);
-  fn(tileWorld0 / Math.pow(ratio, k + 1), smooth(f));
-}
-// a pattern whose tile spans `world` metres, anchored at the world origin, optionally rotated
-function patXf(pat, tilePx, world, rot = 0, ox = 0, oy = 0) {
-  const k = world / tilePx, c = Math.cos(rot) * k, sn = Math.sin(rot) * k;
-  pat.setTransform(new DOMMatrix([c, sn, -sn, c, ox, oy]));
-  return pat;
-}
-
-// ---------- the coast in metres: the shore band's own (`shore/shore-coast.ts`, ticket #801) ----------
-// The shore moved onto the game's renderer (`shore/dive-shore-band.ts`). The kelp band and the planet's forest test
-// still read the coast each frame, through the shore's object handed in as `coast`; ticket #802 takes them over.
-let COAST = null;
-function buildCoast() { COAST.build({ halfWidthM: hx, halfHeightM: hy, pixelsPerMetre: s }); }
-const coastDist = (x, y, maxR) => COAST.distance(x, y, maxR);
-function coastRingsPath() { for (const R of COAST.rings) { const p = R.points; ctx.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]); ctx.closePath(); } }
-function seaPath() { const m = COAST.marginM; ctx.beginPath(); ctx.rect(-hx - m, -hy - m, 2 * (hx + m), 2 * (hy + m)); coastRingsPath(); }
 // ---------- baked textures: code-drawn tiles, made once ----------
 // Every bake is a generator that yields every few rows, run a few milliseconds at a time by `pump` after the first
 // frame, so the dive never stalls on one; a tile needed before its turn is finished on the spot.
@@ -186,25 +142,14 @@ function requestRender() { bakeLanded = true; }
 const WANT = [];
 let PLACEHOLDER = null;
 const placeholder = () => PLACEHOLDER || (PLACEHOLDER = (() => { const c = makeCanvas(1, 1); return { c, pat: ctx.createPattern(c, 'repeat'), n: 1, avg: 'rgba(0,0,0,0)', ph: true }; })());
-// The shore's tiles (rock, grain, the zones, foam, caustic…) are the shore band's (`shore/shore-tiles.ts`, ticket
-// #801), handed in as `tiles`: one copy is adopted here as a pattern source once it has baked there.
-let TILES = null;
-function adoptTile(name, tile) {
-  const plain = makeCanvas(tile.canvas.width, tile.canvas.height); plain.getContext('2d').drawImage(tile.canvas, 0, 0);
-  TEX[name] = { c: plain, pat: ctx.createPattern(plain, 'repeat'), n: plain.width, avg: tile.averageColour };
-}
 function tex(name) {
   if (TEX[name]) return TEX[name];
-  if (!BAKES[name]) {
-    const tile = TILES && TILES.get(name);
-    if (tile) { adoptTile(name, tile); return TEX[name]; }
-    return placeholder();
-  }
+  if (!BAKES[name]) return placeholder();
   if (!WANT.includes(name)) WANT.push(name);
   return placeholder();
 }
 // the order the dive needs them in
-const BAKE_ORDER = ['blade', 'cells', 'cellsDark'];
+const BAKE_ORDER = ['cells', 'cellsDark'];
 function pump(budgetMs) {
   const t0 = nowMs();
   while (nowMs() - t0 < budgetMs) {
@@ -237,21 +182,6 @@ function wrapDraw(g, N, x, y, r, fn) {
   }
 }
 
-function barnacle(g, X, Y, rr, t) {
-  g.fillStyle = 'rgba(20,18,14,.35)'; g.beginPath(); g.ellipse(X + rr * .22, Y + rr * .28, rr * 1.05, rr, 0, 0, 7); g.fill();
-  const gr = g.createRadialGradient(X - rr * .35, Y - rr * .4, rr * .1, X, Y, rr);
-  gr.addColorStop(0, PAL.BARNACLE_LIGHT); gr.addColorStop(.6, PAL.BARNACLE_BASE); gr.addColorStop(1, PAL.BARNACLE_DARK);
-  g.fillStyle = gr; g.beginPath();
-  for (let i = 0; i <= 6; i++) { const a = i / 6 * 6.283 + t * 3, k = rr * (.9 + .1 * Math.cos(i * 2.7 + t * 9)); i ? g.lineTo(X + Math.cos(a) * k, Y + Math.sin(a) * k) : g.moveTo(X + Math.cos(a) * k, Y + Math.sin(a) * k); }
-  g.closePath(); g.fill();
-  g.strokeStyle = 'rgba(70,64,52,.5)'; g.lineWidth = Math.max(.6, rr * .07);
-  for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + t * 3; g.beginPath(); g.moveTo(X + Math.cos(a) * rr * .35, Y + Math.sin(a) * rr * .35); g.lineTo(X + Math.cos(a) * rr * .92, Y + Math.sin(a) * rr * .92); g.stroke(); }
-  g.fillStyle = '#3c372e'; g.beginPath(); g.ellipse(X, Y, rr * .3, rr * .17, t * 3, 0, 7); g.fill();
-  g.strokeStyle = 'rgba(240,236,224,.7)'; g.lineWidth = Math.max(.5, rr * .06); g.beginPath(); g.ellipse(X, Y, rr * .3, rr * .17, t * 3, Math.PI, Math.PI * 1.7); g.stroke();
-}
-// A zone's cover seen from farther away: its own bake at a larger true size, kept only in slow-noise patches so the
-// zone reads as a mosaic, not a stripe of paint. Its alpha doubles as the patch mask for the near tile (zoneFill).
-const FAR = { barnacle: [25, .24], mussel: [12, .5], rockweed: [8, .9], lowzone: [8, .7] };
 // ---------- sprites ----------
 // soft round glow (white; tinted by drawing into a colour via 'source-in' copies)
 function glowSprite(hex, N = 64) {
@@ -263,482 +193,11 @@ const SPR = {};
 function sprite(name, make) { return SPR[name] || (SPR[name] = make()); }
 
 
-// ---------- what the kelp band keeps of the shore's code: the focal rock's boulder and its zone cover (ticket #802) ----------
-const FOCAL_ROCK = { x: .15, y: -.55, r: 1.6 };
-// intertidal zones from the forest edge down to the water, as half-widths of strokes centred on the waterline
-const ZONE = { band: 16, lichen: 12.5, barnacle: 8, mussel: 6.2, rockweed: 4.6, low: 1.7 };
-
-// a true-scale tile: the pattern while its tile is big enough to read, its mean colour below that
-function trueStyle(name, tileWorld, rot = 0) {
-  const t = tex(name), tp = tileWorld * s;
-  const w = sstep(40, 90, tp);
-  return { w, avg: t.avg, pat: w > 0 ? patXf(t.pat, t.n, tileWorld, rot) : null };
-}
-function strokeTrue(name, tileWorld, width, alpha = 1) {
-  const st = trueStyle(name, tileWorld);
-  ctx.lineWidth = width;
-  if (st.w < 1) { ctx.globalAlpha = alpha * (1 - st.w); ctx.strokeStyle = st.avg; ctx.stroke(); }
-  if (st.w > 0) { ctx.globalAlpha = alpha * st.w; ctx.strokeStyle = st.pat; ctx.stroke(); }
-  ctx.globalAlpha = 1;
-}
-function fillOct(name, tile0, alpha = 1, rule, target = 380, rot = 0, ox = 0, oy = 0) {
-  const t = tex(name);
-  octaves(tile0, t.n, 4, (w, a) => { ctx.globalAlpha = alpha * a; ctx.fillStyle = patXf(t.pat, t.n, w, rot, ox % w, oy % w); ctx.fill(rule); }, target);
-  ctx.globalAlpha = 1;
-}
-// The near tile masked by its own far tile (the patch mosaic), once per frame per zone in a view-sized layer that the
-// zone's band and the focal rock both draw from.
-const ZLAYER = {};
-function nearLayer(name) {
-  const W = Math.round(cw * dpr), H = Math.round(ch * dpr);
-  let L = ZLAYER[name];
-  if (!L || L.c.width !== W || L.c.height !== H) { L = ZLAYER[name] = { c: makeCanvas(W, H), frame: -1 }; L.g = L.c.getContext('2d'); L.pats = {}; }
-  if (L.frame === frameNo) return L;
-  L.frame = frameNo;
-  const [K, tile] = FAR[name], g = L.g, pat = (n, tw) => {
-    const t = tex(n), pt = t.ph ? t.pat : L.pats[n] || (L.pats[n] = g.createPattern(t.c, 'repeat')), k = tw * s / t.n;
-    pt.setTransform(new DOMMatrix([k, 0, 0, k, 0, 0])); return pt;
-  };
-  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
-  // 'copy' replaces the last frame's pixels in the same pass that draws the tile
-  g.globalCompositeOperation = 'copy';
-  g.setTransform(dpr, 0, 0, dpr, dpr * cw / 2, dpr * ch / 2);
-  g.fillStyle = pat(name, tile); g.fillRect(-cw / 2 - 2, -ch / 2 - 2, cw + 4, ch + 4);
-  g.globalCompositeOperation = 'destination-in';
-  g.fillStyle = pat(name + 'Far', tile * K); g.fillRect(-cw / 2 - 2, -ch / 2 - 2, cw + 4, ch + 4);
-  g.globalCompositeOperation = 'source-over';
-  return L;
-}
-// a world box [x0, y0, x1, y1] as a view-centred CSS-pixel rect [x, y, w, h], cut to the view; null when off it
-function viewRect(box) {
-  const X0 = -cw / 2 - 2, Y0 = -ch / 2 - 2, X1 = cw / 2 + 2, Y1 = ch / 2 + 2;
-  if (!box) return [X0, Y0, X1 - X0, Y1 - Y0];
-  const a = Math.max(X0, Math.floor(box[0] * s) - 2), b = Math.max(Y0, Math.floor(box[1] * s) - 2);
-  const c = Math.min(X1, Math.ceil(box[2] * s) + 2), d = Math.min(Y1, Math.ceil(box[3] * s) + 2);
-  return c > a && d > b ? [a, b, c - a, d - b] : null;
-}
-// An intertidal zone's cover inside the current path: its mean colour far off, the patchy far tile in the middle
-// distance, and close in the near tile masked by the same patches, so the mosaic never changes as you zoom.
-// `box` (world) bounds the path: every fill stays inside it, so a small shape never pays for the whole view.
-function zoneFill(name, alpha, rule, near = true, box = null) {
-  const r = viewRect(box);
-  if (!r) return;
-  const [K, tile] = FAR[name], farName = name + 'Far';
-  const wn = near ? sstep(60, 130, tile * s) : 0, wf = sstep(24, 70, tile * K * s);
-  ctx.save(); ctx.clip(rule);
-  if (wf < 1) { ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, dpr * cw / 2, dpr * ch / 2); ctx.globalAlpha = alpha * (1 - wf); ctx.fillStyle = tex(farName).avg; ctx.fillRect(...r); ctx.restore(); }
-  ctx.globalAlpha = 1;
-  if (wf > 0 && wn < 1) viewPat(farName, tile * K, alpha * wf * (1 - wn), 0, 0, 0, undefined, r);
-  if (wn > .02) {
-    const L = nearLayer(name);
-    const sx = Math.max(0, Math.floor((r[0] + cw / 2) * dpr)), sy = Math.max(0, Math.floor((r[1] + ch / 2) * dpr));
-    const sw = Math.min(L.c.width, Math.ceil((r[0] + r[2] + cw / 2) * dpr)) - sx, sh = Math.min(L.c.height, Math.ceil((r[1] + r[3] + ch / 2) * dpr)) - sy;
-    if (sw > 0 && sh > 0) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = alpha * wn; ctx.drawImage(L.c, sx, sy, sw, sh, sx, sy, sw, sh); ctx.restore(); }
-  }
-  ctx.restore();
-}
-// the bands that lie over the shore; the shore itself is the shore band's, on its own canvas under this one's
-function drawWorld() {
-  if (BANDS.kelp.isActive) drawFocal();
-  drawCloseUp();
-}
-
-// ---- boulders ----
-function rockPath(x, y, r, seed, sq = .84) {
-  const n = 24, P = [];
-  for (let k = 0; k < n; k++) {
-    const a = k / n * 6.2832, big = hash(seed, Math.floor(k / 2), 5), nb = hash(seed, Math.floor(k / 2) + 1, 5), f = (k % 2) / 2;
-    const rr = r * (.84 + .26 * lerp(big, nb, f) + .05 * (hash(seed, k, 6) - .5));
-    P.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr * sq]);
-  }
-  ctx.beginPath();
-  for (let k = 0; k < n; k++) { const a = P[k], b = P[(k + 1) % n], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; k ? ctx.quadraticCurveTo(a[0], a[1], m[0], m[1]) : ctx.moveTo(m[0], m[1]); }
-  const a = P[0], b = P[1]; ctx.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
-  ctx.closePath();
-}
-// d: height up the shore (metres from the waterline): wet and weedy low, barnacled mid, lichened high
-function boulder(x, y, r, seed, d, detail = 1) {
-  if (!vis(x, y, r * 1.5) || r * s < 1.5) return;
-  const sq = .8 + hash(seed, 1, 9) * .1;
-  // ground contact: a soft shadow cast to the bottom-right (the light is top-left)
-  rockPath(x + r * .12, y + r * .16, r * 1.02, seed, sq); ctx.fillStyle = 'rgba(8,8,6,.22)'; ctx.fill();
-  rockPath(x + r * .05, y + r * .07, r * 1.0, seed, sq); ctx.fillStyle = 'rgba(8,8,6,.3)'; ctx.fill();
-  rockPath(x, y, r, seed, sq);
-  const wet = sstep(4, 0, d), green = seed === 999 || hash(seed, 3, 9) < .45;
-  // two stones of this shore: dark greenstone and pale diorite
-  const RAMP = green ? ['#8d958a', '#535b52', '#20251e'] : ['#b3ad9e', PAL.ROCK_BASE, '#4a463f'];
-  const g = ctx.createRadialGradient(x - r * .38, y - r * .42, r * .08, x + r * .05, y + r * .05, r * 1.08);
-  g.addColorStop(0, RAMP[0]); g.addColorStop(.55, RAMP[1]); g.addColorStop(1, RAMP[2]);
-  ctx.fillStyle = g; ctx.fill();
-  if (wet > 0) { ctx.fillStyle = `rgba(14,16,14,${.3 * wet})`; ctx.fill(); }
-  if (r * s > 14) {
-    ctx.save(); ctx.clip();
-    if (green) ctx.globalCompositeOperation = 'overlay';
-    fillOct('rock', r * 3, green ? .55 : .42, undefined, 380);
-    ctx.globalCompositeOperation = 'source-over';
-    // crystals: dark mafic grains and pale feldspar, fine at every scale
-    fillOct('grain', r * .8, green ? .5 : .4, undefined, 260);
-    // joints: a few fractures across the stone, dark with a lit lower lip
-    if (r * s > 120) for (let k = 0; k < 2; k++) {
-      const a0 = hash(seed, k, 241) * 3.14, ox0 = (hash(seed, k, 242) - .5) * r, oy0 = (hash(seed, k, 243) - .5) * r * sq;
-      ctx.beginPath();
-      const len = r * (.35 + hash(seed, k, 244) * .5);
-      for (let t = -1; t <= 1.001; t += .08) { const w = (vnoise(t * 3 + k * 5, seed, 245) - .5) * r * .12; const px0 = x + ox0 + Math.cos(a0) * t * len - Math.sin(a0) * w, py0 = y + oy0 + Math.sin(a0) * t * len + Math.cos(a0) * w; t > -1 ? ctx.lineTo(px0, py0) : ctx.moveTo(px0, py0); }
-      ctx.strokeStyle = 'rgba(8,8,6,.4)'; ctx.lineWidth = Math.max(px(1.2), r * .008); ctx.stroke();
-    }
-    // zone cover on the stone: barnacles mid-shore, rockweed and pink crust low
-    // cover by height up the shore: a barnacle mosaic on the stone, a weed skirt low down, pink crust at the foot
-    const near = detail > 1;
-    // each cover is an ellipse inside the stone's clip: its fills stay within the stone's box
-    const box = [x - r * 1.15, y - r * 1.15, x + r * 1.15, y + r * 1.15];
-    if (d < 11 && near) { ctx.beginPath(); ctx.ellipse(x + r * .05, y + r * .2, r * 1.05, r * .7 * sq, 0, 0, 7); zoneFill('barnacle', .6, undefined, near, box); }
-    if (d < 5) { ctx.beginPath(); ctx.ellipse(x + r * .05, y + r * .85, r * 1.12, r * .45 * sq, 0, 0, 7); zoneFill('rockweed', .92, undefined, near, box); }
-    if (d < 1.6) { ctx.beginPath(); ctx.ellipse(x, y + r * .98, r * 1.0, r * .28, 0, 0, 7); zoneFill('lowzone', .85, undefined, near, box); }
-    if (d > 9 && r * s > 30) {
-      for (let k = 0; k < 7; k++) { const a = hash(seed, k, 221) * 6.28, rr = r * (.1 + hash(seed, k, 222) * .45), lr = r * (.06 + hash(seed, k, 223) * .12);
-        ctx.fillStyle = k % 3 ? rgba(PAL.LICHEN_ORANGE, .7) : rgba(PAL.LICHEN_GREY, .6); ctx.beginPath(); ctx.ellipse(x + Math.cos(a) * rr, y + Math.sin(a) * rr * sq - r * .2, lr, lr * .8, a, 0, 7); ctx.fill(); }
-    }
-    // volume: a dark pool low-right, then the wet sheen
-    rockPath(x, y, r, seed, sq);
-    const sh = ctx.createRadialGradient(x - r * .3, y - r * .35, r * .35, x, y, r * 1.1);
-    sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(.6, 'rgba(10,10,8,.16)'); sh.addColorStop(1, 'rgba(10,10,8,.45)'); ctx.fillStyle = sh; ctx.fill();
-    const lp = ctx.createRadialGradient(x - r * .4, y - r * .45, 0, x - r * .4, y - r * .45, r * .9);
-    lp.addColorStop(0, 'rgba(255,250,235,.22)'); lp.addColorStop(1, 'rgba(255,250,235,0)'); ctx.fillStyle = lp; ctx.fill();
-    if (wet > 0) {
-      const sp = ctx.createRadialGradient(x - r * .42, y - r * .46, 0, x - r * .42, y - r * .46, r * .45);
-      sp.addColorStop(0, `rgba(255,255,250,${.5 * wet})`); sp.addColorStop(.3, `rgba(230,240,240,${.18 * wet})`); sp.addColorStop(1, 'rgba(230,240,240,0)');
-      ctx.fillStyle = sp; ctx.fill();
-    }
-    ctx.restore();
-  }
-  // rim light on the lit side
-  rockPath(x, y, r, seed, sq);
-  ctx.save(); ctx.clip();
-  const rl = ctx.createLinearGradient(x - r, y - r, x + r * .3, y + r * .3);
-  rl.addColorStop(0, 'rgba(240,236,224,.5)'); rl.addColorStop(1, 'rgba(240,236,224,0)');
-  ctx.strokeStyle = rl; ctx.lineWidth = Math.max(px(1.5), r * .06); ctx.stroke();
-  ctx.restore();
-  // in the water: a foam collar at the waterline
-  if (d < .6 || detail > 1) {
-    ctx.save(); seaPath(); ctx.clip('evenodd');
-    // the part of the stone below the waterline, seen through the sea
-    rockPath(x, y, r, seed, sq); ctx.fillStyle = 'rgba(28,104,104,.38)'; ctx.fill();
-    ctx.save(); ctx.clip(); viewPat('caustic', .7, .1, .3, T * .05, T * .02, 'lighter', viewRect([x - r * 1.1, y - r * 1.1, x + r * 1.1, y + r * 1.1])); ctx.restore();
-    rockPath(x, y, r * 1.08, seed, sq);
-    ctx.lineWidth = r * .22; ctx.strokeStyle = rgba(PAL.FOAM, .1); ctx.stroke();
-    rockPath(x, y, r * 1.05, seed, sq);
-    strokeTrue('foam', 1.3, Math.max(px(1.5), Math.min(r * .12, .14)), .75 + .2 * Math.sin(T * 1.4 + seed));
-    ctx.restore();
-  }
-}
-// ---------- the boulder and the bull kelp (z 2.4 → -2.4; ticket #802) ----------
-const BULB = { x: .9, y: .45, r: .065 };
-const BLADE_PTS = [
-  [[.9, .45], [.45, .2], [0, 0], [-.8, -.35], [-1.6, -.75], [-2.2, -1.1]],
-  [[.9, .45], [.5, .05], [.05, -.35], [-.6, -.9], [-1.1, -1.6]],
-  [[.9, .45], [.55, .35], [-.1, .45], [-.9, .4], [-1.8, .55]],
-  [[.9, .45], [.7, -.1], [.55, -.7], [.3, -1.4], [.2, -2.0]],
-  [[.9, .45], [.35, .55], [-.4, .9], [-1.2, 1.15]],
-];
-const STIPE_PTS = [[11.5, 13.5], [8.2, 9.4], [6.2, 7.0], [4.6, 5.2], [3.4, 3.1], [2.2, 1.6], [1.4, .8], [.9, .45]];
-const DROP = { x: .0014, y: .0009, r: .0025 };
-const BLADE_W = .11;
-// blade 0 runs through the focus; its direction there orients every close-up
-const BLADE_ANG = Math.atan2(-.2, -.45);
-
-// Catmull-Rom samples every `step` metres: position, unit tangent, arc length
-function spline(pts, step) {
-  const out = [];
-  let u = 0, px0 = pts[0][0], py0 = pts[0][1];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const L = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), n = Math.max(2, Math.ceil(L / step));
-    for (let k = i ? 1 : 0; k <= n; k++) {
-      const t = k / n, t2 = t * t, t3 = t2 * t;
-      const f = (a, b, c, d) => .5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
-      const x = f(p0[0], p1[0], p2[0], p3[0]), y = f(p0[1], p1[1], p2[1], p3[1]);
-      u += Math.hypot(x - px0, y - py0); px0 = x; py0 = y;
-      out.push({ x, y, u, tx: 0, ty: 0 });
-    }
-  }
-  for (let i = 0; i < out.length; i++) {
-    const a = out[Math.max(0, i - 1)], b = out[Math.min(out.length - 1, i + 1)];
-    const l = Math.hypot(b.x - a.x, b.y - a.y) || 1; out[i].tx = (b.x - a.x) / l; out[i].ty = (b.y - a.y) / l;
-  }
-  return out;
-}
-// a blade: ruffled margins (the bull kelp's wavy edge), narrow at the bulb, tapering at the tip
-const BLADES = BLADE_PTS.map((pts, bi) => {
-  const S = spline(pts, .003), Lt = S[S.length - 1].u;
-  const w0 = bi === 0 ? BLADE_W : BLADE_W * (.85 + .1 * bi % 3);
-  for (const p of S) {
-    const taper = (.25 + .75 * sstep(0, .35, p.u)) * (1 - .85 * sstep(Lt - .5, Lt, p.u));
-    // ruffled margins: three incommensurate waves and a little noise, different on each side
-    const ruf = k => 1 + .055 * Math.sin(p.u / .045 * 6.283 + bi * 1.7 + k * 2.1) + .045 * Math.sin(p.u / .071 * 6.283 + bi * 2.3 + k * 4.4)
-      + .03 * Math.sin(p.u / .16 * 6.283 + k + bi) + .05 * (vnoise(p.u / .018, bi * 7 + k * 3, 551) - .5);
-    p.hwL = w0 / 2 * taper * ruf(0);
-    p.hwR = w0 / 2 * taper * ruf(1);
-  }
-  return { S, Lt, bi };
-});
-const STIPE = (() => { const S = spline(STIPE_PTS, .01), Lt = S[S.length - 1].u; for (const p of S) p.hwL = p.hwR = .006 + .012 * sstep(Lt - 3, Lt, p.u); return { S, Lt }; })();
-function ribbonPath(R) {
-  const S = R.S;
-  ctx.beginPath();
-  // only the stretch near the view needs full resolution
-  const pad = Math.max(hx, hy) * 1.5 + .06;
-  let started = false, i0 = -1, i1 = -1;
-  for (let i = 0; i < S.length; i++) if (Math.abs(S[i].x) < pad + .06 && Math.abs(S[i].y) < pad + .06) { if (i0 < 0) i0 = i; i1 = i; }
-  const stepOf = i => (i >= i0 - 2 && i <= i1 + 2) ? 1 : 12;
-  for (let i = 0; i < S.length; i += stepOf(i)) { const p = S[i]; const X = p.x - p.ty * p.hwL, Y = p.y + p.tx * p.hwL; started ? ctx.lineTo(X, Y) : (ctx.moveTo(X, Y), started = true); }
-  const e = S[S.length - 1]; ctx.lineTo(e.x, e.y);
-  for (let i = S.length - 1; i >= 0; i -= stepOf(i)) { const p = S[i]; ctx.lineTo(p.x + p.ty * p.hwR, p.y - p.tx * p.hwR); }
-  ctx.closePath();
-}
-function edgePath(R, side, inset = 0) {
-  const S = R.S, pad = Math.max(hx, hy) * 1.5 + .06;
-  ctx.beginPath(); let on = false;
-  for (const p of S) {
-    if (Math.abs(p.x) > pad || Math.abs(p.y) > pad) { on = false; continue; }
-    const hw = (side < 0 ? p.hwL : p.hwR) - inset;
-    const ex = side < 0 ? p.x - p.ty * hw : p.x + p.ty * hw, ey = side < 0 ? p.y + p.tx * hw : p.y - p.tx * hw;
-    on ? ctx.lineTo(ex, ey) : (ctx.moveTo(ex, ey), on = true);
-  }
-}
-function ruffles(R, crest) {
-  const S = R.S, pad = Math.max(hx, hy) * 1.5 + .06, half = .045 / 2;
-  ctx.beginPath();
-  let next = 0;
-  for (const p of S) {
-    if (p.u < next) continue;
-    const k = Math.floor(p.u / half); next = (k + 1) * half;
-    if ((k & 1) !== crest || Math.abs(p.x) > pad || Math.abs(p.y) > pad) continue;
-    for (const side of [-1, 1]) {
-      const hw = side < 0 ? p.hwL : p.hwR, nx = side < 0 ? -p.ty : p.ty, ny = side < 0 ? p.tx : -p.tx;
-      const ex = p.x + nx * hw * .97, ey = p.y + ny * hw * .97, ix = p.x + nx * hw * .66, iy = p.y + ny * hw * .66;
-      ctx.moveTo(ex, ey); ctx.quadraticCurveTo(lerp(ex, ix, .5) + p.tx * half * .3, lerp(ey, iy, .5) + p.ty * half * .3, ix, iy);
-    }
-  }
-}
-function midPath(R, off = 0) {
-  const S = R.S, pad = Math.max(hx, hy) * 1.5 + .06;
-  ctx.beginPath(); let on = false;
-  for (const p of S) { if (Math.abs(p.x) > pad || Math.abs(p.y) > pad) { on = false; continue; } const X = p.x - p.ty * off, Y = p.y + p.tx * off; on ? ctx.lineTo(X, Y) : (ctx.moveTo(X, Y), on = true); }
-}
-
-// the blade's surface: long wrinkles, mottling and a wet sheen, lying in the blade's own direction
-function bladeSurface(R, alpha) {
-  fillOct('blade', .4, .55 * alpha, undefined, 420, BLADE_ANG);
-}
-function drawBlade(R) {
-  const lod = BLADE_W * s;
-  if (lod < 1.5) return;
-  // shade on the rock, cast down-right
-  ctx.save(); ctx.translate(.014, .018); ribbonPath(R); ctx.fillStyle = 'rgba(10,8,4,.32)'; ctx.fill(); ctx.restore();
-  ribbonPath(R);
-  ctx.fillStyle = R.bi % 2 ? '#80622a' : PAL.KELP_BASE; ctx.globalAlpha = .96; ctx.fill(); ctx.globalAlpha = 1;
-  if (lod > 8) {
-    ctx.save(); ribbonPath(R); ctx.clip();
-    bladeSurface(R, 1);
-    // the ruffles: soft folds running in from each margin, lit on the crests, shaded in the troughs
-    ctx.lineCap = 'round';
-    if (.045 * s > 36) for (const crest of [0, 1]) {
-      ruffles(R, crest);
-      ctx.lineWidth = .045 * .3; ctx.strokeStyle = crest ? 'rgba(40,24,4,.13)' : 'rgba(240,206,130,.12)'; ctx.stroke();
-    }
-    // translucent midline glow and the wet sheen offset toward the light
-    midPath(R); ctx.lineWidth = BLADE_W * .34; ctx.strokeStyle = 'rgba(214,170,84,.2)'; ctx.stroke();
-    midPath(R, BLADE_W * .12); ctx.lineWidth = BLADE_W * .07; ctx.strokeStyle = 'rgba(255,246,220,.14)'; ctx.stroke();
-    ctx.restore();
-  }
-  // margins: a thin dark edge with the light catching the near rim
-  ribbonPath(R); ctx.strokeStyle = 'rgba(46,30,6,.55)'; ctx.lineWidth = Math.max(px(1), .0015); ctx.stroke();
-  if (lod > 20) { edgePath(R, -1, .002); ctx.strokeStyle = 'rgba(250,220,150,.35)'; ctx.lineWidth = Math.max(px(1), .002); ctx.stroke(); }
-}
-function drawStipe(submerged) {
-  const R = STIPE;
-  if (.03 * s < 1) return;
-  ribbonPath(R);
-  if (!submerged) { ctx.save(); ctx.translate(.01, .014); ctx.fillStyle = 'rgba(8,6,2,.35)'; ctx.fill(); ctx.restore(); ribbonPath(R); }
-  ctx.fillStyle = PAL.STIPE_BASE; ctx.fill();
-  midPath(R, .004); ctx.lineWidth = .009; ctx.strokeStyle = 'rgba(210,170,90,.35)'; ctx.lineCap = 'round'; ctx.stroke();
-  ribbonPath(R); ctx.strokeStyle = 'rgba(30,20,4,.6)'; ctx.lineWidth = Math.max(px(1), .0012); ctx.stroke();
-}
-function drawBulb() {
-  const { x, y, r } = BULB;
-  if (r * s < 1.2) return;
-  // the apophyses: short stalks at the crown where the blades attach
-  ctx.lineCap = 'round';
-  for (let k = 0; k < 4; k++) {
-    const S = BLADES[k + (k > 0 ? 1 : 0)].S, p = S[Math.min(S.length - 1, Math.round(.1 / .003))];
-    ctx.strokeStyle = PAL.STIPE_BASE; ctx.lineWidth = .014; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(lerp(x, p.x, .7), lerp(y, p.y, .7)); ctx.stroke();
-    ctx.strokeStyle = 'rgba(210,170,90,.3)'; ctx.lineWidth = .004; ctx.stroke();
-  }
-  ctx.fillStyle = 'rgba(10,6,2,.38)'; ctx.beginPath(); ctx.ellipse(x + r * .28, y + r * .36, r * 1.02, r * .96, 0, 0, 7); ctx.fill();
-  const g = ctx.createRadialGradient(x - r * .35, y - r * .4, r * .05, x, y, r);
-  g.addColorStop(0, PAL.KELP_GLOW); g.addColorStop(.45, '#a57c34'); g.addColorStop(.85, '#6a4c1a'); g.addColorStop(1, PAL.KELP_DARK);
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-  // light passing through the gas-filled float, gathering at the far edge
-  const tr = ctx.createRadialGradient(x + r * .45, y + r * .5, 0, x + r * .45, y + r * .5, r * .6);
-  tr.addColorStop(0, 'rgba(255,214,120,.45)'); tr.addColorStop(1, 'rgba(255,214,120,0)');
-  ctx.fillStyle = tr; ctx.beginPath(); ctx.arc(x, y, r * .97, 0, 7); ctx.fill();
-  if (r * s > 30) {
-    ctx.strokeStyle = 'rgba(60,40,10,.25)'; ctx.lineWidth = r * .02;
-    for (let k = 0; k < 7; k++) { const a = k * .9 + .3; ctx.beginPath(); ctx.arc(x, y, r * (.35 + .08 * k), a, a + .7); ctx.stroke(); }
-  }
-  // wet specular: a window-shaped highlight and a hard glint
-  ctx.fillStyle = 'rgba(255,252,240,.55)'; ctx.beginPath(); ctx.ellipse(x - r * .38, y - r * .44, r * .24, r * .13, -.7, 0, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.beginPath(); ctx.arc(x - r * .46, y - r * .5, r * .055, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(40,24,4,.5)'; ctx.lineWidth = Math.max(px(1), r * .02); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
-}
-// the stranded kelp's rock: low on the shore, barnacled, weedy at its foot, wet
-function drawFocalRock() {
-  const { x, y, r } = FOCAL_ROCK;
-  boulder(x, y, r, 999, 4.2, 2);
-  if (z < .45) closeBarnacles(x, y, r);
-}
-// single barnacles on the focal rock once they are big enough to read
-function closeBarnacles(x, y, r) {
-  const A = sstep(.45, .05, z);
-  ctx.save(); rockPath(x, y, r, 999, .8 + hash(999, 1, 9) * .1); ctx.clip();
-  ctx.globalAlpha = A;
-  forCells(.028, 241, (i, j, bx, by, a, b) => {
-    if (a > .5) return;
-    if (by > y + r * .35) return;
-    const rr = .003 + b * .006;
-    ctx.save(); ctx.translate(bx, by); ctx.scale(rr / 10, rr / 10); barnacle(ctx, 0, 0, 10, a * 7); ctx.restore();
-  }, 5000);
-  ctx.globalAlpha = 1; ctx.restore();
-}
-function drawFocal() {
-  const A = BANDS.kelp.weight;
-  ctx.globalAlpha = A;
-  // the stipe's run through the water, dimmed by the sea over it
-  if (z > -.3) {
-    drawStipe(true);
-    ctx.save(); seaPath(); rockPath(FOCAL_ROCK.x, FOCAL_ROCK.y, FOCAL_ROCK.r, 999, .8 + hash(999, 1, 9) * .1); ctx.clip('evenodd');
-    ribbonPath(STIPE); ctx.fillStyle = rgba(PAL.SEA_SHALLOW, .55); ctx.fill();
-    ctx.restore();
-  }
-  drawFocalRock();
-  if (z > -.3) {
-    ctx.save(); ctx.beginPath(); coastRingsPath();
-    rockPath(FOCAL_ROCK.x, FOCAL_ROCK.y, FOCAL_ROCK.r, 999, .8 + hash(999, 1, 9) * .1); ctx.clip('nonzero');
-    drawStipe(false); ctx.restore();
-  }
-  for (let i = BLADES.length - 1; i >= 1; i--) drawBlade(BLADES[i]);
-  drawBulb();
-  drawBlade(BLADES[0]);
-  ctx.globalAlpha = 1;
-}
-
-// ---------- spray beads and the drop (ticket #802) ----------
-function dropSprite() {
-  return sprite('drop', () => {
-    const N = 128, c = makeCanvas(N, N), g = c.getContext('2d'), R = N * .4, C = N / 2;
-    g.fillStyle = 'rgba(20,12,2,.28)'; g.beginPath(); g.ellipse(C + R * .16, C + R * .2, R * 1.02, R * .98, 0, 0, 7); g.fill();
-    const b = g.createRadialGradient(C, C, R * .2, C, C, R);
-    b.addColorStop(0, 'rgba(255,236,190,.08)'); b.addColorStop(.72, 'rgba(120,90,40,.12)'); b.addColorStop(.92, 'rgba(40,28,8,.45)'); b.addColorStop(1, 'rgba(255,245,220,.55)');
-    g.fillStyle = b; g.beginPath(); g.arc(C, C, R, 0, 7); g.fill();
-    const k = g.createRadialGradient(C + R * .38, C + R * .42, 0, C + R * .38, C + R * .42, R * .55);
-    k.addColorStop(0, 'rgba(255,238,170,.8)'); k.addColorStop(1, 'rgba(255,238,170,0)');
-    g.fillStyle = k; g.beginPath(); g.arc(C, C, R, 0, 7); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(C - R * .38, C - R * .42, R * .22, R * .12, -.7, 0, 7); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(C - R * .45, C - R * .47, R * .06, 0, 7); g.fill();
-    return c;
-  });
-}
-function bead(x, y, r) {
-  const d = r * s;
-  if (d < .8) return;
-  // big on screen: the full lens; small: the baked sprite
-  if (d > 110) { lens(x, y, r, 0, 1.18); return; }
-  const spr = dropSprite(), k = r / (128 * .4);
-  ctx.drawImage(spr, x - 64 * k, y - 64 * k, 128 * k, 128 * k);
-}
-function drawBeads() {
-  if (!(s * .001 > 1.2 && z > -2.45)) return;
-  const A = BANDS.drop.weight;
-  ctx.globalAlpha = A;
-  const S = BLADES[0].S;
-  forCells(.009, 51, (i, j, x, y, a, b) => {
-    if (a > .5) return;
-    const r = .0006 + b * b * .0024;
-    if (Math.hypot(x - DROP.x, y - DROP.y) < DROP.r + r + .0008) return;
-    // on blade 0, inside its margins
-    let best = 1e9;
-    for (let k = 0; k < S.length; k += 6) { const d = (S[k].x - x) ** 2 + (S[k].y - y) ** 2; if (d < best) best = d; }
-    if (Math.sqrt(best) > BLADE_W * .4) return;
-    bead(x, y, r);
-  }, 7000);
-  ctx.globalAlpha = 1;
-}
-// A drop on the blade is a lens: inside it the blade shows magnified and upright, the rim goes dark where it
-// reflects the dark, the light gathers into a caustic on the far side, a soft window highlight and a hard glint sit
-// toward the light. `inside` (0 → 1) relaxes the magnification and fades the surface lights as the camera sinks in.
-function lens(x, y, r, inside, mag0) {
-  const mag = lerp(mag0, 1, inside), out = 1 - inside;
-  const sh = ctx.createRadialGradient(x + r * .14, y + r * .18, r * .9, x + r * .14, y + r * .18, r * 1.12);
-  sh.addColorStop(0, 'rgba(30,18,4,.35)'); sh.addColorStop(1, 'rgba(30,18,4,0)');
-  ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(x + r * .14, y + r * .18, r * 1.12, 0, 7); ctx.fill();
-  ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.clip();
-  fillBladeClose(1, mag, x, y);
-  const w = ctx.createRadialGradient(x - r * .1, y - r * .1, r * .2, x, y, r);
-  w.addColorStop(0, `rgba(190,225,220,${.08 * out})`); w.addColorStop(.6, `rgba(60,50,30,${.06 * out})`); w.addColorStop(.88, `rgba(35,22,6,${.22 * out})`); w.addColorStop(.975, `rgba(30,20,6,${.34 * out})`); w.addColorStop(1, `rgba(250,240,215,${.75 * out})`);
-  ctx.fillStyle = w; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
-  const k = ctx.createRadialGradient(x + r * .34, y + r * .4, 0, x + r * .34, y + r * .4, r * .62);
-  k.addColorStop(0, `rgba(255,232,150,${.34 * (1 - inside * .6)})`); k.addColorStop(.45, `rgba(255,232,150,${.1 * (1 - inside * .6)})`); k.addColorStop(1, 'rgba(255,232,150,0)');
-  ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = k; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.globalCompositeOperation = 'source-over';
-  if (out > 0) {
-    // the sky window: a soft curved highlight, and a sharp glint on it
-    ctx.save(); ctx.translate(x - r * .36, y - r * .4); ctx.rotate(-.72); ctx.scale(1, .5);
-    const hw = ctx.createRadialGradient(0, 0, 0, 0, 0, r * .3);
-    hw.addColorStop(0, `rgba(255,255,255,${.7 * out})`); hw.addColorStop(.55, `rgba(255,255,255,${.35 * out})`); hw.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = hw; ctx.beginPath(); ctx.arc(0, 0, r * .3, 0, 7); ctx.fill(); ctx.restore();
-    const gl = ctx.createRadialGradient(x - r * .44, y - r * .48, 0, x - r * .44, y - r * .48, r * .07);
-    gl.addColorStop(0, `rgba(255,255,255,${out})`); gl.addColorStop(.4, `rgba(255,255,255,${.8 * out})`); gl.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = gl; ctx.fillRect(x - r * .52, y - r * .56, r * .16, r * .16);
-    ctx.fillStyle = `rgba(255,255,255,${.18 * out})`; ctx.beginPath(); ctx.ellipse(x + r * .5, y + r * .56, r * .1, r * .04, -.72, 0, 7); ctx.fill();
-  }
-  ctx.restore();
-  ctx.strokeStyle = `rgba(250,244,225,${.5 + .25 * inside})`; ctx.lineWidth = Math.max(px(1.3), r * .008); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
-}
-function drawDrop() { lens(DROP.x, DROP.y, DROP.r, sstep(-1.9, -2.35, z), 1.28); }
-// the blade under everything once the view is inside its margins (z < -1.42); screen pixels, optionally magnified
-// about (mx, my) for the lens of a drop
-function fillBladeClose(alpha, mag = 1, mx = 0, my = 0) {
-  ctx.save(); ctx.setTransform(dpr, 0, 0, dpr, dpr * cw / 2, dpr * ch / 2);
-  ctx.translate(mx * s, my * s); ctx.scale(mag, mag); ctx.translate(-mx * s, -my * s);
-  const Rp = Math.hypot(cw, ch);
-  ctx.globalAlpha = alpha; ctx.fillStyle = PAL.KELP_BASE; ctx.fillRect(-Rp, -Rp, 2 * Rp, 2 * Rp);
-  const t = tex('blade');
-  octaves(.4, t.n, 4, (w, a) => {
-    const k2 = w * s / t.n, c = Math.cos(BLADE_ANG) * k2, sn = Math.sin(BLADE_ANG) * k2;
-    t.pat.setTransform(new DOMMatrix([c, sn, -sn, c, 0, 0]));
-    ctx.globalAlpha = .55 * alpha * a; ctx.fillStyle = t.pat; ctx.fillRect(-Rp, -Rp, 2 * Rp, 2 * Rp);
-  }, 420);
-  // the translucent midline glow, as on the whole blade
-  ctx.globalAlpha = alpha;
-  const bw = BLADE_W * .3 * s;
-  if (bw < 4 * Rp) {
-    ctx.rotate(BLADE_ANG);
-    const g = ctx.createLinearGradient(0, -bw, 0, bw);
-    g.addColorStop(0, 'rgba(214,170,84,0)'); g.addColorStop(.5, 'rgba(214,170,84,.2)'); g.addColorStop(1, 'rgba(214,170,84,0)');
-    ctx.fillStyle = g; ctx.fillRect(-2 * Rp, -2 * Rp, 4 * Rp, 4 * Rp);
-  } else { ctx.fillStyle = 'rgba(214,170,84,.2)'; ctx.fillRect(-Rp, -Rp, 2 * Rp, 2 * Rp); }
-  ctx.restore();
-}
-function drawCloseUp() {
-  if (BANDS.drop.isActive) {
-    // under the drop the kelp's own cells take over the floor from z ≈ -2.95
-    if (z < -1.42) fillBladeClose(1);
-    drawBeads();
-    if (DROP.r * s > 1.5 && z > -2.4) drawDrop();
-  }
-  if (BANDS.slime.isActive) drawMicro();
-}
-
 // ---------- inside the drop, the slime and the mockup's pocket (z -1.95 → the dish; ticket #803) ----------
+// The drop (`DROP`) and blade 0's direction (`BLADE_ANG`) the slime draws round; the kelp band's own are
+// `constants/dive-kelp-drop.ts` and `kelp/kelp-ribbons.ts` (ticket #802).
+const DROP = { x: .0014, y: .0009, r: .0025 };
+const BLADE_ANG = Math.atan2(-.2, -.45);
 const POCKET_R = 20e-6;
 const ORGS = [
   { kind: 'nauplius', x: 5.2e-4, y: -3.1e-4, L: 2.5e-4, a: .5 },
@@ -753,15 +212,6 @@ const ORGS = [
 const darkfield = () => BANDS.dish.weight;
 
 // ---- bakes for the micro scale ----
-// blade surface: long wrinkles and mottling along the blade (x of the tile runs along the blade; self-similar)
-BAKES.blade = function* () {
-  const N = 512, A = hexRgb('#5c421a'), B = hexRgb('#94702e'), C = hexRgb('#caa154');
-  return yield* imgBakeG(N, N, (x, y) => {
-    const st = pfbm(x / N * 2, y / N * 26, 2, 26, 3, 301), mo = pfbm(x / N * 5, y / N * 5, 5, 5, 4, 303), sp = hash(x, y, 305);
-    let v = st * .6 + mo * .4; if (sp > .985) v += .25;
-    return [...ramp3(A, B, C, clamp(v, 0, 1)), 200];
-  });
-};
 // the kelp's surface cells, true scale: tile = 100 µm, 8 columns × 9 rows of polygonal cells ~12 µm
 const CELL_TILE = 100e-6;
 let CELL_GEOM = null;
@@ -1130,7 +580,7 @@ function mote(x, y, r, kind) {
 }
 
 // ---- view-wide pattern fills, done in screen pixels (a pattern scaled to 1e-7 is dropped by the canvas) ----
-// rect: [x, y, w, h] in view-centred CSS pixels (viewRect), the whole view when omitted; null draws nothing
+// rect: [x, y, w, h] in view-centred CSS pixels, the whole view when omitted; null draws nothing
 function viewPat(name, tileWorld, alpha, rot = 0, ox = 0, oy = 0, op, rect) {
   if (rect === null) return;
   const t = tex(name);
@@ -1143,11 +593,6 @@ function viewPat(name, tileWorld, alpha, rot = 0, ox = 0, oy = 0, op, rect) {
   if (rect) ctx.fillRect(rect[0], rect[1], rect[2], rect[3]); else ctx.fillRect(-cw / 2 - 2, -ch / 2 - 2, cw + 4, ch + 4);
   ctx.restore();
 }
-function viewOct(name, tile0, alpha, target = 380, rot = 0, ox = 0, oy = 0, op) {
-  const t = tex(name);
-  octaves(tile0, t.n, 4, (w, a) => viewPat(name, w, alpha * a, rot, ox, oy, op), target);
-}
-
 // ---- the scene inside the drop ----
 function drawMicro() {
   const inA = BANDS.slime.weight, df = darkfield();
@@ -1331,51 +776,34 @@ function drawBacteria(df) {
 
 
 // ---------- one frame (was 90-render.js; the labels, scale bar and readout are the panel's, in the DOM) ----------
-let frameNo = 0;
 function sizeCanvas(widthPx, heightPx, ratio) {
   cw = Math.max(1, widthPx); ch = Math.max(1, heightPx);
   const W = Math.round(cw * ratio), H = Math.round(ch * ratio);
   if (dpr === ratio && cv.width === W && cv.height === H) return;
   dpr = ratio; cv.width = W; cv.height = H;
 }
-// Answers whether the planet shows under this canvas: the canvas is left clear for it, and the shore draws over it.
+// The slime over the drop (the Pixi canvas under this one draws it, so this one is left clear round the slime) or,
+// once the drop has gone, over the dark.
 function drawFrame(f) {
   z = f.zoom; T = f.timeSeconds; BANDS = f.bands;
   sizeCanvas(f.widthPx, f.heightPx, f.devicePixelRatio);
   const W = Math.pow(10, z);
   s = cw / W; hx = cw / 2 / s; hy = ch / 2 / s;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const worldA = BANDS.shore.weight;
-  if (worldA > 0 && z > -1.42) buildCoast();
-  // the forest only shows past the rock band: close in, the planet shows only if some of the view is that far inland
-  let glOn = BANDS.planet.isActive;
-  if (glOn && z < 3) {
-    glOn = false;
-    for (const [u, v] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 0]]) {
-      const d = coastDist(u * hx, v * hy, ZONE.band * 3 + Math.max(hx, hy));
-      if (Number.isNaN(d) || d > ZONE.band - 2) { glOn = true; break; }
-    }
-  }
-  // the shore band's canvas lies right under this one (ticket #801) and covers the view while it draws
-  if (glOn || (worldA > 0 && z > -1.42)) ctx.clearRect(0, 0, cw, ch);
+  if (BANDS.drop.isActive) ctx.clearRect(0, 0, cw, ch);
   else { ctx.fillStyle = '#02060a'; ctx.fillRect(0, 0, cw, ch); }
-
-  if (worldA > 0 && (BANDS.kelp.isActive || BANDS.drop.isActive || BANDS.slime.isActive)) {
-    ctx.save(); ctx.globalAlpha = worldA;
+  if (BANDS.slime.isActive) {
+    ctx.save();
     worldXf();
-    drawWorld();
+    drawMicro();
     ctx.restore();
   }
-  frameNo++;
-  return glOn;
 }
 
-// The screen-sized canvases go back while no dive is open (a room is playing): each is made again at its size on the
-// next draw, since every one checks its size. The tile bakes and the coastline bakes stay for the page.
+// The screen-sized canvas goes back while no dive is open (a room is playing): it is made again at its size on the
+// next draw. The tile bakes stay for the page.
 function freeScreenCanvases() {
   if (cv) { cv.width = 1; cv.height = 1; dpr = 0; }
-  for (const name of Object.keys(ZLAYER)) delete ZLAYER[name];
 }
 
 // ---------- the module's face (dive-mockup-bands.d.ts) ----------
@@ -1383,10 +811,9 @@ function freeScreenCanvases() {
 export function createMockupBands(input) {
   nowMs = input.nowMs;
   if (!cv) { cv = makeCanvas(1, 1); ctx = cv.getContext('2d'); }
-  COAST = input.coast; TILES = input.tiles;
   return {
     canvas: cv,
-    draw(frame) { return drawFrame(frame); },
+    draw(frame) { drawFrame(frame); },
     pumpBakes(budgetMs) { bakeLanded = false; if (!allBaked) pump(budgetMs); return bakeLanded; },
     get isBaked() { return allBaked; },
     release() { freeScreenCanvases(); },

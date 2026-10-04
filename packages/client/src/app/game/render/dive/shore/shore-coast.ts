@@ -1,8 +1,8 @@
 // The coast in metres for one view (docs/rendering/opening-dive.md §4, ticket #801, the mockup's `buildCoast` and
 // `coastDist`): the Salish rings refined below the data's resolution, warped at the rocky point and cut to the view
 // and its margin, plus a spatial hash of the refined segments for signed distance queries (+ land, − sea). The
-// shore's snapshots build one per level of detail; the mockup's kelp band and the planet's forest test build one per
-// frame through the same object (`dive-mockup-bands.js` takes it as `coast`).
+// shore's snapshots build one per level of detail, and the planet's forest test one per step of zoom
+// (`shore-forest-test.ts`).
 
 import {
   SHORE_COAST_GRID_CELLS,

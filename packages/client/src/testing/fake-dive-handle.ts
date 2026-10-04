@@ -18,6 +18,7 @@ const NO_FRAME_TIMES: DiveFrameTimesReport = {
   upperBandsMs: 0,
   planetMs: 0,
   shoreMs: 0,
+  kelpMs: 0,
   dishMs: 0,
   submitMs: 0,
 };

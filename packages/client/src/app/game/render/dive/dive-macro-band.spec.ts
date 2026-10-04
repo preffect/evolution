@@ -1,8 +1,7 @@
-// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's canvas beside the game's, and
-// the loader that brings the modules (the shore's too, ticket #801), the planet's bakes and the coastlines in with the
-// dive. The real module draws on
-// a 2D canvas jsdom has not got, so the loader is checked up to the bands it makes, and the band over a recording
-// stand-in.
+// The dive's upper bands on the stage (docs/rendering/opening-dive.md §4): the mockup's slime canvas beside the game's,
+// and the loader that brings the modules (the shore's and the kelp's too, tickets #801 and #802), the planet's bakes
+// and the coastlines in with the dive. The real mockup draws on a 2D canvas jsdom has not got, so the loader is checked
+// up to the bands it makes, and the band over a recording stand-in.
 
 import { describe, expect, it } from 'vitest';
 import { DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL } from '../constants';
@@ -20,7 +19,7 @@ const RING = [
   [-123.4, 48.4],
 ];
 
-function recordingBands(isPlanetUnder = true): MockupBands & { readonly frames: MockupFrame[]; released: number } {
+function recordingBands(): MockupBands & { readonly frames: MockupFrame[]; released: number } {
   const frames: MockupFrame[] = [];
   return {
     canvas: document.createElement('canvas'),
@@ -29,7 +28,6 @@ function recordingBands(isPlanetUnder = true): MockupBands & { readonly frames: 
     released: 0,
     draw: (frame) => {
       frames.push(frame);
-      return isPlanetUnder;
     },
     pumpBakes: () => true,
     release() {
@@ -41,17 +39,20 @@ function recordingBands(isPlanetUnder = true): MockupBands & { readonly frames: 
 const ringsFetch: JsonFetch = () => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([RING]) });
 
 describe('diveUpperBandsLoader', () => {
-  it('fetches both coastlines and makes the bands on the dive’s clock, the planet’s bakes and the shore over them', async () => {
+  it('fetches both coastlines and makes the bands on the dive’s clock, the planet’s bakes, the shore and the kelp over them', async () => {
     const fetched: string[] = [];
     const fetchJson: JsonFetch = (url) => {
       fetched.push(url);
       return ringsFetch(url);
     };
-    const { mockup, planet, shore } = await diveUpperBandsLoader(fetchJson, document)(() => 0);
+    const { mockup, planet, shore, kelp, forest } = await diveUpperBandsLoader(fetchJson, document)(() => 0);
     expect(fetched.sort()).toEqual([DIVE_SALISH_RINGS_URL, DIVE_WORLD_RINGS_URL].sort());
     expect(mockup.canvas).toBeInstanceOf(HTMLCanvasElement);
     expect(planet.plan.regionBox).toEqual({ west: -123.4, south: 48.4, east: -123.3, north: 48.5 });
     expect(typeof shore.createBand).toBe('function');
+    expect(typeof kelp.createBand).toBe('function');
+    expect(kelp.bakes.isBaked).toBe(false);
+    expect(typeof forest.isShown).toBe('function');
     mockup.release();
   });
 
@@ -81,10 +82,10 @@ describe('DiveMacroBand', () => {
     expect(host.firstElementChild).toBe(bands.canvas);
   });
 
-  it('draws and shows its canvas while a mockup band draws; hides it and draws nothing otherwise', () => {
+  it('draws and shows its canvas while the slime draws; hides it and draws nothing otherwise', () => {
     const bands = recordingBands();
     const band = new DiveMacroBand(bands, document.createElement('div'));
-    const frame = frameAt(2);
+    const frame = frameAt(-2.5);
     band.draw(frame, true);
     expect(bands.frames).toEqual([frame]);
     expect(bands.canvas.hidden).toBe(false);
@@ -93,14 +94,7 @@ describe('DiveMacroBand', () => {
     expect(bands.canvas.hidden).toBe(true);
   });
 
-  it('says whether the planet shows under it: the mockup’s answer while it draws, the band table’s otherwise', () => {
-    const band = new DiveMacroBand(recordingBands(false), document.createElement('div'));
-    expect(band.draw(frameAt(2), true)).toBe(false);
-    expect(band.draw(frameAt(7), false)).toBe(true);
-    expect(band.draw(frameAt(-4.5), false)).toBe(false);
-  });
-
-  it('lies over the game’s canvas while the planet shows under it, and under it again after', () => {
+  it('lies over the game’s canvas while the game’s upper bands show under it, and under it again after', () => {
     const host = document.createElement('div');
     const bands = recordingBands();
     const band = new DiveMacroBand(bands, host);

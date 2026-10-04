@@ -18,11 +18,11 @@ const NARROW_STAGE_READOUT_SHARE = 0.6;
 /** How long the canvases have to follow a resize: a few frames. */
 const RESIZE_SETTLE_MS = 1000;
 /**
- * The slider's value for zoom 4 (`7.4 − zoom`): the shore over the planet, where every canvas draws. In orbit the
- * upper bands' canvas is hidden (the planet on the game's canvas is all there is, ticket #800).
+ * The slider's value for zoom −2.3 (`7.4 − zoom`): inside the drop, the slime over the drop, where every canvas draws.
+ * Above the slime the mockup's canvas is hidden (the planet, the shore and the kelp are the game's, tickets #800–#802).
  */
-const SHORE_SLIDER_VALUE = '3.4';
-/** The stage's canvases: the upper bands' and the game's (the planet and the shore, tickets #800 and #801). */
+const DROP_SLIDER_VALUE = '9.7';
+/** The stage's canvases: the mockup's slime and the game's (the planet, the shore, the kelp and the drop, the dish). */
 const STAGE_CANVASES = 2;
 
 async function boxOf(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
@@ -70,7 +70,7 @@ test('the dive’s canvases follow its stage when the window shrinks from 1920 t
   await page.goto('/');
   await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas')).toHaveCount(STAGE_CANVASES);
   await page.setViewportSize(SMALL_DESKTOP);
-  await page.getByTestId(DIVE_PANEL_TEST_ID.slider).fill(SHORE_SLIDER_VALUE);
+  await page.getByTestId(DIVE_PANEL_TEST_ID.slider).fill(DROP_SLIDER_VALUE);
   await page.waitForTimeout(RESIZE_SETTLE_MS);
   await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas:not([hidden])')).toHaveCount(STAGE_CANVASES);
   const stage = await boxOf(page.getByTestId(DIVE_PANEL_TEST_ID.stage));

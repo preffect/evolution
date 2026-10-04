@@ -1,25 +1,26 @@
 // The shore's lazily loaded entry (docs/rendering/opening-dive.md §4, ticket #801): what the dive's loader gets from
 // this chunk. The land rings and the tiles are made once a page, like the mockup's bakes, so a return to the lobby
-// bakes nothing again; the coast and the tiles are also handed to the mockup's kelp and slime bands until tickets
-// #802 and #803 move them. Each band gets its own bake worker where the platform has one (ticket #809), which ends
-// with the band.
+// bakes nothing again; the kelp band (ticket #802) bakes and draws from the same land and tiles, and the planet's
+// forest test measures the shore's coast. Each band gets its own bake worker where the platform has one (ticket #809),
+// which ends with the band.
 
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
-import type { MockupTile, MockupTiles } from '../mockup/dive-mockup-bands';
 import { DiveShoreBand } from './dive-shore-band';
 import { openShoreBakeThread } from './shore-bake-thread';
 import { createDomShoreCanvasFactory, type ShoreCanvasFactory } from './shore-canvas';
 import { ShoreCoast } from './shore-coast';
 import { landRingsOf, type GeoRing, type LandRings } from './shore-coast-rings';
-import { SHORE_TILE_NAMES, ShoreTiles, type ShoreTileName } from './shore-tiles';
+import { ShoreForestTest } from './shore-forest-test';
+import { ShoreTiles } from './shore-tiles';
 
-/** The shore's parts for one dive: its coast and tiles for the mockup, and the band for the dive's stage. */
+/** The shore's parts for one dive: the band for the dive's stage, the planet's forest test, and what the kelp shares. */
 export interface DiveShoreParts {
-  /** The coast the mockup's kelp band and forest test build each frame. */
-  readonly coast: ShoreCoast;
+  /** The land in metres, the tiles and the canvases they are drawn on: the kelp band bakes and draws from them. */
+  readonly land: LandRings;
   readonly tiles: ShoreTiles;
-  /** The tiles as the mockup reads them. */
-  readonly mockupTiles: MockupTiles;
+  readonly factory: ShoreCanvasFactory;
+  /** Whether the planet's forest shows under the shore, on the shore's coast. */
+  readonly forest: ShoreForestTest;
   createBand(renderToTexture: RenderToTexture, devicePixelRatio: number): DiveShoreBand;
 }
 
@@ -32,22 +33,6 @@ interface PageShore {
 /** Made on the first dive of the page and kept: the tile bakes outlive the lobby, as the mockup's do. */
 let pageShore: PageShore | null = null;
 
-function isTileName(name: string): name is ShoreTileName {
-  return (SHORE_TILE_NAMES as readonly string[]).includes(name);
-}
-
-function mockupTilesOf(tiles: ShoreTiles): MockupTiles {
-  return {
-    get: (name): MockupTile | null => {
-      if (!isTileName(name)) return null;
-      const tile = tiles.get(name);
-      return tile === null
-        ? null
-        : { canvas: tile.canvas.image as HTMLCanvasElement, averageColour: tile.averageColour };
-    },
-  };
-}
-
 /** The shore for a dive over the Salish rings, its canvases from `documentReference`. */
 export function createShoreParts(salishRings: readonly GeoRing[], documentReference: Document): DiveShoreParts {
   if (pageShore === null) {
@@ -56,9 +41,10 @@ export function createShoreParts(salishRings: readonly GeoRing[], documentRefere
   }
   const shore = pageShore;
   return {
-    coast: new ShoreCoast(shore.land),
+    land: shore.land,
     tiles: shore.tiles,
-    mockupTiles: mockupTilesOf(shore.tiles),
+    factory: shore.factory,
+    forest: new ShoreForestTest(new ShoreCoast(shore.land)),
     createBand: (renderToTexture, devicePixelRatio) => {
       const page = documentReference.defaultView;
       const thread =

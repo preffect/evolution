@@ -1,7 +1,7 @@
 // The shore's tile set (docs/rendering/opening-dive.md §4, ticket #801): every code-drawn tile, baked once a page in
 // the order the dive needs them, a few milliseconds at a time (the mockup's `pump`); a tile asked for before its turn
 // jumps the queue and is drawn as nothing meanwhile. Each finished tile keeps its mean colour, which stands in for it
-// once it shrinks below a few pixels. The mockup's kelp and slime bands borrow these tiles (`MockupBandsInput.tiles`).
+// once it shrinks below a few pixels. The kelp band (ticket #802) draws its rock with these tiles.
 
 import { SHORE_TILE_AVERAGE_STRIDE } from '../../constants/dive-shore';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS } from '../../colour';
