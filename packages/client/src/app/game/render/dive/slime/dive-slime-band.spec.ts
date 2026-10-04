@@ -29,7 +29,7 @@ function band(tiles: ShoreTileSource = bakedTestTiles()) {
   const app = createFakePixiApp();
   const factory = createFakeShoreCanvasFactory();
   const bakes = new SlimeBakes({ factory, devicePixelRatio: 1 }, quickSlimeBake(2), quickScatters);
-  const subject = new DiveSlimeBand({ bakes, tiles, factory }, 1, (container, target) =>
+  const subject = new DiveSlimeBand({ bakes, tiles, factory }, (container, target) =>
     app.renderToTexture(container, target),
   );
   const bakeAll = (): void => {

@@ -61,7 +61,6 @@ export class DiveSlimeBand {
 
   constructor(
     private readonly sources: DiveSlimeSources,
-    private readonly devicePixelRatio: number,
     private readonly renderToTexture: RenderToTexture,
   ) {
     this.glow = glowTexture(sources.factory);
@@ -155,7 +154,7 @@ export class DiveSlimeBand {
       return false;
     }
     updateSlimeFrame(this.programs, frame, {
-      devicePixelRatio: this.devicePixelRatio,
+      devicePixelRatio: view.deviceRatio,
       hasCells: this.textures !== null,
       hasCaustic: this.caustic !== null,
     });

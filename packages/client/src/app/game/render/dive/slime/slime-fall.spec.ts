@@ -54,7 +54,7 @@ function fall(isFloorHeld: boolean, frameMs = FRAME_AT_60_FPS_MS): FallReport {
   const factory = createFakeShoreCanvasFactory();
   const bakes = new SlimeBakes({ factory, devicePixelRatio: 1 }, timedBake(thread), quickScatters);
   const pixi = createFakePixiApp();
-  const band = new DiveSlimeBand({ bakes, tiles: bakedTestTiles(), factory }, 1, (container, target) =>
+  const band = new DiveSlimeBand({ bakes, tiles: bakedTestTiles(), factory }, (container, target) =>
     pixi.renderToTexture(container, target),
   );
   const baker = slimeBaker(bakes, () => thread.nowMs);

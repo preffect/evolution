@@ -33,6 +33,8 @@ export interface FakePixiApp extends PixiAppHandle {
   readonly lifecycle: { isDestroyed: boolean };
   /** How often `unbindTextures` ran: a session must unbind before it destroys its bundle. */
   readonly unbindCalls: { count: number };
+  /** Every `setResolution`, in order. */
+  readonly resolutions: number[];
   /** Every `renderToTexture`: what was drawn, into which target. */
   readonly textureRenders: { readonly container: Container; readonly target: RenderTexture }[];
   /** What the staged build's warm-up asked for (ticket #603): each uploaded source, and each off-screen render. */
@@ -196,8 +198,13 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
   const app = createStageHandle({ stage, tickerCallbacks, renderCalls, screen: screenBox, ticking });
   const canvas = document.createElement('canvas');
   const textureRenders: FakePixiApp['textureRenders'] = [];
+  const resolutions: number[] = [];
   return {
     app,
+    resolutions,
+    setResolution: (resolution) => {
+      resolutions.push(resolution);
+    },
     textureRenders,
     renderToTexture: (container, target) => {
       textureRenders.push({ container, target });

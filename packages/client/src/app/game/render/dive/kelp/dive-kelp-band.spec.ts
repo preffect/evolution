@@ -24,7 +24,7 @@ const view = (zoom: number) =>
 function band(tiles: ShoreTileSource = bakedTestTiles()) {
   const pixi = createFakePixiApp(VIEWPORT);
   const bakes = new KelpBakes({ land: TEST_SHORE_LAND, factory: createFakeShoreCanvasFactory() }, quickKelpBake());
-  const subject = new DiveKelpBand({ bakes, tiles }, 1, (container, target) => pixi.renderToTexture(container, target));
+  const subject = new DiveKelpBand({ bakes, tiles }, (container, target) => pixi.renderToTexture(container, target));
   pixi.app.stage.addChild(subject.view);
   return { subject, pixi, bakes };
 }

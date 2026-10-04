@@ -17,6 +17,11 @@ export interface DiveView {
   readonly isMoving: boolean;
   /** The slime band's pictures have landed: the labels that name them show (ticket #803). */
   readonly hasSlimePictures: boolean;
+  /**
+   * Device px per css px the dive canvas renders this frame at, as the resolution governor set it (ticket #804): the
+   * shaders judge their coverage and their least sizes in these px.
+   */
+  readonly deviceRatio: number;
 }
 
 /** What every band's frame starts with (`kelp-frame.ts`, `slime-frame.ts`): the stage, its scale, zoom and clock. */
@@ -38,6 +43,8 @@ export interface DiveViewInputs {
   readonly globeIdleSpinDegrees: number;
   /** The slime band's pictures have landed (absent: they have). */
   readonly hasSlimePictures?: boolean;
+  /** The canvas's device px per css px this frame (absent: 1). */
+  readonly deviceRatio?: number;
 }
 
 /** Two viewports of the same size: a change of size is a frame a still dive must draw. */
@@ -54,6 +61,7 @@ export function diveViewAt(inputs: DiveViewInputs): DiveView {
     timeSeconds: inputs.timeSeconds,
     isMoving: inputs.isMoving,
     hasSlimePictures: inputs.hasSlimePictures ?? true,
+    deviceRatio: inputs.deviceRatio ?? 1,
   };
 }
 

@@ -179,10 +179,10 @@ WebGL context and no copy into a 2D canvas.
     a real texel's scale, so it never reads as shallows.
   - The finished bakes are kept by the loader, which lives for the page: a planet kept from an earlier open shows at
     once.
-- **Resolution** (`planet/dive-planet-resolution.ts`, the mockup's `target` and its guard): the upper bands' ratio,
-  at most 1.5× for the sphere's limb and 1× for the forest under the shore. Frames that keep coming more than 24 ms
-  apart step it down by 0.8, clamped to no less than 0.55 (`DIVE_PLANET_RESOLUTION_GUARD`). The render texture is made again
-  only when its size changes.
+- **Resolution** (`planet/dive-planet-resolution.ts`, the mockup's `target`): the dive canvas's ratio this frame
+  (`DiveView.deviceRatio`, which the resolution governor sets, §6), at most 1.5× for the sphere's limb and 1× for the
+  forest under the shore. Its own guard (frames more than 24 ms apart stepping it down by 0.8) went with ticket #804,
+  so the planet is never stepped down twice. The render texture is made again only when its size changes.
 
 **The coast and the shore are the game's own** (ticket #801). `render/dive/shore/` draws them as one quad on the
 dive's own Pixi stage, over the planet and under the kelp band's meshes: one draw call a frame,
@@ -533,6 +533,13 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   real controls and band: no frame shows the band before it is ready and the fall arrives, at 60 fps and with frames
   1 s and 3 s apart; without the floor it would reach the band unready.
 - `dive-dish-clip.spec.ts`: the clip to the dish's wall and its lift, the dish's group fade under 1 and none at 1.
+- `dive-resolution-governor.spec.ts`: the ladder to its floor; the notches a slow frame costs, none when the CPU alone
+  is over budget; a window of slow frames steps down and one long task never does; software GL's 550 ms frames reach the
+  floor in one change; nothing judged off the window (an interrupt, a gap too long, a frame not judged); a step up after
+  3 s on budget, a failed one backed off 2×, 4×… to 48 s, a held one putting the wait back; the falling ceiling.
+- `dive-session-governor.spec.ts`: over the fake app, slow frames step the dive's one canvas down and the bands' view
+  carries the ratio; smooth frames, a band still baking, the stage off screen and the evidence probe never move it; a
+  DPR 2 fall renders at 1.5 and at 2 once it arrives.
 - `kelp/*.spec.ts`: the splines and ribbons (through the control points, blade 0 through the focus, the taper and
   ruffles), the ribbons' mesh (strips, shadows first, attributes), the rock's sampled outline and the distance bakes
   (+ inside, exact at the outline), the beads (the mockup's grid cell bit for bit, on blade 0, clear of the drop, in
@@ -560,7 +567,7 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   GLSL ES 3.00, every uniform declared and set, every function defined, the bake's encoding read back.
 - `planet/land-raster.spec.ts`, `signed-distance.spec.ts`, `dive-planet-bakes.spec.ts`, `dive-planet-resolution.spec.ts`:
   the nonzero fill at texel centres, the distance transform, the exact coast, the channels, the antimeridian cut,
-  the region's box, the resolution's caps and its guard.
+  the region's box, the resolution's caps under the governed canvas.
 - `app.integration.spec.ts`: a room starting closes the dive.
 - `kelp/dive-kelp.integration.spec.ts`: the session, the upper layers and the real kelp band over the fake app: its
   meshes on the dive's one app over the shore's quad, its bakes pumped by the dive and counted before the autoplay,

@@ -34,8 +34,9 @@ import { DiveGlobeIdle } from './dive-globe-idle';
 import type { DiveUpperBandsLoader } from './dive-band-loader';
 import { DIVE_OWN_PLAYER_ID, createDiveMicroScene, diveTextureOptions } from './dive-micro-scene';
 import { openDiveHalves } from './dive-session-open';
+import { DiveResolutionGovernor } from './dive-resolution-governor';
 import { DiveUpperLayers } from './dive-upper-layers';
-import { diveViewAt, isSameViewport, type DiveView } from './dive-view';
+import { diveViewAt, isSameViewport, upperBandsDevicePixelRatio, type DiveView } from './dive-view';
 
 export interface DiveSessionDependencies {
   readonly host: HTMLElement;
@@ -71,6 +72,13 @@ export class DiveSession extends FrameLoopSession {
   private openedAtMs = 0;
   private ambientSeconds = 0;
   private readonly globeIdle = new DiveGlobeIdle();
+  /** Steps the canvas's resolution down when frames run over budget, and back up with headroom (ticket #804). */
+  private readonly governor: DiveResolutionGovernor;
+  /** The resolution the app renders at: it was opened at the dive's ratio. */
+  private appliedResolution: number;
+  private isProbing = false;
+  /** How long the last animation frame's own work took (the session's whole `frame`): the governor's CPU share. */
+  private lastFrameWorkMs = 0;
   private isFrameRequested = true;
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
@@ -81,6 +89,8 @@ export class DiveSession extends FrameLoopSession {
     super(dependencies.clock);
     this.devicePixelRatio = Math.min(dependencies.devicePixelRatio, DIVE_MAX_DEVICE_PIXEL_RATIO);
     this.frameTimes = new DiveFrameTimes(dependencies.clock);
+    this.governor = new DiveResolutionGovernor(this.devicePixelRatio);
+    this.appliedResolution = this.devicePixelRatio;
   }
 
   /**
@@ -137,6 +147,7 @@ export class DiveSession extends FrameLoopSession {
   /** Off screen: the ticker stops and nothing draws until it is back. Kept for `start` when it comes first. */
   setIsVisible(isVisible: boolean): void {
     this.isVisible = isVisible;
+    this.governor.interrupt();
     if (isVisible) this.pixi?.app.ticker.start();
     else this.pixi?.app.ticker.stop();
   }
@@ -153,19 +164,23 @@ export class DiveSession extends FrameLoopSession {
   probeFrames(zoom: number, frames: number): DiveFrameTimesReport {
     this.controls.scrub(zoom);
     this.frameTimes.take();
+    this.isProbing = true;
     for (let frame = 0; frame < frames; frame += 1) {
       // The ambient time is read off the open, so moving the open back moves the scene on.
       this.openedAtMs -= DIVE_PROBE_FRAME_MS;
       this.requestFrame();
       this.frame();
     }
+    this.isProbing = false;
     return this.frameTimes.take();
   }
 
   /** One animation frame: through the renderer, or the upper bands alone while it bakes. */
   override frame(): void {
+    const startedMs = this.nowMs();
     super.frame();
     if (this.renderer === null) this.upperBandsOnlyFrame();
+    this.lastFrameWorkMs = this.nowMs() - startedMs;
   }
 
   /** Before the renderer is current: the upper bands and the planet draw on their own, with no dish. */
@@ -202,8 +217,12 @@ export class DiveSession extends FrameLoopSession {
     this.globeIdle.advance({ nowMs, zoom, isMotionReduced, isPaused: this.controls.isPaused });
     const viewport = { width: pixi.app.screen.width, height: pixi.app.screen.height };
     const hasResized = this.view === null || !isSameViewport(this.view.camera.viewport, viewport);
-    if (isMotionReduced && !isMoving && !this.isFrameRequested && !hasResized) return null;
+    if (isMotionReduced && !isMoving && !this.isFrameRequested && !hasResized) {
+      this.governor.interrupt();
+      return null;
+    }
     this.isFrameRequested = false;
+    this.govern(nowMs, isMoving);
     this.view = diveViewAt({
       zoom,
       viewport,
@@ -211,8 +230,29 @@ export class DiveSession extends FrameLoopSession {
       isMoving,
       globeIdleSpinDegrees: this.globeIdle.spinDegrees,
       hasSlimePictures: this.hasSlimePictures(),
+      deviceRatio: this.appliedResolution,
     });
     return this.view;
+  }
+
+  /**
+   * The resolution governor hears this frame's start, the gap since the last frame drawn and that frame's own work
+   * (its draw calls are queued for the GPU process, so a GPU behind shows in the gap, not here), and the canvas takes
+   * the resolution it answers: at most the upper bands' ratio while the dive falls (the mockup's
+   * `DIVE_DPR`). Frames are judged only once every bake has landed and the renderer is built.
+   */
+  private govern(nowMs: number, isMoving: boolean): void {
+    const isJudged = (this.upper?.isBaked ?? false) && !this.isBuildingRenderer && !this.isProbing;
+    this.governor.noteFrame({
+      nowMs,
+      cpuMs: this.lastFrameWorkMs,
+      ceiling: upperBandsDevicePixelRatio(this.devicePixelRatio, isMoving),
+      isJudged,
+    });
+    const resolution = this.governor.resolution;
+    if (resolution === this.appliedResolution) return;
+    this.appliedResolution = resolution;
+    this.pixi?.setResolution(resolution);
   }
 
   /**
@@ -229,7 +269,6 @@ export class DiveSession extends FrameLoopSession {
     const upper = this.upper;
     if (upper === null) return false;
     return upper.draw(view, {
-      screenRatio: this.devicePixelRatio,
       nowMs: this.nowMs(),
       isMotionReduced: this.dependencies.isMotionReduced(),
     });

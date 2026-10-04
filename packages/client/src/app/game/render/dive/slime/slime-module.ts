@@ -36,7 +36,7 @@ export function createSlimeParts(shore: SlimeShoreShare, nowMs: () => number): D
       const bakes = pageBakes.get(devicePixelRatio) ?? new SlimeBakes({ factory: shore.factory, devicePixelRatio });
       pageBakes.set(devicePixelRatio, bakes);
       const sources = { bakes, tiles: shore.tiles, factory: shore.factory };
-      return { band: new DiveSlimeBand(sources, devicePixelRatio, renderToTexture), bakes: slimeBaker(bakes, nowMs) };
+      return { band: new DiveSlimeBand(sources, renderToTexture), bakes: slimeBaker(bakes, nowMs) };
     },
   };
 }

@@ -63,18 +63,6 @@ export const DIVE_PLANET_SUN_DIRECTION = { x: -0.52, y: 0.5, z: 0.69 } as const;
 
 /**
  * The planet renders at the upper bands' ratio, at most `sphere` for the planet's crisp limb and `plane` for the
- * forest under the shore (`target`), then times the guard's quality.
+ * forest under the shore (`target`). The dive's resolution governor steps the canvas under it (`dive-governor.ts`).
  */
 export const DIVE_PLANET_MAX_RATIO = { sphere: 1.5, plane: 1 } as const;
-/**
- * The guard on a slow GPU (`draw`'s `slow`): frames under `sampleWindowMs` apart are counted, one longer than
- * `slowFrameMs` adds a strike and a quicker one takes one off; past `strikesToStep` strikes the quality drops by
- * `step`, never below `floor`.
- */
-export const DIVE_PLANET_RESOLUTION_GUARD = {
-  sampleWindowMs: 200,
-  slowFrameMs: 24,
-  strikesToStep: 20,
-  step: 0.8,
-  floor: 0.55,
-} as const;

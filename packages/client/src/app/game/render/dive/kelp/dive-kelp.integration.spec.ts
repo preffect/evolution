@@ -28,8 +28,8 @@ async function openedDive() {
   const shore = fakeShoreMaker();
   const kelp = {
     bakes: kelpBaker(bakes, () => 0),
-    createBand: (renderToTexture: ConstructorParameters<typeof DiveKelpBand>[2], devicePixelRatio: number) => {
-      const band = new DiveKelpBand({ bakes, tiles: bakedTestTiles() }, devicePixelRatio, renderToTexture);
+    createBand: (renderToTexture: ConstructorParameters<typeof DiveKelpBand>[1]) => {
+      const band = new DiveKelpBand({ bakes, tiles: bakedTestTiles() }, renderToTexture);
       made.push(band);
       return band;
     },
