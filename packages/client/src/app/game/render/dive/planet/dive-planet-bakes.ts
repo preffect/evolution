@@ -3,7 +3,7 @@
 // (`signed-distance.ts`). The world's is equirectangular; the Salish region's covers its rings' box at the region's
 // own scale, for the coast from about 30 km down. Each is a generator, so the dive bakes it in slices.
 //
-// It reaches `d3-geo`, so it loads with the dive in its lazy chunk (`dive-macro-band.ts`), never with the game.
+// It reaches `d3-geo`, so it loads with the dive in its lazy chunk (`dive-band-loader.ts`), never with the game.
 
 import { geoArea, geoEquirectangular, geoPath } from 'd3-geo';
 import { RADIANS_PER_FULL_TURN } from '@evolution/shared';

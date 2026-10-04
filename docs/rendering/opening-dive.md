@@ -1,6 +1,6 @@
 # Evolution — Rendering: the opening dive
 
-Tickets #797, #800, #801 and #802, epic #795. The dive from orbit to the dish on the lobby (main menu), with the mockup's controls. The
+Tickets #797, #800, #801, #802 and #803, epic #795. The dive from orbit to the dish on the lobby (main menu), with the mockup's controls. The
 mockup is the design (https://claude.ai/artifact/A674H91iLRxEa4MTzCRPhu): its look, labels, sizes, phase stops and
 controls. This file says how the client draws it. The numbers are `render/constants/dive.ts` and the words
 `render/constants/dive-script.ts`. Both carry the mockup's own values.
@@ -14,31 +14,35 @@ controls. This file says how the client draws it. The numbers are `render/consta
   (`render/dive/dive-host.ts`), the same seam shape as the encyclopedia preview's (`preview/preview-host.ts`). A
   component spec provides `testing/fake-dive-handle.ts` and never touches Pixi.
 - **Session:** `render/dive/dive-session.ts` is the fourth `FrameLoopSession`, beside a room's, the bench's and the
-  preview's. The panel's stage element holds two canvases:
-  - the upper bands' canvas (§4): the mockup's slime, drawn only while the slime band is active
-  - the session's Pixi app, which clears to transparent (`PixiAppOptions.isTransparent`). Its stage holds
-    `gameRoot`, with a real `GameRenderer` in it (`FrameLoopSession.rendererStage` puts the renderer's layers
-    there), the dish clip mask, the planet (§4, ticket #800), the shore's quad over it (§4, ticket #801) and the kelp
-    band's meshes over that (§4, ticket #802). The dive keeps one WebGL context. The planet, the shore and the kelp
-    are never drawn in the same frame as the dish.
-  - **Their order follows the band** (`render/dive/dive-upper-layers.ts`, `DiveMacroBand.stackOverGame`): while the
-    planet, the shore or the kelp and the drop show, the upper bands' canvas lies over the Pixi canvas and is left
-    clear round the slime, so the slime draws over the drop; otherwise it lies under it, so the game's dish draws over
-    the slime.
+  preview's. The panel's stage element holds one canvas, the session's Pixi app, which clears to transparent
+  (`PixiAppOptions.isTransparent`). Every band draws on it, so the dive keeps one WebGL context:
+  - `gameRoot`, with a real `GameRenderer` in it (`FrameLoopSession.rendererStage` puts the renderer's layers there),
+    and the dish clip mask
+  - the planet (§4, ticket #800), the shore's quad over it (ticket #801) and the kelp band's meshes over that
+    (ticket #802)
+  - the slime band's meshes (ticket #803)
+
+  The planet, the shore and the kelp are never drawn in the same frame as the dish.
+  - **The slime's place follows the band** (`render/dive/dive-upper-layers.ts`, `stackSlime`): while the kelp band
+    shows (the drop is under the slime), the slime lies over it at the top of the stage; otherwise it lies at the
+    bottom, under `gameRoot`, so the game's dish draws over the slime round it.
+
 - **Start:** the app and the upper bands load in parallel (`dive-session-open.ts`). If either fails (no WebGL, a
-  missing coastline, the chunk), or the panel closes first, the half that arrived is given back at once and `start`
-  answers `false`; the
+  missing coastline, the chunk), or the panel closes first, the app is given back at once if it arrived (the bands
+  hold nothing yet but the bakes they keep for the page) and `start` answers `false`; the
   stage then says "The opening dive could not load." and the lobby works on. The renderer's textures bake across
   frames (ticket #479) while the upper bands already draw, so the lobby never freezes on the bake. A failed bake
   leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
   (`DIVE_BAKE_DEVICE_PIXEL_RATIO`).
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
-  `RenderSession` builds. `destroy` frees the planet's, the shore's and the kelp's GPU objects (the planet's quad, program,
-  coastline textures and render texture; the shore's quad and its levels' and tiles' textures; the kelp's six meshes,
-  five programs and textures), then runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app). The dive holds one
-  WebGL context, the app's (Pixi's own probes, a lost `isWebGLSupported` one and a detached 1 × 1 precision test,
-  are there on main too). The mockup's canvas and its baked tiles, the planet's coastline bakes (kept by the
-  loader, `diveUpperBandsLoader`) and the kelp's bakes (`kelp/kelp-module.ts`) stay for the page, so a return to the lobby does not bake them again.
+  `RenderSession` builds. `destroy` frees the planet's, the shore's, the kelp's and the slime's GPU objects (the
+  planet's quad, program, coastline textures and render texture; the shore's quad and its levels' and tiles' textures;
+  the kelp's six meshes, five programs and textures; the slime's meshes, programs, sprites and textures, and the dish
+  fade's filter), then runs `disposeLoop` in ticket #468's order (unbind, renderer and textures, app). The dive holds
+  one WebGL context, the app's (Pixi's own probes, a lost `isWebGLSupported` one and a detached 1 × 1 precision test,
+  are there on main too). The planet's coastline bakes (kept by the loader, `diveUpperBandsLoader`), the kelp's bakes
+  (`kelp/kelp-module.ts`) and the slime's (`slime/slime-module.ts`, per device pixel ratio) stay for the page, so a
+  return to the lobby does not bake them again.
 - **No debug hook:** the session never installs `window.__evolutionDebug`.
 
 ## 2. The log-zoom camera
@@ -77,7 +81,7 @@ controls. This file says how the client draws it. The numbers are `render/consta
 
 Each band draws in its own metres round the focus. It fades in over its window on the way down and stops drawing
 once the view has passed it. `render/dive/dive-bands.ts` turns a camera into every band's `{ weight, isActive }`.
-That table is the one place the windows live: the mockup's canvas and the game's renderer both read it.
+That table is the one place the windows live: every band and the game's renderer read it.
 
 | Band   | Fades in (zoom) | Stops drawing            | Drawn by                                     |
 | ------ | --------------- | ------------------------ | -------------------------------------------- |
@@ -85,23 +89,28 @@ That table is the one place the windows live: the mockup's canvas and the game's
 | shore  | 4.85 → 4.4      | at or below −1.42        | **the game's shore band** (§4, ticket #801)  |
 | kelp   | 2.4 → 2.1       | at or below −1.42        | **the game's kelp band** (§4, ticket #802)   |
 | drop   | 0.35 → 0.05     | at or below −2.96        | **the game's kelp band**: beads, drop, blade |
-| slime  | −1.95 → −2.35   | once the view is in dish | mockup: inside the drop, round the dish      |
+| slime  | −1.95 → −2.35   | once the view is in dish | **the game's slime band** (§4, ticket #803)  |
 | dish   | −3.7 → −4.22    | while dish radius < 2 px | **the game's renderer**                      |
 
-- **The dish band:** it is the dark field arriving. While it fades in, the game canvas's CSS opacity is its weight,
-  so the browser composites the fade as a group alpha. Above the band the opacity is 0 and the renderer does no
-  work at all.
-- **The handover:** the mockup's own pocket, its wall and its bacteria in the dish fade out by `1 − weight`.
+- **The dish band:** it is the dark field arriving. While it fades in over the slime (both on the dive's canvas),
+  `gameRoot` draws through an alpha filter at its weight (`DiveDishFade`, `dive-dish-clip.ts`): its layers go into a
+  texture first, over the box round the dish's clip and at the canvas's own resolution (`'inherit'`: a filter's
+  default 1× drew the dish soft at DPR 2), and that is laid at the weight, so the dish fades as a group, as the canvas's CSS
+  opacity did when the slime had a canvas of its own. At weight 1 the filter comes off and the dish draws straight
+  on. Once only the dish shows (the view inside it) the canvas's CSS opacity is its weight. Above the band the
+  renderer does no work at all.
+- **The handover:** the slime's own pocket, its wall and its bacteria in the dish fade out by `1 − weight`.
 - **The clip:** while the slime shows, `gameRoot` is clipped to the dish's outer wall (`DISH_RADIUS` plus the wall
-  glass), so the slime round the dish stays the mockup's. Once the view lies inside the dish, the clip lifts.
-- **Culling:** the mockup's canvas is hidden and not drawn unless the slime is active (below −1.95). Close in (below
+  glass), so the slime round the dish stays the slime band's. Once the view lies inside the dish, the clip lifts.
+- **Culling:** the slime band draws nothing unless the slime is active (below −1.95). Close in (below
   zoom 3) the planet's forest test (`shore/shore-forest-test.ts`, the mockup's `glOn`, which the mockup's canvas ran
   until ticket #802) says whether any of the view lies past the rock band; when none does, the planet is not drawn and
   the shore lays its own flat forest. It builds the shore's coast for the view only while the planet's band is active
   below zoom 3, and then once per 0.3 of zoom for that step's widest view
   (`SHORE_FOREST_TEST.rebuildStepZoom`), where the mockup built it every frame of the shore.
-- **Between the drop and the dish** (zoom −2.96 to −3.7) the Pixi canvas draws nothing and its opacity is 0. From 1.35
-  to −1.42 it draws the shore and the kelp, and from −1.42 to −2.96 the kelp band's blade, beads and drop.
+- **Between the drop and the dish** (zoom −2.96 to −3.7) the canvas draws the slime alone, over its own dark. From
+  1.35 to −1.42 it draws the shore and the kelp, from −1.42 to −2.96 the kelp band's blade, beads and drop with the
+  slime over the drop from −1.95, and from −3.7 the dish over the slime.
 - **The shore weight:** it is also the planar world's fade over the globe. It stays 1 below its cut, so the
   close-ups under it still draw.
 
@@ -292,33 +301,87 @@ true picture on the frame it is reached and a fall never waits on the band once 
 - **The lazy chunk:** its constants are `render/constants/dive-kelp*.ts`, imported directly, never through the barrel
   (`dive-bundle.spec.ts`).
 
-**The slime is the mockup's drawing for now.**
+**The slime inside the drop is the game's own** (ticket #803). `render/dive/slime/` draws it as meshes on the
+dive's own Pixi stage, over the kelp band's while the drop shows and under the dish after (§1), no second WebGL
+context. The kelp's surface cells are a tiled texture, the slime and the caustics a shader, the diatoms, the bacteria
+and the plankton sprites, and the plankton's moving limbs, cilia and flagella strokes laid each frame. Nothing is baked
+per view: the scatters' quads are made once and the GPU lays them every frame.
 
-- **The module:** `render/dive/mockup/dive-mockup-bands.js` is the mockup's `src/*.js` made into one module. Its
-  page globals became module state, its bake timer became the injected `SCHEDULER` (an 8 ms slice every 10 ms until
-  every tile is made, as the mockup's `pump`), and its UI went to the panel. Ticket #803 deletes it.
-- **What it draws:** one Canvas 2D canvas, only while the slime band is active. While the drop still shows under it
-  (on the Pixi canvas) it is cleared round the slime; past the drop it paints the dark first.
-  `render/dive/dive-macro-band.ts` lays it beside the game's canvas (§1).
-- **Not a texture:** the ticket allowed uploading the canvas as a Pixi texture, and that was built first. It was
-  dropped: the upload reads the canvas back every frame, and the bands' drawing then took 1,498 ms a frame at zoom
-  3.3, against 16 ms on a canvas of their own (§6). The browser compositing two canvases costs no script time.
-- **Resolution:** the canvas draws at up to 2× when still and 1.5× while the dive falls.
-- **Size:** both canvases follow the stage itself. The panel watches the stage with a `ResizeObserver` and hands its
-  size to the session (`DiveHandle.resizeStage`), since Pixi's `resizeTo` measures only on a window resize, which
-  can come before the lobby's grid column has settled; the upper bands' canvas takes the app's size each frame
-  (ticket #805).
-- **Code standards:** it is JavaScript, outside eslint, prettier, jscpd and coverage (`.prettierignore`,
-  `.jscpd.json`, `angular.json`). It is never brought up to `CODE-STANDARDS.md`: tickets #801–#803 move each band
-  onto the game's renderer (shaders, baked textures, render-to-texture layers) and delete its part of the file; #801
-  and #802 have.
-- **Memory:** `release` shrinks the screen-sized canvas to nothing; each is made again at
-  its size on the next draw. The tile bakes stay for the page, so a return to the lobby does not bake them again.
+- **The meshes,** in the mockup's order (`slime-meshes.ts`), only uniforms changing but the strokes:
+  - **the floor** (`slime-shader-floor.ts`): a quad over the stage. Past the drop it paints the dark first. While the
+    drop's edge can be in view (above −3.7) the blade outside the drop darkens and everything else is clipped to it.
+    Inside: the cells' tile laid along the blade (bright field, then dark field over it), sampled 2 mip levels sharper
+    than its size on screen asks (the mockup's pattern was not mipmapped; its walls read as a fine grain); the shore's
+    caustic tile (the mockup's `BAKES.caustic`) in two sheets drifting against each other, added; the water's tint;
+    and as the dish's dark field arrives the game's field over it with the dark cells' walls added faintly.
+  - **the clouds** (`slime-shader-clouds.ts`): a quad a cell of the mockup's 30 µm grid, each the mockup's glow
+    sprite worked out per pixel, dimmed by the dark field. One colour, so their order cannot change a pixel.
+  - **the diatoms** (`slime-shader-diatoms.ts`): a quad a floor diatom. The vertex shader takes the mockup's tests:
+    a golden speck under 7 px, the small bright-field sprite while the dark field has not begun and the diatom is
+    small, else the rung of its ladder in the diatoms' atlas; the fragment shader draws the halo analytically, the
+    picture from the atlas, the bright and dark field pictures mixed by the dark field. Licmophora sways as a whole.
+  - **the pocket** (`slime-shader-pocket.ts`): a quad round the dish: the clear water, the glass's ring, the lit rim
+    and the accent arc, analytically, fading out as the game's dish takes over.
+  - **the plankton** (`slime-organisms.ts`): a container of each organism's halo (a tinted glow sprite), the strokes
+    that move under its body, its still body as a sprite, the strokes over it and its rim, layered halos, strokes,
+    bodies, strokes, rims (the organisms never overlap, so this is each one's order). The two big pennates are quads
+    of their own (`slime-shader-pennate.ts`) mixing their bright- and dark-field pictures by the dark field: the one
+    the label calls bigger than the dish is in view through the whole handoff. The larva, the ciliates and the
+    dinoflagellates have left the view before the dark field begins on any stage (the view's half width is
+    10^zoom / 2 whatever its shape), so they have bright-field pictures only.
+  - **the dark past the pocket's wall**, a quad over the stage, while the dark field arrives.
+  - **the bacteria and the food specks** (`slime-shader-bacteria.ts`): a quad each, drifted and turned by the vertex
+    shader on the clock exactly as the mockup did, stretched from its sprite in the bacteria's atlas, hidden under
+    the mockup's least size. The slime ends before a rod reaches the 150 px at which the mockup drew one whole.
+  - **the drop's skin** seen from inside: a bright line and a warm band at the rim, over everything.
+- **The moving strokes** (`slime-plankton-strokes.ts`, `slime-strokes.ts`, `slime-shader-strokes.ts`): the larva's
+  limbs, setae and tail, the ciliate's cilia, vacuole and membranelles, the dinoflagellate's flagella, worked out each
+  frame from the mockup's formulas in the organism's unit, each switched on at the size the mockup gave it. Every
+  straight piece is a quad in the stage's css px, pushed out by half its width and a px; the fragment shader covers
+  the pixels within half the width, with round or butt ends as the mockup's `lineCap` had them, so a 1.1 px line is
+  antialiased. Two meshes (under and over the bodies) of a fixed room, rewritten each frame.
+- **The sprite ladders** (`slime-sprite-ladder.ts`, `slime-pictures.ts`, `slime-atlases.ts`): each still picture is
+  drawn once a page at a ladder of sizes √2 apart, at the dive's device pixel ratio, by the mockup's own Canvas 2D
+  drawing ported (`slime-glass.ts`, `slime-diatom-art.ts`, `slime-plankton-art.ts`, `slime-bacteria-art.ts`), its
+  details switched on and its lines kept at least 1.1 css px as at that size. A frame takes the smallest rung at least
+  as big as the object, so a sprite shrinks by at most √2 and is never magnified below its ladder's top
+  (`SLIME_SPRITE_LADDER`: diatoms to 256 css px, the larva 512, the ciliate 384, the dinoflagellate 128, the pennates
+  1024). The diatoms share an atlas, packed in shelves with a gutter; each plankton rung is a canvas of its own. The
+  bacteria's sprites are the mockup's fixed-size ones (a 150 × 70 px rod, a 96 px speck).
+- **The scatters** (`slime-scatter.ts`): the mockup's `forCells` grids for the clouds, the floor diatoms, the rods and
+  the specks, each cell's rolls ported bit for bit (`coordinateHash`) and kept by the mockup's own tests, made out as
+  far as any view under its grid's cell cap reaches (a stage up to 4:1), and only inside the drop where the slime is
+  clipped to it. Each frame says only whether each scatter shows (its size on screen and its cell cap,
+  `slime-frame.ts`).
+- **Bakes, once a page per device pixel ratio** (`slime-bakes.ts`, kept by `slime-module.ts`), on the dive's pump
+  after the kelp's: first the scatters, a grid column a step; then the bacteria's atlas, the plankton's ladders
+  (smallest rungs first), the diatoms' atlas (a picture a step) and the cells' two 1,024 px tiles (the mockup's
+  `cellGeom`, `cellFieldG` and `plastids`: one field of distances for both looks, a few rows a step).
+- **Ready before the fall:** the band is ready once its bakes and the shore's caustic tile have landed; until then a
+  fall waits above −1.95 (`fallFloorZoom`, the controls' eased floor), and the autoplay waits for it (`isBaked`). A
+  scrub or a skip does not wait: it gets the stand-in, everything that needs no picture — the floor (the cells' base
+  colour for their tile, the caustics once the shore's tile is in), the clouds and the diatoms' halos and specks once
+  the scatters are made, the pocket, the skin, the plankton's halos and moving strokes, and the pennates' glass
+  outlines. The labels that name a picture still baking (the copepod larva, the ciliate, the kelp's surface cells,
+  `isSlimePictured`) stay hidden until the band is ready (`DiveView.hasSlimePictures`), so no label points at a
+  missing body or a plain floor. The rods and the specks come with their atlas. The programs
+  compile and link unseen into a pixel of its own when the band opens, and its textures upload the same way once its
+  bakes land, so neither lands mid-fall.
+- **The lazy chunk:** its constants are `render/constants/dive-slime*.ts`, imported directly, never through the barrel
+  (`dive-bundle.spec.ts`).
+
+**The mockup's module is gone.** Every band is the game's own since ticket #803: `render/dive/mockup/` and its
+exemptions from eslint, prettier, jscpd and coverage were deleted with it. The bands' loader is
+`render/dive/dive-band-loader.ts`.
+
 - **The lazy chunk:** `dive-bundle.spec.ts` pins on the sources that no static import chain from `main.ts` reaches
-  the module or the planet's bakes, or names `d3-geo`.
+  the planet's bakes, the shore, the kelp or the slime band, or names `d3-geo`.
 - **Coastline data:** `assets/dive/world-rings.json` and `assets/dive/salish-rings.json` (Natural Earth rings,
-  200 KB) and `d3-geo` load with the dive. The module and the planet's bakes are dynamic `import()`s (their own
-  chunks), and the JSON is fetched once for both. None of it is in the game bundle.
+  200 KB) and `d3-geo` load with the dive. The bands' modules and the planet's bakes are dynamic `import()`s (their
+  own chunks), and the JSON is fetched once for all. None of it is in the game bundle.
+- **Size:** the canvas follows the stage itself. The panel watches the stage with a `ResizeObserver` and hands its
+  size to the session (`DiveHandle.resizeStage`), since Pixi's `resizeTo` measures only on a window resize, which
+  can come before the lobby's grid column has settled (ticket #805).
 
 ## 5. Controls and UI
 
@@ -375,17 +438,35 @@ true picture on the frame it is reached and a fall never waits on the band once 
   0.0–1.2 ms mean (median 0.04 ms; the worst single frame 9.4 ms, the box's load), against 3–78 ms mean and frames
   up to 95 ms for the mockup's canvas over the same zooms (kelp, drop and, then, the forest test's coast build every
   frame of the shore).
+- **The slime band's budget (ticket #803):** at most 1 ms of script a frame (its uniforms, the plankton's sprites
+  and the strokes it lays) and about ten draw calls (the floor, the clouds, the diatoms, the pocket, the plankton's
+  halos, strokes, bodies, pennates and rims, the dark past the wall, the rods, the specks, the skin), plus the dish's
+  group fade (an offscreen pass of the stage) while the dark field arrives; no per-view bake, its once-a-page bakes in
+  8 ms slices on the dive's pump. Measured with `probeFrames` at 12 zooms from −1.9 to −4.3 at 1280 × 800 (an
+  830 × 467 stage), DPR 1:
+  - on the box's GPU (a GTX 1080 Ti through ANGLE's Vulkan): 0.0–0.5 ms of script, against 0.9–9.3 ms for the
+    mockup's canvas; 9–13 GL draws a frame in the slime, 21–23 with the dish, against 0–2 and 12 (the mockup's canvas
+    drew through Canvas 2D, outside the count); held at 60 fps at every zoom (the mockup dipped to 54 at −2.8); a frame
+    with its GPU work forced to finish (a pixel read back) 3–8 ms.
+  - on SwiftShader (GPU acceleration off): 0.0–0.5 ms of script, against 1.3–108 ms (the mockup's bacteria at −3 and
+    −3.6); held frames within the software rasteriser's reach of main's (6–15 fps against 6–13 in the slime, 2–4
+    against 2–5 at the dish), a flushed frame 0.75–1.3× main's (the slime's quads over the whole drop at −2.1, the
+    dish's group fade at −3.9 to −4.3).
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:
-  - the upper bands: the planet's forest test and the mockup's slime canvas
+  - the upper bands: the planet's forest test
   - the planet: its uniforms and its draw into its render texture
   - the shore band's frame (`shoreMs`)
   - the kelp band's frame (`kelpMs`)
+  - the slime band's frame (`slimeMs`): its uniforms, its plankton's sprites and its strokes
   - the game renderer's dish, outside the submit
   - the submit (the game canvas's draw calls)
 - **How it is read:** `DiveHandle.takeFrameTimes()` returns the means since the last take, and
   `DiveHandle.probeFrames(zoom, frames)` draws `frames` frames at `zoom` back to back in one task and returns
-  theirs. The evidence probe calls them through `ng.getComponent` in a dev build. There is no GPU on the evidence
-  box, so script ms is the measure (ticket #208's rule).
+  theirs. The evidence probe calls them through `ng.getComponent` in a dev build. Script ms is the measure the bands
+  are compared by (ticket #208's rule); since ticket #803 the box also has a GPU that Playwright's Chromium reaches
+  with `--ignore-gpu-blocklist --use-angle=vulkan --enable-features=Vulkan`, so a band's draw calls, its held frame
+  rate and its frame with the GPU work forced to finish are measured there too, and SwiftShader (the default) shows
+  how it degrades without one.
 - **Why back to back:** on the box's software GL a Canvas 2D call waits for the GPU process once its queue is full,
   so frames drawn one per animation frame charge that wait to the upper bands. Back to back, a band's script ms is
   its own work. The mockup's own `__zoomDbg.time` measures the same way, so the two compare like for like.
@@ -407,15 +488,16 @@ true picture on the frame it is reached and a fall never waits on the band once 
 - `dive-micro-scene.spec.ts`: your size, the derived mass, food inside the dish, no warning ring, seeded, the
   tick.
 - `dive-session.spec.ts`: over the fake Pixi app:
-  - the dish draws only by the table, clipped then unclipped, over the mockup's canvas
+  - the dish draws only by the table, clipped then unclipped, over the slime band, faded in as a group over it (its
+    alpha filter) and by the canvas's opacity once nothing else shows
   - a still reduced-motion dive draws nothing
   - autoplay plays once
   - `destroy` unbinds and releases
 - `dive-session-planet.spec.ts`: the planet draws on the game's canvas from the first frame while the renderer
-  bakes; the mockup's canvas lies over the game's while the planet, the shore or the drop shows, and under it at the
-  dish; neither the game's upper bands nor the dish draws between the drop and the dish; the full
+  bakes; the slime band lies over the kelp band while the drop shows and at the bottom of the stage under the dish;
+  between the drop and the dish only the slime draws; the full
   coast's crossfade over the quick bake, at once under reduced motion; the autoplay held until its coastlines bake.
-- `dive-bundle.spec.ts`: the mockup's module, the planet's bakes, the shore band, the kelp band and `d3-geo` out of
+- `dive-bundle.spec.ts`: the planet's bakes, the shore band, the kelp band, the slime band and `d3-geo` out of
   every static import chain from `main.ts`; the shore's bake worker started in the form the builder bundles, from the
   shore's chunk, with neither Pixi nor Angular in its import graph.
 - `shore/shore-fall.spec.ts`: the autoplay's fall against bakes as slow as the evidence box's (450 ms a level), the
@@ -435,9 +517,22 @@ true picture on the frame it is reached and a fall never waits on the band once 
   release after the frame, the quad binding every uniform the GLSL declares, the live frame (sheets, breakers,
   swash), the band's bake and draw over the fake Pixi app, the module's page cache.
 - `dive-upper-layers.spec.ts`: the shore's quad on the dive's stage over the planet and the kelp's meshes over it,
-  the mockup's canvas over the Pixi canvas while only the shore or only the drop shows, both bakes counted in
-  `isBaked`, a fall held at the higher floor, the forest test asked first and the shore told its answer, each band
-  timed in its own column.
+  the slime's at the bottom and over the kelp's while the drop shows, every band's bakes counted in `isBaked` (the
+  slime's pumped after the kelp's), a fall held at the highest floor, the forest test asked first and the shore told
+  its answer, each band timed in its own column.
+- `slime/*.spec.ts`: the scatters against the mockup's `forCells` and `hash` verbatim, kept by its tests, out past
+  the widest view under each cap (`slime-scatter.spec.ts`); the cells' sites, field, colours and bake; the glass, the
+  diatoms', plankton's and bacteria's art switching each detail at its size (`slime-art.spec.ts`); the ladders, the
+  atlases' packing and plans, the bakes stepped, scatters first (`slime-atlases.spec.ts`); each part's switch per zoom
+  (`slime-frame.spec.ts`); the programs (GLSL ES 3.00, every uniform held and declared, every function defined, no
+  local named after a built-in); the strokes' counts, switches and motion, laid as quads; the organisms' places, their
+  rungs, the pennates' outline then pictures, and none but the pennates in view once the dark field begins on any
+  stage; the meshes' order by identity, the uniforms written, the textures made and given back; the band (warm-up,
+  readiness, the stand-in, textures once, destroy) and the module's page bakes per ratio.
+- `slime/slime-fall.spec.ts`: a phase played before the slime's bakes land, on one simulated main thread with the
+  real controls and band: no frame shows the band before it is ready and the fall arrives, at 60 fps and with frames
+  1 s and 3 s apart; without the floor it would reach the band unready.
+- `dive-dish-clip.spec.ts`: the clip to the dish's wall and its lift, the dish's group fade under 1 and none at 1.
 - `kelp/*.spec.ts`: the splines and ribbons (through the control points, blade 0 through the focus, the taper and
   ruffles), the ribbons' mesh (strips, shadows first, attributes), the rock's sampled outline and the distance bakes
   (+ inside, exact at the outline), the beads (the mockup's grid cell bit for bit, on blade 0, clear of the drop, in
@@ -469,11 +564,15 @@ true picture on the frame it is reached and a fall never waits on the band once 
 - `app.integration.spec.ts`: a room starting closes the dive.
 - `kelp/dive-kelp.integration.spec.ts`: the session, the upper layers and the real kelp band over the fake app: its
   meshes on the dive's one app over the shore's quad, its bakes pumped by the dive and counted before the autoplay,
-  its parts shown by the band table with the slime's canvas over the drop, its own frame-time column, given back
+  its parts shown by the band table with the slime band over it in the drop, its own frame-time column, given back
   with the dive.
+- `slime/dive-slime.integration.spec.ts`: the session, the upper layers and the real slime band over the fake app:
+  its meshes on the dive's one app over the kelp band in the drop and under the dish, the dish fading in over it as a
+  group, its bakes pumped by the dive and counted before the autoplay, its parts shown by the band table, its own
+  frame-time column, given back with the dive.
 - `shore/dive-shore.integration.spec.ts`: the session, the upper layers, the real shore band, levels and quad over
-  the fake app: the quad on the dive's one app over the planet and under the kelp, the mockup's canvas over it, faded in over the
-  planet, the crossfade through
+  the fake app: the quad on the dive's one app over the planet and under the kelp, faded in over the planet, the
+  crossfade through
   a step, hidden above its band and past its cut, its own frame-time column, given back with the dive.
 - `dive-panel.component.spec.ts`: over the recording handle: the buttons, the slider, pause, the readout, the
   labels, the flag, Space and Esc but not while typing.
@@ -484,10 +583,10 @@ true picture on the frame it is reached and a fall never waits on the band once 
 **UI (Playwright, `pnpm --filter @evolution/client smoke`):** `e2e/lobby-dive-layout.spec.ts`: at 1280 × 800 and
 1024 × 640 the dive beside Connect, both whole above the fold; at 390 × 844 Connect first, then the dive's whole
 stage above the fold; no size scrolls sideways; at 1024 × 640 the readout at most 60 % of the stage; and the
-canvases the stage's size after the window shrinks from 1920 to 1024, scrubbed into the drop, where both draw (above
-the slime the upper bands' canvas is hidden).
+stage's one canvas the stage's size after the window shrinks from 1920 to 1024, scrubbed into the drop.
 
 **Visual evidence:**
 
-- The 16 zoom levels of the mockup's `shot.cjs`, beside the mockup's own frames.
+- The 16 zoom levels of the mockup's `shot.cjs`, beside the mockup's own frames (the slime's beside main's mockup
+  module, ticket #803).
 - Script ms per frame per band at the same levels (§6).

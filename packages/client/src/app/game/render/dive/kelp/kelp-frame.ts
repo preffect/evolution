@@ -18,18 +18,12 @@ import { SHORE_FOCAL_ROCK } from '../../constants/dive-shore-objects';
 import { RGBA_CHANNELS } from '../../colour';
 import { SHORE_OCTAVE } from '../../constants/dive-shore';
 import { smoothstep } from '../../geometry';
-import type { DiveView } from '../dive-view';
+import type { DiveStageFrame, DiveView } from '../dive-view';
 import { areBeadsShown, cellsInView } from './kelp-beads';
 import { KELP_OCTAVE_SLOT, KELP_OCTAVE_SLOTS } from './kelp-shader-common';
 
 /** What the kelp band draws this frame. */
-export interface KelpFrame {
-  readonly stageWidthPx: number;
-  readonly stageHeightPx: number;
-  /** Css px per metre (the mockup's `s`). */
-  readonly pixelsPerMetre: number;
-  readonly zoom: number;
-  readonly timeSeconds: number;
+export interface KelpFrame extends DiveStageFrame {
   /** The boulder and the bull kelp's fade (`DIVE_KELP_WINDOW`). */
   readonly kelpAlpha: number;
   /** The beads' and the drop's fade (`DIVE_DROP_WINDOW`). */

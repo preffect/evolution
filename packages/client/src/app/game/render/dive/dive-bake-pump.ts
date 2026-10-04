@@ -13,6 +13,19 @@ export interface DiveBaker {
   readonly isBaked: boolean;
 }
 
+/** A queue of bakes stepped for a budget on a clock (the kelp's, the slime's), as the pump's baker. */
+export function queueBaker(
+  queue: { pump(budgetMs: number, nowMs: () => number): boolean; readonly isBaked: boolean },
+  nowMs: () => number,
+): DiveBaker {
+  return {
+    pumpBakes: (budgetMs) => queue.pump(budgetMs, nowMs),
+    get isBaked() {
+      return queue.isBaked;
+    },
+  };
+}
+
 export class DiveBakePump {
   private cancelSlice: CancelDeferredCall | null = null;
 

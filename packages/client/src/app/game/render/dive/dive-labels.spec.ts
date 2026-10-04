@@ -66,6 +66,26 @@ describe('diveLabelPlacements', () => {
     expect(dish!.alpha).toBeCloseTo(0.5 * diveLabelAlpha({ nearZoom: -4.9, farZoom: -3.75 }, -3.8), DIGITS);
   });
 
+  it('hides the labels naming the slime’s pictures until they land, and only those', () => {
+    const textsAt = (zoom: number, hasSlimePictures: boolean): string[] =>
+      diveLabelPlacements({
+        camera: diveCameraAt(zoom, VIEWPORT),
+        globeRotation: diveGlobeRotation(zoom),
+        worldWeight: 1,
+        hasSlimePictures,
+      }).map((label) => label.text);
+    const pictured = DIVE_WORLD_LABELS.filter((label) => label.isSlimePictured === true).map((label) => label.text);
+    expect(pictured).toEqual(['COPEPOD LARVA, 0.25 mm', 'CILIATE, 0.1 mm', 'KELP SURFACE CELLS, ~12 µm']);
+    for (const zoom of [-3, -3.3]) {
+      const ready = textsAt(zoom, true);
+      const before = textsAt(zoom, false);
+      expect(ready.some((text) => pictured.includes(text))).toBe(true);
+      expect(before.some((text) => pictured.includes(text))).toBe(false);
+      expect(before).toEqual(ready.filter((text) => !pictured.includes(text)));
+    }
+    expect(labelsAt(-3).map((label) => label.text)).toEqual(textsAt(-3, true));
+  });
+
   it('shows nothing where no label’s range is', () => {
     expect(labelsAt(-1.0)).toEqual([]);
   });

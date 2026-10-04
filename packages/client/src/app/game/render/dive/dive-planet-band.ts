@@ -29,7 +29,7 @@ export interface DivePlanetSource {
 
 export interface DivePlanetDraw {
   readonly view: DiveView;
-  /** The upper bands' canvas ratio this frame (`mockupDevicePixelRatio`): the planet renders at most at it. */
+  /** The upper bands' ratio cap this frame (`upperBandsDevicePixelRatio`): the planet renders at most at it. */
   readonly bandsRatio: number;
   readonly nowMs: number;
   readonly isMotionReduced: boolean;

@@ -17,13 +17,10 @@ const LAYOUT_EPSILON_PX = 0.5;
 const NARROW_STAGE_READOUT_SHARE = 0.6;
 /** How long the canvases have to follow a resize: a few frames. */
 const RESIZE_SETTLE_MS = 1000;
-/**
- * The slider's value for zoom −2.3 (`7.4 − zoom`): inside the drop, the slime over the drop, where every canvas draws.
- * Above the slime the mockup's canvas is hidden (the planet, the shore and the kelp are the game's, tickets #800–#802).
- */
+/** The slider's value for zoom −2.3 (`7.4 − zoom`): inside the drop, the slime over the drop. */
 const DROP_SLIDER_VALUE = '9.7';
-/** The stage's canvases: the mockup's slime and the game's (the planet, the shore, the kelp and the drop, the dish). */
-const STAGE_CANVASES = 2;
+/** The stage's one canvas: every band draws on it, one WebGL context (tickets #800–#803). */
+const STAGE_CANVASES = 1;
 
 async function boxOf(locator: Locator): Promise<{ x: number; y: number; width: number; height: number }> {
   const box = await locator.boundingBox();
@@ -65,7 +62,7 @@ test('at 1024×640 the readout takes at most 60% of the narrow stage', async ({ 
   expect(readout.width).toBeLessThanOrEqual(stage.width * NARROW_STAGE_READOUT_SHARE + LAYOUT_EPSILON_PX);
 });
 
-test('the dive’s canvases follow its stage when the window shrinks from 1920 to 1024', async ({ page }) => {
+test('the dive’s canvas follows its stage when the window shrinks from 1920 to 1024', async ({ page }) => {
   await page.setViewportSize(WIDE_DESKTOP);
   await page.goto('/');
   await expect(page.getByTestId(DIVE_PANEL_TEST_ID.stage).locator('canvas')).toHaveCount(STAGE_CANVASES);

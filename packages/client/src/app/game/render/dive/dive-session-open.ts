@@ -1,10 +1,10 @@
 // The dive's two halves opening together (docs/rendering/opening-dive.md §1): its Pixi app, which clears to
 // transparent, and the upper bands from the lazy chunk. When either fails (no WebGL, a missing coastline, the chunk)
-// or the dive closed meanwhile, the half that did arrive is given back at once, so nothing outlives a dive that never
-// opened.
+// or the dive closed meanwhile, the app is given back at once if it arrived, so nothing outlives a dive that never
+// opened (the bands hold nothing yet but the bakes they keep for the page).
 
 import type { PixiAppHandle, PixiAppOptions } from '../pixi-app';
-import type { DiveUpperBands, DiveUpperBandsLoader } from './dive-macro-band';
+import type { DiveUpperBands, DiveUpperBandsLoader } from './dive-band-loader';
 
 export interface DiveHalvesSource {
   readonly host: HTMLElement;
@@ -45,7 +45,6 @@ export async function openDiveHalves(
   const bands = bandsResult.status === FULFILLED ? bandsResult.value : null;
   if (opening.isCancelled() || pixi === null || bands === null) {
     pixi?.destroy();
-    bands?.mockup.release();
     return null;
   }
   return { pixi, bands };

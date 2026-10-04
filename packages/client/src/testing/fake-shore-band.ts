@@ -2,7 +2,7 @@
 // layers ask of it, with no tile, level or shader behind it, so the session's specs run without Canvas 2D.
 
 import { Container } from 'pixi.js';
-import type { ShoreBandHandle, ShoreBandMaker } from '../app/game/render/dive/dive-macro-band';
+import type { ShoreBandHandle, ShoreBandMaker } from '../app/game/render/dive/dive-band-loader';
 import type { DiveView } from '../app/game/render/dive/dive-view';
 
 export interface FakeShoreBand extends ShoreBandHandle {

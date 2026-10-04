@@ -12,6 +12,7 @@ import { coordinateHash } from './shore-noise';
 import { isInView, paintTrue, pxToMetres, seaPath, type ShorePaint } from './shore-paint';
 import { rockPath, type BlobPlace } from './shore-shapes';
 import { fillViewPattern, viewRect } from './shore-zone-fill';
+import { radiiGradient } from './shore-gradients';
 
 /** A boulder: where it sits, its seed, and how far up the shore it lies (metres from the waterline, + land). */
 export interface Boulder {
@@ -51,14 +52,14 @@ function drawBody(paint: ShorePaint, place: BlobPlace, wet: number): void {
   }
   rockPath(context, place);
   const ramp = isGreenstone(place.seed) ? boulder.greenRamp : boulder.paleRamp;
-  const gradient = context.createRadialGradient(
-    x + radius * body.lightX,
-    y + radius * body.lightY,
-    radius * body.core,
-    x + radius * body.centreX,
-    y + radius * body.centreY,
-    radius * body.outer,
-  );
+  const gradient = radiiGradient(context, place, {
+    fromX: body.lightX,
+    fromY: body.lightY,
+    fromRadius: body.core,
+    toX: body.centreX,
+    toY: body.centreY,
+    toRadius: body.outer,
+  });
   gradient.addColorStop(0, ramp[0]);
   gradient.addColorStop(body.middleStop, ramp[1]);
   gradient.addColorStop(1, ramp[2]);

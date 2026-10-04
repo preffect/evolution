@@ -22,6 +22,7 @@ describe('DiveFrameTimes', () => {
       times.measurePlanet(spend(1));
       times.measureShore(spend(3));
       times.measureKelp(spend(4));
+      times.measureSlime(spend(6));
       times.measureSubmit(spend(2));
       times.endFrame();
     }
@@ -31,6 +32,7 @@ describe('DiveFrameTimes', () => {
       planetMs: 1,
       shoreMs: 3,
       kelpMs: 4,
+      slimeMs: 6,
       dishMs: 0,
       submitMs: 2,
     });
@@ -40,6 +42,7 @@ describe('DiveFrameTimes', () => {
       planetMs: 0,
       shoreMs: 0,
       kelpMs: 0,
+      slimeMs: 0,
       dishMs: 0,
       submitMs: 0,
     });

@@ -1,6 +1,6 @@
 // The seam the lobby's dive panel sees (docs/rendering/opening-dive.md §1): a `DiveHandle`, asked for through the
 // `OPENING_DIVE` token the way the encyclopedia asks for its preview (`preview/preview-host.ts`). A component spec
-// provides a recording fake and never builds a `DiveSession`, so no component spec touches Pixi or the mockup.
+// provides a recording fake and never builds a `DiveSession`, so no component spec touches Pixi.
 
 import { InjectionToken, inject } from '@angular/core';
 import type { BalanceConfig, Clock, Scheduler } from '@evolution/shared';
@@ -9,7 +9,7 @@ import type { DivePhaseStop } from '../constants';
 import { createPixiApp } from '../pixi-app';
 import type { DiveControls } from './dive-controls';
 import type { DiveFrameTimesReport } from './dive-frame-times';
-import { loadDiveUpperBands, type DiveUpperBandsLoader } from './dive-macro-band';
+import { loadDiveUpperBands, type DiveUpperBandsLoader } from './dive-band-loader';
 import { DiveSession, type DiveSessionDependencies } from './dive-session';
 import type { DiveView } from './dive-view';
 

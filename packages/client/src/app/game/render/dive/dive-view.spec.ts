@@ -1,32 +1,28 @@
 // One frame of the dive worked out before it draws (docs/rendering/opening-dive.md §3).
 
 import { describe, expect, it } from 'vitest';
-import { diveViewAt, isSameViewport, mockupDevicePixelRatio, mockupFrameOf } from './dive-view';
+import { diveViewAt, isSameViewport, upperBandsDevicePixelRatio } from './dive-view';
 
-describe('mockupDevicePixelRatio', () => {
-  it('draws the upper bands at the screen’s ratio up to 2× when still, and at most 1.5× while falling', () => {
-    expect(mockupDevicePixelRatio(3, false)).toBe(2);
-    expect(mockupDevicePixelRatio(3, true)).toBe(1.5);
-    expect(mockupDevicePixelRatio(1, true)).toBe(1);
+describe('upperBandsDevicePixelRatio', () => {
+  it('caps the upper bands at the screen’s ratio up to 2× when still, and at most 1.5× while falling', () => {
+    expect(upperBandsDevicePixelRatio(3, false)).toBe(2);
+    expect(upperBandsDevicePixelRatio(3, true)).toBe(1.5);
+    expect(upperBandsDevicePixelRatio(1, true)).toBe(1);
   });
 });
 
-describe('mockupFrameOf', () => {
+describe('diveViewAt', () => {
   const inputs = { zoom: 5, viewport: { width: 800, height: 450 }, timeSeconds: 3, isMoving: true };
 
-  it('hands the mockup the camera, the planet’s turn and the band table', () => {
+  it('holds the camera, the planet’s turn and the band table', () => {
     const view = diveViewAt({ ...inputs, globeIdleSpinDegrees: 0 });
-    const frame = mockupFrameOf(view, 2);
-    expect(frame).toMatchObject({
-      zoom: 5,
-      timeSeconds: 3,
-      widthPx: 800,
-      heightPx: 450,
-      devicePixelRatio: 1.5,
-    });
-    expect(frame.globeRotation).toBe(view.globeRotation);
-    expect(frame.bands).toBe(view.bands);
-    expect(frame.bands.planet.isActive).toBe(true);
+    expect(view.camera.zoom).toBe(5);
+    expect(view.camera.viewport).toEqual({ width: 800, height: 450 });
+    expect(view.timeSeconds).toBe(3);
+    expect(view.isMoving).toBe(true);
+    expect(view.bands.planet.isActive).toBe(true);
+    expect(view.hasSlimePictures).toBe(true);
+    expect(diveViewAt({ ...inputs, globeIdleSpinDegrees: 0, hasSlimePictures: false }).hasSlimePictures).toBe(false);
   });
 
   it('turns the planet by its idle spin in orbit', () => {

@@ -45,18 +45,13 @@
   }
 }
 
-/* The upper bands' canvas and, over it, the game's (transparent) canvas: both fill the stage. */
+/* The dive's (transparent) canvas, every band drawn on it: it fills the stage. */
 .stage ::ng-deep canvas {
   position: absolute;
   inset: 0;
   display: block;
   width: 100%;
   height: 100%;
-}
-
-/* The upper bands' canvas is hidden once no mockup band draws (the view is inside the dish). */
-.stage ::ng-deep canvas[hidden] {
-  display: none;
 }
 
 /* The canvas is appended into the stage after these, so each overlay names its own layer above it. */

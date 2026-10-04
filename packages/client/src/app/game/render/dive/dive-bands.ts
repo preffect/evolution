@@ -1,7 +1,7 @@
 // The dive's band table (docs/rendering/opening-dive.md §3): which bands draw at a camera and how far each is faded
 // in. Bands nest: each draws in its own metres around the focus, fades in as the dive falls into its range, and
-// stops drawing once the view has passed it. The table is the one place those windows live — the mockup's drawing
-// (`mockup/dive-mockup-bands.js`), the planet (`dive-planet-band.ts`) and the game's renderer all read it.
+// stops drawing once the view has passed it. The table is the one place those windows live: every band on the dive's
+// stage (`dive-planet-band.ts`, `shore/`, `kelp/`, `slime/`) and the game's renderer read it.
 
 import { DISH_RADIUS } from '@evolution/shared';
 import {
@@ -20,7 +20,7 @@ import {
 import { smoothstep } from '../geometry';
 import { diveViewReachM, type DiveCamera } from './dive-camera';
 
-/** The bands, top to bottom. All but the slime are the game's own; the slime is the mockup's for now (ticket #803). */
+/** The bands, top to bottom: every one the game's own since tickets #800–#803. */
 export const DIVE_BAND = {
   planet: 'planet',
   shore: 'shore',
@@ -31,9 +31,6 @@ export const DIVE_BAND = {
 } as const;
 export type DiveBandName = (typeof DIVE_BAND)[keyof typeof DIVE_BAND];
 export const DIVE_BAND_NAMES: readonly DiveBandName[] = Object.values(DIVE_BAND);
-
-/** The bands the mockup's canvas draws: the slime alone, the rest being the game's own since tickets #800–#802. */
-export const DIVE_MOCKUP_BAND_NAMES: readonly DiveBandName[] = [DIVE_BAND.slime];
 
 export interface DiveBandState {
   /** How far the band is faded in, 0 → 1. */
@@ -56,7 +53,7 @@ export const DIVE_BAND_WINDOWS: Readonly<Record<DiveBandName, DiveBandWindow>> =
 /** The dish's radius in metres: the game's `DISH_RADIUS` at the dive's scale. */
 export const DIVE_DISH_RADIUS_M = DISH_RADIUS * DIVE_METRES_PER_WU;
 
-/** The game's dish is drawn out to its wall's outer glass; the slime beyond it is the mockup's. */
+/** The game's dish is drawn out to its wall's outer glass; the slime band draws beyond it. */
 export const DIVE_DISH_CLIP_RADIUS_WU = DISH_RADIUS + WALL_GLASS_WU + WALL_GLASS_OUTER_WU;
 
 /** A window's fade at `zoom`: 0 above its fade, 1 below it, smoothstepped between; 1 when it has no fade. */
@@ -91,11 +88,6 @@ export function diveBandStates(camera: DiveCamera): DiveBandStates {
   const states = {} as Record<DiveBandName, DiveBandState>;
   for (const name of DIVE_BAND_NAMES) states[name] = bandState(name, camera);
   return states;
-}
-
-/** Whether any of the mockup's bands draws: when none does, its canvas is hidden and not drawn. */
-export function isMockupDrawing(states: DiveBandStates): boolean {
-  return DIVE_MOCKUP_BAND_NAMES.some((name) => states[name].isActive);
 }
 
 /** The bands that draw this frame, top first: what a frame's time is charged to in the evidence. */

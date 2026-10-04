@@ -9,22 +9,13 @@ import { fakeUpperBands, planetUniformOf } from '../../../../testing/dive-sessio
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_BACTERIA_COUNT, DIVE_METRES_PER_WU, DIVE_MOTE_COUNT, DIVE_ZOOM_BOTTOM } from '../constants';
 import { DIVE_BAKE_START_DELAY_MS, DIVE_PLANET_WORLD_PREVIEW_BAKE_PX, EARTH_RADIUS_M } from '../constants';
-import type { DiveUpperBands } from './dive-macro-band';
+import type { DiveUpperBands } from './dive-band-loader';
 import { DiveSession } from './dive-session';
 import { createDivePlanetBakePlan, type DiveCoastRing } from './planet/dive-planet-bakes';
 import { DIVE_PLANET_UNIFORM } from './planet/dive-planet-shader';
-import type { MockupBands } from './mockup/dive-mockup-bands';
-
-const NO_BANDS: MockupBands = {
-  canvas: document.createElement('canvas'),
-  isBaked: true,
-  draw: () => false,
-  pumpBakes: () => false,
-  release: () => undefined,
-};
 
 async function builtSession(
-  bands: DiveUpperBands = fakeUpperBands(NO_BANDS),
+  bands: DiveUpperBands = fakeUpperBands(),
   scheduler = new ManualScheduler(),
 ): Promise<{ subject: DiveSession; app: FakePixiApp }> {
   let app: FakePixiApp | null = null;
@@ -107,7 +98,7 @@ describe('the dive’s planet over the real coastline bakes', () => {
   it('bakes the loader’s plan on the scheduler and hands each bake to the shader it draws through', async () => {
     const scheduler = new ManualScheduler();
     const planet = { plan: createDivePlanetBakePlan([continent], [strip]), kept: new Map() };
-    const { subject, app } = await builtSession(fakeUpperBands(NO_BANDS, planet), scheduler);
+    const { subject, app } = await builtSession(fakeUpperBands(planet), scheduler);
     // The planet is not baked yet: the dive waits in orbit, its slices running every 10 ms.
     for (let slice = 0; slice < 2000 && planet.kept.size < 3; slice += 1)
       scheduler.advanceMilliseconds(DIVE_BAKE_START_DELAY_MS);
