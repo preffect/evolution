@@ -17,12 +17,21 @@ const {
   probeFailMs,
   maxStepUpAfterMs,
   maxGapMs,
+  uselessStepHoldMs,
 } = DIVE_RESOLUTION_GOVERNOR;
 const SMOOTH_MS = DIVE_TARGET_FRAME_MS;
 /** A frame a little over budget: one notch is enough for it. */
 const SLOW_MS = 22.5;
 /** The drop's lens under software GL at zoom −2.3 (ticket #804's hand-off). */
 const SOFTWARE_LENS_MS = 550;
+
+/** A frame's gap: a fixed one, or one that follows the resolution it was drawn at. */
+type FrameGap = number | ((resolution: number) => number);
+
+/** A GPU-bound frame: `fullMs` at the dive's ratio `top`, its cost going with the pixels. */
+function gpuBound(fullMs: number, top = 1): (resolution: number) => number {
+  return (resolution) => fullMs * Math.pow(resolution / top, 2);
+}
 
 /** Feeds frames to a governor on a clock of its own; every frame is judged unless a test says otherwise. */
 class FrameFeed {
@@ -35,9 +44,9 @@ class FrameFeed {
   ) {}
 
   /** `count` frames `gapMs` apart, each with `cpuMs` of CPU work; answers the resolution after them. */
-  frames(count: number, gapMs: number, options: { cpuMs?: number; ceiling?: number; isJudged?: boolean } = {}): number {
+  frames(count: number, gap: FrameGap, options: { cpuMs?: number; ceiling?: number; isJudged?: boolean } = {}): number {
     for (let frame = 0; frame < count; frame += 1) {
-      this.nowMs += gapMs;
+      this.nowMs += typeof gap === 'number' ? gap : gap(this.governor.resolution);
       const hasChanged = this.governor.noteFrame({
         nowMs: this.nowMs,
         cpuMs: options.cpuMs ?? 0,
@@ -121,10 +130,10 @@ describe('DiveResolutionGovernor', () => {
     expect(subject.changes).toEqual([]);
   });
 
-  it('goes straight to the floor under software GL’s lens, in one change, from either ratio', () => {
+  it('goes straight to the floor under software GL’s lens, in one change, from either ratio, and stays', () => {
     for (const top of [1, 2]) {
       const subject = feed(top);
-      subject.frames(windowFrames + 1, SOFTWARE_LENS_MS);
+      subject.frames(windowFrames * 10, gpuBound(SOFTWARE_LENS_MS, top));
       expect(subject.changes).toEqual([floorResolution]);
     }
   });
@@ -162,7 +171,7 @@ describe('DiveResolutionGovernor', () => {
     subject.frames(20, maxGapMs + 1);
     expect(subject.changes).toEqual([]);
     // The same frames judged and within reach do move it.
-    subject.frames(windowFrames + 1, SOFTWARE_LENS_MS);
+    subject.frames(windowFrames + 1, gpuBound(SOFTWARE_LENS_MS));
     expect(subject.changes).toEqual([floorResolution]);
   });
 
@@ -182,17 +191,43 @@ describe('DiveResolutionGovernor', () => {
     const subject = feed(1);
     subject.frames(windowFrames + 1, SLOW_MS);
     expect(subject.changes).toHaveLength(1);
-    // A full window at the new resolution is needed again, plus the frame that only starts the clock.
+    // A full window at the new resolution is needed again, plus the frame that only starts the clock, before the
+    // governor judges anything: here that the step did not help, so it is undone.
     subject.frames(windowFrames, SLOW_MS);
     expect(subject.changes).toHaveLength(1);
     subject.frames(1, SLOW_MS);
-    expect(subject.changes).toHaveLength(2);
+    expect(subject.changes).toEqual([stepRatio, 1]);
+  });
+
+  it('keeps a step down that helped', () => {
+    const subject = feed(1);
+    // 30 ms at full resolution needs two notches (0.84⁴ of the pixels): about 15 ms.
+    subject.frames(windowFrames * 10, gpuBound(30));
+    expect(subject.changes).toEqual([stepRatio * stepRatio]);
+  });
+
+  it('undoes a step down that did not help, and tries the next only after a wait that doubles', () => {
+    const subject = feed(1);
+    const undoneAtMs: number[] = [];
+    // Frames over budget whatever the resolution: the page's own work, not the GPU's.
+    while (undoneAtMs.length < 4) {
+      subject.frames(1, SLOW_MS);
+      if (subject.changes.length % 2 === 0 && subject.changes.length / 2 > undoneAtMs.length) {
+        undoneAtMs.push(subject.nowMs);
+      }
+    }
+    expect(subject.changes).toEqual([stepRatio, 1, stepRatio, 1, stepRatio, 1, stepRatio, 1]);
+    const waits = undoneAtMs.slice(1).map((atMs, index) => atMs - undoneAtMs[index]!);
+    const expected = [1, 2, 4].map((factor) => uselessStepHoldMs * factor);
+    waits.forEach((waitMs, index) => {
+      expect(waitMs).toBeGreaterThanOrEqual(expected[index]!);
+      expect(waitMs).toBeLessThan(expected[index]! + SLOW_MS * (windowFrames + 1) * 3);
+    });
   });
 
   it('steps one notch back up after a stretch on budget, and on up to the dive’s ratio', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, SLOW_MS);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.frames(windowFrames + 1, gpuBound(30));
     const low = subject.governor.resolution;
     expect(low).toBeCloseTo(stepRatio * stepRatio, 12);
     const waitedMs = subject.smoothUntilChange(stepUpAfterMs * 2);
@@ -225,8 +260,7 @@ describe('DiveResolutionGovernor', () => {
 
   it('puts the wait back once a notch up holds past the probe’s window', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, SLOW_MS);
-    subject.frames(windowFrames + 1, SLOW_MS);
+    subject.frames(windowFrames + 1, gpuBound(30));
     // Fail the first try at the middle notch: the next waits twice as long.
     subject.smoothUntilChange(maxStepUpAfterMs);
     subject.frames(windowFrames + 1, SLOW_MS);

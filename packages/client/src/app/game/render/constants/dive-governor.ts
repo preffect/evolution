@@ -18,6 +18,9 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   up means that notch did not fit: the wait before the next try doubles, up to `maxStepUpAfterMs`; a notch up that
  *   holds puts the wait back. So it never pumps: a level that fits stays, and the one above is tried ever more
  *   rarely.
+ * - `helpRatio`: a step down must bring the next window's median gap under the last one's times this. One that does
+ *   not was not the GPU's to fix (the page's own work, layout, a slow CPU): it is undone, and no step down is tried for
+ *   `uselessStepHoldMs`, doubled for each in a row, up to `maxStepUpAfterMs`.
  * - `maxGapMs`: a longer gap is not a frame (the ticker stopped off screen, the tab hidden) and starts the window
  *   again; software GL's slowest frames (about 2 s on the evidence box) still count.
  */
@@ -31,5 +34,7 @@ export const DIVE_RESOLUTION_GOVERNOR = {
   stepUpAfterMs: 3000,
   probeFailMs: 2000,
   maxStepUpAfterMs: 48_000,
+  helpRatio: 0.9,
+  uselessStepHoldMs: 6000,
   maxGapMs: 5000,
 } as const;

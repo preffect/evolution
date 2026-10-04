@@ -61,6 +61,10 @@ export class DiveResolutionGovernor {
   private onBudgetSinceMs: number | null = null;
   private steppedUpAtMs: number | null = null;
   private stepUpAfterMs: number = DIVE_RESOLUTION_GOVERNOR.stepUpAfterMs;
+  /** The last step down, until the window after it says whether it helped. */
+  private stepToCheck: { readonly fromLevel: number; readonly gapMs: number } | null = null;
+  private stepDownHeldUntilMs = Number.NEGATIVE_INFINITY;
+  private uselessStepHoldMs: number = DIVE_RESOLUTION_GOVERNOR.uselessStepHoldMs;
   private ceiling: number;
 
   /** `top`: the dive's own device pixel ratio, the most it ever renders at. */
@@ -123,9 +127,10 @@ export class DiveResolutionGovernor {
     const cpuMs = medianOf(this.cpusMs);
     this.gapsMs.shift();
     this.cpusMs.shift();
+    if (this.isUselessStepUndone(nowMs, gapMs)) return;
     if (gapMs > DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.slowFrameRatio) {
       this.onBudgetSinceMs = null;
-      this.stepDown(nowMs, diveNotchesDown(gapMs, cpuMs));
+      if (nowMs >= this.stepDownHeldUntilMs) this.stepDown(nowMs, diveNotchesDown(gapMs, cpuMs), gapMs);
       return;
     }
     this.onBudgetSinceMs ??= nowMs;
@@ -137,7 +142,26 @@ export class DiveResolutionGovernor {
     if (nowMs - this.onBudgetSinceMs >= this.stepUpAfterMs) this.stepUp(nowMs);
   }
 
-  private stepDown(nowMs: number, notches: number): void {
+  /**
+   * The first window after a step down: when its frames came no quicker, the step was not the GPU's to fix. It is
+   * undone, and steps down wait a while, longer each time in a row; one that helped puts that wait back.
+   */
+  private isUselessStepUndone(nowMs: number, gapMs: number): boolean {
+    const step = this.stepToCheck;
+    if (step === null) return false;
+    this.stepToCheck = null;
+    if (gapMs <= step.gapMs * DIVE_RESOLUTION_GOVERNOR.helpRatio) {
+      this.uselessStepHoldMs = DIVE_RESOLUTION_GOVERNOR.uselessStepHoldMs;
+      return false;
+    }
+    this.level = step.fromLevel;
+    this.stepDownHeldUntilMs = nowMs + this.uselessStepHoldMs;
+    this.uselessStepHoldMs = Math.min(DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs, this.uselessStepHoldMs * 2);
+    this.restartWindow();
+    return true;
+  }
+
+  private stepDown(nowMs: number, notches: number, gapMs: number): void {
     if (notches === 0) return;
     // The first notch is the first rung under what renders now: under a lower ceiling the rungs above it change nothing.
     let level = this.level;
@@ -148,6 +172,7 @@ export class DiveResolutionGovernor {
       this.stepUpAfterMs = Math.min(DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs, this.stepUpAfterMs * 2);
     }
     this.steppedUpAtMs = null;
+    this.stepToCheck = { fromLevel: this.level, gapMs };
     this.level = target;
     this.restartWindow();
   }

@@ -6,7 +6,7 @@
 import { ManualScheduler } from '@evolution/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DIVE_BAKE_INTERVAL_MS, DIVE_BAKE_START_DELAY_MS } from '../../constants/dive';
-import { SHORE_LOD } from '../../constants/dive-shore';
+import { SHORE_LEVEL_DRAFT_SCALE, SHORE_LOD } from '../../constants/dive-shore';
 import { createFakePixiApp } from '../../../../../testing/fake-pixi-app';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { QUICK_TILE_BAKES, TEST_SHORE_LAND } from '../../../../../testing/shore-paint-builder';
@@ -41,8 +41,8 @@ function lastRequest(port: FakeShoreBakePort): ShoreBakeRequest | undefined {
     .at(-1);
 }
 
-function view(zoom: number, timeSeconds = 0) {
-  return diveViewAt({ zoom, viewport: VIEWPORT, timeSeconds, isMoving: false, globeIdleSpinDegrees: 0 });
+function view(zoom: number, timeSeconds = 0, deviceRatio = 1) {
+  return diveViewAt({ zoom, viewport: VIEWPORT, timeSeconds, isMoving: false, globeIdleSpinDegrees: 0, deviceRatio });
 }
 
 function bakeUntilReady(subject: DiveShoreBand, scheduler: ManualScheduler): number {
@@ -148,6 +148,42 @@ describe('DiveShoreBand', () => {
       expect(subject.isReady).toBe(true);
       subject.destroy();
       expect(port.isTerminated).toBe(true);
+    });
+
+    it('bakes its levels at the governed ratio taken outside its band, and keeps them through a step inside it', () => {
+      vi.stubGlobal('ImageBitmap', FakeBitmap);
+      const port = new FakeShoreBakePort();
+      const { subject, tiles } = band(port);
+      const scheduler = new ManualScheduler();
+      subject.bakeOn(
+        scheduler,
+        () => 0,
+        () => undefined,
+      );
+      for (const name of SHORE_TILE_NAMES) {
+        port.send({ type: SHORE_BAKE_MESSAGE.tile, name, bitmap: fakeBitmap(), averageRgba: [0, 0, 0, 1] });
+      }
+      expect(tiles.isBaked).toBe(true);
+      const governed = 0.35;
+      /** The ratio the worker was last asked to bake at, over the draft's scale. */
+      const askedRatio = (): number => lastRequest(port)!.view.devicePixelRatio / SHORE_LEVEL_DRAFT_SCALE;
+      subject.draw(view(6, 0, governed), true);
+      scheduler.advanceMilliseconds(DIVE_BAKE_START_DELAY_MS + DIVE_BAKE_INTERVAL_MS);
+      expect(askedRatio()).toBeCloseTo(governed, 12);
+      const anchor = lastRequest(port)!;
+      port.send({ type: SHORE_BAKE_MESSAGE.level, id: anchor.id, snapshot: fakeWorkerSnapshot(anchor.view) });
+      scheduler.advanceMilliseconds(DIVE_BAKE_INTERVAL_MS);
+      // In the band the governor steps back up: the levels in view stay, baked at the ratio they were asked at.
+      subject.draw(view(3, 0, 1), true);
+      scheduler.advanceMilliseconds(DIVE_BAKE_INTERVAL_MS);
+      expect(askedRatio()).toBeCloseTo(governed, 12);
+      expect(subject.draw(view(3, 0, 1), true)).toBe(true);
+      // Past its cut, the band hidden, the new ratio is taken.
+      subject.draw(view(-2, 0, 1), true);
+      subject.draw(view(3, 0, 1), true);
+      scheduler.advanceMilliseconds(DIVE_BAKE_INTERVAL_MS);
+      expect(askedRatio()).toBe(1);
+      subject.destroy();
     });
 
     it('bakes the tiles on the page once the worker fails', () => {
