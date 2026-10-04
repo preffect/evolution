@@ -14,6 +14,7 @@ import type { ShoreTileSource } from '../shore/shore-tiles';
 import { diveViewAt } from '../dive-view';
 import { DiveSlimeBand } from './dive-slime-band';
 import { SlimeBakes } from './slime-bakes';
+import { SLIME_COMMON_UNIFORM, SLIME_UNIFORM_GROUP } from './slime-shader-common';
 import { SLIME_FLOOR_UNIFORM } from './slime-shader-floor';
 import { createSlimeParts } from './slime-module';
 
@@ -111,6 +112,28 @@ describe('DiveSlimeBand', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
     expect(app.textureRenders).toHaveLength(2);
     subject.draw(viewAt(-2.2));
     expect(app.textureRenders).toHaveLength(2);
+    subject.destroy();
+  });
+
+  it('judges its device px at the ratio the governed canvas renders at this frame (ticket #804)', () => {
+    const { subject, bakeAll } = band();
+    bakeAll();
+    const governed = 0.59;
+    subject.draw(
+      diveViewAt({
+        zoom: -2.6,
+        viewport: { width: 830, height: 467 },
+        timeSeconds: 0,
+        isMoving: false,
+        globeIdleSpinDegrees: 0,
+        deviceRatio: governed,
+      }),
+    );
+    const floor = meshesOf(subject).floor as unknown as {
+      shader: { resources: Record<string, { uniforms: Record<string, Float32Array> }> };
+    };
+    const view = floor.shader.resources[SLIME_UNIFORM_GROUP]!.uniforms[SLIME_COMMON_UNIFORM.view]!;
+    expect(view[3]).toBeCloseTo(governed, 6);
     subject.destroy();
   });
 

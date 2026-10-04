@@ -39,14 +39,15 @@ function medianOf(values: readonly number[]): number {
 }
 
 /**
- * How many notches down a frame of `gapMs` (of which `cpuMs` is CPU work) must go to fit the target, when the rest is
- * the GPU's and scales with the pixels: at least one; none when the CPU alone is over budget (fewer pixels would not
- * help).
+ * How many notches down a frame of `gapMs` (of which `cpuMs` is CPU work) goes: none when it fits or the CPU alone is
+ * over budget (fewer pixels would not help); one when it is a little over; past `leapRatio` times the target, as many
+ * as the pixels must shrink by for the GPU's share, the rest, to fit.
  */
 export function diveNotchesDown(gapMs: number, cpuMs: number): number {
   const budgetMs = DIVE_TARGET_FRAME_MS - cpuMs;
   const gpuMs = gapMs - cpuMs;
   if (budgetMs <= 0 || gpuMs <= budgetMs) return 0;
+  if (gapMs < DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.leapRatio) return 1;
   const pixelShare = budgetMs / gpuMs;
   // The scale shrinks both sides, so the pixels go by its square: a notch is stepRatio² of them.
   return Math.max(1, Math.ceil(Math.log(pixelShare) / (2 * Math.log(DIVE_RESOLUTION_GOVERNOR.stepRatio))));
@@ -172,7 +173,7 @@ export class DiveResolutionGovernor {
       this.stepUpAfterMs = Math.min(DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs, this.stepUpAfterMs * 2);
     }
     this.steppedUpAtMs = null;
-    this.stepToCheck = { fromLevel: this.level, gapMs };
+    this.stepToCheck = notches === 1 ? { fromLevel: this.level, gapMs } : null;
     this.level = target;
     this.restartWindow();
   }

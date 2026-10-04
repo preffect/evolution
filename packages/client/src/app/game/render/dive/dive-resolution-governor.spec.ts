@@ -18,6 +18,7 @@ const {
   maxStepUpAfterMs,
   maxGapMs,
   uselessStepHoldMs,
+  leapRatio,
 } = DIVE_RESOLUTION_GOVERNOR;
 const SMOOTH_MS = DIVE_TARGET_FRAME_MS;
 /** A frame a little over budget: one notch is enough for it. */
@@ -97,6 +98,9 @@ describe('diveNotchesDown', () => {
 
   it('is one for a frame a little over, and as many as the GPU’s pixels must shrink by for a slow one', () => {
     expect(diveNotchesDown(SLOW_MS, 0)).toBe(1);
+    // Up to the leap, one notch however far over: a page's own work can explain that much.
+    expect(diveNotchesDown(DIVE_TARGET_FRAME_MS * leapRatio - 1, 0)).toBe(1);
+    expect(diveNotchesDown(DIVE_TARGET_FRAME_MS * leapRatio, 0)).toBeGreaterThan(1);
     const cpuMs = 4;
     const notches = diveNotchesDown(SOFTWARE_LENS_MS, cpuMs);
     const pixelsAfter = (count: number): number => Math.pow(stepRatio, 2 * count) * (SOFTWARE_LENS_MS - cpuMs);
@@ -130,7 +134,7 @@ describe('DiveResolutionGovernor', () => {
     expect(subject.changes).toEqual([]);
   });
 
-  it('goes straight to the floor under software GL’s lens, in one change, from either ratio, and stays', () => {
+  it('leaps straight to the floor under software GL’s lens, in one change, from either ratio, and stays', () => {
     for (const top of [1, 2]) {
       const subject = feed(top);
       subject.frames(windowFrames * 10, gpuBound(SOFTWARE_LENS_MS, top));
@@ -201,12 +205,18 @@ describe('DiveResolutionGovernor', () => {
 
   it('keeps a step down that helped', () => {
     const subject = feed(1);
-    // 30 ms at full resolution needs two notches (0.84⁴ of the pixels): about 15 ms.
-    subject.frames(windowFrames * 10, gpuBound(30));
-    expect(subject.changes).toEqual([stepRatio * stepRatio]);
+    // 36 ms at full resolution: a notch gives about 25 ms, which helped, and the next about 18 ms, on budget.
+    subject.frames(windowFrames * 10, gpuBound(36));
+    expect(subject.changes).toEqual([stepRatio, stepRatio * stepRatio]);
   });
 
-  it('undoes a step down that did not help, and tries the next only after a wait that doubles', () => {
+  it('never undoes a leap, though the next window is no quicker (the camera moved on to a heavier band)', () => {
+    const subject = feed(1);
+    subject.frames(windowFrames * 10, SOFTWARE_LENS_MS);
+    expect(subject.changes).toEqual([floorResolution]);
+  });
+
+  it('undoes a one-notch step down that did not help, and tries the next only after a wait that doubles', () => {
     const subject = feed(1);
     const undoneAtMs: number[] = [];
     // Frames over budget whatever the resolution: the page's own work, not the GPU's.
@@ -227,7 +237,7 @@ describe('DiveResolutionGovernor', () => {
 
   it('steps one notch back up after a stretch on budget, and on up to the dive’s ratio', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, gpuBound(30));
+    subject.frames(windowFrames * 3, gpuBound(36));
     const low = subject.governor.resolution;
     expect(low).toBeCloseTo(stepRatio * stepRatio, 12);
     const waitedMs = subject.smoothUntilChange(stepUpAfterMs * 2);
@@ -260,7 +270,7 @@ describe('DiveResolutionGovernor', () => {
 
   it('puts the wait back once a notch up holds past the probe’s window', () => {
     const subject = feed(1);
-    subject.frames(windowFrames + 1, gpuBound(30));
+    subject.frames(windowFrames * 3, gpuBound(36));
     // Fail the first try at the middle notch: the next waits twice as long.
     subject.smoothUntilChange(maxStepUpAfterMs);
     subject.frames(windowFrames + 1, SLOW_MS);

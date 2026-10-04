@@ -117,6 +117,27 @@ describe('DiveKelpBand', () => {
     subject.destroy();
   });
 
+  it('judges its device px at the ratio the governed canvas renders at this frame (ticket #804)', () => {
+    const { subject, bakes } = band();
+    bake(bakes);
+    const governed = 0.59;
+    subject.draw(
+      diveViewAt({
+        zoom: 2.3,
+        viewport: VIEWPORT,
+        timeSeconds: 0,
+        isMoving: false,
+        globeIdleSpinDegrees: 0,
+        deviceRatio: governed,
+      }),
+    );
+    const rock = subject.view.children[0] as unknown as {
+      shader: { resources: Record<string, { uniforms: Record<string, Float32Array> }> };
+    };
+    expect(rock.shader.resources[KELP_UNIFORM_GROUP]!.uniforms['uView']![3]).toBeCloseTo(governed, 6);
+    subject.destroy();
+  });
+
   it('gives back its meshes and textures on destroy', () => {
     const { subject, pixi, bakes } = band();
     bake(bakes);
