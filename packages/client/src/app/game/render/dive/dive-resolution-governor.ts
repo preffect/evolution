@@ -16,8 +16,8 @@ export interface DiveGovernedFrame {
   /** The most it may render at this frame: the screen's ratio, or less while the dive falls. */
   readonly ceiling: number;
   /**
-   * Whether the frame is one to judge: not while a bake runs on the page (the autoplay waits for them; their slices
-   * slow the frames whatever the resolution) or the evidence probe draws frames back to back.
+   * Whether the frame is one to judge: drawn, and not while a bake runs on the page (the autoplay waits for them; their
+   * slices slow the frames whatever the resolution).
    */
   readonly isJudged: boolean;
 }
@@ -80,7 +80,7 @@ export class DiveResolutionGovernor {
     return Math.min(this.ceiling, this.ladder[this.level] ?? this.ceiling);
   }
 
-  /** The notch it stands on, 0 the top: the evidence probe's reading. */
+  /** The notch it stands on, 0 the top. */
   get notch(): number {
     return this.level;
   }
