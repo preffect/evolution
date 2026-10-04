@@ -94,7 +94,8 @@ That table is the one place the windows live: every band and the game's renderer
 
 - **The dish band:** it is the dark field arriving. While it fades in over the slime (both on the dive's canvas),
   `gameRoot` draws through an alpha filter at its weight (`DiveDishFade`, `dive-dish-clip.ts`): its layers go into a
-  texture of the stage's size first and that is laid at the weight, so the dish fades as a group, as the canvas's CSS
+  texture first, over the box round the dish's clip and at the canvas's own resolution (`'inherit'`: a filter's
+  default 1× drew the dish soft at DPR 2), and that is laid at the weight, so the dish fades as a group, as the canvas's CSS
   opacity did when the slime had a canvas of its own. At weight 1 the filter comes off and the dish draws straight
   on. Once only the dish shows (the view inside it) the canvas's CSS opacity is its weight. Above the band the
   renderer does no work at all.
@@ -361,7 +362,9 @@ per view: the scatters' quads are made once and the GPU lays them every frame.
   scrub or a skip does not wait: it gets the stand-in, everything that needs no picture — the floor (the cells' base
   colour for their tile, the caustics once the shore's tile is in), the clouds and the diatoms' halos and specks once
   the scatters are made, the pocket, the skin, the plankton's halos and moving strokes, and the pennates' glass
-  outlines — so the labels point at what they name. The rods and the specks come with their atlas. The programs
+  outlines. The labels that name a picture still baking (the copepod larva, the ciliate, the kelp's surface cells,
+  `isSlimePictured`) stay hidden until the band is ready (`DiveView.hasSlimePictures`), so no label points at a
+  missing body or a plain floor. The rods and the specks come with their atlas. The programs
   compile and link unseen into a pixel of its own when the band opens, and its textures upload the same way once its
   bakes land, so neither lands mid-fall.
 - **The lazy chunk:** its constants are `render/constants/dive-slime*.ts`, imported directly, never through the barrel

@@ -21,6 +21,8 @@ describe('diveViewAt', () => {
     expect(view.timeSeconds).toBe(3);
     expect(view.isMoving).toBe(true);
     expect(view.bands.planet.isActive).toBe(true);
+    expect(view.hasSlimePictures).toBe(true);
+    expect(diveViewAt({ ...inputs, globeIdleSpinDegrees: 0, hasSlimePictures: false }).hasSlimePictures).toBe(false);
   });
 
   it('turns the planet by its idle spin in orbit', () => {

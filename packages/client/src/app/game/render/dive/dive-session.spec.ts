@@ -117,6 +117,19 @@ describe('DiveSession frames', () => {
   });
 });
 
+describe('DiveSession and the labels', () => {
+  it('tells the panel’s labels whether the slime’s pictures have landed', async () => {
+    const { subject, app, views, slime } = await started();
+    app.tick();
+    expect(views.at(-1)!.hasSlimePictures).toBe(true);
+    slime.bands[0]!.isReady = false;
+    subject.requestFrame();
+    app.tick();
+    expect(views.at(-1)!.hasSlimePictures).toBe(false);
+    subject.destroy();
+  });
+});
+
 describe('DiveSession under reduced motion', () => {
   it('draws nothing new while the dive is still, and one frame for each change', async () => {
     const { subject, app, views, motion } = await started();

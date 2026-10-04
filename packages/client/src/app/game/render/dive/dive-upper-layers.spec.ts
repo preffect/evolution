@@ -122,6 +122,13 @@ describe('DiveUpperLayers’ shore, kelp and slime', () => {
     expect(slime.bakes.pumped).toBeGreaterThan(0);
   });
 
+  it('tells the labels the slime’s pictures have landed once its band is ready', () => {
+    const { subject, slimeBand } = layers();
+    expect(subject.hasSlimePictures).toBe(true);
+    slimeBand.isReady = false;
+    expect(subject.hasSlimePictures).toBe(false);
+  });
+
   it('holds a fall at the highest of the shore’s, the kelp’s and the slime’s floors', () => {
     const { subject, band, kelpBand, slimeBand } = layers();
     band.fallFloorZoom = 0.5;

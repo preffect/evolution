@@ -15,6 +15,8 @@ export interface DiveView {
   readonly timeSeconds: number;
   /** Whether the dive is falling this frame (the upper bands draw a little softer while it does). */
   readonly isMoving: boolean;
+  /** The slime band's pictures have landed: the labels that name them show (ticket #803). */
+  readonly hasSlimePictures: boolean;
 }
 
 /** What every band's frame starts with (`kelp-frame.ts`, `slime-frame.ts`): the stage, its scale, zoom and clock. */
@@ -34,6 +36,8 @@ export interface DiveViewInputs {
   readonly isMoving: boolean;
   /** How far the planet has turned on its own while the dive waited in orbit (`diveGlobeIdleSpin`). */
   readonly globeIdleSpinDegrees: number;
+  /** The slime band's pictures have landed (absent: they have). */
+  readonly hasSlimePictures?: boolean;
 }
 
 /** Two viewports of the same size: a change of size is a frame a still dive must draw. */
@@ -49,6 +53,7 @@ export function diveViewAt(inputs: DiveViewInputs): DiveView {
     globeRotation: diveGlobeRotation(camera.zoom, inputs.globeIdleSpinDegrees),
     timeSeconds: inputs.timeSeconds,
     isMoving: inputs.isMoving,
+    hasSlimePictures: inputs.hasSlimePictures ?? true,
   };
 }
 

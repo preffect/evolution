@@ -69,6 +69,11 @@ export class DiveUpperLayers {
     return this.bakePump.isBaked && this.shore.isReady && this.kelp.isReady && this.slime.isReady;
   }
 
+  /** The slime band's pictures have landed: the labels that name them can show. */
+  get hasSlimePictures(): boolean {
+    return this.slime.isReady;
+  }
+
   /** The slime over the kelp band while the drop shows (inside it), at the bottom of the stage otherwise. */
   private stackSlime(isOverKelp: boolean): void {
     if (isOverKelp === this.isSlimeOverKelp) return;

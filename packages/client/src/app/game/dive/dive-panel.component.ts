@@ -125,6 +125,7 @@ export class DivePanelComponent implements AfterViewInit {
       camera: view.camera,
       globeRotation: view.globeRotation,
       worldWeight: view.bands.shore.weight,
+      hasSlimePictures: view.hasSlimePictures,
       readout: this.readoutKeepOut(),
       boxWidths: this.labelBoxWidths(),
     });

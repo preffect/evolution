@@ -69,6 +69,8 @@ export interface DiveWorldLabel {
   readonly x: number;
   readonly y: number;
   readonly range: DiveLabelRange;
+  /** It names something the slime band draws from its baked pictures: hidden until they have landed (#803). */
+  readonly isSlimePictured?: true;
 }
 
 export const DIVE_GEO_LABELS: readonly DiveGeoLabel[] = [
@@ -104,9 +106,21 @@ export const DIVE_WORLD_LABELS: readonly DiveWorldLabel[] = [
   { text: 'A DROP OF SEA SPRAY, 5 mm', x: 0.0014, y: -0.0016, range: { nearZoom: -2.3, farZoom: -1.1 } },
   // `DROP`'s rim nearest the focus
   { text: 'EDGE OF THE DROP', x: -0.000703, y: -0.000452, range: { nearZoom: -3.4, farZoom: -2.25 } },
-  { text: 'COPEPOD LARVA, 0.25 mm', x: 5.2e-4, y: -4.7e-4, range: { nearZoom: -3.5, farZoom: -2.35 } },
-  { text: 'CILIATE, 0.1 mm', x: -3.0e-4, y: 1.0e-4, range: { nearZoom: -3.7, farZoom: -2.5 } },
-  { text: 'KELP SURFACE CELLS, ~12 µm', x: 1.9e-4, y: -1.2e-4, range: { nearZoom: -3.9, farZoom: -3.2 } },
+  {
+    text: 'COPEPOD LARVA, 0.25 mm',
+    x: 5.2e-4,
+    y: -4.7e-4,
+    range: { nearZoom: -3.5, farZoom: -2.35 },
+    isSlimePictured: true,
+  },
+  { text: 'CILIATE, 0.1 mm', x: -3.0e-4, y: 1.0e-4, range: { nearZoom: -3.7, farZoom: -2.5 }, isSlimePictured: true },
+  {
+    text: 'KELP SURFACE CELLS, ~12 µm',
+    x: 1.9e-4,
+    y: -1.2e-4,
+    range: { nearZoom: -3.9, farZoom: -3.2 },
+    isSlimePictured: true,
+  },
   { text: 'DIATOM, 70 µm (BIGGER THAN THE DISH)', x: 3.8e-5, y: -2.4e-5, range: { nearZoom: -4.7, farZoom: -3.6 } },
   // `POCKET_R` + 2 µm above the centre
   { text: 'THE DISH: A POCKET OF WATER 40 µm ACROSS', x: 0, y: -22e-6, range: { nearZoom: -4.9, farZoom: -3.75 } },

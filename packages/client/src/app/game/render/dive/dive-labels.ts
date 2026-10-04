@@ -21,6 +21,7 @@ import {
   EARTH_RADIUS_M,
   type DiveGeoLabel,
   type DiveLabelRange,
+  type DiveWorldLabel,
 } from '../constants';
 import { clamp01, degreesToRadians } from '../geometry';
 import { diveScreenPoint, type DiveCamera, type DivePoint } from './dive-camera';
@@ -221,6 +222,8 @@ export interface DiveLabelInputs extends DiveLabelLayout {
   readonly globeRotation: readonly [number, number];
   /** The planar world's fade over the globe: the shore band's weight. */
   readonly worldWeight: number;
+  /** The slime band's pictures have landed; until then the labels that name them are hidden (absent: landed). */
+  readonly hasSlimePictures?: boolean;
 }
 
 /** The labels of one kind on screen: each one's fade, then its dot, culled near the view and placed. */
@@ -256,7 +259,9 @@ function geoPlacements(inputs: DiveLabelInputs): DiveLabelPlacement[] {
 
 function worldPlacements(inputs: DiveLabelInputs): DiveLabelPlacement[] {
   const { camera } = inputs;
-  return placementsOf(inputs, DIVE_WORLD_LABELS, {
+  const isShown = (label: DiveWorldLabel): boolean =>
+    label.isSlimePictured !== true || inputs.hasSlimePictures !== false;
+  return placementsOf(inputs, DIVE_WORLD_LABELS.filter(isShown), {
     fade: inputs.worldWeight,
     dotOf: (label) => diveScreenPoint(camera, label),
   });

@@ -2,10 +2,9 @@
 // the bench's and the encyclopedia preview's. This session's Pixi app clears to transparent and draws every band: the
 // planet (`DivePlanetBand`), the shore (`shore/`), the kelp (`kelp/`), the slime (`slime/`) and the **real**
 // `GameRenderer` on a scripted dish scene at the bottom, clipped to the dish's wall while the slime shows and faded in
-// by the band table (a group alpha over the slime, or the canvas's opacity once the slime has gone). Its textures bake
-// across frames (ticket #479) while the upper bands draw, so the lobby never freezes; its warm-up draw goes through
-// `renderFrame` (#603). It never installs `window.__evolutionDebug`. `destroy` frees the bands, then the renderer's
-// textures and the app in ticket #468's order (`disposeLoop`).
+// by the band table (a group alpha over the slime, else the canvas's opacity). Its textures bake across frames (#479)
+// while the upper bands draw; its warm-up draw goes through `renderFrame` (#603). It never installs
+// `window.__evolutionDebug`. `destroy` frees the bands, the renderer's textures, the app (#468's `disposeLoop`).
 
 import {
   DISH_CENTRE_TARGET,
@@ -29,7 +28,7 @@ import { NO_HUD_INPUTS, outputsBeforeAnyFrame, type RenderInputs, type RenderOut
 import type { RenderFrame } from '../../net/world-store';
 import { diveRendererZoom } from './dive-camera';
 import { DiveControls } from './dive-controls';
-import { DiveDishFade, clipDiveRendererToDish } from './dive-dish-clip';
+import { DiveDishFade, clipDiveRendererToDish, dishClipBounds } from './dive-dish-clip';
 import { DiveFrameTimes, type DiveFrameTimesReport } from './dive-frame-times';
 import { DiveGlobeIdle } from './dive-globe-idle';
 import type { DiveUpperBandsLoader } from './dive-band-loader';
@@ -76,6 +75,7 @@ export class DiveSession extends FrameLoopSession {
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
   private isVisible = true;
+  private readonly hasSlimePictures = (): boolean => this.upper?.hasSlimePictures ?? false;
 
   constructor(private readonly dependencies: DiveSessionDependencies) {
     super(dependencies.clock);
@@ -210,6 +210,7 @@ export class DiveSession extends FrameLoopSession {
       timeSeconds: this.ambientSeconds,
       isMoving,
       globeIdleSpinDegrees: this.globeIdle.spinDegrees,
+      hasSlimePictures: this.hasSlimePictures(),
     });
     return this.view;
   }
@@ -250,7 +251,7 @@ export class DiveSession extends FrameLoopSession {
     if (!isWarmUp) {
       const isUpperShown = this.drawUpperBands(view);
       this.gameRoot.visible = dish.isActive;
-      this.dishFade.apply(this.gameRoot, isUpperShown && dish.isActive ? dish.weight : 1, this.pixi?.app.screen);
+      this.dishFade.apply(this.gameRoot, isUpperShown && dish.isActive ? dish.weight : 1, dishClipBounds(view));
       this.showGame(isUpperShown ? 1 : dish.isActive ? dish.weight : 0);
       // Above the dish band the renderer does no work at all: the canvas shows the planet and the shore, or nothing.
       if (!dish.isActive) {
@@ -265,8 +266,7 @@ export class DiveSession extends FrameLoopSession {
       ...NO_HUD_INPUTS,
       ownCellIndicators: this.scene.ownCellIndicators(frame),
       ownCellChrome: OWN_CELL_CHROME.lens,
-      // The dive's end is on your cell, not the vent under it, and its bacteria grow from specks into cells with no
-      // far-dot halo between (docs/rendering/opening-dive.md §4).
+      // The dive ends on your cell, not the vent; its bacteria grow from specks with no far-dot halo (opening-dive §4).
       isVentShown: false,
       isFarDotShown: false,
     };
