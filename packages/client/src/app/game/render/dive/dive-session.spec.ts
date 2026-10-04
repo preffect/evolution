@@ -1,12 +1,13 @@
-// The dive session (docs/rendering/opening-dive.md §1) over the fake Pixi app `render-session.spec.ts` uses and a
-// recording stand-in for the mockup's upper bands, so no spec here touches WebGL, a 2D canvas or the coastlines.
+// The dive session (docs/rendering/opening-dive.md §1) over the fake Pixi app `render-session.spec.ts` uses and
+// recording stand-ins for the upper bands, so no spec here touches WebGL, a 2D canvas or the coastlines.
 //
 // What is load-bearing, each observed on the thing itself (the planet's part is `dive-session-planet.spec.ts`): the
-// game's dish is drawn only where the band table says
-// (never in orbit, unclipped inside the dish, clipped to its wall while the slime shows), over the mockup's canvas,
-// and faded in by the game canvas's opacity; a still dive under reduced motion draws nothing new; the lobby plays
+// game's dish is drawn only where the band table says (never in orbit, unclipped inside the dish, clipped to its wall
+// while the slime shows), over the slime band on the same stage, and faded in as a group of its own over the slime
+// (the canvas's opacity once nothing else shows); a still dive under reduced motion draws nothing new; the lobby plays
 // phase 1 on its own once; and `destroy` gives every resource back.
 
+import { AlphaFilter, type Container } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import {
@@ -22,64 +23,96 @@ import { DIVE_FIRST_PHASE } from './dive-controls';
 /** The game's canvas opacity: the dish band's weight. */
 const opacityOf = (app: FakePixiApp): number => Number(app.canvas.style.opacity);
 
+/** The dish's group alpha over the slime: its root's alpha filter's, or 1 with none. */
+function dishFadeOf(gameRoot: Container): number {
+  const [filter] = (gameRoot.filters as readonly unknown[] | null | undefined) ?? [];
+  return filter instanceof AlphaFilter ? filter.alpha : 1;
+}
+
 describe('DiveSession.start', () => {
-  it('lays the upper bands’ canvas first in the stage, under the game’s, and the renderer in a root of its own', async () => {
-    const { subject, app, bands, dependencies } = await started();
-    expect(dependencies.host.firstElementChild).toBe(bands.canvas);
+  it('lays the slime band at the bottom of the dive’s stage, under the renderer in a root of its own', async () => {
+    const { subject, app, slime } = await started();
     expect(app.canvas.dataset['testid']).toBe(DIVE_CANVAS_TEST_ID);
     tickUntilBuilt(app, subject);
     expect(subject.isBuildingRenderer).toBe(false);
-    const [gameRoot] = app.stage.children;
+    const [slimeView, gameRoot] = app.stage.children;
+    expect(slimeView).toBe(slime.bands[0]!.view);
     expect(gameRoot!.children.length).toBeGreaterThan(0);
     subject.destroy();
   });
 
-  it('gives back an app and the bands that arrive after destroy, and answers false', async () => {
-    const { subject, apps, bands } = harness();
+  it('gives back an app that arrives after destroy, makes no band, and answers false', async () => {
+    const { subject, apps, slime } = harness();
     const start = subject.start();
     subject.destroy();
     expect(await start).toBe(false);
     expect(apps[0]!.lifecycle.isDestroyed).toBe(true);
-    expect(bands.releases.count).toBe(1);
+    expect(slime.bands).toEqual([]);
   });
 });
 
 describe('DiveSession frames', () => {
-  it('draws the dish clipped to its wall while the slime shows, and the upper bands under it', async () => {
-    const { subject, app, bands } = await started();
+  it('draws the dish clipped to its wall while the slime shows, and the slime under it', async () => {
+    const { subject, app, slime } = await started();
     tickUntilBuilt(app, subject);
     subject.controls.scrub(-4.3);
-    const drawnBefore = bands.frames.length;
+    const band = slime.bands[0]!;
+    const drawnBefore = band.draws.length;
     app.tick();
-    const [gameRoot, dishClip, planet] = app.stage.children;
+    const [slimeView, gameRoot, dishClip, planet] = app.stage.children;
+    expect(slimeView).toBe(band.view);
     expect(opacityOf(app)).toBe(1);
     expect(gameRoot!.mask).toBe(dishClip);
     expect(gameRoot!.visible).toBe(true);
+    expect(dishFadeOf(gameRoot!)).toBe(1);
     expect(planet!.visible).toBe(false);
-    expect(bands.frames.length).toBe(drawnBefore + 1);
+    expect(band.draws.length).toBe(drawnBefore + 1);
+    expect(band.draws.at(-1)!.bands.slime.isActive).toBe(true);
     expect(subject.lastRenderedTick).not.toBeNull();
     subject.destroy();
   });
 
   it('draws only the dish, unclipped, once the view lies inside it', async () => {
-    const { subject, app, bands } = await started();
+    const { subject, app, slime } = await started();
     tickUntilBuilt(app, subject);
     subject.controls.scrub(-5.5);
-    const drawnBefore = bands.frames.length;
     app.tick();
-    const [gameRoot] = app.stage.children;
-    expect(bands.canvas.hidden).toBe(true);
+    const [, gameRoot] = app.stage.children;
+    expect(slime.bands[0]!.draws.at(-1)!.bands.slime.isActive).toBe(false);
     expect(gameRoot!.mask ?? null).toBeNull();
-    expect(bands.frames.length).toBe(drawnBefore);
+    expect(dishFadeOf(gameRoot!)).toBe(1);
+    expect(opacityOf(app)).toBe(1);
     subject.destroy();
   });
 
-  it('fades the dish in by the band table as the dark field arrives', async () => {
+  it('fades the dish in by the band table as the dark field arrives, as a group over the slime on one canvas', async () => {
     const { subject, app } = await started();
     tickUntilBuilt(app, subject);
     subject.controls.scrub(-3.96);
     app.tick();
+    const [, gameRoot] = app.stage.children;
+    expect(opacityOf(app)).toBe(1);
+    expect(dishFadeOf(gameRoot!)).toBeCloseTo(0.5, 6);
+    subject.controls.scrub(-4.5);
+    app.tick();
+    expect(dishFadeOf(gameRoot!)).toBe(1);
+    expect(gameRoot!.filters ?? null).toBeNull();
+    subject.destroy();
+  });
+
+  it('fades the dish by the canvas’s opacity when no upper band shows under it', async () => {
+    const { subject, app, slime } = await started();
+    tickUntilBuilt(app, subject);
+    const band = slime.bands[0]!;
+    band.draw = (view) => {
+      band.draws.push(view);
+      return false;
+    };
+    subject.controls.scrub(-3.96);
+    app.tick();
+    const [, gameRoot] = app.stage.children;
     expect(opacityOf(app)).toBeCloseTo(0.5, 6);
+    expect(dishFadeOf(gameRoot!)).toBe(1);
     subject.destroy();
   });
 });
@@ -183,17 +216,16 @@ describe('DiveSession in orbit (ticket #805)', () => {
 });
 
 describe('DiveSession.destroy', () => {
-  it('destroys the app, unbinds its textures, takes the upper bands off the stage and frees the planet', async () => {
-    const { subject, app, bands } = await started();
+  it('destroys the app, unbinds its textures, gives the bands back and frees the planet', async () => {
+    const { subject, app, slime } = await started();
     tickUntilBuilt(app, subject);
-    const [, , planet] = app.stage.children;
+    const [, , , planet] = app.stage.children;
     subject.destroy();
     expect(planet!.destroyed).toBe(true);
     expect(app.textureRenders.at(-1)!.target.destroyed).toBe(true);
     expect(app.lifecycle.isDestroyed).toBe(true);
     expect(app.unbindCalls.count).toBe(1);
-    expect(bands.canvas.parentElement).toBeNull();
-    expect(bands.releases.count).toBe(1);
+    expect(slime.bands[0]!.lifecycle.isDestroyed).toBe(true);
   });
 
   it('stops and starts the ticker as the stage leaves and comes back into view', async () => {
@@ -208,14 +240,15 @@ describe('DiveSession.destroy', () => {
 
 describe('DiveSession.probeFrames', () => {
   it('draws the frames back to back at the zoom, the scene moving on, and answers their means', async () => {
-    const { subject, app, bands } = await started();
+    const { subject, app, slime } = await started();
     tickUntilBuilt(app, subject);
-    const drawn = bands.frames.length;
+    const band = slime.bands[0]!;
+    const drawn = band.draws.length;
     const report = subject.probeFrames(-2.8, 4);
     expect(report.frames).toBe(4);
-    expect(bands.frames.length).toBe(drawn + 4);
-    const probed = bands.frames.slice(-4);
-    expect(probed.every((frame) => frame.zoom === -2.8)).toBe(true);
+    expect(band.draws.length).toBe(drawn + 4);
+    const probed = band.draws.slice(-4);
+    expect(probed.every((frame) => frame.camera.zoom === -2.8)).toBe(true);
     expect(probed[3]!.timeSeconds - probed[0]!.timeSeconds).toBeCloseTo(3 / 60, 6);
     subject.destroy();
   });

@@ -7,19 +7,8 @@ import { fakeUpperBands } from '../../../../testing/dive-session-harness';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PHASE_STOPS, DIVE_ZOOM_TOP, type DivePhaseStop } from '../constants';
 import { createDiveHandle, type DiveFrameState, type DiveHandle } from './dive-host';
-import type { MockupBands } from './mockup/dive-mockup-bands';
 
 const SHORE = DIVE_PHASE_STOPS[4] as DivePhaseStop;
-
-function bands(): MockupBands {
-  return {
-    canvas: document.createElement('canvas'),
-    isBaked: true,
-    draw: () => false,
-    pumpBakes: () => false,
-    release: () => undefined,
-  };
-}
 
 async function opened(): Promise<{
   handle: DiveHandle;
@@ -46,7 +35,7 @@ async function opened(): Promise<{
         app ??= made;
         return Promise.resolve(made);
       },
-      loadUpperBands: () => Promise.resolve(fakeUpperBands(bands())),
+      loadUpperBands: () => Promise.resolve(fakeUpperBands()),
       noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     },
   );

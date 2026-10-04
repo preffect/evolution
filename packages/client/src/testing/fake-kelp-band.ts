@@ -3,7 +3,7 @@
 // run without WebGL or Canvas 2D.
 
 import { Container } from 'pixi.js';
-import type { DiveForestTest, KelpBandHandle, KelpBandMaker } from '../app/game/render/dive/dive-macro-band';
+import type { DiveForestTest, KelpBandHandle, KelpBandMaker } from '../app/game/render/dive/dive-band-loader';
 import type { DiveView } from '../app/game/render/dive/dive-view';
 
 export interface FakeKelpBand extends KelpBandHandle {
@@ -58,7 +58,7 @@ export function fakeKelpMaker(): FakeKelpMaker {
   };
 }
 
-/** The forest test the mockup's stand-in used to answer: the planet shows wherever its band is active. */
+/** A forest test that answers as the band table does: the planet shows wherever its band is active. */
 export function fakeForestTest(): DiveForestTest & { readonly views: DiveView[] } {
   const views: DiveView[] = [];
   return {

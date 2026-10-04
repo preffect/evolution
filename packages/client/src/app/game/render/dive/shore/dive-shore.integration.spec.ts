@@ -1,23 +1,20 @@
 // The shore band inside the dive (docs/rendering/opening-dive.md §4, ticket #801): the session, its upper layers, the
 // shore band, its levels and its quad together, over the fake Pixi app and recording canvases (quick stand-in tiles,
 // the real levels). What is checked is what the band table and the camera hand the shore, what reaches its quad, and
-// that it draws on the dive's one Pixi app, under the kelp's meshes and the mockup's canvas.
+// that it draws on the dive's one Pixi app, under the kelp's meshes.
 
 import { ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { DIVE_BAKE_START_DELAY_MS } from '../../constants/dive';
-import {
-  fakeDiveBands,
-  fakePlanetSource,
-  fakeUpperBands,
-  startedDiveSession,
-} from '../../../../../testing/dive-session-harness';
+import { fakePlanetSource, fakeUpperBands, startedDiveSession } from '../../../../../testing/dive-session-harness';
+import { fakeKelpMaker } from '../../../../../testing/fake-kelp-band';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import {
   QUICK_TILE_BAKES,
   SHORE_INTEGRATION_TEST_TIMEOUT_MS,
   TEST_SHORE_LAND,
 } from '../../../../../testing/shore-paint-builder';
+import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import { DiveShoreBand } from './dive-shore-band';
 import { shoreLevelZoom } from './shore-lod';
 import { SHORE_SHADER, SHORE_UNIFORM_GROUP } from './shore-shader-names';
@@ -27,14 +24,15 @@ function realShoreBands() {
   const factory = createFakeShoreCanvasFactory();
   const tiles = new ShoreTiles(factory, QUICK_TILE_BAKES);
   const made: DiveShoreBand[] = [];
-  const bands = fakeUpperBands(fakeDiveBands(), fakePlanetSource(), {
-    createBand: (renderToTexture, devicePixelRatio) => {
+  const kelp = fakeKelpMaker();
+  const shore = {
+    createBand: (renderToTexture: RenderToTexture, devicePixelRatio: number) => {
       const band = new DiveShoreBand({ land: TEST_SHORE_LAND, tiles, factory }, devicePixelRatio, renderToTexture);
       made.push(band);
       return band;
     },
-  });
-  return { bands, made };
+  };
+  return { bands: fakeUpperBands(fakePlanetSource(), shore, { kelp }), made, kelp };
 }
 
 async function openedDive() {
@@ -53,7 +51,7 @@ async function openedDive() {
     harness.subject.requestFrame();
     harness.app.tick();
   };
-  return { ...harness, mockup: upper.bands.mockup, band: upper.made[0]!, bakeFor, settleAt };
+  return { ...harness, band: upper.made[0]!, kelpBand: upper.kelp.bands[0]!, bakeFor, settleAt };
 }
 
 function uniforms(band: DiveShoreBand): Record<string, unknown> {
@@ -66,15 +64,15 @@ function uniforms(band: DiveShoreBand): Record<string, unknown> {
 const opacityOf = (canvas: HTMLCanvasElement): number => Number(canvas.style.opacity);
 
 describe('the shore band in the dive', { timeout: SHORE_INTEGRATION_TEST_TIMEOUT_MS }, () => {
-  it('draws on the dive’s one Pixi app, over the planet and under the kelp, with the mockup’s canvas over it', async () => {
-    const { subject, app, apps, band, mockup, dependencies, settleAt } = await openedDive();
+  it('draws on the dive’s one Pixi app, over the planet and under the kelp', async () => {
+    const { subject, app, apps, band, kelpBand, settleAt } = await openedDive();
     expect(apps).toHaveLength(1);
-    expect(app.stage.children.at(-2)).toBe(band.view);
-    // below the planet's band the game's canvas stays up, under the mockup's
+    const children = app.stage.children;
+    expect(children.indexOf(kelpBand.view)).toBe(children.indexOf(band.view) + 1);
+    // below the planet's band the dive's canvas stays up
     settleAt(0);
     expect(band.view.visible).toBe(true);
     expect(opacityOf(app.canvas)).toBe(1);
-    expect(dependencies.host.lastElementChild).toBe(mockup.canvas);
     subject.destroy();
   });
 

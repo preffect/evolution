@@ -1,14 +1,9 @@
 // The dive session's start and its surroundings (docs/rendering/opening-dive.md §1, §5): a start where either half
 // fails gives the other back and answers false; an off-screen report that comes before the app is kept; reduced
-// motion asked for mid-fall ends the fall; the lobby's autoplay waits for the tiles.
+// motion asked for mid-fall ends the fall; the lobby's autoplay waits for the bands' bakes.
 
 import { describe, expect, it } from 'vitest';
-import {
-  diveSessionHarness as harness,
-  fakeDiveBands as fakeBands,
-  fakeUpperBands,
-  startedDiveSession as started,
-} from '../../../../testing/dive-session-harness';
+import { diveSessionHarness as harness, startedDiveSession as started } from '../../../../testing/dive-session-harness';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
 import { SHORE_LOD } from '../constants/dive-shore';
 import { DIVE_FIRST_PHASE } from './dive-controls';
@@ -21,10 +16,10 @@ describe('DiveSession.start when a half fails', () => {
     subject.destroy();
   });
 
-  it('releases the bands it made when the app fails (no WebGL), and answers false', async () => {
-    const { subject, bands } = harness({ createPixiApp: () => Promise.reject(new Error('no WebGL')) });
+  it('makes no band when the app fails (no WebGL), and answers false', async () => {
+    const { subject, shore, kelp, slime } = harness({ createPixiApp: () => Promise.reject(new Error('no WebGL')) });
     expect(await subject.start()).toBe(false);
-    expect(bands.releases.count).toBe(1);
+    expect([shore.bands, kelp.bands, slime.bands]).toEqual([[], [], []]);
     subject.destroy();
   });
 
@@ -68,19 +63,13 @@ describe('DiveSession: what can change around it', () => {
     subject.destroy();
   });
 
-  it('holds the autoplay until the upper bands’ tiles have baked', async () => {
-    const baked = { isBaked: false };
-    const bands = {
-      ...fakeBands(),
-      get isBaked() {
-        return baked.isBaked;
-      },
-    };
-    const { subject, app, clock } = await started({ loadUpperBands: () => Promise.resolve(fakeUpperBands(bands)) });
+  it('holds the autoplay until the slime’s bakes have landed', async () => {
+    const { subject, app, clock, slime } = await started();
+    slime.bakes.isBaked = false;
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS * 3);
     app.tick();
     expect(subject.controls.isPlaying).toBe(false);
-    baked.isBaked = true;
+    slime.bakes.isBaked = true;
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
     subject.destroy();

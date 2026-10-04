@@ -1,9 +1,9 @@
-// What a dive frame costs, per band (docs/rendering/opening-dive.md §6): the upper bands (the planet's forest test and
-// the mockup's slime canvas), the planet (its uniforms and its draw into its render texture), the shore band (its
-// uniforms, ticket #801), the kelp band (its uniforms, ticket #802), the game renderer's dish (its CPU work outside the submit) and the submit itself (the game canvas's draw
-// calls; the upper bands' canvas is composited by the browser, never uploaded). Script milliseconds on the injected
-// clock: the evidence box has no GPU, so this is the number
-// the bands are compared by. A reader takes the means since its last take.
+// What a dive frame costs, per band (docs/rendering/opening-dive.md §6): the upper bands (the planet's forest test),
+// the planet (its uniforms and its draw into its render texture), the shore band (its uniforms, ticket #801), the kelp
+// band (its uniforms, ticket #802), the slime band (its uniforms, sprites and strokes, ticket #803), the game
+// renderer's dish (its CPU work outside the submit) and the submit itself (the dive canvas's draw calls: every band
+// draws on it). Script milliseconds on the injected clock, the number the bands are compared by on a box whose GPU is
+// software (ticket #208's rule). A reader takes the means since its last take.
 
 import type { Clock } from '@evolution/shared';
 
@@ -13,18 +13,22 @@ export interface DiveFrameTimesReport {
   readonly planetMs: number;
   readonly shoreMs: number;
   readonly kelpMs: number;
+  readonly slimeMs: number;
   readonly dishMs: number;
   readonly submitMs: number;
 }
 
+type Column = Exclude<keyof DiveFrameTimesReport, 'frames'>;
+
+const COLUMNS: readonly Column[] = ['upperBandsMs', 'planetMs', 'shoreMs', 'kelpMs', 'slimeMs', 'dishMs', 'submitMs'];
+
+function zeroTotals(): Record<Column, number> {
+  return Object.fromEntries(COLUMNS.map((column) => [column, 0])) as Record<Column, number>;
+}
+
 export class DiveFrameTimes {
   private frames = 0;
-  private upperBandsTotalMs = 0;
-  private planetTotalMs = 0;
-  private shoreTotalMs = 0;
-  private kelpTotalMs = 0;
-  private dishTotalMs = 0;
-  private submitTotalMs = 0;
+  private totals = zeroTotals();
 
   constructor(private readonly clock: Clock) {}
 
@@ -34,34 +38,42 @@ export class DiveFrameTimes {
     return this.clock.nowMilliseconds() - startedMs;
   }
 
+  private measure(column: Column, work: () => void): void {
+    this.totals[column] += this.timed(work);
+  }
+
   measureUpperBands(work: () => void): void {
-    this.upperBandsTotalMs += this.timed(work);
+    this.measure('upperBandsMs', work);
   }
 
   measurePlanet(work: () => void): void {
-    this.planetTotalMs += this.timed(work);
+    this.measure('planetMs', work);
   }
 
   measureShore(work: () => void): void {
-    this.shoreTotalMs += this.timed(work);
+    this.measure('shoreMs', work);
   }
 
   measureKelp(work: () => void): void {
-    this.kelpTotalMs += this.timed(work);
+    this.measure('kelpMs', work);
+  }
+
+  measureSlime(work: () => void): void {
+    this.measure('slimeMs', work);
   }
 
   measureSubmit(work: () => void): void {
-    this.submitTotalMs += this.timed(work);
+    this.measure('submitMs', work);
   }
 
   /** The renderer's frame, less any submit measured inside it. */
   measureDish<T>(work: () => T): T {
-    const submitBeforeMs = this.submitTotalMs;
+    const submitBeforeMs = this.totals.submitMs;
     let result: T | undefined;
     const elapsedMs = this.timed(() => {
       result = work();
     });
-    this.dishTotalMs += elapsedMs - (this.submitTotalMs - submitBeforeMs);
+    this.totals.dishMs += elapsedMs - (this.totals.submitMs - submitBeforeMs);
     return result as T;
   }
 
@@ -71,23 +83,11 @@ export class DiveFrameTimes {
 
   /** The mean per frame of each since the last take; zeros when no frame was drawn. */
   take(): DiveFrameTimesReport {
-    const perFrame = (totalMs: number): number => (this.frames === 0 ? 0 : totalMs / this.frames);
-    const report = {
-      frames: this.frames,
-      upperBandsMs: perFrame(this.upperBandsTotalMs),
-      planetMs: perFrame(this.planetTotalMs),
-      shoreMs: perFrame(this.shoreTotalMs),
-      kelpMs: perFrame(this.kelpTotalMs),
-      dishMs: perFrame(this.dishTotalMs),
-      submitMs: perFrame(this.submitTotalMs),
-    };
+    const frames = this.frames;
+    const report = { frames } as Record<keyof DiveFrameTimesReport, number>;
+    for (const column of COLUMNS) report[column] = frames === 0 ? 0 : this.totals[column] / frames;
     this.frames = 0;
-    this.upperBandsTotalMs = 0;
-    this.planetTotalMs = 0;
-    this.shoreTotalMs = 0;
-    this.kelpTotalMs = 0;
-    this.dishTotalMs = 0;
-    this.submitTotalMs = 0;
-    return report;
+    this.totals = zeroTotals();
+    return report as DiveFrameTimesReport;
   }
 }

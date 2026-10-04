@@ -84,6 +84,14 @@ uniform vec4 ${KELP_COMMON_UNIFORM.frame};
 out vec4 fragColour;
 `;
 
+/** A point turned by \`angle\` radians about the origin; the vertex shaders that place a turned quad use it too. */
+export const KELP_TURN_SOURCE = /* glsl */ `vec2 turn(vec2 point, float angle) {
+  float c = cos(angle);
+  float s = sin(angle);
+  return vec2(c * point.x - s * point.y, s * point.x + c * point.y);
+}
+`;
+
 /** Painting, coverage, gradients and the turn, in metres and device px. */
 export const KELP_PAINT_SOURCE = /* glsl */ `
 /** \`src\` (premultiplied) over \`dst\`. */
@@ -98,12 +106,7 @@ float cover(float metres) { return clamp(metres * pixelsPerMetre() + 0.5, 0.0, 1
 float stroke(float metres, float widthM) { return cover(0.5 * widthM - abs(metres)); }
 /** \`n\` css px in metres (the mockup's \`px\`). */
 float px(float n) { return n / ${VIEW}.z; }
-vec2 turn(vec2 point, float angle) {
-  float c = cos(angle);
-  float s = sin(angle);
-  return vec2(c * point.x - s * point.y, s * point.x + c * point.y);
-}
-/** Coverage of an ellipse round \`centre\` with \`radii\`, turned by \`angle\`. */
+${KELP_TURN_SOURCE}/** Coverage of an ellipse round \`centre\` with \`radii\`, turned by \`angle\`. */
 float ellipse(vec2 point, vec2 centre, vec2 radii, float angle) {
   vec2 local = turn(point - centre, -angle) / radii;
   float level = length(local);

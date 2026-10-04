@@ -1,6 +1,6 @@
-// The dive session's spec harness (docs/rendering/opening-dive.md §7): a `DiveSession` over a fake Pixi app, a
-// recording stand-in for the mockup's slime, a planet whose coastline bakes are one texel each, and recording shore
-// and kelp bands and forest test, on a manual clock and scheduler, for the session's specs.
+// The dive session's spec harness (docs/rendering/opening-dive.md §7): a `DiveSession` over a fake Pixi app, a planet
+// whose coastline bakes are one texel each, and recording shore, kelp and slime bands and forest test, on a manual
+// clock and scheduler, for the session's specs.
 
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import type { Geometry, Mesh, Shader, UniformGroup } from 'pixi.js';
@@ -12,40 +12,16 @@ import type {
   DiveUpperBands,
   KelpBandMaker,
   ShoreBandMaker,
-} from '../app/game/render/dive/dive-macro-band';
+  SlimeBandMaker,
+} from '../app/game/render/dive/dive-band-loader';
 import type { DivePlanetSource } from '../app/game/render/dive/dive-planet-band';
-import type { MockupBands, MockupFrame } from '../app/game/render/dive/mockup/dive-mockup-bands';
 import type { DivePlanetBake, DivePlanetBakeJob } from '../app/game/render/dive/planet/dive-planet-bakes';
 import { DIVE_PLANET_UNIFORM_GROUP } from '../app/game/render/dive/planet/dive-planet-shader';
 import { DIVE_PLANET_OPEN_SEA_TEXEL } from '../app/game/render/constants';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from './fake-pixi-app';
 import { fakeForestTest, fakeKelpMaker, type FakeKelpMaker } from './fake-kelp-band';
 import { fakeShoreMaker, type FakeShoreMaker } from './fake-shore-band';
-
-export interface FakeDiveBands extends MockupBands {
-  readonly frames: MockupFrame[];
-  readonly releases: { count: number };
-}
-
-/** The mockup's slime, recorded. */
-export function fakeDiveBands(): FakeDiveBands {
-  const frames: MockupFrame[] = [];
-  const releases = { count: 0 };
-  const canvas = document.createElement('canvas');
-  return {
-    canvas,
-    frames,
-    releases,
-    isBaked: true,
-    draw: (frame) => {
-      frames.push(frame);
-    },
-    pumpBakes: () => false,
-    release: () => {
-      releases.count += 1;
-    },
-  };
-}
+import { fakeSlimeMaker, type FakeSlimeMaker } from './fake-slime-band';
 
 const ONE_TEXEL = 1;
 
@@ -88,22 +64,27 @@ function runToEnd(job: DivePlanetBakeJob): DivePlanetBake {
   for (let step = job.next(); ; step = job.next()) if (step.done === true) return step.value;
 }
 
-/** What the lazy chunks would give the session: `mockup`, a planet of one-texel bakes, a recording shore and kelp. */
+/** What the lazy chunks would give the session: a planet of one-texel bakes, recording shore, kelp and slime bands. */
 export function fakeUpperBands(
-  mockup: MockupBands = fakeDiveBands(),
   planet = fakePlanetSource(),
   shore: ShoreBandMaker = fakeShoreMaker(),
-  rest: { readonly kelp?: KelpBandMaker; readonly forest?: DiveForestTest } = {},
+  rest: { readonly kelp?: KelpBandMaker; readonly slime?: SlimeBandMaker; readonly forest?: DiveForestTest } = {},
 ): DiveUpperBands {
-  return { mockup, planet, shore, kelp: rest.kelp ?? fakeKelpMaker(), forest: rest.forest ?? fakeForestTest() };
+  return {
+    planet,
+    shore,
+    kelp: rest.kelp ?? fakeKelpMaker(),
+    slime: rest.slime ?? fakeSlimeMaker(),
+    forest: rest.forest ?? fakeForestTest(),
+  };
 }
 
 export interface DiveSessionHarness {
   readonly subject: DiveSession;
   readonly clock: ManualClock;
-  readonly bands: FakeDiveBands;
   readonly shore: FakeShoreMaker;
   readonly kelp: FakeKelpMaker;
+  readonly slime: FakeSlimeMaker;
   readonly apps: FakePixiApp[];
   readonly views: DiveView[];
   readonly motion: { isReduced: boolean };
@@ -112,9 +93,9 @@ export interface DiveSessionHarness {
 
 export function diveSessionHarness(overrides: Partial<DiveSessionDependencies> = {}): DiveSessionHarness {
   const clock = new ManualClock(0);
-  const bands = fakeDiveBands();
   const shore = fakeShoreMaker();
   const kelp = fakeKelpMaker();
+  const slime = fakeSlimeMaker();
   const apps: FakePixiApp[] = [];
   const views: DiveView[] = [];
   const motion = { isReduced: false };
@@ -128,14 +109,14 @@ export function diveSessionHarness(overrides: Partial<DiveSessionDependencies> =
       apps.push(app);
       return Promise.resolve(app);
     },
-    loadUpperBands: () => Promise.resolve(fakeUpperBands(bands, fakePlanetSource(), shore, { kelp })),
+    loadUpperBands: () => Promise.resolve(fakeUpperBands(fakePlanetSource(), shore, { kelp, slime })),
     balance: () => DEFAULT_BALANCE,
     isMotionReduced: () => motion.isReduced,
     onView: (view) => views.push(view),
     noiseTileSizePx: TEST_NOISE_TILE_SIZE_PX,
     ...overrides,
   };
-  return { subject: new DiveSession(dependencies), clock, bands, shore, kelp, apps, views, motion, dependencies };
+  return { subject: new DiveSession(dependencies), clock, shore, kelp, slime, apps, views, motion, dependencies };
 }
 
 /** Ticks until the staged renderer is current: one bake per frame (ticket #479). */

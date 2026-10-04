@@ -1,6 +1,6 @@
 // The coast and the shore on the GPU (docs/rendering/opening-dive.md §4, ticket #801): the band from where the coast
 // fades in over the planet (zoom 4.85) down to the kelp's blade (−1.42), a quad on the dive's own Pixi stage over the
-// planet (the dive keeps one WebGL context), under the mockup's canvas with the kelp. Its tiles bake once a page and its levels of detail as the camera nears them, a few
+// planet (the dive keeps one WebGL context), under the kelp's meshes. Its tiles bake once a page and its levels of detail as the camera nears them, a few
 // milliseconds at a time on the scheduler; each frame it draws one quad: the baked level, the next one crossfading
 // in, and the live sea (`shore-mesh.ts`). Before PR #801 the mockup drew all of it on Canvas 2D every frame, and its
 // zone layers cost seconds a frame on a box without a GPU.
