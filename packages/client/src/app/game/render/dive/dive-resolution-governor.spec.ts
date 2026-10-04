@@ -220,7 +220,8 @@ describe('DiveResolutionGovernor', () => {
     const subject = feed(1);
     const undoneAtMs: number[] = [];
     // Frames over budget whatever the resolution: the page's own work, not the GPU's.
-    while (undoneAtMs.length < 4) {
+    const limitMs = uselessStepHoldMs * 16;
+    while (undoneAtMs.length < 4 && subject.nowMs < limitMs) {
       subject.frames(1, SLOW_MS);
       if (subject.changes.length % 2 === 0 && subject.changes.length / 2 > undoneAtMs.length) {
         undoneAtMs.push(subject.nowMs);

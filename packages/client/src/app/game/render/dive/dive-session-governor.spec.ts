@@ -117,10 +117,9 @@ describe('DiveSession resolution governor', () => {
 
   it('never moves under the evidence probe, whose frames are drawn back to back', async () => {
     const parts = await inTheDrop();
-    for (let probe = 0; probe < FRAMES_TO_JUDGE; probe += 1) {
-      parts.subject.probeFrames(DROP_ZOOM, FRAMES_TO_JUDGE);
-      parts.clock.advanceMilliseconds(SOFTWARE_FRAME_MS);
-    }
+    // A probe under software GL: each of its frames waits on the GPU in its submit.
+    (parts.app.app as { render: () => void }).render = () => parts.clock.advanceMilliseconds(SOFTWARE_FRAME_MS);
+    parts.subject.probeFrames(DROP_ZOOM, FRAMES_TO_JUDGE * 2);
     expect(parts.app.resolutions).toEqual([]);
     parts.subject.destroy();
   });
