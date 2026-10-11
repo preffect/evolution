@@ -100,7 +100,11 @@ export const E11_LATE_RELEASE_TICK = 32;
 export const E11_TOO_LATE_SPRINT_TICK = 14;
 export const E11_TOO_LATE_SEAL_TICK = 23;
 export const E11_TOO_LATE_END_TICK = 41;
-export const E11_NO_SPRINT_RELEASE_TICK = 34;
+/**
+ * Steering away from tick 10 without a sprint: released on tick 46 since ticket #819 (the kept grab holds B while it
+ * still touches A, so it drains only once clear of A); 34 before, when leaving the half-covered bound began the drain.
+ */
+export const E11_NO_SPRINT_RELEASE_TICK = 46;
 
 /**
  * "A at mass 100, B at 20, centres 10 wu apart": the setup every engulf row shares.

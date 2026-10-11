@@ -3,8 +3,18 @@
 // how many drop because contact broke. Two cells alone in the broth, no gel, no food; the whole tick runs.
 //
 //   DRAG=<share> pnpm --filter @evolution/server bench:engulf-pass      (DRAG patches ENGULF_DRAG_SHARE first; unset: the default)
+//   HOLD=<fraction> pnpm --filter @evolution/server bench:engulf-pass    (HOLD patches ENGULF_HOLD_COVERAGE_FRACTION first; #819)
+//   COVER=<seconds> pnpm --filter @evolution/server bench:engulf-pass   (COVER patches ENGULF_COVER_SECONDS first; #819)
+//   PREY_TRAIT=cilia pnpm --filter @evolution/server bench:engulf-pass  (the prey owns that trait at tier I; #819's Cilia escape)
 
-import { DEFAULT_BALANCE, EFFECT_KIND, ENGULF_RELEASE_REASON, playerId, secondsToTicks } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  EFFECT_KIND,
+  ENGULF_RELEASE_REASON,
+  playerId,
+  secondsToTicks,
+  type TraitId,
+} from '@evolution/shared';
 import { setBalanceForDebug } from '../src/game/debug/debug-operations.js';
 import { setCellMass } from '../src/game/simulation/cell-mass.js';
 import { stepWorld } from '../src/game/simulation/step.js';
@@ -26,8 +36,14 @@ const OFFSETS = [0, 0.25, 0.5, 0.75];
 const START_RADII = [1, 2, 3];
 const TRIAL_SECONDS = 4;
 const FAR_WU = 1000;
-const PREY_STYLES = ['still', 'flee', 'flee+sprint'] as const;
-const AIMS = ['through', 'track'] as const;
+/** `cross` (#819): the prey swims east across the pass line at full speed and never reacts, so the two meet mid-swim. */
+const PREY_STYLES = ['still', 'flee', 'flee+sprint', 'cross'] as const;
+/**
+ * `chase` (#819): the pointer sits `CHASE_LEAD_RADII` of the predator's radii ahead of the prey along the prey's own
+ * velocity, as a player chasing a moving cell leads it (E18's rim chase); on a still prey it is on the prey.
+ */
+const AIMS = ['through', 'track', 'chase'] as const;
+const CHASE_LEAD_RADII = 1.5;
 type PreyStyle = (typeof PREY_STYLES)[number];
 type Aim = (typeof AIMS)[number];
 
@@ -37,6 +53,14 @@ interface Outcome {
   escaped: number;
   firstStartFinished: number;
   trials: number;
+}
+
+/** The predator's pointer on the prey, or `leadRadii` of its own radii ahead of the prey along the prey's velocity. */
+function aimAtPrey(predator: CellRecord, prey: CellRecord, leadRadii: number) {
+  const preySpeed = Math.hypot(prey.velocityX, prey.velocityY);
+  const lead = preySpeed === 0 ? 0 : (leadRadii * predator.radius) / preySpeed;
+  predator.targetX = prey.x + prey.velocityX * lead;
+  predator.targetY = prey.y + prey.velocityY * lead;
 }
 
 function trial(predatorMass: number, preyMass: number, offset: number, startRadii: number, aim: Aim, style: PreyStyle) {
@@ -50,36 +74,54 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
   if (process.env.DRAG !== undefined) {
     setBalanceForDebug(world, { absorption: { ENGULF_DRAG_SHARE: Number(process.env.DRAG) } });
   }
+  if (process.env.HOLD !== undefined) {
+    setBalanceForDebug(world, { absorption: { ENGULF_HOLD_COVERAGE_FRACTION: Number(process.env.HOLD) } });
+  }
+  if (process.env.COVER !== undefined) {
+    setBalanceForDebug(world, { absorption: { ENGULF_COVER_SECONDS: Number(process.env.COVER) } });
+  }
   const balance = world.balance;
   const context = createTestStepContext(world);
   const [predator, prey] = world.cells as [CellRecord, CellRecord];
+  if (process.env.PREY_TRAIT !== undefined) {
+    world.players[1]?.ownedTraits.push({ traitId: process.env.PREY_TRAIT as TraitId, tier: 1 });
+  }
   setCellMass(predator, predatorMass, balance);
   setCellMass(prey, preyMass, balance);
   const reach = predator.radius - prey.radius * balance.absorption.ENGULF_COVERAGE_FRACTION;
-  prey.x = BROTH_POINT.x;
+  const approachWu = reach + startRadii * predator.radius;
+  const isCrossing = style === 'cross';
+  prey.x = isCrossing ? BROTH_POINT.x - approachWu : BROTH_POINT.x;
   prey.y = BROTH_POINT.y;
+  prey.velocityX = isCrossing ? balance.growth.CELL_BASE_SPEED : 0;
   prey.targetX = null;
   prey.targetY = null;
-  predator.x = prey.x + offset * reach;
-  predator.y = prey.y - reach - startRadii * predator.radius;
+  predator.x = BROTH_POINT.x + offset * reach;
+  predator.y = prey.y - approachWu;
   predator.velocityX = 0;
   predator.velocityY = balance.growth.CELL_BASE_SPEED;
   const outcome = { starts: 0, finished: 0, escaped: 0, firstStartFinished: 0 };
   let wasHeld = false;
+  // Once a trial, the first tick the prey sees it is held (#819: keyed on `wasHeld` it never fired, since `wasHeld`
+  // is already true by the tick the prey first reads the hold).
+  let hasSprinted = false;
   for (let tick = 0; tick < secondsToTicks(TRIAL_SECONDS); tick += 1) {
     if (aim === 'through') {
       predator.targetX = predator.x;
       predator.targetY = predator.y + FAR_WU;
     } else {
-      predator.targetX = prey.x;
-      predator.targetY = prey.y;
+      aimAtPrey(predator, prey, aim === 'chase' ? CHASE_LEAD_RADII : 0);
     }
-    if (prey.engulfedByCellId !== null && style !== 'still') {
+    if (isCrossing) {
+      prey.targetX = prey.x + FAR_WU;
+      prey.targetY = prey.y;
+    } else if (prey.engulfedByCellId !== null && style !== 'still') {
       const distance = Math.hypot(prey.x - predator.x, prey.y - predator.y) || 1;
       prey.targetX = prey.x + ((prey.x - predator.x) / distance) * FAR_WU;
       prey.targetY = prey.y + ((prey.y - predator.y) / distance) * FAR_WU;
-      if (style === 'flee+sprint' && !wasHeld) {
+      if (style === 'flee+sprint' && !hasSprinted) {
         prey.sprintRemainingTicks = secondsToTicks(balance.controls.SPRINT_DURATION_SECONDS);
+        hasSprinted = true;
       }
     }
     stepWorld(world, context);
@@ -116,6 +158,9 @@ function row(predatorMass: number, preyMass: number, aim: Aim, style: PreyStyle)
 }
 
 console.log(`drag ${process.env.DRAG ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_DRAG_SHARE})`}`);
+console.log(`hold ${process.env.HOLD ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_HOLD_COVERAGE_FRACTION})`}`);
+console.log(`cover ${process.env.COVER ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_COVER_SECONDS})`} s`);
+console.log(`prey trait ${process.env.PREY_TRAIT ?? 'none'}`);
 console.log('| aim | prey | predator/prey mass | trials | starts | finished | dropped (escaped) | first pass eats |');
 for (const aim of AIMS) {
   for (const style of PREY_STYLES) {

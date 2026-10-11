@@ -109,17 +109,19 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
 
   it('T14: a Cytoskeleton Lattice III prey steering away from tick 16 slows the wrap enough to break free', async () => {
     const lattice = { prey: topTier('cytoskeleton') };
-    await expectEscape('T14 steering from 16', lattice, steersAwayFrom(16), 37);
+    // Since ticket #819 the kept grab holds B until it is clear of A, so each escape lands later (37 and 28 before).
+    await expectEscape('T14 steering from 16', lattice, steersAwayFrom(16), 47);
     await expectAbsorbed(
       'T14 plain prey steering from 16',
       {},
       { input: steersAwayFrom(16), sealTick: 21, payoutTick: 39 },
     ).runDeterministic();
-    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 28);
+    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 39);
   });
 
   it('T15: a Cilia Fringe III prey slips the grip and escapes from tick 12', async () => {
-    await expectEscape('T15 steering from 12', { prey: topTier('cilia') }, steersAwayFrom(12), 32);
+    // Since ticket #819 the kept grab holds B until it is clear of A: released on 41 (32 before).
+    await expectEscape('T15 steering from 12', { prey: topTier('cilia') }, steersAwayFrom(12), 41);
     await expectAbsorbed(
       'T15 plain prey steering from 12',
       {},
@@ -129,7 +131,8 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
 
   it('T16: Paramecium Cilia III with Cilia Fringe I escapes from tick 15, where a plain prey is absorbed', async () => {
     const paramecium = { prey: { traits: [{ traitId: 'paramecium_cilia', tier: TOP_TIER }, 'cilia'] } };
-    await expectEscape('T16 steering from 15', paramecium, steersAwayFrom(15), 34);
+    // Since ticket #819 the kept grab holds B until it is clear of A: released on 42 (34 before).
+    await expectEscape('T16 steering from 15', paramecium, steersAwayFrom(15), 42);
     await steersAwayFrom(15)(engulfPairOf('T16 plain prey steering from 15'))
       .advance(ROW_TICKS)
       .expect('a plain prey is absorbed: its window closed at tick 10', absorptionsOfPredator)

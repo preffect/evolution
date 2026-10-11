@@ -119,8 +119,8 @@ describe('ecology/acceptance.md §8: getting away from an engulf, and being carr
 
     await engulfPair('E11 steering away from 10 without sprint')
       .from(E11_SPRINT_TICK, player(1).does(awayFromPredator))
-      .advance(E11_TOO_LATE_END_TICK)
-      .expect('released on tick 34', releaseReasons)
+      .advance(E11_NO_SPRINT_RELEASE_TICK)
+      .expect(`released on tick ${E11_NO_SPRINT_RELEASE_TICK}`, releaseReasons)
       .atTick(E11_NO_SPRINT_RELEASE_TICK)
       .toEqual([ENGULF_RELEASE_REASON.escaped])
       .runDeterministic();

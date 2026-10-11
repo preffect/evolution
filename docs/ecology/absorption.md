@@ -21,10 +21,12 @@ canStart      = predator.mass ≥ prey.mass × requiredRatio
 canContinue   = predator.mass ≥ prey.mass × releaseRatio
 inContact     = |predator.centre − prey.centre| ≤ predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION
 inGrab        = |predator.centre − prey.centre| ≤ predator.radius × (1 + predator.armGrabReachRadii) − prey.radius × ENGULF_COVERAGE_FRACTION
+inHold        = |predator.centre − prey.centre| ≤ predator.radius − prey.radius × ENGULF_HOLD_COVERAGE_FRACTION   (prey not sprinting)
+              = inContact                                                                                      (prey sprinting)
 ```
 
 `inGrab` is `inContact` for every cell without arms (`armGrabReachRadii` 0); the amoeba's arms widen it (the arm grab,
-below).
+below). `inHold` is the kept grab (#819, below): it holds an engulf that has started, never starts one, never seals.
 
 `canStart` is the pure predicate `canEngulf(predator, prey, balance.absorption)` in
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
@@ -128,7 +130,8 @@ the rim impossible to finish: a slip drains instead of cancelling, and a grab, "
 - The drain reuses `ENGULF_ESCAPE_DECAY_MULTIPLIER` **2**: a slip of n ticks costs 2n ticks of progress, and a prey
   that stays clear drains out in 0.1 s × `massFactor` from the end of the cover, 0.3 s × `massFactor` from the seal
   line. Escape is unchanged in kind: a sprint, a speed trait or the cilia still break contact and stay clear (E18b,
-  E18c, E11), each a few ticks later than when the cover cancelled outright.
+  E18c, E11), each a few ticks later than when the cover cancelled outright. Since the kept grab (#819, below) a prey
+  that is not sprinting breaks contact only once it no longer touches the predator.
 
 **The arm grab (#735).** The human's call on ticket #735, after #646 made the amoeba's arms reach far past the
 rings: an arm that lies across a cell grabs it. Amoeba Pseudopods sets `armGrabReachRadii` to
@@ -145,7 +148,9 @@ what keeps an all-round reach honest. Three rules, and nothing else changes:
   the arm alone: it drains as out of contact (it is still pulled) and escapes when the progress runs out, unless the
   pull or the predator brings the body over it first. So a prey swimming through the arm's reach is not grabbed, and a
   prey pinned at arm's length (against the rim, say) cannot hover there with the progress climbing and draining for
-  minutes, which the #735 review found.
+  minutes, which the #735 review found. The body's kept grab (#819, below) still holds a prey that steers away while
+  it touches the predator, so the arm alone decides only past it: for a prey wider than 0.41 of the predator's radius
+  the kept grab reaches past the arm's tip (E9's pair, 20 under 100).
 - **The re-grab cooldown:** a prey that escapes (`escaped`) a predator with arms cannot be grabbed by that
   predator's arm alone for `ENGULF_ARM_REGRAB_COOLDOWN_SECONDS` **0.75** s. The body can still catch it meanwhile.
   It is the spit-out refractory's record (`{ preyCellId, untilTick }`, one entry per prey, pruned by the engulf step,
@@ -218,6 +223,42 @@ The player sees the hold: the lobe nearest the prey reaches to it and draws back
 The rows it moves are T13's (a sprint at tick 7 no longer gets clear of Amoeba III; the escapes that remain drain
 later, held out on the arm), and T23 is the grab itself, the escape from it and the large amoeba's ([`traits/constants-and-acceptance.md §6`](../traits/constants-and-acceptance.md#6-acceptance-scenarios)).
 
+**The kept grab (#819).** The human's call on ticket #819, after a playtest found that early on a cell crossing the
+predator's path was never caught: it swam out from under the predator on its own long before the seal, and the drag
+(#772) never answers the prey's own move. Once an engulf has started, and until the seal, the body holds the prey while
+any of it is still under the predator, `inHold` above with `ENGULF_HOLD_COVERAGE_FRACTION` **−1** (the cells touching),
+instead of only while the predator covers half of it. One exception keeps decision #139's way out: **while the prey's
+sprint runs** (`sprintRemainingTicks` > 0 at the engulf step) it is held by `inContact`, the half-covered bound, as
+before. Players and wild cells hold by the same rule (`isEngulfHoldContact` in `simulation/contact.ts`).
+
+- **Starting and the seal do not change.** Step 1 still needs `inContact` (or the arm hold), and only `inContact` seals:
+  progress that would cross `ENGULF_SEAL_PROGRESS` while the prey is held by the kept grab alone stays at the lip, as
+  the arm's does, until the body covers the prey.
+- **What escapes.** A sprint breaks contact exactly where it did (E11, E18b and the rim-chase sprint escape on the same
+  tick). A prey that only swims away drains once it is clear of the predator instead of once it is past the half-covered
+  bound, so every steering escape lands later (E11's no-sprint row on tick 46, not 34; T14–T16 8 to 11 ticks later;
+  E18c's Cilia Fringe III on tick 64, not 17), and none is lost.
+- **Why not without the exception.** At −1 alone, sprinting prey were caught: up to 11 of 12 in some early pairs of the
+  bench below, which breaks the sprint escape.
+
+What it moves (`packages/server/bench/engulf-pass.ts`, the early pairs 26/20, 40/30, 60/45 and 60/30, 12 passes each,
+48 in all; `cross` is a prey swimming across the pass line at full speed, `chase` a predator aiming 1.5 of its radii
+ahead of the prey along its velocity, `through` one swimming straight on):
+
+| Prey and aim                  | Before (`HOLD=0.5`) | Kept grab | Kept grab, prey with Cilia I |
+| ----------------------------- | ------------------- | --------- | ---------------------------- |
+| Crossing, chased              | 0 / 48              | 44 / 48   | 24 / 48                      |
+| Crossing, straight through    | 0 / 48              | 0 / 48    | 0 / 48                       |
+| Fleeing with a sprint, chased | 0 / 48              | 4 / 48    | 0 / 48                       |
+| Fleeing, chased               | 4 / 48              | 12 / 48   | 12 / 48                      |
+| Still, any aim                | 48 / 48             | 48 / 48   | 48 / 48                      |
+
+Counts are engulfs finished; "Before" is the plain prey with `HOLD=0.5`, which is the old rule (a Cilia I prey before: the
+same, but 5 / 48 fleeing). The one other row that moves: a Cilia I prey sprinting off a predator that swims straight
+through is caught 4 / 48 times (0 before). A crossing cell is caught by chasing it, never by ramming through it: it crosses the
+predator in about 23 ticks and the seal needs at least 35. The rim chase (E18's geometry) keeps its sprint escape on
+the same tick (12 at a lead of 1.5 radii, 13 at 5) and its Cilia Fringe III escape, later (tick 64, was 17).
+
 **Struggle (cover and wrap, while in contact).** The prey's steer command of this tick — the one the
 movement step took from its start-of-tick pose and moved on, kept on the record as
 `CellRecord.steerCommand` (`steerCommand` of the shared movement kernel, §5.2) rather than taken a
@@ -274,11 +315,11 @@ from this order):
 4. Wrap or absorb with a positive chance: draw and compare → release, reason `spat_out`, refractory.
 5. Cover or wrap: the drag first (the gap the predator's own move opened, above), then the arm's pull (a prey in
    `inGrab` but not `inContact`, the arm grab above); then in contact
-   (`inContact` or the arm hold) → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
+   (`inContact`, the kept grab `inHold`, or the arm hold) → `progress += phaseRatePerTick × (1 − slowdown)`; out of contact →
    `progress −= ENGULF_ESCAPE_DECAY_MULTIPLIER × baseRatePerTick`, release (`escaped`) when it is ≤ ε (drained to 0;
    a wrap drains back through the cover band first). Absorb: `progress += phaseRatePerTick`.
 6. Progress ≥ 1 − ε → payout. Progress crossed `ENGULF_SEAL_PROGRESS` this tick → seal (offset recorded,
-   prey velocity zeroed) when the prey is `inContact`; held by the arm alone, the progress stays where it was. A tick that crosses a band boundary runs entirely at the rate of the phase it
+   prey velocity zeroed) when the prey is `inContact`; held by the kept grab or the arm alone, the progress stays where it was. A tick that crosses a band boundary runs entirely at the rate of the phase it
    started in; the overshoot (under one tick) is spent in the next phase.
 
 **A cell the world freed waits a tick.** A prey released with reason `aborted` — the chain payout
@@ -354,9 +395,9 @@ A cell can be `engulfing` and `being_engulfed` at once (a chain); the flags are 
 | Two predators reach one prey                | The first to satisfy contact + eligibility claims it; the other waits. Ties within a tick: lower cell id (stable ordering, #74).                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Chain: B engulfs C while A engulfs B        | Both run. If A finishes first, C is released (`aborted`, progress 0, at B's last centre, so it now sits inside A; nobody may claim C again on that tick, so A starts on it next tick at the earliest, §6.1) and A's payout is B alone. If B finishes first, B's mass jumps and A's eligibility is rechecked next tick. A sealed B keeps engulfing C from its carried centre. Before the seals, A's drag moves B only: B's own drag answers B's own move (its kernel velocity), so a B that A tows does not carry C along, and C can drain out of it. |
 | Predator drops below `releaseRatio`         | Released immediately (`ratio`) in any phase, seal included; the predator keeps no progress. Between `releaseRatio` and `requiredRatio` the engulf continues (hysteresis, §6.1). A prey ejected from the absorb phase reappears at its carried offset, overlapping the predator, and separation (§5.3) pushes it clear because the predator can no longer engulf it.                                                                                                                                                                                  |
-| Prey moves away before the seal             | Cover or wrap: contact breaks, progress drains at 2× the base rate (a wrap back through the cover band) and the prey is released the tick it reaches 0 (E11, E18b). Contact regained before then resumes the engulf from what is left, so a one-tick slip costs two ticks of progress, never the engulf (#634). This is the intended escape; the struggle slows the engulf meanwhile.                                                                                                                                                                |
+| Prey moves away before the seal             | Cover or wrap: contact breaks (the kept grab, #819: once the prey no longer touches the predator, or past the half-covered bound while its sprint runs), progress drains at 2× the base rate (a wrap back through the cover band) and the prey is released the tick it reaches 0 (E11, E18b). Contact regained before then resumes the engulf from what is left, so a one-tick slip costs two ticks of progress, never the engulf (#634). This is the intended escape; the struggle slows the engulf meanwhile.                                      |
 | Predator moves off the prey before the seal | The drag (#772) draws the prey after it by `ENGULF_DRAG_SHARE` of the gap the predator's own move opened, so a pass at speed carries the prey and finishes (E19). The drag never answers the prey's own move, so a prey that swims off at the same time still gets out as from a still predator (E19b).                                                                                                                                                                                                                                              |
-| Chase along the rim                         | The grabbed prey keeps 0.85 of its speed and the predator all of its own, so a predator that follows its prey along the curved wall keeps contact and finishes (E18, #634). A sprint or a speed or cilia trait still breaks contact and stays clear (E18b, E18c).                                                                                                                                                                                                                                                                                    |
+| Chase along the rim                         | The grabbed prey keeps 0.85 of its speed and the predator all of its own, so a predator that follows its prey along the curved wall keeps contact and finishes (E18, #634). A sprint or a speed or cilia trait still breaks contact and stays clear (E18b, E18c; since the kept grab, #819, the cilia's escape lands later, on tick 64).                                                                                                                                                                                                             |
 | Prey moves away after the seal              | Nothing: the prey is carried (`carriedOffset`), its input is latched but its speed cap is 0 (E11b). Spines and swallowed toxin are the only ways out.                                                                                                                                                                                                                                                                                                                                                                                                |
 | Spat out, still overlapping                 | The refractory (`ENGULF_SPIT_OUT_REFRACTORY_SECONDS`, one per spat-out prey, so two Diatoms spat out in turn each keep theirs) blocks a restart on that prey and separation pushes the pair apart meanwhile; after it, an idle pair sits just past touching and nothing restarts unless the predator closes in again (T4). Another predator may start on the spat-out prey at once.                                                                                                                                                                  |
 | Predator or prey disconnects                | No special case: an input-less cell is still a cell. Removing a cell (`dissolveCell`) aborts every engulf it is part of, on both sides, before it leaves the world. If the prey is removed from the room mid-engulf, the predator gets no payout and the removed cell drops detritus. If a predator carrying a sealed prey is removed, the prey is released (`aborted`) where it is.                                                                                                                                                                 |

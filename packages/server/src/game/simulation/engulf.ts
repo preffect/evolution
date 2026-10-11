@@ -19,7 +19,7 @@ import {
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { cellPairs, isEngulfContact, type CellPair } from './contact.js';
+import { cellPairs, isEngulfContact, isEngulfHoldContact, type CellPair } from './contact.js';
 import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
 import { clearHeldDisplacements, dragPreyAlong } from './engulf-drag.js';
 import { payOutEngulf } from './engulf-payout.js';
@@ -141,9 +141,9 @@ interface HoldContact {
 
 /**
  * A sealed prey is carried, so in body contact. Before the seal the predator first drags the prey after its own move
- * (#772), then the arm draws a prey it holds in (#735); the arm alone then counts as contact only while the prey is
- * not steering away: a prey that fights the arm drains, as out of contact, until the pull brings the body over it or
- * it drains out.
+ * (#772), then the arm draws a prey it holds in (#735); the body then holds the prey by the kept grab's looser bound
+ * (#819, `isEngulfHoldContact`), and the arm alone counts as contact only while the prey is not steering away: a prey
+ * that fights the arm drains, as out of contact, until the pull brings the body over it or it drains out.
  */
 function holdContactOf(
   pairing: EngulfPairing,
@@ -156,8 +156,10 @@ function holdContactOf(
   }
   dragPreyAlong(pairing, balance);
   pullPreyByArm(pairing, world, balance);
-  const isBodyContact = isEngulfContact(pairing.predator, pairing.prey, balance);
-  return { isBodyContact, isInContact: isBodyContact || isArmHold(pairing.predator, pairing.prey, balance) };
+  const { predator, prey } = pairing;
+  const isBodyContact = isEngulfContact(predator, prey, balance);
+  const isBodyHold = isBodyContact || isEngulfHoldContact(predator, prey, balance);
+  return { isBodyContact, isInContact: isBodyHold || isArmHold(predator, prey, balance) };
 }
 
 /** This tick's signed progress change for the pair (docs/ecology/absorption.md §6.1 step 5). */

@@ -47,8 +47,28 @@ export function isEngulfContact(predator: CellFootprint, prey: CellFootprint, ba
 
 /** How far the predator still is from engulf contact with the prey (wu); zero or less once it covers the prey. */
 export function engulfContactGap(predator: CellFootprint, prey: CellFootprint, balance: BalanceConfig): number {
-  const reach = predator.radius - prey.radius * balance.absorption.ENGULF_COVERAGE_FRACTION;
-  return distanceBetween(predator, prey) - reach;
+  return coverageGap(predator, prey, balance.absorption.ENGULF_COVERAGE_FRACTION);
+}
+
+/** Where a held prey is, how big, and whether its sprint is running: what the kept grab reads. */
+export type HeldPreyFootprint = CellFootprint & Pick<CellRecord, 'sprintRemainingTicks'>;
+
+/**
+ * The kept grab (docs/ecology/absorption.md §6.1, #819): an engulf that has started keeps its body contact while
+ * `|centres| ≤ predator.radius − prey.radius × ENGULF_HOLD_COVERAGE_FRACTION`, a looser bound than the start's, so a
+ * prey that swims part way out from under the predator is still held. While the prey's sprint runs it is held by the
+ * start's bound instead, so sprinting stays the way out (decision #139). Starting and sealing read `isEngulfContact`.
+ */
+export function isEngulfHoldContact(predator: CellFootprint, prey: HeldPreyFootprint, balance: BalanceConfig): boolean {
+  const absorption = balance.absorption;
+  const isSprinting = prey.sprintRemainingTicks > 0;
+  const coverageFraction = isSprinting ? absorption.ENGULF_COVERAGE_FRACTION : absorption.ENGULF_HOLD_COVERAGE_FRACTION;
+  return coverageGap(predator, prey, coverageFraction) <= 0;
+}
+
+/** The centre distance past `predator.radius − prey.radius × coverageFraction` (wu). */
+function coverageGap(predator: CellFootprint, prey: CellFootprint, coverageFraction: number): number {
+  return distanceBetween(predator, prey) - (predator.radius - prey.radius * coverageFraction);
 }
 
 /** Mass alone, plus the refractory: a predator that just spat this prey out cannot engulf it yet. */
