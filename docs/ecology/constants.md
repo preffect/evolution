@@ -80,6 +80,29 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`       | `endosymbiosis`         | `CellStage`                       |
 | `WILD_CELL_TURN_CHANCE`                    | 0.25                    | per decision                      |
 
+### `giants.ts` (§3.5, [`giants.md`](./giants.md); records keyed by `GiantSpecies`: amoeba, paramecium, diatom)
+
+| Constant                                  | Value                                                                                                | Unit                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom (empty in `DEFAULT_BALANCE` until the giants-on slice, giants.md §3.5.17) | species, one seat each, read at world creation                |
+| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter                                                                              | `GiantRole` (a plain constant, not a balance leaf)            |
+| `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1000                                                                                       | mass                                                          |
+| `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1500, 1300, 1500                                                                                     | mass                                                          |
+| `GIANT_MASS_CEILING`                      | 1500                                                                                                 | mass                                                          |
+| `GIANT_DECAY_MULTIPLIER`                  | 0.25                                                                                                 | × the player's decay                                          |
+| `GIANT_BUILDS_BY_SPECIES`                 | the three builds of §3.5.4                                                                           | trait ids and tiers                                           |
+| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6                                                                                       | × the traits' speed                                           |
+| `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05                                                                                      | per wander decision                                           |
+| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                                                                                                 | × the hunter's mass; gates the hunt target, never the swallow |
+| `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                                                                                                    | s                                                             |
+| `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                                                                                                   | degrees either side of ahead                                  |
+| `GIANT_GRAZER_APPETITE_MASS`              | 100                                                                                                  | mass of growth                                                |
+| `GIANT_DNA_BONUS`                         | 200                                                                                                  | DNA                                                           |
+| `GIANT_RESPAWN_SECONDS`                   | 90                                                                                                   | s                                                             |
+| `GIANT_MIN_PLAYER_DISTANCE_WU`            | 1500                                                                                                 | wu                                                            |
+| `GIANT_MIN_GIANT_DISTANCE_WU`             | 1500                                                                                                 | wu                                                            |
+| `GIANT_MIN_CELL_DISTANCE_WU`              | 450                                                                                                  | wu                                                            |
+
 ### `absorption.ts`
 
 Against PR #142's `absorption.ts` (#97): `ENGULF_BASE_DURATION_SECONDS` goes from a 1.0 s literal to
