@@ -23,9 +23,10 @@ import { moveCells } from './movement.js';
 /**
  * The digests of the two scripted runs below, recorded on main after #265 (`movement-step.ts`); the engulf run
  * re-recorded by #634, which changed the engulf factors (the prey grabbed in cover, the predator unslowed); both
- * re-recorded by #677, which dropped the mass curve from the cap (every cell at `CELL_BASE_SPEED`).
+ * re-recorded by #677, which dropped the mass curve from the cap (every cell at `CELL_BASE_SPEED`); the engulf run
+ * re-recorded by #819, which slows the predator by its prey's base hold before the seal.
  */
-const RECORDED_TRAJECTORY_HASHES = { solo: '9a09fa530aef23b7', engulf: '190716b58d82c3e9' };
+const RECORDED_TRAJECTORY_HASHES = { solo: '9a09fa530aef23b7', engulf: 'ea1b99a855dd20b4' };
 
 const SOLO_TICKS = 240;
 /** A mass whose four cap factors round differently when multiplied in another order (at 300 they happen not to). */

@@ -43,7 +43,12 @@ const PROGRESS_TOLERANCE = 1e-12;
  * key; it is the balance's own key.
  */
 function withAbsorption(
-  key: 'ENGULF_COVER_SECONDS' | 'ENGULF_WRAP_SECONDS' | 'ENGULF_ABSORB_SECONDS',
+  key:
+    | 'ENGULF_COVER_SECONDS'
+    | 'ENGULF_WRAP_SECONDS'
+    | 'ENGULF_ABSORB_SECONDS'
+    | 'ENGULF_PREY_SPEED_FACTOR_COVER'
+    | 'ENGULF_PREY_SPEED_FACTOR',
   value: number,
 ): typeof absorption {
   const patched = { ...absorption };
@@ -251,21 +256,26 @@ describe('preyHeldSpeedFactor', () => {
 });
 
 describe('predatorEngulfSpeedFactor', () => {
-  it('reads the grab factor before the seal and the sealed factor after (E9b)', () => {
-    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.cover, absorption)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
-    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, absorption)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
+  it("reads the prey's base hold before the seal and the sealed factor after (E9b, #819)", () => {
+    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.cover, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_COVER);
+    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, absorption)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
     expect(predatorEngulfSpeedFactor(ENGULF_PHASE.absorb, absorption)).toBe(
       absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED,
     );
   });
 
-  // docs/ecology/absorption.md §6.1 "The grab": a predator is never slower than the prey it holds, so a close chase
-  // does not open the gap the grab just closed (#634). Both share one top speed (#677), so the factors decide it.
-  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])('keeps a predator at least as fast as its %s prey', (phase) => {
-    const topSpeed = DEFAULT_BALANCE.growth.CELL_BASE_SPEED;
-    const predatorSpeed = topSpeed * predatorEngulfSpeedFactor(phase, absorption);
-    const preySpeed = topSpeed * preyHeldSpeedFactor(phase, 0, 0, absorption);
-    expect(predatorSpeed).toBeGreaterThanOrEqual(preySpeed);
+  // docs/ecology/absorption.md §6.1 "The grab": both cells are slowed by the same factor before the seal, so the
+  // predator does not swim past the prey it has just grabbed (#819). Both share one top speed (#677).
+  it.each([ENGULF_PHASE.cover, ENGULF_PHASE.wrap])('slows a predator exactly as much as its plain %s prey', (phase) => {
+    expect(predatorEngulfSpeedFactor(phase, absorption)).toBe(preyHeldSpeedFactor(phase, 0, 0, absorption));
+  });
+
+  it('moves with a patched hold, so the two factors cannot drift apart (#819)', () => {
+    const patchedHold = 0.6;
+    const coverPatched = withAbsorption('ENGULF_PREY_SPEED_FACTOR_COVER', patchedHold);
+    const wrapPatched = withAbsorption('ENGULF_PREY_SPEED_FACTOR', patchedHold);
+    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.cover, coverPatched)).toBe(patchedHold);
+    expect(predatorEngulfSpeedFactor(ENGULF_PHASE.wrap, wrapPatched)).toBe(patchedHold);
   });
 });
 

@@ -24,9 +24,12 @@ const E19_START_GAP_WU = 80;
 /** A's membrane covers B's centre on tick 31, at 194.08 wu/s. */
 const E19_START_TICK = 31;
 const E19_SPEED_AT_START = 194.08;
-/** From tick 35 A is past B's centre and moving off it; the drag keeps them 1.59 wu apart to the payout. */
+/**
+ * From tick 35 A is past B's centre and moving off it; the drag keeps them 1.25 wu apart to the payout (1.59 wu
+ * before #819, when the grab left A at full speed).
+ */
 const E19_HELD_FROM_TICK = 35;
-const E19_HELD_DISTANCE_WU = 1.589;
+const E19_HELD_DISTANCE_WU = 1.246;
 /** Ratio 1.5 runs at 1/60 a tick (E16), so the engulf that starts on tick 31 pays out on tick 91. */
 const E19_PAYOUT_TICK = 91;
 /** E19b: B reacts on the first tick it can see the engulf, steers north and sprints; out of contact on tick 41. */
@@ -58,10 +61,10 @@ describe('ecology/acceptance.md §8: the drag, a pass at speed (#772)', () => {
       .expect('A is passing at full-throttle speed', (view) => speedOf(view, 0))
       .atTick(E19_START_TICK)
       .toBeCloseTo(E19_SPEED_AT_START, SPEED_TOLERANCE_WU_PER_SECOND)
-      .expect('B dragged along 1.59 wu from A once A moves off it', (view) => distanceBetweenCells(view, 0, 1))
+      .expect('B dragged along 1.25 wu from A once A moves off it', (view) => distanceBetweenCells(view, 0, 1))
       .atTick(E19_HELD_FROM_TICK)
       .toBeCloseTo(E19_HELD_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
-      .expect('still 1.59 wu at the last tick before the payout', (view) => distanceBetweenCells(view, 0, 1))
+      .expect('still 1.25 wu at the last tick before the payout', (view) => distanceBetweenCells(view, 0, 1))
       .atTick(E19_PAYOUT_TICK - 1)
       .toBeCloseTo(E19_HELD_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
       .expect('never released', releaseReasons)

@@ -29,7 +29,6 @@ export type EngulfPaceBalance = Pick<
   | 'ENGULF_ESCAPE_DECAY_MULTIPLIER'
   | 'ENGULF_STRUGGLE_SLOWDOWN'
   | 'ENGULF_STRUGGLE_SLOWDOWN_CAP'
-  | 'ENGULF_PREDATOR_SPEED_FACTOR'
   | 'ENGULF_PREDATOR_SPEED_FACTOR_SEALED'
   | 'ENGULF_PREY_SPEED_FACTOR_COVER'
   | 'ENGULF_PREY_SPEED_FACTOR'
@@ -192,9 +191,14 @@ export function engulfProgressDelta(input: EngulfProgressInput, balance: EngulfP
   );
 }
 
+/** The base hold before the seal, the one number per phase both cells are slowed by (#819): the grab, then the grip. */
+function engulfHoldSpeedFactor(phase: EngulfPhase, balance: EngulfPaceBalance): number {
+  return phase === ENGULF_PHASE.cover ? balance.ENGULF_PREY_SPEED_FACTOR_COVER : balance.ENGULF_PREY_SPEED_FACTOR;
+}
+
 /**
- * The prey's speed cap factor: the mild grab in cover, the grip in wrap — each moved by the predator's grip and the
- * prey's resistance (Amoeba grips, Cilia slip) — and 0 once sealed (it is carried).
+ * The prey's speed cap factor: the base hold (the mild grab in cover, the grip in wrap) moved by the predator's grip
+ * and the prey's resistance (Amoeba grips, Cilia slip), and 0 once sealed (it is carried).
  */
 export function preyHeldSpeedFactor(
   phase: EngulfPhase,
@@ -205,20 +209,22 @@ export function preyHeldSpeedFactor(
   if (phase === ENGULF_PHASE.absorb) {
     return PREY_CARRIED_SPEED_FACTOR;
   }
-  const heldFactor =
-    phase === ENGULF_PHASE.cover ? balance.ENGULF_PREY_SPEED_FACTOR_COVER : balance.ENGULF_PREY_SPEED_FACTOR;
   return clamp(
-    heldFactor - predatorGripStrengthBonus + preyGripResistanceBonus,
+    engulfHoldSpeedFactor(phase, balance) - predatorGripStrengthBonus + preyGripResistanceBonus,
     balance.ENGULF_PREY_SPEED_FACTOR_FLOOR,
     PREY_HELD_SPEED_FACTOR_CEILING,
   );
 }
 
-/** The predator's speed cap factor: slowed while it is still wrapping, unhindered once sealed. */
+/**
+ * The predator's speed cap factor: the same base hold as its prey before the seal, so the two slow together and the
+ * predator does not swim past what it has just grabbed (#819; grip traits move only the prey's), and
+ * `ENGULF_PREDATOR_SPEED_FACTOR_SEALED` once sealed.
+ */
 export function predatorEngulfSpeedFactor(phase: EngulfPhase, balance: EngulfPaceBalance): number {
   return phase === ENGULF_PHASE.absorb
     ? balance.ENGULF_PREDATOR_SPEED_FACTOR_SEALED
-    : balance.ENGULF_PREDATOR_SPEED_FACTOR;
+    : engulfHoldSpeedFactor(phase, balance);
 }
 
 /** The per-tick spit-out probability of a prey whose spines roll every tick (docs/ecology/absorption.md §6.1). */

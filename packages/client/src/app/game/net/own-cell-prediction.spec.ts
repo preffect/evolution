@@ -21,9 +21,9 @@ const STARTING_RADIUS = 18;
 const EAST: Vec2 = { x: 400, y: 0 };
 const NORTH: Vec2 = { x: 0, y: -400 };
 const PREY_ID = entityId('prey');
-/** A `debug_set_balance`-patched grab that slows the predator, unlike the shipped 1. */
-const PATCHED_PREDATOR_SPEED_FACTOR = 0.6;
-const PREDATOR_SPEED_FACTOR_ROW = 'ENGULF_PREDATOR_SPEED_FACTOR' satisfies keyof typeof DEFAULT_BALANCE.absorption;
+/** A `debug_set_balance`-patched cover hold, unlike the shipped one: the predator is slowed by it too (#819). */
+const PATCHED_COVER_HOLD_SPEED_FACTOR = 0.6;
+const COVER_HOLD_SPEED_FACTOR_ROW = 'ENGULF_PREY_SPEED_FACTOR_COVER' satisfies keyof typeof DEFAULT_BALANCE.absorption;
 
 function baseWith(ownOverrides: Partial<CellView> = {}, others: CellView[] = []): PredictionBase {
   const ownCell = createTestCellView({ radius: STARTING_RADIUS, ...ownOverrides });
@@ -127,13 +127,13 @@ describe('predictOwnPoses', () => {
 
   it("slows a predator by its prey's reported phase", () => {
     const prey = createTestCellView({ id: PREY_ID, playerId: null, engulfProgress: 0 });
-    // The shipped grab costs the predator nothing (factor 1, #634), so a patched room's factor proves it is read.
-    const factor = PATCHED_PREDATOR_SPEED_FACTOR;
+    // A patched room's cover hold, not the shipped one, proves the live balance is read.
+    const factor = PATCHED_COVER_HOLD_SPEED_FACTOR;
     const base = {
       ...baseWith({ engulfingCellId: PREY_ID }, [prey]),
       balance: {
         ...DEFAULT_BALANCE,
-        absorption: { ...DEFAULT_BALANCE.absorption, [PREDATOR_SPEED_FACTOR_ROW]: factor },
+        absorption: { ...DEFAULT_BALANCE.absorption, [COVER_HOLD_SPEED_FACTOR_ROW]: factor },
       },
     };
     expect(predictOwnPoses(base, [steer(11, EAST)], ACKNOWLEDGED, 1).current).toEqual(

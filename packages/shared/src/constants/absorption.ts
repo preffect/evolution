@@ -47,14 +47,15 @@ export const ENGULF_DRAG_SHARE = 1;
  */
 export const ENGULF_ARM_REGRAB_COOLDOWN_SECONDS = 0.75;
 /**
- * Predator speed cap factors: cover and wrap / absorb (sealed, the prey is carried). Grabbing costs the predator no
- * speed (#634): every cell has the same top speed (#677), so any factor under the prey's lets the held prey outrun it.
+ * The predator's speed cap factor once sealed (the prey is carried). Before the seal it has no factor of its own: it
+ * is slowed by the prey's base hold below (#819), so the two cells slow together and the predator does not overshoot
+ * the prey it has just grabbed.
  */
-export const ENGULF_PREDATOR_SPEED_FACTOR = 1.0;
 export const ENGULF_PREDATOR_SPEED_FACTOR_SEALED = 1.0;
 /**
- * Prey speed cap factors, before grip/resistance bonuses: the mild grab of cover (#634), the grip of wrap (absorb is
- * 0), and the floor both are clamped to.
+ * The engulf's speed cap factors before the seal: the mild grab of cover (#634) and the grip of wrap. Both cells pay
+ * them (#819); only the prey's is moved by grip and resistance bonuses, and clamped to the floor (absorb is 0 for the
+ * prey).
  */
 export const ENGULF_PREY_SPEED_FACTOR_COVER = 0.85;
 export const ENGULF_PREY_SPEED_FACTOR = 0.8;

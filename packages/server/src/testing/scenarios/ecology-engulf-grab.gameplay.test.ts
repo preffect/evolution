@@ -41,20 +41,21 @@ const RIM_LEAN = 0.3;
 const ROW_TICKS = 150;
 /**
  * How far ahead of B along the rim A's pointer sits, in A's own radii. A predator that runs past its held prey loses
- * it: it has to stay on its prey (the human's rule, decision ticket #679). Every cell has the same top speed since
- * #677, so at full throttle A (220 wu/s) overruns the prey it holds (0.85 × 220 = 187) and B gets away: leads of 2.5
- * radii and up, the row's pre-#677 5 included. At 1.5 radii, inside the 1.25–2 band that completes, A eases off as
- * it draws level and stays on B through the curve.
+ * it: it has to stay on its prey (the human's rule, decision ticket #679). Since #819 the grab slows A by the same
+ * factor as B: every lead from 1.5 radii up completes (5 and 10 included, B absorbed on tick 83), and at 1.25 and
+ * under A eases off too early and B gets away. From #772 (the drag) to #819 every lead from 1.25 up completed (tick 69
+ * at full throttle); from #677 to #772 A at full throttle (220 wu/s) overran the prey it held (0.85 × 220 = 187) and
+ * only leads of 1.25 to 2 radii completed.
  */
 const PREDATOR_LEAD_RADII = 1.5;
-/** E18: the plain prey is absorbed on this tick, never released before it. */
-const E18_PAYOUT_TICK = 84;
-/** E18b: the sprint breaks contact in cover on tick 10; the drain releases B on tick 12. */
-const E18B_CONTACT_BREAK_TICK = 10;
-const E18B_RELEASE_TICK = 12;
-/** E18c: Cilia Fringe III breaks contact in cover on tick 14; the drain releases B on tick 17. */
-const E18C_CONTACT_BREAK_TICK = 14;
-const E18C_RELEASE_TICK = 17;
+/** E18: the plain prey is absorbed on this tick, never released before it (tick 84 before #819). */
+const E18_PAYOUT_TICK = 90;
+/** E18b: the sprint breaks contact in cover on tick 9; the drain releases B on tick 11 (10 and 12 before #819). */
+const E18B_CONTACT_BREAK_TICK = 9;
+const E18B_RELEASE_TICK = 11;
+/** E18c: Cilia Fringe III breaks contact in cover on tick 11; the drain releases B on tick 13 (14 and 17 before #819). */
+const E18C_CONTACT_BREAK_TICK = 11;
+const E18C_RELEASE_TICK = 13;
 const TOP_TIER = 3;
 
 /** The unit tangent of the rim at `point`, counter-clockwise. */

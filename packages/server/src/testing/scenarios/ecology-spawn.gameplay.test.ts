@@ -17,8 +17,10 @@ const SOLO_FRAGMENT_CAP = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_C
 /** E2 and E14 count over 610 ticks so that no count lands on the final tick. */
 const COUNT_WINDOW_TICKS = 610;
 /**
- * E14 on the pinned seed: since ticket #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in
- * 5 s and then rests 15 s) wild cells eat the idle player on tick 28 771, the last 152 ticks of whose spectate
+ * E14 on the pinned seed: since ticket #819 (the grab slows the predator with its prey, so the seats' engulfs end
+ * differently) no wild cell eats the idle player in or near the window: food 106.75 → "between 106 and 110", fragments
+ * 8.13 → 8. From #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in
+ * 5 s and then rests 15 s) to #819 wild cells ate the idle player on tick 28 771, the last 152 ticks of whose spectate
  * (28 801–28 952) fall inside the window, and on tick 29 158, its whole 182-tick spectate inside; each takes the
  * per-player rates off the budget: food 106.75 − (152 + 182) / 60 × 1 × 1.5 = 98.4 → "between 98 and 102", fragments
  * 8.13 − 334 / 60 × 0.1 × 2 = 7.02 → 7; one death counted in the window. From #772 (the drag changes how the seats'
@@ -26,10 +28,10 @@ const COUNT_WINDOW_TICKS = 610;
  * window: 106–110 and 8. From #677 to #710 one (tick 29 023, the whole 182-tick spectate inside): 102–106 and 7; before
  * #677 none.
  */
-const E14_DEATHS_IN_WINDOW = 1;
-const E14_SPAWNED_LOW = 98;
-const E14_SPAWNED_HIGH = 102;
-const E14_FRAGMENTS_SPAWNED = 7;
+const E14_DEATHS_IN_WINDOW = 0;
+const E14_SPAWNED_LOW = 106;
+const E14_SPAWNED_HIGH = 110;
+const E14_FRAGMENTS_SPAWNED = 8;
 
 function algaeShare(view: EvolutionView): number {
   const motes = view.snapshot.food.spawned;

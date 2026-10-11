@@ -165,7 +165,7 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .runDeterministic();
   });
 
-  it('E9b: a predator steering away drags its prey along (#772), and grabbing costs it no speed (#634)', async () => {
+  it('E9b: a predator steering away drags its prey along (#772), slowed by the hold until the seal (#819)', async () => {
     await engulfPair('E9b')
       .from(1, player(0).does(awayFromPrey))
       .advance(E9_PAYOUT_TICK)
@@ -180,19 +180,19 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       )
       .atTick(E9_SEAL_TICK)
       .toBeCloseTo(CENTRE_DISTANCE_WU, DISTANCE_TOLERANCE_WU)
-      .expect('predator 19.66 wu west of its start on tick 18', (view) => (cellOf(view, 0)?.x ?? 0) - BROTH_POINT.x)
+      .expect('predator 16.47 wu west of its start on tick 18', (view) => (cellOf(view, 0)?.x ?? 0) - BROTH_POINT.x)
       .atTick(E9_SEAL_TICK)
       .toBeCloseTo(-E9B_SEAL_WESTING_WU, APPROXIMATE_DISTANCE_TOLERANCE_WU)
       .expect('speed 9.8 wu/s on tick 1, before any engulf cap', (view) => speedOf(view, 0))
       .atTick(1)
       .toBeCloseTo(E9B_SPEED_TICK_1, SPEED_TOLERANCE_WU_PER_SECOND)
-      .expect('speed 104.3 wu/s on tick 18, uncapped while it wraps', (view) => speedOf(view, 0))
+      .expect('speed 85.0 wu/s on tick 18, capped × 0.8 while it wraps', (view) => speedOf(view, 0))
       .atTick(E9_SEAL_TICK)
       .toBeCloseTo(E9B_SPEED_TICK_18, SPEED_TOLERANCE_WU_PER_SECOND)
-      .expect('speed 107.1 wu/s on tick 19, the first sealed tick: no step at the seal', (view) => speedOf(view, 0))
+      .expect('speed 89.1 wu/s on tick 19, the first sealed tick: the cap back to × 1', (view) => speedOf(view, 0))
       .atTick(E9_SEAL_TICK + 1)
       .toBeCloseTo(E9B_SPEED_TICK_19, SPEED_TOLERANCE_WU_PER_SECOND)
-      .expect('speed 133.6 wu/s on tick 35, uncapped', (view) => speedOf(view, 0))
+      .expect('speed 127.6 wu/s on tick 35, uncapped', (view) => speedOf(view, 0))
       .atTick(E9_PAYOUT_TICK - 1)
       .toBeCloseTo(E9B_SPEED_TICK_35, SPEED_TOLERANCE_WU_PER_SECOND)
       .expect('the carried offset held to the end of the engulf', (view) => distanceBetweenCells(view, 0, 1))

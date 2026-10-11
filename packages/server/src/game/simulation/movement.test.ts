@@ -192,9 +192,11 @@ describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs
     expect(engulfSpeedFactor(cell, world, DEFAULT_BALANCE)).toBe(1);
   });
 
-  it('slows the predator before the seal and frees it after (E9b)', () => {
+  it("slows the predator by its prey's base hold before the seal and frees it after (E9b, #819)", () => {
     const { world, predator, prey } = engulfingPair();
-    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR);
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR_COVER);
+    prey.engulfProgress = ENGULF_WRAP_START_PROGRESS;
+    expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREY_SPEED_FACTOR);
     prey.engulfProgress = ENGULF_SEAL_PROGRESS;
     expect(engulfSpeedFactor(predator, world, DEFAULT_BALANCE)).toBe(absorption.ENGULF_PREDATOR_SPEED_FACTOR_SEALED);
   });
@@ -213,7 +215,7 @@ describe('the engulf speed factor (docs/ecology/mass-and-movement.md §5.2, docs
     beginEngulf({ predator: prey, prey: predator });
     prey.engulfProgress = ENGULF_WRAP_START_PROGRESS;
     expect(engulfSpeedFactor(prey, world, DEFAULT_BALANCE)).toBeCloseTo(
-      absorption.ENGULF_PREY_SPEED_FACTOR * absorption.ENGULF_PREDATOR_SPEED_FACTOR,
+      absorption.ENGULF_PREY_SPEED_FACTOR * absorption.ENGULF_PREY_SPEED_FACTOR_COVER,
       12,
     );
   });

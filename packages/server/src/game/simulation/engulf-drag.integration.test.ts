@@ -37,8 +37,12 @@ const PASS_SECONDS = 2;
 /** The still-predator escape: A over B 10 wu apart (E11's spacing), B swims straight away from tick 1. */
 const ESCAPE_CENTRE_DISTANCE_WU = 10;
 const DRAG_LEAF = 'ENGULF_DRAG_SHARE';
-/** Where a late snapshot's extrapolation may leave the prey from where the server puts it (wu): the wire's rounding. */
-const EXTRAPOLATION_TOLERANCE_WU = 0.1;
+/**
+ * Where a late snapshot's extrapolation may leave the prey from where the server puts it (wu): the wire's rounding plus
+ * the predator's own easing down to the held cap over the window (#819: the grab slows it, about 1.6 wu/s a tick, so a
+ * straight line runs up to 0.19 wu ahead, as for any slowing cell). Without the drag in the view it misses by 9 wu or more.
+ */
+const EXTRAPOLATION_TOLERANCE_WU = 0.25;
 /** How far B's reported speed may be from its true speed (wu/s): the wire's rounding of each axis. */
 const SPEED_TOLERANCE_WU_PER_SECOND = 0.1;
 

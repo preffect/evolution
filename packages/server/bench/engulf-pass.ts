@@ -3,8 +3,16 @@
 // how many drop because contact broke. Two cells alone in the broth, no gel, no food; the whole tick runs.
 //
 //   DRAG=<share> pnpm --filter @evolution/server bench:engulf-pass      (DRAG patches ENGULF_DRAG_SHARE first; unset: the default)
+//   PREY_TRAIT=cilia pnpm --filter @evolution/server bench:engulf-pass  (the prey owns that trait at tier I; #819's Cilia escape)
 
-import { DEFAULT_BALANCE, EFFECT_KIND, ENGULF_RELEASE_REASON, playerId, secondsToTicks } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  EFFECT_KIND,
+  ENGULF_RELEASE_REASON,
+  playerId,
+  secondsToTicks,
+  type TraitId,
+} from '@evolution/shared';
 import { setBalanceForDebug } from '../src/game/debug/debug-operations.js';
 import { setCellMass } from '../src/game/simulation/cell-mass.js';
 import { stepWorld } from '../src/game/simulation/step.js';
@@ -26,7 +34,8 @@ const OFFSETS = [0, 0.25, 0.5, 0.75];
 const START_RADII = [1, 2, 3];
 const TRIAL_SECONDS = 4;
 const FAR_WU = 1000;
-const PREY_STYLES = ['still', 'flee', 'flee+sprint'] as const;
+/** `cross` (#819): the prey swims east across the pass line at full speed and never reacts, so the two meet mid-swim. */
+const PREY_STYLES = ['still', 'flee', 'flee+sprint', 'cross'] as const;
 const AIMS = ['through', 'track'] as const;
 type PreyStyle = (typeof PREY_STYLES)[number];
 type Aim = (typeof AIMS)[number];
@@ -53,15 +62,21 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
   const balance = world.balance;
   const context = createTestStepContext(world);
   const [predator, prey] = world.cells as [CellRecord, CellRecord];
+  if (process.env.PREY_TRAIT !== undefined) {
+    world.players[1]?.ownedTraits.push({ traitId: process.env.PREY_TRAIT as TraitId, tier: 1 });
+  }
   setCellMass(predator, predatorMass, balance);
   setCellMass(prey, preyMass, balance);
   const reach = predator.radius - prey.radius * balance.absorption.ENGULF_COVERAGE_FRACTION;
-  prey.x = BROTH_POINT.x;
+  const approachWu = reach + startRadii * predator.radius;
+  const isCrossing = style === 'cross';
+  prey.x = isCrossing ? BROTH_POINT.x - approachWu : BROTH_POINT.x;
   prey.y = BROTH_POINT.y;
+  prey.velocityX = isCrossing ? balance.growth.CELL_BASE_SPEED : 0;
   prey.targetX = null;
   prey.targetY = null;
-  predator.x = prey.x + offset * reach;
-  predator.y = prey.y - reach - startRadii * predator.radius;
+  predator.x = BROTH_POINT.x + offset * reach;
+  predator.y = prey.y - approachWu;
   predator.velocityX = 0;
   predator.velocityY = balance.growth.CELL_BASE_SPEED;
   const outcome = { starts: 0, finished: 0, escaped: 0, firstStartFinished: 0 };
@@ -74,7 +89,10 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
       predator.targetX = prey.x;
       predator.targetY = prey.y;
     }
-    if (prey.engulfedByCellId !== null && style !== 'still') {
+    if (isCrossing) {
+      prey.targetX = prey.x + FAR_WU;
+      prey.targetY = prey.y;
+    } else if (prey.engulfedByCellId !== null && style !== 'still') {
       const distance = Math.hypot(prey.x - predator.x, prey.y - predator.y) || 1;
       prey.targetX = prey.x + ((prey.x - predator.x) / distance) * FAR_WU;
       prey.targetY = prey.y + ((prey.y - predator.y) / distance) * FAR_WU;
@@ -116,6 +134,7 @@ function row(predatorMass: number, preyMass: number, aim: Aim, style: PreyStyle)
 }
 
 console.log(`drag ${process.env.DRAG ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_DRAG_SHARE})`}`);
+console.log(`prey trait ${process.env.PREY_TRAIT ?? 'none'}`);
 console.log('| aim | prey | predator/prey mass | trials | starts | finished | dropped (escaped) | first pass eats |');
 for (const aim of AIMS) {
   for (const style of PREY_STYLES) {

@@ -72,14 +72,14 @@ export const E10_DECAY_GAP_WU = [E10_UNDER_RATIO_MASS, PREY_MASS].reduce(
 );
 /**
  * E9b: A steers away from B at `E9B_THROTTLE` from tick 1 and drags it along, 10 wu behind it to the seal since #772
- * (29.66 wu before); the numbers the row states. Grabbing costs A no speed since #634, so the seal no longer changes
- * its cap: ticks 18 and 19 differ only by one tick's blend.
+ * (29.66 wu before); the numbers the row states. Since #819 the grab slows A by B's base hold (× 0.85 in cover, × 0.8
+ * in wrap) and the seal frees it (19.66 wu, 104.3 / 107.1 / 133.6 wu/s from #634, when holding cost A nothing).
  */
-export const E9B_SEAL_WESTING_WU = 19.66;
+export const E9B_SEAL_WESTING_WU = 16.47;
 export const E9B_SPEED_TICK_1 = 9.8;
-export const E9B_SPEED_TICK_18 = 104.3;
-export const E9B_SPEED_TICK_19 = 107.1;
-export const E9B_SPEED_TICK_35 = 133.6;
+export const E9B_SPEED_TICK_18 = 85.0;
+export const E9B_SPEED_TICK_19 = 89.1;
+export const E9B_SPEED_TICK_35 = 127.6;
 /** "± 0.01 wu" (docs/ecology/acceptance.md §8) for a centre distance the row states to two decimals. */
 export const DISTANCE_TOLERANCE_WU = 0.01;
 /** E9b states the predator's westing as "≈ 19.66 wu"; the step gives 19.663, inside its own rounding. */
