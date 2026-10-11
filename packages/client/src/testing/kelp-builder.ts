@@ -1,16 +1,9 @@
 // The kelp band's spec builders (docs/rendering/opening-dive.md §7, ticket #802): quick stand-ins for its once-a-page
-// bakes (a texel or two of each, over recording canvases), so a band or session spec runs in milliseconds, and the
-// time a spec running the real bakes is allowed.
+// bakes (a texel or two of each, over recording canvases), so a band or session spec runs in milliseconds (a spec
+// running the real bakes takes `DIVE_HEAVY_TEST_TIMEOUT_MS`).
 
 import type { KelpBakeSources, KelpBaked } from '../app/game/render/dive/kelp/kelp-bakes';
 import { encodeSignedDistance } from '../app/game/render/dive/planet/signed-distance';
-
-/**
- * Time allowed for a spec that runs the real bakes (the blade's 512² tile, the rock's and the sea's signed distances,
- * the beads' placing: a few seconds of per-pixel work on a loaded 4-core box, past vitest's 5 s default; placing the
- * beads alone took 5.4 s in the full client suite after PR #810's merge).
- */
-export const KELP_BAKE_TEST_TIMEOUT_MS = 120_000;
 
 const QUICK_TILE_PX = 8;
 const QUICK_DISTANCE_TEXELS = 2;

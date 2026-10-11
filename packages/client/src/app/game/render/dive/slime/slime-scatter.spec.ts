@@ -1,7 +1,8 @@
 // @vitest-environment node
 // The slime's scatters (docs/rendering/opening-dive.md §4, ticket #803): each cell of each grid where the mockup's
 // `forCells` put it, kept by the mockup's own tests, pinned against the mockup's code verbatim over a view; and each
-// scatter made far enough out that no view under its cell cap reaches past it.
+// scatter made far enough out that no view under its cell cap reaches past it. A rule every cloud and every rod must
+// keep is checked once over the strays: an `expect` apiece took over a second alone (ticket #818).
 
 import { describe, expect, it } from 'vitest';
 import { KELP_DROP } from '../../constants/dive-kelp-drop';
@@ -61,11 +62,15 @@ describe('the slime’s clouds', () => {
   const clouds = runBake(slimeClouds()).result;
 
   it('keeps every cloud clear of the dish, sized and faded by its rolls', () => {
-    for (const cloud of clouds) {
-      expect(Math.hypot(cloud.x, cloud.y)).toBeGreaterThanOrEqual(SLIME_POCKET_RADIUS_M * SLIME_CLOUDS.clearRadii);
-      expect(cloud.radiusM).toBeGreaterThanOrEqual(SLIME_CLOUDS.radiusM.min);
-      expect(cloud.radiusM).toBeLessThanOrEqual(SLIME_CLOUDS.radiusM.min + SLIME_CLOUDS.radiusM.span);
-    }
+    const strays = clouds.filter(
+      (cloud) =>
+        !(
+          Math.hypot(cloud.x, cloud.y) >= SLIME_POCKET_RADIUS_M * SLIME_CLOUDS.clearRadii &&
+          cloud.radiusM >= SLIME_CLOUDS.radiusM.min &&
+          cloud.radiusM <= SLIME_CLOUDS.radiusM.min + SLIME_CLOUDS.radiusM.span
+        ),
+    );
+    expect(strays).toEqual([]);
   });
 
   it('holds every cloud the mockup drew over a view under its cap, inside the drop', () => {
@@ -131,11 +136,12 @@ describe('the bacteria and the food specks', () => {
   it('keeps the rods the mockup kept, in the dish and in the slime but not against the wall', () => {
     const rods = runBake(slimeRods()).result;
     const radius = SLIME_POCKET_RADIUS_M;
-    for (const rod of rods) {
+    const strays = rods.filter((rod) => {
       const distance = Math.hypot(rod.x, rod.y);
-      expect(rod.isInDish).toBe(distance < radius * SLIME_RODS.inDishRadii);
-      if (!rod.isInDish) expect(distance).toBeGreaterThanOrEqual(radius * SLIME_RODS.clearOfWallRadii);
-    }
+      const isMisfiled = rod.isInDish !== distance < radius * SLIME_RODS.inDishRadii;
+      return isMisfiled || (!rod.isInDish && !(distance >= radius * SLIME_RODS.clearOfWallRadii));
+    });
+    expect(strays).toEqual([]);
     expect(rods.some((rod) => rod.isInDish)).toBe(true);
     expect(rods.some((rod) => !rod.isInDish)).toBe(true);
   });

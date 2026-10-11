@@ -10,7 +10,8 @@ import { DIVE_BAKE_BUDGET_MS, DIVE_BAKE_INTERVAL_MS, DIVE_SLIME_WINDOW } from '.
 import { createFakePixiApp } from '../../../../../testing/fake-pixi-app';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { bakedTestTiles } from '../../../../../testing/shore-paint-builder';
-import { SLIME_BAND_TEST_TIMEOUT_MS, quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import { DIVE_FIRST_PHASE, DiveControls } from '../dive-controls';
 import { DiveSlimeBand } from './dive-slime-band';
 import { SlimeBakes, slimeBaker, type SlimeBakeSources, type SlimeBaked } from './slime-bakes';
@@ -75,7 +76,7 @@ function fall(isFloorHeld: boolean, frameMs = FRAME_AT_60_FPS_MS): FallReport {
   return { hasArrived: !controls.isPlaying, framesInBand };
 }
 
-describe('a fall into the slime band before its bakes land', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
+describe('a fall into the slime band before its bakes land', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('waits above the band until the band is ready, then falls on through it and arrives', () => {
     const report = fall(true);
     expect(report.hasArrived).toBe(true);

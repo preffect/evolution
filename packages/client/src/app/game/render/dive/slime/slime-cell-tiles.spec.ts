@@ -5,7 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { SLIME_CELL_GEOMETRY, SLIME_CELLS_BRIGHT } from '../../constants/dive-slime-cells';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
-import { SLIME_BAKE_TEST_TIMEOUT_MS, SLIME_TEST_CELL_TILE_PX, runBake } from '../../../../../testing/slime-builder';
+import { SLIME_TEST_CELL_TILE_PX, runBake } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import { coordinateHash } from '../shore/shore-noise';
 import { bakeCellTiles, brightCellColour, cellField, cellSites, darkCellColour } from './slime-cell-tiles';
 
@@ -71,6 +72,6 @@ describe('bakeCellTiles', () => {
         );
       }
     },
-    SLIME_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 });

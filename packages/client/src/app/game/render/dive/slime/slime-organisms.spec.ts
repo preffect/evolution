@@ -7,7 +7,8 @@ import { Container, Mesh, State, Texture, type Sprite } from 'pixi.js';
 import { describe, expect, it } from 'vitest';
 import { SLIME_ORGANISMS, SLIME_ORGANISM_VISIBLE_LENGTHS } from '../../constants/dive-slime-plankton';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
-import { SLIME_BAND_TEST_TIMEOUT_MS, quickSlimeBake, runBake } from '../../../../../testing/slime-builder';
+import { quickSlimeBake, runBake } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import { diveViewAt } from '../dive-view';
 import { slimeFrameOf } from './slime-frame';
 import { unitQuadGeometry } from './slime-meshes';
@@ -89,7 +90,7 @@ describe('rungTextureFor', () => {
   });
 });
 
-describe('SlimeOrganisms', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
+describe('SlimeOrganisms', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('lays halos, strokes under, bodies, strokes over and rims in that order, and shows each organism in view', () => {
     const { subject } = organisms();
     const [halos, under, bodies, over, rims] = subject.view.children as Container[];
