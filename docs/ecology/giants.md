@@ -440,7 +440,9 @@ answer edits rows, not rules.
 `GiantSpecies` (`giant_amoeba`, `giant_paramecium`, `giant_diatom`) and `GiantRole` (`hunter`,
 `grazer`, `drifter`) are wire enums in `types/game.ts`; the records below are keyed by species. Every
 row is a balance leaf of the `giants` domain except `GIANT_ROLE_BY_SPECIES`, a plain constant in the same
-file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it.
+file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it. The ledger's rows
+are the `giants.ts` table of [`constants.md` §7](./constants.md); `GIANT_SPECIES_IN_DISH` ships empty there until
+the giants-on slice (§3.5.17).
 
 | Constant                                  | Value                      | Unit                         | Reason (section)                                                                   |
 | ----------------------------------------- | -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
@@ -467,17 +469,21 @@ Reused unchanged: `WILD_CELL_SIGHT_VIEW_MULTIPLE`, `WILD_CELL_FLEE_RANGE_RADII`,
 `WILD_CELL_HUNT_CHARGE_RADII`, `WILD_CELL_HUNT_REST_SECONDS`, `WILD_CELL_RECOVERY_SECONDS`,
 `WILD_CELL_DECISION_INTERVAL_SECONDS`, the controls' sprint, and the trait tier tables. The client's
 `GIANT_REAL_LIFE_LINES` and `GIANT_DISPLAY_NAME_BY_SPECIES` live beside `FORM_REAL_LIFE_LINES`
-(`hud/format/`), as the form lines do. The balance test pins: every build a valid ladder ending in its
-form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
+(`hud/format/`), as the form lines do. The balance test (`constants/giants.test.ts`) pins: every build a valid
+ladder ending in its form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
 (ENGULF_MASS_RATIO +` the build's `membraneRatioBonus) < CELL_MAX_MASS`; every species multiplier ≤ 1; and
 the hunter's `GIANT_BORN_MASS_MIN × GIANT_HUNT_MIN_PREY_MASS_FRACTION > ENTRY_MAX_MASS` (G14).
 
-`debug_set_balance` refuses a `giants` patch that breaks one of those, as the wild builds refuse a wrap
-past the top tier (#671, `isPastTopTraitTier`): a build that is not a valid ladder ending in its form, a
-born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
+`debug_set_balance` refuses a patch whose result breaks one of those, as the wild builds refuse a wrap
+past the top tier (#671, `isPastTopTraitTier`), whichever domain it names (`traits.TRAIT_TIER_COUNT` under the
+amoeba's Pseudopods II, `growth.CELL_STARTING_MASS` over a born minimum): a build that is not a valid ladder ending
+in a form, a born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
 speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, which G14 checks only on
-`DEFAULT_BALANCE`). A patch of `GIANT_SPECIES_IN_DISH` is accepted and applies at the next world
-creation (§3.5.9).
+`DEFAULT_BALANCE`). The rules have one home, `giantBalanceProblems` (`shared/simulation/giant-balance.ts`), which the
+balance test and the refusal both call. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
+structure a patch cannot name (`debug_set_balance` writes number leaves only, as for `WILD_CELL_BUILDS`): a test or
+fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice sets it in
+`DEFAULT_BALANCE`.
 
 #### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3, `architecture/constants-files-tests.md` §10 and `architecture/wire-contract.md` §4.1)
 
@@ -493,9 +499,9 @@ creation (§3.5.9).
   bytes). **State hash:** `giantSpecies` is in `CELL_HASHED_FIELDS`; nothing is mirrored, so nothing is
   added to `DERIVED_FIELDS`.
 - **`canEngulf` widens its predator** from `Pick<CellView, 'mass'>` to `Pick<CellView, 'mass' |
-'giantSpecies'>`. It has about 12 call sites on main 5e1d3f10, not three: the "three callers" comment
-  in `engulf-eligibility.ts` and absorption.md §6.1's "Three callers" sentence are corrected in the same
-  slice. The sites that change:
+'giantSpecies'>` (`canContinueEngulf` and the hold keep the mass-only `EngulfHoldPredator`). It has about 12
+  call sites, not three: the "three callers" comment in `engulf-eligibility.ts` and absorption.md §6.1's "Three
+  callers" sentence were corrected with it (ticket #825). The sites that changed:
   - `wild/wild-hunt-sprint.ts` builds a synthetic predator `{ mass: massAfterHuntSprint(…) }`; it becomes
     `{ ...hunter, mass }`, or a giant hunter's sprint test loses its species.
   - `testing/bot-builders.ts` keeps a hand-rolled copy of the predicate, which would silently ignore the
@@ -503,12 +509,14 @@ creation (§3.5.9).
   - `bots/perception.ts` (`EngulfPredatorView`, `BotCellView`) and
     `testing/scenarios/trait-engulf-setups.ts` gain the field.
   - Every `CellView` literal gains it: `serialize.ts`, `world/cell-record.ts`, the shared and client
-    `testing/builders.ts`, `bench-scene.ts`, `preview-frame.ts` and `toy-adapter.ts`.
+    `testing/builders.ts`, `bench-scene.ts`, `preview-frame.ts` and `toy-adapter.ts`; every `cell_absorbed`
+    literal gains `preyGiantSpecies` (`session/death.ts` from the prey, the client's bench and engulf preview
+    scenes, the test builders).
 
   The other callers pick the rule up unchanged, which is the point of one home: `contact.ts`, `engulf.ts`
   (the body start and the arm grab's start, through `canStartEngulf`), `wild-perception.ts` (flee, hunt,
-  closer rival), `relations-for.ts`, `threats-for.ts`, `cell-instance-builder.ts`,
-  `snapshot-transitions.ts` and `escape-scene.ts`.
+  closer rival), `bots/evolution-binding.ts` (the bots' perception and the strategies that ask it),
+  `relations-for.ts`, `threats-for.ts`, `cell-instance-builder.ts`, `snapshot-transitions.ts` and `escape-scene.ts`.
 
 - `CellAbsorbedEffect` gains `preyGiantSpecies: GiantSpecies | null`.
 - **Seat records.** A shared base type, `SeatMindRecord`, holds what every seat's mind reads: `seatNumber`,
@@ -598,30 +606,3 @@ without its mind would sit still and swallow whatever touched it.
    player. Report giant swallows a round, players eaten by the amoeba a minute (by a hunt and by a
    bump), the paramecium's share of the food mass (target ≤ 6 %) and how many giants players eat. Tune
    the knobs in §3.5.14 if needed.
-
-#### 3.5.18 Constants (planned)
-
-These rows move into [`constants.md` §7](./constants.md) with ticket #825 (slice 1), when the constants exist in code: the constants ledger (`constants-ledger.test.ts`) requires every row there to name a real export.
-
-`giants.ts` (§3.5, [`giants.md`](./giants.md); records keyed by `GiantSpecies`: amoeba, paramecium, diatom)
-
-| Constant                                  | Value                                                                                                | Unit                                                          |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom (empty in `DEFAULT_BALANCE` until the giants-on slice, giants.md §3.5.17) | species, one seat each, read at world creation                |
-| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter                                                                              | `GiantRole` (a plain constant, not a balance leaf)            |
-| `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1000                                                                                       | mass                                                          |
-| `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1500, 1300, 1500                                                                                     | mass                                                          |
-| `GIANT_MASS_CEILING`                      | 1500                                                                                                 | mass                                                          |
-| `GIANT_DECAY_MULTIPLIER`                  | 0.25                                                                                                 | × the player's decay                                          |
-| `GIANT_BUILDS_BY_SPECIES`                 | the three builds of §3.5.4                                                                           | trait ids and tiers                                           |
-| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6                                                                                       | × the traits' speed                                           |
-| `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05                                                                                      | per wander decision                                           |
-| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                                                                                                 | × the hunter's mass; gates the hunt target, never the swallow |
-| `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                                                                                                    | s                                                             |
-| `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                                                                                                   | degrees either side of ahead                                  |
-| `GIANT_GRAZER_APPETITE_MASS`              | 100                                                                                                  | mass of growth                                                |
-| `GIANT_DNA_BONUS`                         | 200                                                                                                  | DNA                                                           |
-| `GIANT_RESPAWN_SECONDS`                   | 90                                                                                                   | s                                                             |
-| `GIANT_MIN_PLAYER_DISTANCE_WU`            | 1500                                                                                                 | wu                                                            |
-| `GIANT_MIN_GIANT_DISTANCE_WU`             | 1500                                                                                                 | wu                                                            |
-| `GIANT_MIN_CELL_DISTANCE_WU`              | 450                                                                                                  | wu                                                            |

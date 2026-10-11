@@ -5,6 +5,7 @@ import {
   DEFAULT_BALANCE,
   EFFECT_KIND,
   FOOD_KIND,
+  GIANT_SPECIES,
   PLAYER_LIFE_STATE,
   playerId,
   secondsToTicks,
@@ -120,6 +121,7 @@ describe('absorbCell', () => {
         predatorCellId: predator.id,
         predatorMassGained: NO_GAIN.massGained,
         predatorDnaGained: NO_GAIN.dnaGained,
+        preyGiantSpecies: null,
       },
     ]);
     expect(victim.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
@@ -128,6 +130,14 @@ describe('absorbCell', () => {
     expect(victim.respawnInTicks).toBe(secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1);
     expect(world.food.every((mote) => mote.kind === FOOD_KIND.detritus)).toBe(true);
     expect(world.food).toHaveLength(2);
+  });
+
+  it("carries a giant prey's species on cell_absorbed, for the client's giant popup (giants.md §3.5.8)", () => {
+    const { world, predator, prey } = predatorAndPrey();
+    prey.giantSpecies = GIANT_SPECIES.diatom;
+    const context = createTestStepContext(world);
+    absorbCell(world, context, { prey, predator, predatorGain: NO_GAIN });
+    expect(context.effects).toMatchObject([{ kind: EFFECT_KIND.cellAbsorbed, preyGiantSpecies: GIANT_SPECIES.diatom }]);
   });
 
   it('keeps level, traits and the kept share of the progress (nuclear envelope II keeps 50 %)', () => {

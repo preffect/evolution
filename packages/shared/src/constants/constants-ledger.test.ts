@@ -11,6 +11,7 @@ import { DEFAULT_BALANCE, DERIVED_BALANCE_CONSTANTS } from './balance.js';
 import * as camera from './camera.js';
 import * as controls from './controls.js';
 import * as ecology from './ecology.js';
+import * as giants from './giants.js';
 import * as growth from './growth.js';
 import * as ladder from './ladder.js';
 import * as progression from './progression.js';
@@ -82,8 +83,8 @@ const CONSTANTS_TABLE_SOURCES = [
   {
     documentName: 'ecology/constants.md',
     section: 7,
-    expectedNames: 109,
-    domainModules: { ecology, growth, absorption, wildCells, absorptionDerived },
+    expectedNames: 127,
+    domainModules: { ecology, growth, absorption, wildCells, giants, absorptionDerived },
   },
   { documentName: 'PROGRESSION.md', section: 6, expectedNames: 16, domainModules: { progression } },
   { documentName: 'traits/constants-and-acceptance.md', section: 5, expectedNames: 7, domainModules: { traits } },

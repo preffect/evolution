@@ -81,8 +81,9 @@ Rules that keep this honest:
   prediction and never keeps its own copy of a balance number.
 - `debug_set_balance` patches number leaves only; tables and id arrays are structure, not
   tunables. A patch whose `progression.MAX_LEVEL` would wrap a wild build past `traits.TRAIT_TIER_COUNT` is refused
-  when it is applied, by the same check the step's invariant uses (`wild/wild-build.ts`, #671). Nothing reads
-  `data/balance.json` at runtime.
+  when it is applied, by the same check the step's invariant uses (`wild/wild-build.ts`, #671), and so is one that
+  breaks a giant rule, by the same check the balance test pins (`giantBalanceProblems`, ecology/giants.md §3.5.14).
+  Nothing reads `data/balance.json` at runtime.
 - `constants-ledger.test.ts` pins every constant a design table names: the rows are parsed
   from the docs' constants tables (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
   `traits/constants-and-acceptance.md §5`), one assertion per name and the per-doc name count pinned, so a rename or a

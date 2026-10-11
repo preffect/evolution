@@ -97,6 +97,7 @@ export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   'engulfedByCellId',
   'sprintRemainingTicks',
   'sprintCooldownRemainingTicks',
+  'giantSpecies',
   'targetX',
   'targetY',
   'pinnedX',

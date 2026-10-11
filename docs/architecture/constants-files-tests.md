@@ -7,8 +7,9 @@
 `packages/shared/src/constants/<domain>.ts` is the **source of truth** for every tunable, named
 exactly as the design tables name it (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
 `traits/constants-and-acceptance.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
-`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
-(the domain modules spread into plain records; `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
+`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, giants, absorption, progression, traits }`
+(the domain modules spread into plain records; `giants` leaves out `GIANT_ROLE_BY_SPECIES`, a plain constant of
+`giants.ts` because a role is what a species is and no patch may change it (ecology/giants.md §3.5.14); `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
 room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
 ladder orbit read, so there is one copy on the wire, #286; being catalog structure inside an array, it is not
 `debug_set_balance`-patchable, so the count is a build-time constant and retuning the endosymbiosis trip is a code
@@ -40,6 +41,11 @@ constants modules only, never the `constants/index.ts` barrel, so loading the co
 of the design tables (a row whose later cell reads `(derived …`) are exactly the list, so a new derived constant cannot
 reach the balance untagged. The `(derived` marker in a constants-table row is reserved for constants derived from
 balance leaves; any other derived value (`TICK_INTERVAL_MS` beside `TICK_HZ`, say) says so in prose.
+**Giant records are keyed by species (ecology/giants.md §3.5.14).** The `giants` domain's number records
+(`GIANT_BORN_MASS_MIN_BY_SPECIES.giant_amoeba`, …) are patchable leaves; `GIANT_SPECIES_IN_DISH` and
+`GIANT_BUILDS_BY_SPECIES` are arrays, so structure, refused by a patch as `WILD_CELL_BUILDS` is (a test or fixture
+balance sets them). `debug_set_balance` refuses a patch whose result breaks a rule `giantBalanceProblems`
+(`simulation/giant-balance.ts`) checks; `constants/giants.test.ts` pins the same rules on `DEFAULT_BALANCE` (G14).
 `constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
 `viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
 knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
@@ -49,7 +55,7 @@ knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
 ```text
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
-  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,absorption,progression,traits}.ts
+  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,giants,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig, DERIVED_BALANCE_CONSTANTS
   constants/absorption-derived.ts                               the engulf base duration and progress bands at the defaults, derived from absorption.ts; not in balance (§9)
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
@@ -63,9 +69,10 @@ packages/shared/src/
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
-  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
+  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers,giant-balance}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
-                                                                engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ecology/absorption.md §6.1)
+                                                                engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) and isCellEaterSpecies (ecology/absorption.md §6.1, ecology/giants.md §3.5.6)
+                                                                giant-balance: giantBalanceProblems(balance), the giant rules the balance test pins and debug_set_balance refuses on (ecology/giants.md §3.5.14)
                                                                 vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
   audio/{sound-events,audio-manifest}.ts                        catalogue lookups and layering; the manifest shape + parseAudioManifest (AUDIO.md §4)
   net/snapshot-acknowledger.ts                                  tells the room which tick a client has applied (wire-contract.md §4, #266); the client's RenderSession and the server's socket tests share it so they cannot drift (#664)

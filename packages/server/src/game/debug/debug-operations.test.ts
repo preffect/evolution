@@ -4,6 +4,7 @@ import {
   FIRST_TIER,
   ENTITY_KIND,
   FOOD_KIND,
+  GIANT_SPECIES,
   playerId,
   type BalanceConfig,
   type FoodMoteView,
@@ -30,6 +31,11 @@ const CELL_MAX_MASS_LEAF = 'CELL_MAX_MASS';
 const UNKNOWN_LEAF = 'NOPE';
 const MAX_LEVEL_LEAF = 'MAX_LEVEL';
 const TRAIT_TIER_COUNT_LEAF = 'TRAIT_TIER_COUNT';
+const BORN_MIN_LEAF = 'GIANT_BORN_MASS_MIN_BY_SPECIES';
+const CEILING_LEAF = 'GIANT_MASS_CEILING';
+const STARTING_MASS_LEAF = 'CELL_STARTING_MASS';
+const SPEED_MULTIPLIER_LEAF = 'GIANT_SPEED_MULTIPLIER_BY_SPECIES';
+const SPECIES_IN_DISH_LEAF = 'GIANT_SPECIES_IN_DISH';
 const NOBODY = playerId('nobody');
 const TIER_TABLES_LEAF = 'TRAIT_TIERS';
 const CILIA = 'cilia';
@@ -218,6 +224,48 @@ describe('setBalanceForDebug, the wild builds against the trait tiers (#671)', (
     expect(() =>
       setBalanceForDebug(world, { traits: { [TRAIT_TIER_COUNT_LEAF]: fewestTiersCoveringMaxLevel } }),
     ).not.toThrow();
+  });
+});
+
+describe('setBalanceForDebug, the giant rules (docs/ecology/giants.md §3.5.14)', () => {
+  const amoeba = GIANT_SPECIES.amoeba;
+  const { GIANT_BORN_MASS_MAX_BY_SPECIES: bornMax, GIANT_BORN_MASS_MIN_BY_SPECIES: bornMin } = DEFAULT_BALANCE.giants;
+  /** A patch the world must refuse whole, with a message matching `reason`, keeping the balance it had. */
+  const expectRefused = (patch: Parameters<typeof setBalanceForDebug>[1], reason: RegExp): void => {
+    const world = createTestWorld();
+    const before = world.balance;
+    expect(() => setBalanceForDebug(world, patch)).toThrow(reason);
+    expect(world.balance).toBe(before);
+  };
+
+  it('refuses a born minimum above its maximum', () => {
+    const giants = { [BORN_MIN_LEAF]: { [amoeba]: bornMax[amoeba] + 1 } };
+    expectRefused({ giants }, /giant_amoeba born mass minimum .* above its maximum/);
+  });
+
+  it('refuses a born range past the ceiling or under the starting mass, whichever domain moved the bound', () => {
+    expectRefused({ giants: { [CEILING_LEAF]: bornMax[amoeba] - 1 } }, /giant_amoeba born mass .* outside/);
+    expectRefused({ growth: { [STARTING_MASS_LEAF]: bornMin[amoeba] + 1 } }, /giant_amoeba born mass .* outside/);
+  });
+
+  it('refuses a speed multiplier above 1 and accepts 1', () => {
+    expectRefused({ giants: { [SPEED_MULTIPLIER_LEAF]: { [amoeba]: 1.01 } } }, /speed multiplier 1.01/);
+    const world = createTestWorld();
+    setBalanceForDebug(world, { giants: { [SPEED_MULTIPLIER_LEAF]: { [amoeba]: 1 } } });
+    expect(world.balance.giants.GIANT_SPEED_MULTIPLIER_BY_SPECIES[amoeba]).toBe(1);
+  });
+
+  it("refuses a TRAIT_TIER_COUNT under a build's tier (the amoeba's Pseudopods II), with the wild builds still covered", () => {
+    const oneTierLevel = DEFAULT_BALANCE.wildCells.WILD_CELL_BUILDS[0]!.length + 1;
+    const patch = { progression: { [MAX_LEVEL_LEAF]: oneTierLevel }, traits: { [TRAIT_TIER_COUNT_LEAF]: 1 } };
+    expectRefused(patch, /giant_amoeba build: amoeba_pseudopods tier 2 is outside 1\.\.1/);
+  });
+
+  it('accepts a giants patch that keeps every rule, and refuses one naming the species list (structure)', () => {
+    const world = createTestWorld();
+    setBalanceForDebug(world, { giants: { [BORN_MIN_LEAF]: { [amoeba]: bornMax[amoeba] } } });
+    expect(world.balance.giants.GIANT_BORN_MASS_MIN_BY_SPECIES[amoeba]).toBe(bornMax[amoeba]);
+    expectRefused({ giants: { [SPECIES_IN_DISH_LEAF]: { 0: 1 } } }, /not a number leaf/);
   });
 });
 

@@ -7,6 +7,7 @@ import { DEFAULT_BALANCE, DERIVED_BALANCE_CONSTANTS, type BalanceConfig } from '
 import { DISH_RADIUS } from './world.js';
 import * as absorption from './absorption.js';
 import * as absorptionDerived from './absorption-derived.js';
+import * as giants from './giants.js';
 import * as ladder from './ladder.js';
 import { TRAIT_TIERS } from './traits.js';
 
@@ -22,6 +23,7 @@ const EXPECTED_DOMAINS = [
   'ecology',
   'growth',
   'wildCells',
+  'giants',
   'absorption',
   'progression',
   'traits',
@@ -43,6 +45,16 @@ describe('DEFAULT_BALANCE', () => {
     const catalogCarried: keyof typeof ladder = 'ENDOSYMBIOSIS_BACTERIA_REQUIRED';
     const ladderConstants = Object.keys(ladder).filter((name) => name !== catalogCarried);
     expect(Object.keys(DEFAULT_BALANCE.ladder).sort()).toEqual(ladderConstants.sort());
+  });
+
+  it('carries every giants.ts constant but the species roles, which no patch may change (giants.md §3.5.14)', () => {
+    const roleConstant: keyof typeof giants = 'GIANT_ROLE_BY_SPECIES';
+    const giantConstants = Object.keys(giants).filter((name) => name !== roleConstant);
+    expect(Object.keys(DEFAULT_BALANCE.giants).sort()).toEqual(giantConstants.sort());
+  });
+
+  it('seats no giant until the giants-on slice (giants.md §3.5.17)', () => {
+    expect(DEFAULT_BALANCE.giants.GIANT_SPECIES_IN_DISH).toEqual([]);
   });
 
   // The design-table side (every `derived` row is listed) is constants-ledger.test.ts.
