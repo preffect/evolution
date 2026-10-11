@@ -20,6 +20,7 @@ This document is split into topic files (#306). Read only the file a ticket or b
 | ---------------------------------------------------------------- | --------- | ------------------------------------------ |
 | [`ecology/food-and-spawn.md`](./ecology/food-and-spawn.md)       | §1–§3.2   | Food, zones and the spawn model            |
 | [`ecology/wild-cells.md`](./ecology/wild-cells.md)               | §3.3–§3.4 | Wild cells and what a fresh protocell sees |
+| [`ecology/giants.md`](./ecology/giants.md)                       | §3.5      | Giant cells                                |
 | [`ecology/mass-and-movement.md`](./ecology/mass-and-movement.md) | §4–§5     | Mass decay, size, mass and speed           |
 | [`ecology/absorption.md`](./ecology/absorption.md)               | §6        | Absorption and engulf                      |
 | [`ecology/constants.md`](./ecology/constants.md)                 | §7        | Constants table                            |

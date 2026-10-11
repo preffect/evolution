@@ -17,6 +17,9 @@ to be fed. They are what "a world similar to itself" means (decision #141), and 
 the player must outpace: outgrow them and they are lunch, fall behind and they are threats (the human's
 direction: tickets #517 and #544).
 
+Three giant cells share the dish too: wild cells of a fixed species and size, with their own rules
+([`giants.md §3.5`](./giants.md#35-giant-cells)). This section is the 24 ordinary ones.
+
 A wild cell has no player: no DNA, no tags, no drafts, no leaderboard row and no score. It moves,
 sprints, eats, decays, is drained, engulfs and is engulfed by the same rules as a player cell. Four
 things differ: part of its mass is the world's and never decays (§3.3.1), its ladder is the world's
@@ -335,7 +338,8 @@ always starves the same cell.
 
 ```
 wildCarryingCapacity(t) = WILD_CELL_CARRYING_CAPACITY_MULTIPLE × WILD_CELL_COUNT × worldMass(t)
-totalWildMass           = Σ mass of every seated wild cell, read at the start of step 1 (before any settle)
+totalWildMass           = Σ mass of every seated wild cell, read at the start of step 1 (before any settle);
+                          the giants are not counted and never starve (giants.md §3.5.10)
 ```
 
 - **Choosing the starver.** At step 1, before the settles, the dish picks a starver if no seat is
