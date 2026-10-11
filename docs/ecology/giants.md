@@ -252,7 +252,9 @@ What follows:
   amoeba as it flees any cell that can engulf it, and none flees the grazer or the drifter. The amoeba
   hunts wild cells and players alike inside its window, and the other giants when they fall inside it
   (a 1 500 amoeba can start on a paramecium of up to 1 200, as real amoebae eat paramecia, though at
-  154 wu/s it rarely catches one). A wild cell grown past 1.25 × a giant may eat it, as any cell may.
+  154 wu/s it rarely catches one). A wild cell grown past 1.25 × a giant may eat it, as any cell may. Accepted: the closer-rival
+  rule reads `canEngulf`, not the amoeba's hunt filter, so a wild hunter gives up a small cell when the
+  amoeba is nearer to it, though the amoeba will never chase that cell.
 - **Why a quarter.** It is the ticket's and the mockup's number, and it puts the hunted band where the
   player is mid-round: 225 to 720 for the lightest amoeba, 375 to 1 200 for the heaviest. Below a
   quarter, a 900 amoeba would chase 100-mass cells across the dish in the first minutes, which 1A
@@ -332,7 +334,10 @@ for the last minute.
 #### 3.5.9 Placement, respawn and randomness
 
 - **Seats.** `GIANT_SPECIES_IN_DISH` (amoeba, paramecium, diatom) has one seat each. Giant seats are
-  numbered after the wild seats, `WILD_CELL_COUNT` + _i_ (24, 25, 26), so the decision stagger
+  numbered after the wild seats by the species' place in the fixed `GiantSpecies` order (amoeba,
+  paramecium, diatom), `WILD_CELL_COUNT` + _i_ (24, 25, 26), not by its place in
+  `GIANT_SPECIES_IN_DISH`, so a giant seated by `debug_spawn` or the test fixture has the same seat
+  whether or not the list names it (it ships empty until slice 6). The decision stagger
   (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule.
   `GIANT_SPECIES_IN_DISH` is read once, at world creation, so the seat count never changes during a
   round; a `debug_set_balance` patch of it takes effect at the next round or rematch.
