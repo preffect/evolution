@@ -6,29 +6,33 @@
 
 Three giant cells share the dish from the first second of every round: a giant amoeba that hunts, a
 paramecium that grazes and a giant diatom that drifts. They are about 50 times a newborn's mass and
-about a third of a player's top size. While you are small they ignore you: the amoeba swims past you
-to a wild cell worth the effort, and none of them can swallow you. Once you weigh a quarter of the
-amoeba it starts to hunt you, but it is slow, so you can swim or sprint away. Grow past them and the
-roles turn: they run from you like any wild cell, and swallowing one pays a big DNA prize and shows a
-real-life fact about the organism. An eaten giant comes back a minute and a half later.
+about a third of a player's top size. While you are small the amoeba does not bother with you: it
+swims past you to a wild cell worth the effort, though bumping into it still gets you swallowed. The
+paramecium and the diatom never eat a cell. Once you weigh a quarter of the amoeba it starts to hunt
+you, but it is slow, so you can swim away, and if it grabs you, sprint at once. Grow past them and the
+roles turn: all three run from you like any wild cell, and swallowing one pays a big DNA prize and
+shows a real-life fact about the organism. An eaten giant comes back a minute and a half later.
 
 The human's decision (ticket #821): **1A**, giants hunt you only once you are big enough to be worth
 it (a quarter of their mass, up to what they can swallow); **2A**, all three; **3A**, in the dish from
 the start of the round. Epic #757; the mockups are the design canvas
 <https://claude.ai/artifact/V3CruikuDsEYHhMnch6Q6z> (the cast board, "Ignored", "Hunted" and "It runs").
+The human's answers to this section's two open questions (2026-10-11, PR #823) are recorded in §3.5.16:
+the amoeba swallows a small cell that touches it but never chases one, and the diatom swims and flees.
 
 #### 3.5.1 The cast
 
-| Giant (`GiantSpecies`)          | Role    | Born mass (uniform) | Cruise speed     | Eats                                | Hunts                                       | Flees and sprints |
-| ------------------------------- | ------- | ------------------- | ---------------- | ----------------------------------- | ------------------------------------------- | ----------------- |
-| Giant amoeba (`giant_amoeba`)   | hunter  | 900–1 500           | 154 wu/s (slow)  | cells only                          | cells from ¼ of its mass to what it engulfs | yes               |
-| Paramecium (`giant_paramecium`) | grazer  | 900–1 300           | 226 wu/s (fast)  | algae, detritus and bacteria, ahead | never                                       | yes               |
-| Giant diatom (`giant_diatom`)   | drifter | 1 000–1 500         | 81 wu/s (drifts) | nothing: it lives on light          | never                                       | never             |
+| Giant (`GiantSpecies`)          | Role    | Born mass (uniform) | Cruise speed       | Eats                                       | Hunts                                       | Flees and sprints |
+| ------------------------------- | ------- | ------------------- | ------------------ | ------------------------------------------ | ------------------------------------------- | ----------------- |
+| Giant amoeba (`giant_amoeba`)   | hunter  | 900–1 500           | 154 wu/s (slow)    | cells only (any it touches and can engulf) | cells from ¼ of its mass to what it engulfs | yes               |
+| Paramecium (`giant_paramecium`) | grazer  | 900–1 300           | 226 wu/s (fast)    | algae, detritus and bacteria, ahead        | never                                       | yes               |
+| Giant diatom (`giant_diatom`)   | drifter | 1 000–1 500         | 122 wu/s (slowest) | nothing: it lives on light                 | never                                       | yes               |
 
 Speeds are cruise speeds with no gel; a player cell with no speed trait cruises at 220 wu/s. So the
 amoeba is the giant you can always outswim, the paramecium the one you need speed or a corner to
-catch, and the diatom the one that cannot get away but is the hardest to swallow (§3.5.4). The three
-prizes ask for three different skills: size, speed and persistence.
+catch, and the diatom the one that runs but can never outrun you (even its sprint is under 220) and is
+the hardest to swallow (§3.5.4). The three prizes ask for three different skills: size, speed and
+persistence.
 
 #### 3.5.2 A giant is a wild cell, with these differences
 
@@ -43,10 +47,11 @@ section changes it.
 - **Sight** (§3.3.3): `WILD_CELL_SIGHT_VIEW_MULTIPLE × viewHalfHeightFor(radius)`, 777 wu at 900
   mass, 883 wu at 1 500.
 - **Sprint** (§3.3.3): the player's own sprint, started only on a decision, never while engulfing or
-  carried, taken only when it can land (`wild/wild-hunt-sprint.ts`). The drifter never sprints.
+  carried, taken only when it can land (`wild/wild-hunt-sprint.ts`). All three sprint; the drifter only to
+  flee, since it never hunts.
 - **Fleeing** (§3.3.3): from any cell in sight that can engulf it, within `WILD_CELL_FLEE_RANGE_RADII`
-  own radii, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`, and the engulf-escape rule. The drifter
-  never flees (§3.5.5).
+  own radii, sprinting within `WILD_CELL_SPRINT_FLEE_RADII`, and the engulf-escape rule. All three
+  flee, the drifter included (§3.5.5, the human's answer 2).
 - **Recovery** (§3.3.1): a wound recovers toward the full size with `WILD_CELL_RECOVERY_SECONDS` (6 s),
   so the Toxin Vacuole escape works on a giant hunter as on a wild one.
 - **The hunt's aim, charge, hold and rest** (ticket #738): `WILD_CELL_HUNT_CHARGE_RADII`, the hold and
@@ -55,21 +60,22 @@ section changes it.
 
 **Different:**
 
-| What               | A wild cell (§3.3)                                         | A giant (this section)                                                                    |
-| ------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Size               | `worldMass × sizeFactor`, grows with the world             | a born mass drawn once per life, never moves with the world (§3.5.3)                      |
-| Growth ceiling     | 3 × `worldMass`                                            | `GIANT_MASS_CEILING`, 1 500 mass, fixed                                                   |
-| Decay of growth    | the player's decay                                         | the player's decay × `GIANT_DECAY_MULTIPLIER` (0.25)                                      |
-| Ladder             | the world's (`WILD_CELL_BUILDS`, level follows worldLevel) | a fixed build per species at fixed tiers, level 6 all round (§3.5.4)                      |
-| Who it may engulf  | any cell `canEngulf` allows                                | the hunter: only cells of at least ¼ its mass; grazer and drifter: no cell (§3.5.6)       |
-| Players as prey    | from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` (6:00)           | from tick 0, gated by mass alone (decision 1A)                                            |
-| Hunt give-up       | `WILD_CELL_HUNT_GIVE_UP_SECONDS` (5 s)                     | `GIANT_HUNT_GIVE_UP_SECONDS` (8 s): it is slow (§3.5.6)                                   |
-| Food               | algae and detritus                                         | hunter none; grazer algae, detritus and bacteria, ahead of it, while hungry; drifter none |
-| Speed              | its traits                                                 | its traits × `GIANT_SPEED_MULTIPLIER_BY_SPECIES`                                          |
-| Wander turn chance | `WILD_CELL_TURN_CHANCE` (0.25)                             | `GIANT_TURN_CHANCE_BY_SPECIES`                                                            |
-| Die-off            | counts toward the carrying capacity, may starve            | outside it: never counted, never starves (§3.5.10)                                        |
-| Eaten by a player  | `ENGULF_DNA_SHARE × worldDna`                              | `GIANT_DNA_BONUS` (200) and the fact popup (§3.5.8)                                       |
-| Respawn            | `WILD_CELL_RESPAWN_SECONDS` (10 s)                         | `GIANT_RESPAWN_SECONDS` (90 s), well away from every player (§3.5.9)                      |
+| What               | A wild cell (§3.3)                                         | A giant (this section)                                                                        |
+| ------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Size               | `worldMass × sizeFactor`, grows with the world             | a born mass drawn once per life, never moves with the world (§3.5.3)                          |
+| Growth ceiling     | 3 × `worldMass`                                            | `GIANT_MASS_CEILING`, 1 500 mass, fixed                                                       |
+| Decay of growth    | the player's decay                                         | the player's decay × `GIANT_DECAY_MULTIPLIER` (0.25)                                          |
+| Ladder             | the world's (`WILD_CELL_BUILDS`, level follows worldLevel) | a fixed build per species at fixed tiers; level = picks + 1: amoeba 7, the others 6 (§3.5.4)  |
+| Who it may engulf  | any cell `canEngulf` allows                                | the hunter: any cell `canEngulf` allows, as a wild cell; grazer and drifter: no cell (§3.5.6) |
+| Whom it hunts      | any cell it may engulf                                     | the hunter: only cells of at least ¼ its mass (the hunt window, §3.5.6); the others: none     |
+| Players as prey    | hunted from `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` (6:00)    | hunted from tick 0, gated by mass alone (decision 1A)                                         |
+| Hunt give-up       | `WILD_CELL_HUNT_GIVE_UP_SECONDS` (5 s)                     | `GIANT_HUNT_GIVE_UP_SECONDS` (8 s): it is slow (§3.5.6)                                       |
+| Food               | algae and detritus                                         | hunter none; grazer algae, detritus and bacteria, ahead of it, while hungry; drifter none     |
+| Speed              | its traits                                                 | its traits × `GIANT_SPEED_MULTIPLIER_BY_SPECIES`                                              |
+| Wander turn chance | `WILD_CELL_TURN_CHANCE` (0.25)                             | `GIANT_TURN_CHANCE_BY_SPECIES`                                                                |
+| Die-off            | counts toward the carrying capacity, may starve            | outside it: never counted, never starves (§3.5.10)                                            |
+| Eaten by a player  | `ENGULF_DNA_SHARE × worldDna`                              | `GIANT_DNA_BONUS` (200) and the fact popup (§3.5.8)                                           |
+| Respawn            | `WILD_CELL_RESPAWN_SECONDS` (10 s)                         | `GIANT_RESPAWN_SECONDS` (90 s), well away from every player (§3.5.9)                          |
 
 #### 3.5.3 Size, growth and recovery
 
@@ -113,15 +119,40 @@ and the decay taken from the growth multiplied by `GIANT_DECAY_MULTIPLIER`. Its 
 #### 3.5.4 Build, level and armour
 
 A giant's traits are its species' fixed build (`GIANT_BUILDS_BY_SPECIES`), each a valid ladder ending
-in its form, owned at the tiers below for its whole life. Its level is the picks plus one (6), its
-stage `stageOf(traits)` = `specialised`, and its `dnaCumulative` 0 (no payout reads it, §3.5.8).
-The renderer draws its form from these traits like anyone's (§3.5.11).
+in its form, owned at the tiers below for its whole life. Its level is derived from the build, as a
+wild cell's is (`wild-build.ts`: a cell at level L owns L − 1 picks, and each tier is a pick): picks + 1,
+so the amoeba is level 7 (Amoeba Pseudopods II is two picks) and the paramecium and the diatom level 6.
+No constant names a giant's level, so it cannot drift from the build. Its stage is `stageOf(traits)` =
+`specialised`. The renderer draws its form from these traits like anyone's (§3.5.11).
 
-| Species            | Build (tier)                                                                                        | What the tiers do for it                                                                                                                                                                                                                                                                                               |
-| ------------------ | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `giant_amoeba`     | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cytoskeleton` I, `amoeba_pseudopods` **II** | Pseudopods II's grip (0.2) is the lowest that holds a cruising prey: held in cover at 0.85 − 0.2 = 0.65 × 220 = 143 wu/s, it is slower than the amoeba's 154; sprinting (257 wu/s) it breaks free. That is the mockup's "it is slow, so sprint away", exactly. The arm grab reaches 0.6175 own radii (96 wu at 1 500). |
-| `giant_paramecium` | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cilia` I, `paramecium_cilia` I              | Cilia I × Paramecium Cilia I = 1.21 speed, with the struggle and grip resistance of a ciliate, so a held paramecium slips a weak grip.                                                                                                                                                                                 |
-| `giant_diatom`     | `nucleoid` I, `chloroplast` I, `nuclear_envelope` I, `cell_wall` I, `diatom_shell` I                | The armour, below. Its Chloroplast photosynthesises in the shallows (0.3 mass/s), less than its growth burns (0.44 mass/s at 1 000), so it never grows: light pays its keep.                                                                                                                                           |
+| Species            | Build (tier)                                                                                        | What the tiers do for it                                                                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `giant_amoeba`     | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cytoskeleton` I, `amoeba_pseudopods` **II** | The grip, below. The arm grab reaches 0.6175 own radii (96 wu at 1 500).                                                                                                     |
+| `giant_paramecium` | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cilia` I, `paramecium_cilia` I              | Cilia I × Paramecium Cilia I = 1.21 speed, with the struggle and grip resistance of a ciliate, so a held paramecium slips a weak grip.                                       |
+| `giant_diatom`     | `nucleoid` I, `chloroplast` I, `nuclear_envelope` I, `cell_wall` I, `diatom_shell` I                | The armour, below. Its Chloroplast photosynthesises in the shallows (0.3 mass/s), less than its growth burns (0.44 mass/s at 1 000), so it never grows: light pays its keep. |
+
+**The amoeba's grip, under ticket #819's kept grab.** A started grab (before the seal) holds while any
+of the prey is under the amoeba (centres within `R + r`), except while the prey's sprint runs, when the
+start's bound applies (centres within `R − 0.5 r`, absorption.md §6.1). Pseudopods II's grip (0.2) holds a
+plain prey at 0.85 − 0.2 = 0.65 of its speed in cover and 0.6 in wrap. So:
+
+- **Swimming does not get you out.** A cruising prey is held at 0.65 × 220 = 143 wu/s, under the amoeba's
+  154, and to break the kept grab it would have to open the 1.5 r between the two bounds (104 wu for a
+  300-mass prey) against a faster cell. A grabbed cell that only swims is swallowed.
+- **A sprint at once gets you out.** Sprinting, it is held at 0.65 × 396 = 257 wu/s, 103 wu/s faster than the
+  amoeba, and the start's bound applies. A prey grabbed near the amoeba's rim leaves that bound within its
+  0.5 s sprint, and its progress, which climbs only 1/72 a tick in cover while it struggles (a prey of
+  40 % of the amoeba's mass or less, `massFactor` 0.5), drains at 1/18 a tick out of contact, so it is
+  released `escaped` before the sprint ends (G15).
+- **A late sprint fails.** A prey the amoeba has got on top of cannot cross the start's bound in one sprint
+  (from rest it covers about 76 wu in the 30 ticks at 257 wu/s), and when the sprint ends the kept grab
+  holds it again; the next sprint is 3 s away, and a prey of 40 % of the amoeba's mass or less struggling
+  all the way is sealed 30 ticks (0.5 s) after the grab. So the lesson the amoeba teaches is the mockup's
+  "it is slow, so sprint away", sharpened to _sprint the moment it grabs you_ (G15's deep variant).
+- **Tier II, not I.** Under the kept grab any grip holds a cruising prey, so the tier sets only how hard the
+  sprint escape is. Pseudopods I (0.1) would let a sprinting prey go at 0.75 × 396 = 297 wu/s, nearly twice
+  the amoeba's speed, and the escape would be a formality; II keeps it a reaction. II also wraps faster
+  (× 0.75), and a giant's arms should hold harder than a player's first pick.
 
 **The diatom's armour, through existing traits only.** Cell Wall I adds `membraneRatioBonus` 0.15, so
 a predator needs 1.40 × the diatom's mass to start (1 400 for the lightest, 2 100 for the heaviest)
@@ -146,61 +177,80 @@ read one value).
 | ------------------ | ------------- | ------------------ | ------------- | ----------------------------------- | ------------------------------- |
 | `giant_amoeba`     | 1.0           | 0.7                | 154.0         | 292.6                               | 0.25                            |
 | `giant_paramecium` | 1.21          | 0.85               | 226.3         | 429.9                               | 0.1                             |
-| `giant_diatom`     | 0.9215        | 0.4                | 81.1          | never sprints                       | 0.05                            |
+| `giant_diatom`     | 0.9215        | 0.6                | 121.6         | 218.9 (no mitochondrion)            | 0.05                            |
 
 - **Amoeba 0.7.** Slow enough that any cell outswims it at cruise (220 against 154), so being hunted
   is a warning, not a death sentence; fast enough that its sprint (292.6 for 0.5 s) closes 36 wu on a
-  cruising prey, so a cell that ignores it gets grabbed. Real amoebae crawl.
+  cruising prey, so a cell that ignores it gets grabbed, and a grabbed cell must sprint (§3.5.4). Real
+  amoebae crawl.
 - **Paramecium 0.85.** Its ciliate traits alone (1.21, 266 wu/s) would outrun every cell without a
   speed trait for good. At 0.85 it cruises at 226: faster than a plain cell (220), slower than a cell
   with any speed trait (Simple Flagellum I 231, Cilia I 242). So it is the fast giant, and catching it is
   the prize of a speed build, a wall or a gel patch.
-- **Diatom 0.4.** It drifts at 81 wu/s: slow enough to read as carried by the water rather than
-  swimming. Real diatoms have no flagella.
+- **Diatom 0.6** (the human's answer 2: _"we'll need to break from reality a bit. Not moving won't be
+  fun"_). It swims at 122 wu/s, the slowest giant, and sprints at 218.9 wu/s (Cell Wall I and Diatom
+  Shell I cost it speed, and it has no Mitochondrion): just under a plain cell's 220 cruise, so a cell
+  that can eat it never loses ground on it, even while it sprints. It runs, which reads as alive, but its
+  shell stays its defence: the chase is easy, the swallow is not (§3.5.4). Real diatoms have no
+  flagella; some glide on a film of mucus.
 - **Turn chances.** The amoeba wanders like a wild cell (`WILD_CELL_TURN_CHANCE` 0.25, a new heading
   about every 2 s). The paramecium keeps a heading about 5 s (0.1), so it sweeps long lanes. The
   diatom keeps one about 10 s (0.05): a slow, straight drift. The wander's wall rule (§3.3.3) keeps all
   three inside the placement disc.
-- **The drifter never flees and never sprints.** Its decision is the wander rule alone, every time:
-  its defence is its shell, and a slow diatom turning to run would look like swimming. (Open question
-  2, §3.5.16.)
+- **The drifter flees and sprints like the others** (§3.3.3's flee rule, the human's answer 2). Its
+  decision is flee, then wander: it never hunts and never grazes.
 - Every species multiplier is at most 1, so `interestMaxCellSpeedFor` (the interest margin's bound,
   `camera/interest-margin.ts`) still bounds every cell and needs no change.
 
-#### 3.5.6 The hunt window (decision 1A)
+#### 3.5.6 Who eats cells, and the hunt window (decision 1A, the human's answer 1)
 
-Only the hunter engulfs cells, and only those worth it:
+Two rules, kept apart:
+
+- **Who may engulf a cell** is `canEngulf`, the one shared predicate (absorption.md §6.1). It stays today's
+  mass-ratio rule for every cell, the amoeba included, plus one predator-side test: the grazer and the
+  drifter engulf no cell.
+- **Whom the amoeba hunts** is a seat-side rule of its decision, the **hunt window**: it picks as a hunt
+  target only a cell it may engulf whose mass is at least `GIANT_HUNT_MIN_PREY_MASS_FRACTION` (0.25) × its
+  own. The window gates the chase, never the swallow.
 
 ```
-canEngulf(predator, prey) = predator.isCellEater
-                            ∧ prey.mass ≥ predator.preyMinMassFraction × predator.mass
-                            ∧ predator.mass ≥ prey.mass × (ENGULF_MASS_RATIO + prey.membraneRatioBonus)
+canEngulf(predator, prey)     = isCellEaterSpecies(predator.giantSpecies)
+                                ∧ predator.mass ≥ prey.mass × (ENGULF_MASS_RATIO + prey.membraneRatioBonus)
+isCellEaterSpecies(species)   = species = null ∨ GIANT_ROLE_BY_SPECIES[species] = hunter
+isGiantHuntTarget(seat, prey) = canEngulf(giant, prey) ∧ prey.mass ≥ GIANT_HUNT_MIN_PREY_MASS_FRACTION × giant.mass
 ```
 
-`isCellEater` is true and `preyMinMassFraction` 0 for every player and wild cell, so the predicate is
-unchanged for them. For a giant both come from its species: the hunter `true` and
-`GIANT_HUNT_MIN_PREY_MASS_FRACTION` (0.25), the grazer and the drifter `false`. Both are mirrored on
-the `CellView` at step 1 like `membraneRatioBonus`, so the predicate keeps its one home and its three
-callers (step 6's engulf start, the HUD's threat label and the warning ring, absorption.md §6.1) still
-agree. `canContinueEngulf` is unchanged: the window gates the start only, so a prey drained below a
-quarter during the swallow is still swallowed.
+`isCellEaterSpecies` is true for every player and wild cell (`giantSpecies` null), so `canEngulf` is
+unchanged for them. It reads only `giantSpecies`, which the view carries for the renderer anyway
+(§3.5.15), and `GIANT_ROLE_BY_SPECIES`, a fixed constant rather than a balance leaf (a role is what a
+species is, and no patch changes it), so the predicate gains no balance input and no mirrored view field.
+`canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`huntMinPreyMassFraction`:
+0.25 for the hunter, 0 for a wild seat, §3.5.15), read only by the hunt's candidate filter at a decision.
 
-What follows from that one rule:
+What follows:
 
-- **Ignored means ignored.** A cell under a quarter of the amoeba's mass is not its prey: it is not
-  hunted, and it is not swallowed if it touches the amoeba (separation pushes the two apart). It sees
-  no red ring and no `GIANT AMOEBA` threat label: the mockup's "Ignored" frame. The paramecium and the
-  diatom never threaten anyone. (Open question 1, §3.5.16.)
-- **Players from tick 0, by mass alone.** `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` does not apply to a
-  giant: decision 1A puts the gate on the prey's mass, not on the era. In practice the two agree in
-  feel: the lightest amoeba's window opens at 225 mass, which a player at the world's pace reaches
-  around 3:25 (`worldMass` = 20 + _t_), and the window rises with the amoeba (375 at 1 500).
-- **A fresh cell is never prey.** `GIANT_BORN_MASS_MIN_BY_SPECIES[giant_amoeba]` ×
-  `GIANT_HUNT_MIN_PREY_MASS_FRACTION` (225) > `ENTRY_MAX_MASS` (200, PROGRESSION §5), so a late
-  joiner or a respawn is never born inside a giant's window. The balance test pins it (G14).
-- **Wild cells see it too.** Their flee and closer-rival rules read `canEngulf`, so a wild cell below
-  the amoeba's window does not run from it, and no wild cell flees the grazer or the drifter. The
-  amoeba hunts wild cells and players alike, and the other giants when they fall inside its window
+- **Not chased, but not safe to touch.** A cell under a quarter of the amoeba's mass is never its hunt
+  target: on a decision the amoeba swims past it to prey worth the effort, or wanders. But a cell it can
+  engulf that touches it, or that its arm reaches while the cell is not steering away, is swallowed by §6
+  as any prey (G4). The danger ring and the threat label follow `canEngulf`, as they do for every cell, so
+  a small cell near the amoeba sees its red ring and its name from the first second: the truth, since a
+  bump swallows it. The mockup's "Ignored" frame is the chase, not the ring.
+- **The paramecium and the diatom never eat a cell.** No engulf ever starts with either as predator, no
+  cell sees a ring or a threat label for them, and no wild cell flees them (`wild-perception.ts` reads
+  `canEngulf`). They push a small cell aside by separation instead (§5.3): QA should expect a crowd of
+  small cells to be bulldozed by a passing paramecium or diatom, and by an amoeba crossing cells too big
+  for it to swallow; nothing steers a giant around them, and that is not a bug.
+- **Players hunted from tick 0, by mass alone.** `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE` does not apply to a
+  giant: decision 1A puts the gate on the prey's mass, not on the era. In practice the two agree in feel:
+  the lightest amoeba's window opens at 225 mass, which a player at the world's pace reaches around 3:25
+  (`worldMass` = 20 + _t_), and the window rises with the amoeba (375 at 1 500).
+- **A fresh cell is never hunted.** `GIANT_BORN_MASS_MIN_BY_SPECIES[giant_amoeba]` ×
+  `GIANT_HUNT_MIN_PREY_MASS_FRACTION` (225) > `ENTRY_MAX_MASS` (200, PROGRESSION §5), so a late joiner or
+  a respawn is never born inside a giant's window (the balance test pins it, G14), and the spawn's threat
+  clearance (`threatClearance`, mass-based) keeps it 600 wu from any giant, so it is not born touching one.
+- **Wild cells see it too.** Their flee and closer-rival rules read `canEngulf`, so a wild cell flees the
+  amoeba as it flees any cell that can engulf it, and none flees the grazer or the drifter. The amoeba
+  hunts wild cells and players alike inside its window, and the other giants when they fall inside it
   (a 1 500 amoeba can start on a paramecium of up to 1 200, as real amoebae eat paramecia, though at
   154 wu/s it rarely catches one). A wild cell grown past 1.25 × a giant may eat it, as any cell may.
 - **Why a quarter.** It is the ticket's and the mockup's number, and it puts the hunted band where the
@@ -231,18 +281,22 @@ rule with three changes:
 - **Ahead of it.** The target is the nearest such mote in sight whose bearing lies within
   `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` (60°) of its forward direction; only when none does, the
   nearest in sight; ties to the lower entity id. Forward is its velocity's direction, or its seat's
-  wander heading while it is at rest. A 120° cone keeps most food it swims to ahead of it, and it never
+  wander heading while it is at rest, which means a velocity of exactly (0, 0), as a placement or a
+  respawn leaves it (the test is exact, with no threshold). A 120° cone keeps most food it swims to ahead of it, and it never
   doubles back for a mote behind while one lies ahead: it sweeps lanes, which reads as a paramecium
   sweeping food into its groove and lets a player predict it.
 - **Only while hungry.** It targets and eats food (step 4, by §1's eating rule, every mote whose centre
   lies within its radius) only while its `grownMass` is below `GIANT_GRAZER_APPETITE_MASS` (100). A
-  sated paramecium passes over food. The test is made once per tick before step 4, so one tick's meal
+  sated paramecium passes over food: step 4 skips it, and its decision skips the graze and wanders
+  (G5's and G6's sated variants). The eating test is made once per tick before step 4, so one tick's meal
   may overshoot by a few motes. Why 100: it bounds the first feed to about 50 to 70 motes, after which
   it eats only what its growth burns (0.50 mass/s, §3.5.3), so over a default round it eats about 400
   mass in all, about 5 % of what the dish spawns for one player.
 
 The hunter eats no motes at all (step 4 skips it): it is a hunter, and a 1 500-mass body sweeping the
-dish would take more food than the grazer. The drifter eats nothing.
+dish would take more food than the grazer. The drifter eats nothing. Both are changes to step 4, which
+today feeds every non-player cell the `isWildFood` motes it covers (`simulation/eating.ts`), so G5 pins
+them: a mote inside the amoeba or the diatom is still there after the tick.
 
 #### 3.5.8 Being eaten: the payout, the fact and the respawn
 
@@ -250,14 +304,17 @@ A giant is eaten by §6's rules, so it bleeds, struggles, spits out (the diatom)
 prey. At the payout:
 
 - **Player eats a giant** (§3.3.4's "player eats wild", with these substitutions): DNA +=
-  `GIANT_DNA_BONUS` (200) and no `ENGULF_DNA_SHARE × worldDna`, no `ENGULF_DNA_BASE`; mass +=
+  `GIANT_DNA_BONUS` (200) and no `ENGULF_DNA_SHARE × worldDna`, no `ENGULF_DNA_BASE`, paid through
+  `gainDna(…, predator.modifiers.dnaGainMultiplier)` like every other DNA gain (`engulf-payout.ts`), so a
+  Nucleoid I eater gets 210 and a Nucleoid III eater 230 (G9's variant); mass +=
   `prey.mass × ENGULF_MASS_YIELD` as usual (cap overflow to DNA, §5.4); tag points += `predatory` ×
   `ENGULF_PREDATORY_TAG_POINTS`; `wildAbsorptions` += 1 and `absorptions` unchanged (no
   `SCORE_ABSORPTION_BONUS`); its endosymbiont credits the eater's counter as a wild prey's does;
   detritus as usual. The DNA counts toward the score as any earned DNA does.
 - **The fact.** The `cell_absorbed` effect carries `preyGiantSpecies`. When the own cell is the
   predator and it is not null, the client shows ticket #783's form popup (ui/overlays.md §3.8: large,
-  centred, about 5 s) with the giant's name, `+200 DNA` and its real-life line (§3.5.12). A giant eaten
+  centred, about 5 s) with the giant's name, the DNA gained (`+200 DNA` with no Nucleoid) and its real-life
+  line (§3.5.12). A giant eaten
   by anything else shows nothing.
 - **Giant eats a cell:** the cell's normal death; the meal becomes growth up to the ceiling. **Wild or
   giant eats a giant:** mass only, as wild eats wild.
@@ -276,8 +333,9 @@ for the last minute.
 
 - **Seats.** `GIANT_SPECIES_IN_DISH` (amoeba, paramecium, diatom) has one seat each. Giant seats are
   numbered after the wild seats, `WILD_CELL_COUNT` + _i_ (24, 25, 26), so the decision stagger
-  (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule. The seat
-  count never changes.
+  (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule.
+  `GIANT_SPECIES_IN_DISH` is read once, at world creation, so the seat count never changes during a
+  round; a `debug_set_balance` patch of it takes effect at the next round or rematch.
 - **World creation:** after the players and **before** the wild seats and the initial fill, so the
   wild placement's threat clearance (`SAFE_SPAWN_RADIUS` 600 from any cell of 40 mass or more) keeps
   every wild cell clear of the giants, and E1's "no mote inside any cell" covers them.
@@ -288,7 +346,12 @@ for the last minute.
   `findSafeSpawnPoint` with `SAFE_SPAWN_MAX_ATTEMPTS`, then the farthest candidate. Respawn uses the
   same rule.
   - **1 500 from players:** the tallest view's half-height plus the biggest giant's radius
-    (1 192.9 + 154.9 = 1 348) rounded up, so a giant is rarely born on anyone's screen.
+    (1 192.9 + 154.9 = 1 348) rounded up. That keeps a giant off a newborn's and a mid-round player's
+    screen, and off any screen's top and bottom. A top-size player's screen is wider (at least 16:9, and
+    the interest area 2.4:1, `INTEREST_VIEW_ASPECT_RATIO`: a half-width of about 2 120 to 2 860 wu, most
+    of the 2 700 wu placement disc), so a giant can be born at the side of a big player's screen. That is
+    accepted: with several players the farthest-candidate fallback often decides anyway, and for a player
+    big enough to see that far a giant appearing at the edge is a prize, not an ambush.
   - **1 500 between giants:** the three start in different parts of the dish (three points 1 500 apart
     fit easily in the 2 700 wu placement disc), so no screen starts with two.
   - **450 from any cell:** the biggest giant's radius and arm reach (154.9 + 95.7) plus the radius of a
@@ -321,12 +384,21 @@ shell (`diatom_shell`). The renderer gets `CellView.giantSpecies` and uses it fo
 - **New detail only where the form lacks it at giant size:** the paramecium's oral groove (the
   mockup's curved line) and the diatom's concentric rings of pores and radial ribs. The graphics
   designer checks each form at radius 120 to 155 wu first and adds only what is missing.
-- **Names:** the threat label says `GIANT AMOEBA` where a wild cell's says `WILD <STAGE>`; the respawn
-  line says "Eaten by a giant amoeba". The paramecium and the diatom never get a threat label (they
-  threaten no one); a diatom a player can eat gets `EDIBLE · SPINY`.
+- **Names, one home.** `cellDisplayName` (`hud/format/threats-for.ts`) returns a giant's display name
+  from `GIANT_DISPLAY_NAME_BY_SPECIES` (`Giant amoeba`, `Paramecium`, `Giant diatom`, beside
+  `GIANT_REAL_LIFE_LINES`) where it returns `Wild cell` for a wild cell, so the threat label and the
+  hold-Tab panel name it. `respawn-lines.ts` drops its own `WILD_KILLER` constant and builds the killer
+  from `cellDisplayName` too (`A ` + the name, upper-cased: `ENGULFED BY A WILD CELL` as today,
+  `ENGULFED BY A GIANT AMOEBA` for the amoeba; ui/overlays.md §3.3). The paramecium and the diatom never
+  get a threat label (they eat no cell); a diatom a player can eat gets `EDIBLE · SPINY`.
 - **No new HUD state.** The mockup's `TOO SMALL TO NOTICE` and `HUNTING · MASS 420` pills are
-  annotations of the idea, not UI: the existing rings say it (no red ring when ignored, the red ring
-  when in the window, the green ring when edible).
+  annotations of the idea, not UI: the existing rings say who can eat whom (the amoeba's red ring for
+  any cell it can swallow, none for the paramecium and the diatom, the green ring when edible). Whether
+  the amoeba is chasing you is read from its movement, as a wild hunter's is. The hold-Tab panel's
+  `Eats you ≥ X` row (`hud/format/affecting-size.ts`, ui/overlays.md §3.7) stays as it is: it is
+  `ENGULF_MASS_RATIO` × your mass, which is true for the amoeba (it swallows any cell it touches and can
+  engulf). It overstates for the paramecium and the diatom, which eat no cell; that is accepted, since
+  the row is a mass threshold and the ring and label on each cell are the per-cell truth.
 
 #### 3.5.12 Real-life lines
 
@@ -361,20 +433,22 @@ answer edits rows, not rules.
 #### 3.5.14 Constants (`packages/shared/src/constants/giants.ts`, balance domain `giants`)
 
 `GiantSpecies` (`giant_amoeba`, `giant_paramecium`, `giant_diatom`) and `GiantRole` (`hunter`,
-`grazer`, `drifter`) are wire enums in `types/game.ts`; the records below are keyed by species.
+`grazer`, `drifter`) are wire enums in `types/game.ts`; the records below are keyed by species. Every
+row is a balance leaf of the `giants` domain except `GIANT_ROLE_BY_SPECIES`, a plain constant in the same
+file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it.
 
 | Constant                                  | Value                      | Unit                         | Reason (section)                                                                   |
 | ----------------------------------------- | -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
-| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom | species, one seat each       | decision 2A and 3A (§3.5.9)                                                        |
-| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter    | role                         | the mockup's roles; the role sets the decision rules and the diet (§3.5.6, §3.5.7) |
+| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom | species, one seat each       | decision 2A and 3A; read at world creation only (§3.5.9)                           |
+| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter    | role (not a balance leaf)    | the mockup's roles; the role sets the decision rules and the diet (§3.5.6, §3.5.7) |
 | `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1 000            | mass                         | the mockup's ranges (§3.5.3)                                                       |
 | `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1 500, 1 300, 1 500        | mass                         | the mockup's ranges (§3.5.3)                                                       |
 | `GIANT_MASS_CEILING`                      | 1 500                      | mass                         | a player outgrows every giant (§3.5.3)                                             |
 | `GIANT_DECAY_MULTIPLIER`                  | 0.25                       | × the player's decay         | a meal lasts; the grazer's steady appetite stays near 4 % of the food (§3.5.3)     |
 | `GIANT_BUILDS_BY_SPECIES`                 | the three builds of §3.5.4 | trait ids and tiers          | the form, the grip and the armour (§3.5.4)                                         |
-| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.4             | × the traits' speed          | slow, fast, drifting (§3.5.5)                                                      |
+| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6             | × the traits' speed          | slow, fast, slowest; the diatom's sprint stays under 220 (§3.5.5)                  |
 | `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05            | per wander decision          | wander, sweep, drift (§3.5.5)                                                      |
-| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                       | × the hunter's mass          | decision 1A (§3.5.6)                                                               |
+| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                       | × the hunter's mass          | decision 1A: gates the hunt target, never the swallow (§3.5.6)                     |
 | `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                          | s                            | its sight crossed at its speed, plus a swallow (§3.5.6)                            |
 | `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                         | degrees either side of ahead | sweeps lanes, never doubles back (§3.5.7)                                          |
 | `GIANT_GRAZER_APPETITE_MASS`              | 100                        | mass of growth               | bounds the first feed (§3.5.7)                                                     |
@@ -387,47 +461,135 @@ answer edits rows, not rules.
 Reused unchanged: `WILD_CELL_SIGHT_VIEW_MULTIPLE`, `WILD_CELL_FLEE_RANGE_RADII`, both sprint radii,
 `WILD_CELL_HUNT_CHARGE_RADII`, `WILD_CELL_HUNT_REST_SECONDS`, `WILD_CELL_RECOVERY_SECONDS`,
 `WILD_CELL_DECISION_INTERVAL_SECONDS`, the controls' sprint, and the trait tier tables. The client's
-`GIANT_REAL_LIFE_LINES` and display names live beside `FORM_REAL_LIFE_LINES` (`hud/format/`), as the
-form lines do. The balance test pins: every build a valid ladder ending in its form; every born
-range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING × (ENGULF_MASS_RATIO +`
-the build's `membraneRatioBonus) < CELL_MAX_MASS`; every species multiplier ≤ 1; and the hunter's
-`GIANT_BORN_MASS_MIN × GIANT_HUNT_MIN_PREY_MASS_FRACTION > ENTRY_MAX_MASS` (G14).
+`GIANT_REAL_LIFE_LINES` and `GIANT_DISPLAY_NAME_BY_SPECIES` live beside `FORM_REAL_LIFE_LINES`
+(`hud/format/`), as the form lines do. The balance test pins: every build a valid ladder ending in its
+form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
+(ENGULF_MASS_RATIO +` the build's `membraneRatioBonus) < CELL_MAX_MASS`; every species multiplier ≤ 1; and
+the hunter's `GIANT_BORN_MASS_MIN × GIANT_HUNT_MIN_PREY_MASS_FRACTION > ENTRY_MAX_MASS` (G14).
 
-#### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3 and `architecture/constants-files-tests.md` §10)
+`debug_set_balance` refuses a `giants` patch that breaks one of those, as the wild builds refuse a wrap
+past the top tier (#671, `isPastTopTraitTier`): a build that is not a valid ladder ending in its form, a
+born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
+speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, which G14 checks only on
+`DEFAULT_BALANCE`). A patch of `GIANT_SPECIES_IN_DISH` is accepted and applies at the next world
+creation (§3.5.9).
 
-- `CellView` gains `giantSpecies: GiantSpecies | null` (null for player and wild cells), and the
-  mirrored `isCellEater: boolean` and `preyMinMassFraction: number` that `canEngulf` reads (§3.5.6).
-  The kind stays `wild`, so every wild rule and every `isPlayerCell` test covers a giant without a new
-  branch; the architect may prefer a third `CELL_KIND`, which costs a branch at every `kind` test.
+#### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3, `architecture/constants-files-tests.md` §10 and `architecture/wire-contract.md` §4.1)
+
+- **The kind stays `wild`, with `giantSpecies` as the discriminator** (the architect's ruling on PR #823).
+  Every wild rule and every `isPlayerCell` / `kind` test covers a giant without a new branch. The sites
+  that read `giantSpecies` are `canEngulf` (§3.5.6), the diet (`simulation/eating.ts`), the payout,
+  `cellDisplayName` and the respawn lines, the palette, and the encyclopedia's cell-kind entries.
+- **`CellView` gains one field, `giantSpecies: GiantSpecies | null`** (null for player and wild cells).
+  The hunt window is a seat rule (§3.5.6), so no hunt field is mirrored on the view. Wire cost: cells
+  are not culled and every field is plain JSON (`serialize.ts` `toCellView`), so the field costs about
+  20 B a cell, about 0.7 KB a snapshot with 8 players, 24 wild cells and the 3 giants, plus the three
+  giant cells themselves; slice 1 updates wire-contract.md §4.1's cells rows (3 more cells, the per-cell
+  bytes). **State hash:** `giantSpecies` is in `CELL_HASHED_FIELDS`; nothing is mirrored, so nothing is
+  added to `DERIVED_FIELDS`.
+- **`canEngulf` widens its predator** from `Pick<CellView, 'mass'>` to `Pick<CellView, 'mass' |
+'giantSpecies'>`. It has about 12 call sites on main 5e1d3f10, not three: the "three callers" comment
+  in `engulf-eligibility.ts` and absorption.md §6.1's "Three callers" sentence are corrected in the same
+  slice. The sites that change:
+  - `wild/wild-hunt-sprint.ts` builds a synthetic predator `{ mass: massAfterHuntSprint(…) }`; it becomes
+    `{ ...hunter, mass }`, or a giant hunter's sprint test loses its species.
+  - `testing/bot-builders.ts` keeps a hand-rolled copy of the predicate, which would silently ignore the
+    species; it is replaced by the shared call.
+  - `bots/perception.ts` (`EngulfPredatorView`, `BotCellView`) and
+    `testing/scenarios/trait-engulf-setups.ts` gain the field.
+  - Every `CellView` literal gains it: `serialize.ts`, `world/cell-record.ts`, the shared and client
+    `testing/builders.ts`, `bench-scene.ts`, `preview-frame.ts` and `toy-adapter.ts`.
+
+  The other callers pick the rule up unchanged, which is the point of one home: `contact.ts`, `engulf.ts`
+  (the body start and the arm grab's start, through `canStartEngulf`), `wild-perception.ts` (flee, hunt,
+  closer rival), `relations-for.ts`, `threats-for.ts`, `cell-instance-builder.ts`,
+  `snapshot-transitions.ts` and `escape-scene.ts`.
+
 - `CellAbsorbedEffect` gains `preyGiantSpecies: GiantSpecies | null`.
-- A giant seat is a wild seat record plus `species` and `bornMass` (replacing `sizeFactor`; no
-  `isStarving`), in its own list beside `world.wildSeats` so the die-off's sum and `WILD_CELL_COUNT`
-  stay the wild seats'. The settle, strategy, hunt aim, give-up and respawn take a seat profile
-  (size, ladder, rules, diet, timers) instead of reading the wild constants directly.
-- `RANDOM_STREAM.giants` (label `giants`), hashed.
+- **Seat records.** A shared base type, `SeatMindRecord`, holds what every seat's mind reads: `seatNumber`,
+  `cellId`, the growth and full mass, `respawnInTicks`, the heading, `decideInTicks`, and the four hunt
+  fields (`huntPreyId`, `huntStartTick`, `givenUpPreyId`, `huntRestUntilTick`). `WildSeatRecord` extends
+  it with `sizeFactor` and `isStarving`; `GiantSeatRecord` with `species` and `bornMass`. Giant seats live
+  in their own list beside `world.wildSeats`, so the die-off's sum and `WILD_CELL_COUNT` stay the wild
+  seats'. `isHuntStale`, `giveUpStaleHunt`, `latchHunt`, `aimWildHunt` and the wander take the base type.
+- **The seat profile.** The settle, strategy, hunt aim, give-up and respawn take a profile instead of
+  reading the wild constants directly: the base size (`sizeFactor` × `worldMass`, or the born mass), the
+  growth ceiling (`fullMassOf` reads `WILD_CELL_MAX_WORLD_MASS_MULTIPLE` today; a giant's is
+  `GIANT_MASS_CEILING`), the ladder, the decision rules (the role's order: hunter flee, hunt, wander;
+  grazer flee, graze, wander; drifter flee, wander), the diet, the give-up seconds, the hunt window's
+  `huntMinPreyMassFraction` (0 for a wild seat), the turn chance, and the random stream
+  (`scriptContextFor` hard-wires `RANDOM_STREAM.wildCells` today; a giant's draws come from `giants`).
+- **The species speed multiplier has one home.** `applyWorldLadder` → `refreshCellDerivedStateFromTraits`
+  refolds the modifiers every tick, so a giant's ladder step is one function that refreshes from traits
+  and then applies `GIANT_SPEED_MULTIPLIER_BY_SPECIES` to the folded `speedMultiplier`, and every refresh
+  of a giant goes through it. A refresh that skipped it would drop the multiplier without an error; a
+  unit test refreshes a giant twice and checks G8's speeds.
+- **`RANDOM_STREAM.giants`** (label `giants`), hashed, lands with its first consumer (slice 2), not in
+  slice 1: `hashRandomStreams` walks every stream, so adding it moves every world's state hash. Forking is
+  by label (`stream-forking.ts`), so no other stream's draws shift.
 - Steps: step 1 settles and decides for the giant seats after the wild seats (seat order); step 4
   eats for the grazer while it is hungry and skips the hunter and the drifter (§3.5.7); step 9 respawns
   giant seats.
-- Debug MCP: `debug_spawn(gameId, 'giant', x, y, { species, mass })` places (or replaces) that
-  species' giant; `debug_get_entities` shows `giantSpecies` through the view.
+- Debug MCP (architecture/debug-mcp.md §8): `debug_spawn(gameId, 'giant', x, y, { species, mass })` places
+  (or replaces) that species' giant, whether or not `GIANT_SPECIES_IN_DISH` seats it; `debug_get_entities`
+  shows `giantSpecies` through the view.
 - Scenario fixture: `placeGiant({ species, bornMass, grownMass = 0, at | eastOfFirstCellWu, heading? })`
-  seats the species' cell at `bornMass + grownMass` with that growth, no target, velocity or sprint
-  counters (as a respawn), and the heading given (default east). Placing anything vacates the giant
-  seats too, as it does the wild seats (testing/scenario-runner.md §8.1).
+  seats the species' cell at `bornMass + grownMass` with that growth, no target, velocity (exactly
+  (0, 0)) or sprint counters (as a respawn), and the heading given (default east). Placing anything
+  vacates the giant seats too, as it does the wild seats (testing/scenario-runner.md §8.1).
 - Cost: three more cells deciding once per 30 ticks; the grazer's cone test is one dot product per
   mote in sight.
 
-#### 3.5.16 Open questions (the build follows the default until the human answers)
+#### 3.5.16 Decided: the human's answers (2026-10-11, recorded on PR #823)
 
-1. **Can a small cell bump into the giant amoeba safely?**
-   **A (default, recommended): yes.** It ignores you completely until you are a quarter of its size:
-   it doesn't chase you, can't swallow you even if you touch it, and you see no red ring. This is what
-   the "Ignored" mockup shows.
-   **B:** it never chases you while you're small, but touching it still gets you swallowed, and the red
-   ring always shows near it.
-   Why A: the ring then always tells the truth, and the mockup promised it.
-2. **Does the giant diatom swim away when something can eat it?**
-   **A (default, recommended): no.** It only drifts; its glass shell is its defence.
-   **B:** it slowly swims away, like the other two giants.
-   Why A: real diatoms can't swim, and at its slow speed running away would look odd and change
-   nothing.
+1. **Can a small cell bump into the giant amoeba safely? No (B, adjusted).** The amoeba does not chase a
+   cell under a quarter of its mass, but one that touches it is swallowed. The hunt window gates the
+   chase, not the swallow; `canEngulf` keeps today's ratio rule for the amoeba, and the danger ring and
+   the threat label follow `canEngulf` as they do today (§3.5.6).
+2. **Does the giant diatom swim away when something can eat it? Yes (B).** _"The player will play an
+   amoeba so we'll need to break from reality a bit. Not moving won't be fun."_ It swims at a real,
+   slowish speed, sprints and flees like the other giants, and its shell stays its main defence (§3.5.4,
+   §3.5.5).
+
+#### 3.5.17 Build slices (each one subsystem, at most about 40 files)
+
+The dish holds no giant on the human's live game until the last server slice: `GIANT_SPECIES_IN_DISH`
+ships empty in `DEFAULT_BALANCE`, and giants are seated only through `placeGiant` or `debug_spawn`, until
+their minds, art and HUD have landed. Main deploys to the human's game on every merge, and a giant
+without its mind would sit still and swallow whatever touched it.
+
+1. **Shared contract and constants** (architect and engineer): `constants/giants.ts` (balance domain
+   `giants`, with `GIANT_SPECIES_IN_DISH` empty in `DEFAULT_BALANCE`), the `GiantSpecies` and `GiantRole`
+   enums, `CellView.giantSpecies` (null on every cell) in `CELL_HASHED_FIELDS`, `isCellEaterSpecies` in
+   `canEngulf` and every call site of §3.5.15, `CellAbsorbedEffect.preyGiantSpecies`, the
+   `debug_set_balance` refusals for `giants`, regenerated `balance.json`, the constants ledger, and the
+   architecture docs (entity-model §2, server-simulation §3, constants-files-tests §10, wire-contract
+   §4.1). Rows G14 and the predicate part of G4. No world changes.
+2. **Server: giant seats and lifecycle**: `SeatMindRecord` and the giant seat list, world-creation order,
+   the giant clearance, respawn, the settle with born mass, ceiling and decay multiplier, the fixed builds
+   and derived level, the speed multiplier's one home, die-off exclusion, the seat fields in the state
+   hash, `RANDOM_STREAM.giants`, the payout (DNA bonus through the multiplier, the effect field), the
+   `placeGiant` fixture, and `debug_spawn` for `giant` (debug-mcp.md §8). Rows G1 (on a balance whose
+   `GIANT_SPECIES_IN_DISH` is all three), G8, G9, G11, G12. Depends on 1.
+3. **Server: giant minds**: the seat profile in the wild strategy (role decision orders, the hunt window
+   as the hunter's target filter, the 8 s give-up, the drifter's flee then wander, the turn chances, the
+   profile's stream and ceiling), and the grazer's diet (bacteria, the forward cone, appetite, step 4
+   eating and skipping). Rows G3, G4, G5, G6, G7, G10, G13, and G15 once ticket #819's kept grab is on
+   main. Depends on 2.
+4. **Client render** (graphics-designer): per-species palettes, a giant-size check of the amoeba,
+   ciliate and diatom forms (the oral groove, the rings of pores and radial ribs where missing). Evidence
+   on a private stack, with giants placed by `debug_spawn('giant')`. Depends on 1 and 2.
+5. **Client HUD** (ui-designer): `GIANT_DISPLAY_NAME_BY_SPECIES` through `cellDisplayName` (the threat
+   label and the hold-Tab panel), `respawn-lines.ts` building its killer from it, and the giant popup:
+   #783's form popup on `cell_absorbed` with the own cell as predator and a non-null `preyGiantSpecies`,
+   with `GIANT_REAL_LIFE_LINES` beside `form-facts.ts`. Depends on 1.
+6. **Giants on** (small server slice): `GIANT_SPECIES_IN_DISH` = amoeba, paramecium, diatom in
+   `DEFAULT_BALANCE`, regenerated `balance.json`, and every seeded-world pin re-pinned (W2, W3, W9, the
+   replay and state-hash goldens, the bot integration tests, every seed-42 gameplay scenario): giants
+   are placed before the wild seats, which moves every wild centre. G1 on the default balance. Depends
+   on 3, 4 and 5, so the first giant the human meets has its mind, art and names.
+7. **Encyclopedia entries** for the three giants (optional, ui-designer). Depends on 1.
+8. **Gameplay QA measurement** after 6: default rounds over seeds 1–3 with one idle and one grazing
+   player. Report giant swallows a round, players eaten by the amoeba a minute (by a hunt and by a
+   bump), the paramecium's share of the food mass (target ≤ 6 %) and how many giants players eat. Tune
+   the knobs in §3.5.14 if needed.
