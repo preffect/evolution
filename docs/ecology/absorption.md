@@ -36,8 +36,9 @@ and closer-rival rules, the bots, the HUD threat label (`threatsFor`,
 [`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)) and relations, the
 renderer's engulf-warning ring ([`visual-style/motion-and-legibility.md §5`](../visual-style/motion-and-legibility.md#5-membrane-and-motion-language))
 and the client's own-cell danger, so none can disagree about who can engulf whom. `canContinue` is `canContinueEngulf` in the same
-file (same inputs, `ENGULF_RELEASE_RATIO`); only the server calls it. **Their signatures do not change**
-with this rework: the chip and the ring warn about mass, not touch, effort or luck. Everything below that
+file (same inputs, `ENGULF_RELEASE_RATIO`); only the server calls it. Their signatures did not change with the
+#634 rework, and `canEngulf` has since gained one species test (giants.md §3.5.6: only a cell-eating
+species engulfs); the chip and the ring warn about mass and that test, not touch, effort or luck. Everything below that
 needs more than mass is a second shared pure function in the same folder:
 
 ```ts

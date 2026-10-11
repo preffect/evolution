@@ -22,7 +22,7 @@ function buildEntryProblem(entry: GiantBuildEntry, before: readonly TraitId[], b
   if (trait === undefined) return `${entry.traitId} is not in the trait catalog`;
   if (before.includes(entry.traitId)) return `${entry.traitId} is listed twice`;
   if (entry.tier < FIRST_TIER || entry.tier > balance.traits.TRAIT_TIER_COUNT) {
-    return `${entry.traitId} tier ${entry.tier} is outside 1..${balance.traits.TRAIT_TIER_COUNT}`;
+    return `${entry.traitId} tier ${entry.tier} is outside ${FIRST_TIER}..${balance.traits.TRAIT_TIER_COUNT}`;
   }
   if (stageIndex(trait.stage) > stageIndex(stageOf(before, balance.ladder))) {
     return `${entry.traitId} needs stage ${trait.stage} before it`;

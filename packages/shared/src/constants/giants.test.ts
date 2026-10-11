@@ -56,7 +56,10 @@ describe('the default giants (G14)', () => {
   );
 
   it('opens the hunt window above ENTRY_MAX_MASS, so a cell entering the dish is never giant prey (225 > 200)', () => {
-    const lightestHunter = GIANT_BORN_MASS_MIN_BY_SPECIES[GIANT_SPECIES.amoeba];
+    const hunters = Object.values(GIANT_SPECIES).filter(
+      (species) => GIANT_ROLE_BY_SPECIES[species] === GIANT_ROLE.hunter,
+    );
+    const lightestHunter = Math.min(...hunters.map((species) => GIANT_BORN_MASS_MIN_BY_SPECIES[species]));
     expect(lightestHunter * GIANT_HUNT_MIN_PREY_MASS_FRACTION).toBeGreaterThan(
       DEFAULT_BALANCE.progression.ENTRY_MAX_MASS,
     );
@@ -87,6 +90,18 @@ describe('giantBalanceProblems: each rule goes red on a balance that breaks it',
       'a repeated trait',
       rebuildAmoeba((build) => build.map((entry, index) => (index === 1 ? { ...entry, traitId: NUCLEOID } : entry))),
       /listed twice/,
+    ],
+    [
+      'a trait not in the catalog',
+      rebuildAmoeba((build) =>
+        build.map((entry, index) => (index === 0 ? { ...entry, traitId: 'no_such_trait' as TraitId } : entry)),
+      ),
+      /no_such_trait is not in the trait catalog/,
+    ],
+    [
+      'a tier below the first',
+      rebuildAmoeba((build) => build.map((entry, index) => (index === 0 ? { ...entry, tier: 0 } : entry))),
+      /tier 0 is outside 1\.\./,
     ],
     ['a tier past the top', (balance: BalanceConfig) => (balance.traits.TRAIT_TIER_COUNT = 1), /tier 2 is outside/],
     ['no form at the end', rebuildAmoeba((build) => build.slice(0, -1)), /does not end in a form/],
