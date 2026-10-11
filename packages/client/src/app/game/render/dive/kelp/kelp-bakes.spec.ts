@@ -6,8 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { KELP_ROCK_DISTANCE, KELP_SEA_DISTANCE } from '../../constants/dive-kelp';
 import { KELP_BLADE_TILE } from '../../constants/dive-kelp-drop';
 import { createFakeShoreCanvasFactory, type FakeShoreCanvas } from '../../../../../testing/fake-shore-canvas';
-import { KELP_BAKE_TEST_TIMEOUT_MS, quickKelpBake } from '../../../../../testing/kelp-builder';
+import { quickKelpBake } from '../../../../../testing/kelp-builder';
 import { TEST_SHORE_LAND, TEST_SHORE_RINGS } from '../../../../../testing/shore-paint-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import { landRingsOf } from '../shore/shore-coast-rings';
 import { decodeSignedDistance } from '../planet/signed-distance';
 import { KelpBakes, focalRockPlace, isRockKeptOnLand, kelpBaker } from './kelp-bakes';
@@ -57,7 +58,7 @@ describe('KelpBakes', () => {
       expect(metresAt(baked.bladeCover, 1.5, -1.5)).toBeLessThan(0);
       expect(typeof baked.isRockOnLandKept).toBe('boolean');
     },
-    KELP_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 
   it('steps a stand-in bake until it lands, then idles', () => {

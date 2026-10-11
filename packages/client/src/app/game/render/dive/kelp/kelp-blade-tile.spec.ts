@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { KELP_BLADE_TILE } from '../../constants/dive-kelp-drop';
 import { createFakeShoreCanvasFactory, type FakeShoreCanvas } from '../../../../../testing/fake-shore-canvas';
-import { KELP_BAKE_TEST_TIMEOUT_MS } from '../../../../../testing/kelp-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import { rgb255 } from '../shore/shore-pixels';
 import { coordinateHash, type PeriodicNoise } from '../shore/shore-noise';
 import { bakeBladeTile } from './kelp-blade-tile';
@@ -47,6 +47,6 @@ describe('bakeBladeTile', () => {
       expect(counts.wrong).toBe(0);
       expect(counts.specks).toBeGreaterThan(0);
     },
-    KELP_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 });
