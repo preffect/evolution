@@ -9,7 +9,10 @@ import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
 import { SHORE_LOD } from '../constants/dive-shore';
 import { DIVE_FIRST_PHASE, diveFallMs } from './dive-controls';
 
-const FRAME_MS = 16;
+/** The held case's coarser step (ms): the floor's hold is timed, not counted in frames, so ten frames a second is enough. */
+const HELD_FRAME_MS = 100;
+/** The held case steps this many falls' worth of time, well past the fall, so a hold that gives up early is caught. */
+const HELD_FALLS = 2;
 
 describe('DiveSession.start when a half fails', () => {
   it('destroys the app it made when the upper bands fail (a missing coastline), and answers false', async () => {
@@ -100,10 +103,10 @@ describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TI
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
-    // As long as the whole fall would take: held, it is still above the floor and still playing.
-    const fallFrames = Math.ceil((DIVE_PLAY_HOLD_MS + diveFallMs(DIVE_FIRST_PHASE)) / FRAME_MS);
-    for (let frame = 0; frame < fallFrames; frame += 1) {
-      clock.advanceMilliseconds(FRAME_MS);
+    // Twice as long as the whole fall would take: held, it is still above the floor and still playing.
+    const heldFrames = Math.ceil((HELD_FALLS * (DIVE_PLAY_HOLD_MS + diveFallMs(DIVE_FIRST_PHASE))) / HELD_FRAME_MS);
+    for (let frame = 0; frame < heldFrames; frame += 1) {
+      clock.advanceMilliseconds(HELD_FRAME_MS);
       app.tick();
     }
     expect(subject.controls.zoom).toBeGreaterThan(floor);

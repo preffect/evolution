@@ -26,8 +26,8 @@ const SOFTWARE_FRAME_MS = 550;
 /** A dive scrubbed into the drop, where the lens covers the stage. */
 const DROP_ZOOM = -2.3;
 const FRAMES_TO_JUDGE = DIVE_RESOLUTION_GOVERNOR.windowFrames + 2;
-/** Frames drawn after a fall's last frame: the stop latched, then a frame at the restored ratio. */
-const FRAMES_PAST_ARRIVAL = 2;
+/** Frames drawn after a fall's last frame: the stop latched, then a whole governor window at the restored ratio, so it is shown to last. */
+const FRAMES_PAST_ARRIVAL = FRAMES_TO_JUDGE;
 
 type Started = DiveSessionHarness & { app: FakePixiApp };
 
