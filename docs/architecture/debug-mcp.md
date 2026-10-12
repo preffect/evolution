@@ -89,6 +89,9 @@ tick without a step, so a paused room shows the patched world at once and the st
 `debug_get_player_progress` reports is the stage the client draws. The client's `SnapshotBuffer`
 takes a snapshot at its latest tick as a replacement (a republished frame), not as a stale one, and
 the tick estimator is not re-observed for it (§5); a refused request republishes nothing.
+`debug_set_balance` refuses a patch whose result breaks a balance-wide rule, whichever domain the patch
+names: the wild builds' ladder (#671) and the giants' rules (`giantBalanceProblems`, giants.md §3.5.14),
+so a patch of `growth.CELL_STARTING_MASS` or `traits.TRAIT_TIER_COUNT` can be refused with no giant in the dish.
 
 **Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
 perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);

@@ -30,6 +30,12 @@ import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
 
 type Path = readonly string[];
 
+/**
+ * Balance domains no fact reads yet, each until the ticket that writes its entries: the giant cells' constants land
+ * before the giants do (docs/ecology/giants.md §3.5.17), and their encyclopedia entries are ticket #831.
+ */
+const DOMAINS_WAITING_FOR_ENTRIES: readonly string[] = ['giants'];
+
 /** A proxy over `target` that records the path of every number it hands out, `length` included. */
 function recording<Value extends object>(target: Value, reads: Path[], path: Path = []): Value {
   return new Proxy(target, {
@@ -254,7 +260,8 @@ describe('the fact sources', () => {
     expect(derivedLinkTargets(balance, call)).not.toEqual(before);
   });
 
-  it('reads every balance domain from some fact', () => {
+  /** The domains every fact read, by name. */
+  function domainsReadByFacts(): Set<string> {
     const domains = new Set<string>();
     for (const fact of registryFacts()) {
       const { reads } = readsOf((balance) => {
@@ -271,8 +278,21 @@ describe('the fact sources', () => {
       });
       for (const [domain] of reads) if (domain !== undefined) domains.add(domain);
     }
+    return domains;
+  }
+
+  it('reads every balance domain from some fact, but the domains still waiting for their entries', () => {
+    const domains = domainsReadByFacts();
     for (const domain of Object.keys(DEFAULT_BALANCE)) {
-      expect(domains.has(domain), domain).toBe(true);
+      if (!DOMAINS_WAITING_FOR_ENTRIES.includes(domain)) expect(domains.has(domain), domain).toBe(true);
     }
   });
+
+  it.each(DOMAINS_WAITING_FOR_ENTRIES)(
+    'still reads nothing of the waiting %s domain, so the list cannot rot',
+    (domain) => {
+      expect(Object.keys(DEFAULT_BALANCE)).toContain(domain);
+      expect(domainsReadByFacts().has(domain)).toBe(false);
+    },
+  );
 });

@@ -6,9 +6,11 @@ import {
   FIRST_LEVEL,
   ENTITY_KIND,
   FOOD_KIND,
+  giantBalanceProblems,
   isBacteriumVariant,
   isDnaTag,
   isFoodKind,
+  type BalanceConfig,
   type DnaTag,
   type OwnedTrait,
   type PlayerId,
@@ -155,12 +157,12 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
 }
 
 /**
- * Number leaves only, validated as a whole (balance-patch.ts); the world carries the new copy. A copy whose `MAX_LEVEL`
- * wraps a wild build past `TRAIT_TIER_COUNT` is refused here rather than thrown inside the room's step (#671). A tier
- * patch refolds every cell from the traits it already owns, since the fold runs only when traits change (#715).
+ * Refuses a patched balance the cells cannot live on: one whose `MAX_LEVEL` wraps a wild build past `TRAIT_TIER_COUNT`,
+ * refused here rather than thrown inside the room's step (#671), or one that breaks a giant rule (a build that is not
+ * a valid ladder ending in a form, a born range unordered or outside its bounds, a speed multiplier above 1:
+ * docs/ecology/giants.md §3.5.14), whichever domain the patch named.
  */
-export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
-  const { balance: patched, didChangeTraitTiers } = applyBalancePatch(world.balance, patch);
+function refuseUnlivableBalance(patched: BalanceConfig): void {
   const topTier = topWildTier(patched);
   if (isPastTopTraitTier(topTier, patched)) {
     throw new DebugRequestError(
@@ -168,6 +170,20 @@ export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unkn
         `${patched.traits.TRAIT_TIER_COUNT}`,
     );
   }
+  const giantProblems = giantBalanceProblems(patched);
+  if (giantProblems.length > 0) {
+    throw new DebugRequestError(`The patch breaks the giant cells: ${giantProblems.join('; ')}`);
+  }
+}
+
+/**
+ * Number leaves only, validated as a whole (balance-patch.ts) and refused when the cells cannot live on the result
+ * (`refuseUnlivableBalance`); the world carries the new copy. A tier patch refolds every cell from the traits it
+ * already owns, since the fold runs only when traits change (#715).
+ */
+export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
+  const { balance: patched, didChangeTraitTiers } = applyBalancePatch(world.balance, patch);
+  refuseUnlivableBalance(patched);
   world.balance = patched;
   if (didChangeTraitTiers) {
     for (const cell of world.cells) refreshCellDerivedStateFromTraits(cell, cell.traits, world.balance);

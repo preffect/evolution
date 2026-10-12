@@ -70,8 +70,10 @@ prediction reuses them unchanged.
   come from `contact.ts` `cellPairs`: every pair of the few cells, id-sorted, no hash needed.
 - **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. What it shares
   is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`, ecology/absorption.md §6.1: the
-  engulf system, the HUD threat label (`threatsFor`) and the warning ring all call it on views, and its
-  signature is mass-only) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
+  engulf system, the wild cells' flee, hunt and closer-rival rules, the bots, the HUD threat label (`threatsFor`) and
+  relations and the warning ring all call it on views; it reads the mass ratio and the predator's `giantSpecies`,
+  through `isCellEaterSpecies` over the fixed `GIANT_ROLE_BY_SPECIES`, so the giant grazer and drifter engulf no cell,
+  ecology/giants.md §3.5.6, and it has no balance input beyond `balance.absorption`) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
   sealed state, `engulfProgressDelta`, the held and predator speed factors, `spitOutChancePerTick`); the
   hold verdict `resolveEngulfHold` (ratio and spit-out) is called by the server alone. The engulf step is
   the only consumer of the `engulf` random stream and draws from it only for a wrapped or sealed prey
@@ -79,6 +81,13 @@ prediction reuses them unchanged.
   kernel's `steerCommand(cell)` so the throttle arithmetic has one home. Every release emits
   `cell_released { cellId, predatorCellId, reason }` (`types/effects.ts`, reasons in ecology/absorption.md §6.1) beside
   `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.
+- **Giant cells** (ecology/giants.md §3.5, ticket #825 onward): a giant is a wild `CellRecord` whose `giantSpecies`
+  is set; the field is in `CELL_HASHED_FIELDS` (null on every other cell, so it moves every state hash by a null)
+  and the `cell_absorbed` effect carries the prey's as `preyGiantSpecies`. `debug_set_balance` refuses a patched
+  balance that breaks a giant rule (`giantBalanceProblems`, `shared/simulation/giant-balance.ts`: a build that is not
+  a valid ladder ending in a form, a born range unordered or outside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`], a
+  speed multiplier above 1), whichever domain the patch named, beside the wild builds' tier refusal (#671). The seats,
+  minds and steps of giants.md §3.5.15 land with its later slices; until then no world seats a giant.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 

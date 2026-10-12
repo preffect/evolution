@@ -16,6 +16,7 @@ export * from './camera.js';
 export * from './ecology.js';
 export * from './growth.js';
 export * from './wild-cells.js';
+export * from './giants.js';
 export * from './absorption.js';
 export * from './absorption-derived.js';
 export * from './progression.js';

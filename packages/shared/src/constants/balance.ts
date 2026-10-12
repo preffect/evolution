@@ -9,6 +9,7 @@
 // One ladder constant stays out too: `ENDOSYMBIOSIS_BACTERIA_REQUIRED` reaches a room only as the
 // catalog's `unlockedBy.count` (traits.ts), the number the draft gate and the ladder orbit read. A
 // second copy under `ladder` would be read by nobody, agreeing with the catalog only by coincidence (#286).
+// `GIANT_ROLE_BY_SPECIES` stays out of `giants`: a role is what a species is, not a tunable (docs/ecology/giants.md §3.5.14).
 // Constants computed from balance leaves stay out as well (`DERIVED_BALANCE_CONSTANTS`): a patch of the leaves they
 // come from must move them, and a patch of their own copy would disagree with those leaves (#367).
 
@@ -16,6 +17,7 @@ import * as absorption from './absorption.js';
 import { deepFreeze } from './deep-freeze.js';
 import * as controls from './controls.js';
 import * as ecology from './ecology.js';
+import * as giants from './giants.js';
 import * as growth from './growth.js';
 import * as ladder from './ladder.js';
 import * as progression from './progression.js';
@@ -49,9 +51,15 @@ export const DERIVED_BALANCE_CONSTANTS = [
   'ENGULF_SEAL_PROGRESS',
 ] as const;
 
+/** A spread's type: the module namespace's read-only exports as the writable properties of a plain record. */
+type SpreadRecord<Source> = { -readonly [Key in keyof Source]: Source[Key] };
+
 /** `source` as a plain record without `key`: the spread every other domain gets, less one constant. */
-function omitConstant<Source extends object, Key extends keyof Source>(source: Source, key: Key): Omit<Source, Key> {
-  return Object.fromEntries(Object.entries(source).filter(([name]) => name !== key)) as Omit<Source, Key>;
+function omitConstant<Source extends object, Key extends keyof Source>(
+  source: Source,
+  key: Key,
+): SpreadRecord<Omit<Source, Key>> {
+  return Object.fromEntries(Object.entries(source).filter(([name]) => name !== key)) as SpreadRecord<Omit<Source, Key>>;
 }
 
 // Module namespaces are exotic objects (their `toString` tag is `Module`); spreading them makes
@@ -65,6 +73,7 @@ const BALANCE_DEFAULTS = {
   ecology: { ...ecology },
   growth: { ...growth },
   wildCells: { ...wildCells },
+  giants: omitConstant(giants, 'GIANT_ROLE_BY_SPECIES'),
   absorption: { ...absorption },
   progression: { ...progression },
   traits: { ...traits },

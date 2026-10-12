@@ -4,7 +4,7 @@
 // moment they mark (`eat`, `level_up`, `respawn`; docs/CODE-STANDARDS.md §6), pinned in game.test.ts.
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
-import type { CellStage, EntityKind } from './game.js';
+import type { CellStage, EntityKind, GiantSpecies } from './game.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
@@ -43,6 +43,8 @@ export interface CellAbsorbedEffect extends EffectBase {
   predatorMassGained: number;
   /** DNA the payout added to the predator's player, the cap overflow included; `SNAPSHOT_MASS_DECIMALS` on the wire. */
   predatorDnaGained: number;
+  /** The prey's `giantSpecies`: the client's giant popup reads it (docs/ecology/giants.md §3.5.8); null for any other prey. */
+  preyGiantSpecies: GiantSpecies | null;
 }
 
 /**

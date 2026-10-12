@@ -2,7 +2,13 @@
 // the strategy tests decide over, a fake transport the session tests speak through and a fake
 // socket the `ws` transport test frames over. Builder defaults are the only tolerated inline
 // test numbers.
-import { AVATAR_INDEX_MIN, createSeededRandom, playerId as brandPlayerId } from '@evolution/shared';
+import {
+  AVATAR_INDEX_MIN,
+  DEFAULT_BALANCE,
+  canEngulf,
+  createSeededRandom,
+  playerId as brandPlayerId,
+} from '@evolution/shared';
 import type { ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
 import type { BotIdentity } from '../game/bots/bot-identity.js';
 import type { BotSpawnRequest } from '../game/debug/simulation-debug-handle.js';
@@ -44,6 +50,7 @@ export function createTestBotCell(overrides: Partial<PlayerBotCellView> = {}): P
     mass: 100,
     radius: 10,
     membraneRatioBonus: 0,
+    giantSpecies: null,
     ...overrides,
   };
 }
@@ -58,13 +65,13 @@ export function createTestWorldView(overrides: Partial<TestWorldView> = {}): Tes
   return { cells: [], motes: [], ...overrides };
 }
 
-/** A perception over `TestWorldView` whose engulf rule is a plain mass ratio (the shared predicate's shape). */
-export function createTestPerception(engulfMassRatio = 1.25): BotPerception<TestWorldView> {
+/** A perception over `TestWorldView` whose engulf rule is the shared predicate over the default balance. */
+export function createTestPerception(): BotPerception<TestWorldView> {
   return {
     ownCellOf: (snapshot, playerId) => snapshot.cells.find((cell) => cell.playerId === playerId),
     cellsOf: (snapshot) => snapshot.cells,
     motesOf: (snapshot) => snapshot.motes,
-    canEngulf: (predator, prey) => predator.mass >= prey.mass * (engulfMassRatio + prey.membraneRatioBonus),
+    canEngulf: (predator, prey) => canEngulf(predator, prey, DEFAULT_BALANCE.absorption),
   };
 }
 
