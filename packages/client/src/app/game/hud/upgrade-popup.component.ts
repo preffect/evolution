@@ -3,19 +3,29 @@
 // exclusion box or the cap orbit (docs/ui/layout.md §1); while dead, under the death overlay's text instead. An upgrade
 // popup pops in, holds and rises as it fades; a form popup is larger, under a `NEW FORM` kicker, overshoots in with a
 // flaring glow and one expanding ring in the seat colour, holds about five seconds and adds its real-life line.
-// Under reduced motion both only fade. It decides nothing: `UpgradePopupService` says which popup is up and what it
-// says. It is read, never pressed: no pointer, no focus, a polite live region.
+// A giant swallowed raises the giant popup, drawn as a form popup under a `GIANT ENGULFED` kicker: the giant's name,
+// the DNA it paid and its real-life line (docs/ecology/giants.md §3.5.8). Under reduced motion all of them only fade.
+// It decides nothing: `UpgradePopupService` says which popup is up and what it says. It is read, never pressed: no
+// pointer, no focus, a polite live region.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
 import { paletteFor } from '../render/palette';
 import { GameStateService } from '../state/game-state.service';
-import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_KIND, upgradePopupPlacementFor } from './format/upgrade-popups';
+import { UPGRADE_POPUP_KIND, type UpgradePopupKind } from './format/upgrade-popup-kinds';
+import { upgradePopupPlacementFor } from './format/upgrade-popups';
 import { UpgradePopupService } from './upgrade-popup.service';
 
 /** A seat the room has not assigned yet draws in the first seat's colour. */
 const UNASSIGNED_AVATAR_INDEX = 0;
+
+/** Each kind's test id: a giant popup is drawn as a form popup, but tested as itself. */
+const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
+  [UPGRADE_POPUP_KIND.upgrade]: HUD_TEST_ID.upgradePopup,
+  [UPGRADE_POPUP_KIND.form]: HUD_TEST_ID.formPopup,
+  [UPGRADE_POPUP_KIND.giant]: HUD_TEST_ID.giantPopup,
+};
 
 @Component({
   selector: 'app-upgrade-popup',
@@ -30,12 +40,13 @@ const UNASSIGNED_AVATAR_INDEX = 0;
       @for (popup of shown(); track popup.key) {
         <div
           class="popup"
-          [class.form]="popup.kind === kind.form"
-          [attr.data-testid]="popup.kind === kind.form ? testId.formPopup : testId.upgradePopup"
+          [class.form]="popup.kind !== kind.upgrade"
+          [attr.data-testid]="popupTestId[popup.kind]"
           [attr.data-trait-id]="popup.traitId"
+          [attr.data-giant-species]="popup.giantSpecies"
         >
-          @if (popup.kind === kind.form) {
-            <p class="kicker">{{ kicker }}</p>
+          @if (popup.kicker !== null) {
+            <p class="kicker">{{ popup.kicker }}</p>
           }
           <p class="title">{{ popup.title }}</p>
           @for (line of popup.effects; track $index) {
@@ -53,9 +64,8 @@ export class UpgradePopupComponent {
   private readonly gameState = inject(GameStateService);
   private readonly current = inject(UpgradePopupService).current;
 
-  protected readonly testId = HUD_TEST_ID;
+  protected readonly popupTestId = POPUP_TEST_ID;
   protected readonly kind = UPGRADE_POPUP_KIND;
-  protected readonly kicker = FORM_POPUP_KICKER_TEXT;
   /** Above the cell while alive, under the death text while dead (`upgradePopupPlacementFor`). */
   protected readonly placement = computed(() =>
     upgradePopupPlacementFor(this.gameState.ownProgress()?.lifeState ?? null),

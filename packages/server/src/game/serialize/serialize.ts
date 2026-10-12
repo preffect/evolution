@@ -74,6 +74,7 @@ export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE
     sprintRemainingTicks: cell.sprintRemainingTicks,
     sprintCooldownRemainingTicks: cell.sprintCooldownRemainingTicks,
     isStarving: cell.isStarving,
+    giantSpecies: cell.giantSpecies,
   };
 }
 

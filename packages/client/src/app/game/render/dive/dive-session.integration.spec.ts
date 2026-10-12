@@ -6,6 +6,7 @@
 import { DEFAULT_BALANCE, ManualClock, ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { fakeUpperBands, planetUniformOf } from '../../../../testing/dive-session-harness';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../testing/dive-test-timeouts';
 import { TEST_NOISE_TILE_SIZE_PX, createFakePixiApp, type FakePixiApp } from '../../../../testing/fake-pixi-app';
 import { DIVE_BACTERIA_COUNT, DIVE_METRES_PER_WU, DIVE_MOTE_COUNT, DIVE_ZOOM_BOTTOM } from '../constants';
 import { DIVE_BAKE_START_DELAY_MS, DIVE_PLANET_WORLD_PREVIEW_BAKE_PX, EARTH_RADIUS_M } from '../constants';
@@ -77,7 +78,8 @@ describe('the dive’s dish through the real renderer', () => {
   });
 });
 
-describe('the dive’s planet over the real coastline bakes', () => {
+// The real bakes, at their real sizes (the shader's texel metres are checked against them): seconds of work.
+describe('the dive’s planet over the real coastline bakes', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   /** A square continent round the focus, as Natural Earth winds land. */
   const continent: DiveCoastRing = [
     [-130, 40],

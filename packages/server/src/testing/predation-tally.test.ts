@@ -32,6 +32,7 @@ function absorbed(predator: string, prey: string, isPlayerPrey = true): CellAbso
     predatorCellId: entityId(predator),
     predatorMassGained: 0,
     predatorDnaGained: 0,
+    preyGiantSpecies: null,
   };
 }
 

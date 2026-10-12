@@ -1,6 +1,6 @@
 // The slime band's spec builders (docs/rendering/opening-dive.md §7, ticket #803): quick stand-ins for its once-a-page
 // bakes (a few px of each, over recording canvases) and a few of each scatter, so a band or session spec runs in
-// milliseconds, and the time a spec running the real bakes is allowed.
+// milliseconds (a spec running the real bakes takes `DIVE_HEAVY_TEST_TIMEOUT_MS`).
 
 import { SLIME_SPRITE_LADDER } from '../app/game/render/constants/dive-slime';
 import { bacteriaAtlasLayout, type PlanktonLadders } from '../app/game/render/dive/slime/slime-atlases';
@@ -9,19 +9,6 @@ import type { SlimeScatters } from '../app/game/render/dive/slime/slime-scatter'
 import { PLANKTON_PICTURES, marginBox } from '../app/game/render/dive/slime/slime-pictures';
 import { SLIME_DIATOM_ENTRIES, SLIME_DIATOM_RUNGS } from '../app/game/render/dive/slime/slime-shader-diatoms';
 import { SLIME_PICTURE_BOXES } from '../app/game/render/constants/dive-slime-diatoms';
-
-/**
- * Time allowed for a spec that runs the real bakes (the cells' field over a tile, the plankton's ladders and the
- * diatoms' atlas: seconds of per-pixel and recording work on a loaded 4-core box, past vitest's 5 s default).
- */
-export const SLIME_BAKE_TEST_TIMEOUT_MS = 120_000;
-
-/**
- * Time allowed for a spec that opens slime bands over the fake Pixi app (ten programs and their warm-up each): under a
- * second alone, but past vitest's 5 s default in the full client suite under coverage on a loaded 4-core box (12 s
- * seen for three bands).
- */
-export const SLIME_BAND_TEST_TIMEOUT_MS = 60_000;
 
 /** The cell tiles' size in a spec that runs the real cell bake: the field's work goes as its square. */
 export const SLIME_TEST_CELL_TILE_PX = 32;

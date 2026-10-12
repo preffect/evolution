@@ -5,11 +5,14 @@
 import {
   DEFAULT_BALANCE,
   DEFAULT_CELL_MODIFIERS,
+  DEGREES_PER_FULL_TURN,
+  RADIANS_PER_FULL_TURN,
   TICK_INTERVAL_S,
   cumulativeDnaForLevel,
   steerBlendPerTick,
   type CellModifiers,
   type TraitId,
+  type Vec2,
 } from '@evolution/shared';
 import {
   PLACED_ROW_SEED,
@@ -42,6 +45,12 @@ export const decayed = createDecayedHelper({
 /** A tier I modifier of `traitId` (docs/traits/model.md §2), or the identity when the trait does not set it. */
 export function tierOneModifier(traitId: TraitId, field: keyof CellModifiers): number {
   return traits.TRAIT_TIERS[traitId][0][field] ?? DEFAULT_CELL_MODIFIERS[field];
+}
+
+/** The angle (°) between two directions; 0 = the same (W6, W7, G7). */
+export function angleBetweenDegrees(first: Vec2, second: Vec2): number {
+  const turns = Math.abs(Math.atan2(first.y, first.x) - Math.atan2(second.y, second.x)) / RADIANS_PER_FULL_TURN;
+  return Math.min(turns, 1 - turns) * DEGREES_PER_FULL_TURN;
 }
 
 /** The speed after `ticks` of full throttle from rest toward a cap held at `speedCapWuPerSecond`: cap × (1 − (1 − blend)^ticks). */

@@ -66,6 +66,7 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
     sprintRemainingTicks: 0,
     sprintCooldownRemainingTicks: 0,
     isStarving: false,
+    giantSpecies: null,
     ...overrides,
   };
 }
@@ -139,6 +140,7 @@ export function createTestCellAbsorbedEffect(overrides: Partial<CellAbsorbedEffe
     predatorCellId: TEST_OWN_CELL_ID,
     predatorMassGained: 0,
     predatorDnaGained: 0,
+    preyGiantSpecies: null,
     ...overrides,
   };
 }

@@ -77,6 +77,7 @@ function engulfEffect(ownCell: CellView, tick: number, ownPlayerId: PlayerId): G
     predatorCellId: ownCell.id,
     predatorMassGained: RENDER_BENCH_CUES.engulfMassGained,
     predatorDnaGained: NO_RATE,
+    preyGiantSpecies: null,
   };
 }
 

@@ -19,6 +19,7 @@ import type {
   PlacedFixture,
   PlaceCellOptions,
   PlaceFragmentOptions,
+  PlaceGiantOptions,
   PlaceMoteOptions,
   PlaceWildCellOptions,
 } from './fixtures.js';
@@ -120,6 +121,10 @@ export class ScenarioBuilder<Input, Snapshot extends TickedSnapshot, Fixture> {
     options: PlaceWildCellOptions,
   ): typeof this {
     return this.fixturesAt(SETUP_TICK).placeWildCell(options);
+  }
+
+  placeGiant(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceGiantOptions): typeof this {
+    return this.fixturesAt(SETUP_TICK).placeGiant(options);
   }
 
   placeMote(this: ScenarioBuilder<Input, Snapshot, PlacedFixture | Fixture>, options: PlaceMoteOptions): typeof this {

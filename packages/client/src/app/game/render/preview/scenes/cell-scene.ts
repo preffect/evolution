@@ -126,6 +126,7 @@ function subjectCellView(spec: CellPreviewSpec, pose: SubjectPose, balance: Bala
       y: SUBJECT_CENTRE.y + pose.offsetY,
       velocityX: pose.velocityX,
       velocityY: pose.velocityY,
+      giantSpecies: spec.giantSpecies,
     },
     balance,
   );

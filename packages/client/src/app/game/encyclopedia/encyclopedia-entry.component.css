@@ -79,6 +79,16 @@
   margin-top: calc(var(--ui-space-s) * var(--ui-scale));
 }
 
+/* The real-life note (§11.4) sits `UI_SPACE_L_PX` under the prose; its own stylesheet draws it. */
+.real-life {
+  margin-top: calc(var(--ui-space-l) * var(--ui-scale));
+}
+
+/* The real-life note sits between the prose and See also, so See also keeps its own gap under it. */
+.real-life + .see-also {
+  margin-top: calc(var(--ui-space-l) * var(--ui-scale));
+}
+
 .see-also .heading {
   margin: 0 0 calc(var(--ui-space-s) * var(--ui-scale));
   color: var(--ui-text-label);

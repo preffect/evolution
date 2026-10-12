@@ -8,6 +8,7 @@ import {
   PLACED_KIND,
   placeCell,
   placeFragment,
+  placeGiant,
   placeMote,
   placeWildCell,
   resolvePlacement,
@@ -82,6 +83,25 @@ describe('placed fixtures', () => {
     expect(() => placeWildCell({ seat: -1, sizeFactor: 1 }, undefined)).toThrow(/whole number from 0/);
     expect(() => placeWildCell({ seat: 0, sizeFactor: 0 }, undefined)).toThrow(/size factor is positive/);
     expect(() => placeWildCell({ seat: 0, sizeFactor: 1 }, first)).toThrow(/needs a placement/);
+  });
+
+  it('places a giant east of the first cell or at an anchor, growth 0 and heading east by default (G9)', () => {
+    expect(placeGiant({ species: 'giant_amoeba', bornMass: 1000, eastOfFirstCellWu: 10 }, first)).toEqual({
+      kind: PLACED_KIND.giant,
+      species: 'giant_amoeba',
+      bornMass: 1000,
+      grownMass: 0,
+      heading: { x: 1, y: 0 },
+      at: eastOfCellOf(0, 10),
+    });
+    const heading = { x: 0, y: -1 };
+    const placed = placeGiant({ species: 'giant_diatom', bornMass: 1000, grownMass: 20, heading }, undefined);
+    expect([placed.at, placed.grownMass, placed.heading]).toEqual([ZONE.broth, 20, heading]);
+    expect(() => placeGiant({ species: 'giant_diatom', bornMass: 0 }, undefined)).toThrow(/born mass is positive/);
+    expect(() => placeGiant({ species: 'giant_diatom', bornMass: 900, grownMass: -1 }, undefined)).toThrow(
+      ScenarioSetupError,
+    );
+    expect(() => placeGiant({ species: 'giant_diatom', bornMass: 900 }, first)).toThrow(/needs a placement/);
   });
 
   it('puts a second cell east of the first cell, resolved by the adapter against that cell', () => {

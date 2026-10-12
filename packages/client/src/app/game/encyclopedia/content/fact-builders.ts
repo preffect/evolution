@@ -6,6 +6,7 @@ import {
   QUANTITY_PRESENTATION,
   QUANTITY_UNIT,
   type QuantityPresentation,
+  type QuantityRounding,
   type QuantityUnit,
 } from '../../quantities/quantity-unit';
 import { balancePath, type BalancePath } from '../facts/balance-path';
@@ -14,12 +15,16 @@ import { BALANCE_MASS, FACT_FORMULA, LEVEL_SELECTOR, type FactFormulaCall } from
 import type { SpawnedKind } from '@evolution/shared';
 import { FACT_SOURCE, type LinkFactDefinition, type ValueFactDefinition } from '../model/fact';
 
-/** What names a fact and how its value reads: its key, label, unit and presentation (plain by default). */
+/**
+ * What names a fact and how its value reads: its key, label, unit, presentation (plain by default) and rounding (the
+ * unit's own by default).
+ */
 export interface FactLabel {
   readonly key: string;
   readonly label: string;
   readonly unit: QuantityUnit;
   readonly presentation?: QuantityPresentation;
+  readonly rounding?: QuantityRounding;
 }
 
 /** A value fact named by `label`, its value read from `source` at resolve time. */
@@ -29,6 +34,7 @@ function valueFact(label: FactLabel, source: ValueFactDefinition['source']): Val
     label: label.label,
     unit: label.unit,
     presentation: label.presentation ?? QUANTITY_PRESENTATION.plain,
+    ...(label.rounding === undefined ? {} : { rounding: label.rounding }),
     source,
   };
 }

@@ -65,11 +65,12 @@ describe('the prose rule', () => {
     expect(proseViolations('Keeps {dnaKeptOnDeathFraction} of your DNA')).toEqual([]);
   });
 
-  it('holds for every title, template, heading and fact label in the registry', () => {
+  it('holds for every title, template, heading, fact label and real-life note in the registry', () => {
     for (const entry of ENCYCLOPEDIA_ENTRIES) {
       const texts = [
         entry.title,
         entry.summary,
+        ...(entry.realLife === undefined ? [] : [entry.realLife.line, entry.realLife.size]),
         ...entry.facts.map((fact) => fact.label),
         ...entry.sections.flatMap((section) => [
           section.heading,

@@ -28,6 +28,7 @@ export function bornCellRecord(identity: CellIdentity, centre: Vec2, mass: numbe
     sprintRemainingTicks: 0,
     sprintCooldownRemainingTicks: 0,
     isStarving: false,
+    giantSpecies: null,
     targetX: null,
     targetY: null,
     modifiers: { ...DEFAULT_CELL_MODIFIERS },

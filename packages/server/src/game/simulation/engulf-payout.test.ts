@@ -189,6 +189,7 @@ describe('payOutEngulf: the prey', () => {
       predatorCellId: predator.id,
       predatorMassGained: predator.mass - predatorMassBefore,
       predatorDnaGained: predatorPlayer.dnaCumulative,
+      preyGiantSpecies: null,
     });
     expect(preyPlayer.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
     expect(preyPlayer.spectatingCellId).toBe(predator.id);

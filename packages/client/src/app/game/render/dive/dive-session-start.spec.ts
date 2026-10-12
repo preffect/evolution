@@ -4,9 +4,15 @@
 
 import { describe, expect, it } from 'vitest';
 import { diveSessionHarness as harness, startedDiveSession as started } from '../../../../testing/dive-session-harness';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../testing/dive-test-timeouts';
 import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
 import { SHORE_LOD } from '../constants/dive-shore';
-import { DIVE_FIRST_PHASE } from './dive-controls';
+import { DIVE_FIRST_PHASE, diveFallMs } from './dive-controls';
+
+/** The held case's coarser step (ms): the floor's hold is timed, not counted in frames, so ten frames a second is enough. */
+const HELD_FRAME_MS = 100;
+/** The held case steps this many falls' worth of time, well past the fall, so a hold that gives up early is caught. */
+const HELD_FALLS = 2;
 
 describe('DiveSession.start when a half fails', () => {
   it('destroys the app it made when the upper bands fail (a missing coastline), and answers false', async () => {
@@ -41,7 +47,8 @@ describe('DiveSession.start when a half fails', () => {
   });
 });
 
-describe('DiveSession: what can change around it', () => {
+// The floor's case steps a started dive through a whole fall frame by frame: the dive's heavy timeout.
+describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('keeps an off-screen report that came before the app, and starts with the ticker stopped', async () => {
     const parts = harness();
     parts.subject.setIsVisible(false);
@@ -96,8 +103,10 @@ describe('DiveSession: what can change around it', () => {
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
-    for (let frame = 0; frame < 1000; frame += 1) {
-      clock.advanceMilliseconds(16);
+    // Twice as long as the whole fall would take: held, it is still above the floor and still playing.
+    const heldFrames = Math.ceil((HELD_FALLS * (DIVE_PLAY_HOLD_MS + diveFallMs(DIVE_FIRST_PHASE))) / HELD_FRAME_MS);
+    for (let frame = 0; frame < heldFrames; frame += 1) {
+      clock.advanceMilliseconds(HELD_FRAME_MS);
       app.tick();
     }
     expect(subject.controls.zoom).toBeGreaterThan(floor);

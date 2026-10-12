@@ -18,7 +18,8 @@ import {
 import { fakeKelpMaker } from '../../../../../testing/fake-kelp-band';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { bakedTestTiles } from '../../../../../testing/shore-paint-builder';
-import { SLIME_BAND_TEST_TIMEOUT_MS, quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import type { RenderToTexture } from '../planet/dive-planet-mesh';
 import { DiveSlimeBand } from './dive-slime-band';
 import { SlimeBakes, slimeBaker } from './slime-bakes';
@@ -66,7 +67,7 @@ function isDiveBaked(subject: { readonly controls: unknown }): boolean {
   return (subject as unknown as { upper: { isBaked: boolean } }).upper.isBaked;
 }
 
-describe('the slime band in the dive', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
+describe('the slime band in the dive', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('draws on the dive’s one Pixi app: over the kelp band in the drop, under the dish at the bottom', async () => {
     const { subject, app, apps, band, kelpBand, bakeFor, scrubTo } = await openedDive();
     expect(apps).toHaveLength(1);

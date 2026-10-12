@@ -2,9 +2,9 @@
 // (docs/determinism/contract-and-clock.md §1). `stepWorld` mutates the world in place and returns what happened to
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
-//   1 inputs (+ the wild settle and the wild decisions)      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism
+//   1 inputs (+ the wild settle, the giant settle and the seats' decisions)      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism
 //   6 engulf      7 progression      8 spawners + mote motion
-//   9 respawn (players, then wild seats)     10 leaderboard
+//   9 respawn (players, then wild seats, then giant seats)     10 leaderboard
 
 import { ROUND_PHASE, type BalanceConfig } from '@evolution/shared';
 import { runProgression } from '../progression/levels.js';
@@ -12,9 +12,11 @@ import { updateLeaderboard } from '../session/leaderboard.js';
 import { runRespawns } from '../session/respawn.js';
 import { beginMetabolismRecords } from '../world/mass-flow-ledger.js';
 import { resumeStreams, storeStreams } from '../world/streams.js';
+import { runGiantRespawns } from '../wild/giant-respawn.js';
+import { settleGiantCells } from '../wild/giant-settle.js';
 import { settleWildCells } from '../wild/wild-settle.js';
 import { runWildRespawns } from '../wild/wild-respawn.js';
-import { decideWildTargets } from '../wild/wild-strategy.js';
+import { decideSeatTargets } from '../wild/wild-strategy.js';
 import type { InputRejectionCounters, StepContext, WorldState } from '../world/world-state.js';
 import { eat } from './eating.js';
 import { runEngulfs } from './engulf.js';
@@ -31,7 +33,8 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
   if (world.roundPhase === ROUND_PHASE.playing) {
     applyInputs(world, context); // input is ignored through `results` (docs/game-design/session.md §5.4)
     settleWildCells(world, context); // and the wild cells freeze with everything else (docs/ecology/wild-cells.md §3.3.1)
-    decideWildTargets(world, context); // the due seats latch a target, as a player's input does
+    settleGiantCells(world, context); // after the wild seats, in seat order (docs/ecology/giants.md §3.5.15)
+    decideSeatTargets(world, context); // the due seats, wild then giant, latch a target, as a player's input does
   }
   const outcome = advanceRound(world, context);
   if (outcome === ROUND_STEP_OUTCOME.rematched) {
@@ -52,6 +55,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
   moveMotes(world, context);
   runRespawns(world, context);
   runWildRespawns(world, context);
+  runGiantRespawns(world, context);
   updateLeaderboard(world);
   return outcome;
 }

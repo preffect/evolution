@@ -15,6 +15,8 @@ export const QUANTITY_UNIT = {
   massPerSecond: 'mass_per_second',
   /** A 0..1 ratio, shown as a percent. */
   share: 'share',
+  /** A 0..1 share of the subject's own mass, as a percent of it: `25 % of its mass`. */
+  shareOfItsMass: 'share_of_its_mass',
   sharePerSecond: 'share_per_second',
   multiplier: 'multiplier',
   radii: 'radii',
@@ -52,6 +54,8 @@ export const QUANTITY_ROUNDING = {
   nearest: 'nearest',
   /** Where a reading must never claim more than is there (the DNA percent, the round clock). */
   floor: 'floor',
+  /** Where a reading must never claim less than is needed (the mass that swallows a giant). */
+  ceil: 'ceil',
 } as const;
 export type QuantityRounding = ValueOf<typeof QUANTITY_ROUNDING>;
 
@@ -140,6 +144,7 @@ export const QUANTITY_UNIT_FORMAT: Readonly<Record<QuantityUnit, UnitFormat>> = 
   }),
   [QUANTITY_UNIT.massPerSecond]: unitFormat(' mass / s'),
   [QUANTITY_UNIT.share]: unitFormat(' %', WHOLE_PERCENT),
+  [QUANTITY_UNIT.shareOfItsMass]: unitFormat(' % of its mass', WHOLE_PERCENT),
   [QUANTITY_UNIT.sharePerSecond]: unitFormat(' % / s', WHOLE_PERCENT),
   [QUANTITY_UNIT.multiplier]: unitFormat(MULTIPLIER_SIGN),
   [QUANTITY_UNIT.radii]: unitFormat(' radii', { singularSuffix: ' radius' }),

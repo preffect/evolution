@@ -1,7 +1,17 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, SEAT_MARK_BEADS, createSeededRandom, entityId } from '@evolution/shared';
+import {
+  CELL_STAGE,
+  DEFAULT_BALANCE,
+  GIANT_SPECIES,
+  GIANT_SPECIES_ORDER,
+  PLAYER_PALETTE_COUNT,
+  SEAT_MARK_BEADS,
+  createSeededRandom,
+  entityId,
+} from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
+import { createTestCellInstanceInput } from '../../../../testing/cell-instance-input';
 import {
   CELL_QUAD_EXTENT_RADII,
   ENGULF_WARNING_RING_MIN_PX,
@@ -20,55 +30,16 @@ import {
   STARVING_FADE,
   STARVING_RIM_DIM,
   STARVING_WRINKLE_AMPLITUDE,
+  GIANT_SPECIES_ID,
+  NO_GIANT_SPECIES_ID,
 } from '../constants';
-import { REST_DEFORMATION } from './cell-deformation';
 import { cellLodFor } from './cell-lod';
 import { buildNoiseStrip } from '../noise/noise-strip';
-import {
-  buildCellInstance,
-  quadExtentRadii,
-  relationRingPackingFor,
-  warningRingPxFor,
-  type CellInstanceInput,
-} from './cell-instance-builder';
+import { buildCellInstance, quadExtentRadii, relationRingPackingFor, warningRingPxFor } from './cell-instance-builder';
 import { summariseCellTraits } from './cell-traits';
-import { REST_OWN_CELL_RING } from './self-ring';
-import { buildShapeTerms } from './shape-terms';
 import { RELATION_RING } from '../../hud/format/relations-for';
 
-function input(overrides: Partial<CellInstanceInput> = {}): CellInstanceInput {
-  const view = createTestCellView({ x: 5, y: 6, radius: 40, avatarIndex: 2, stage: CELL_STAGE.prokaryote });
-  const traits = summariseCellTraits(view);
-  const terms = buildShapeTerms({
-    view,
-    traits,
-    timeSeconds: 0,
-    speedRatio: 0,
-    heading: 0,
-    phase: 0,
-    stripRow: 2,
-    strip: null,
-    deformation: REST_DEFORMATION,
-    wither: 0,
-  });
-  return {
-    view,
-    traits,
-    terms,
-    lod: cellLodFor(40),
-    nucleusOffset: { x: -0.1, y: -0.1 },
-    isOwn: false,
-    cosmetic: { stripRow: 2, phase: 0.25, speckleSeed: 0.6 },
-    alpha: 1,
-    warningRingPx: 0,
-    ciliaPhase: 0.3,
-    rimDash: 0,
-    ownCellRing: REST_OWN_CELL_RING,
-    relationRing: RELATION_RING.none,
-    wither: 0,
-    ...overrides,
-  };
-}
+const input = createTestCellInstanceInput;
 
 describe('buildCellInstance', () => {
   it('copies the view, the terms, the cosmetic values and the palette into the record', () => {
@@ -110,7 +81,30 @@ describe('buildCellInstance', () => {
       relationRingLines: RELATION_RING.none,
     });
     expect(instance.beadCount).toBe(SEAT_MARK_BEADS[2]);
+    expect(instance.giantSpeciesId).toBe(NO_GIANT_SPECIES_ID);
     expect(instance.bumps).toHaveLength(8);
+  });
+
+  it.each(GIANT_SPECIES_ORDER)(
+    'draws a %s in its species’ palette row, with its species id and no seat beads',
+    (species) => {
+      const view = createTestCellView({
+        radius: 40,
+        avatarIndex: 2,
+        stage: CELL_STAGE.specialised,
+        giantSpecies: species,
+      });
+      const instance = buildCellInstance(input({ view, traits: summariseCellTraits(view) }));
+      expect(instance.paletteIndex).toBe(PLAYER_PALETTE_COUNT + GIANT_SPECIES_ORDER.indexOf(species));
+      expect(instance.giantSpeciesId).toBe(GIANT_SPECIES_ID[species]);
+      expect(instance.beadCount).toBe(0);
+    },
+  );
+
+  it('numbers the giant species from 1 in their fixed order, 0 meaning none', () => {
+    expect(GIANT_SPECIES_ORDER.map((species) => GIANT_SPECIES_ID[species])).toEqual([1, 2, 3]);
+    expect(GIANT_SPECIES_ID[GIANT_SPECIES.amoeba]).toBe(1);
+    expect(NO_GIANT_SPECIES_ID).toBe(0);
   });
 
   it('carries the trait tells and the form, snapping the membrane tells off with the far dot', () => {

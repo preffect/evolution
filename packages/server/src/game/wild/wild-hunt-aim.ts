@@ -17,7 +17,7 @@ import { huntTargetFrom } from '../bots/strategies/hunter.js';
 import { isEngulfContact } from '../simulation/contact.js';
 import { isEngulfing } from '../simulation/engulf-state.js';
 import { speedCapOf } from '../simulation/movement.js';
-import type { CellRecord, WildSeatRecord } from '../world/entities.js';
+import type { CellRecord, SeatMindRecord } from '../world/entities.js';
 import { findCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 
@@ -84,7 +84,7 @@ export function huntTargetThisTick(self: CellRecord, prey: CellRecord, world: Wo
  * Re-aims a hunting seat's cell at its prey for this tick. A prey that has left the world ends the hunt: the target
  * stays where it last was until the next decision.
  */
-export function aimWildHunt(seat: WildSeatRecord, cell: CellRecord, world: WorldState, balance: BalanceConfig): void {
+export function aimWildHunt(seat: SeatMindRecord, cell: CellRecord, world: WorldState, balance: BalanceConfig): void {
   if (seat.huntPreyId === null) {
     return;
   }

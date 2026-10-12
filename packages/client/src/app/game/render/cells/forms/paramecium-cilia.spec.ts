@@ -4,7 +4,7 @@
 // them, never a hairline at its neck, beating in a wave from the nose to the tail and bending back toward the tail.
 // Measured on the membrane the renderer draws (`profile-walk.ts`), at every tier.
 
-import { RADIANS_PER_FULL_TURN, TICK_INTERVAL_S, type TraitTier } from '@evolution/shared';
+import { GIANT_SPECIES, RADIANS_PER_FULL_TURN, TICK_INTERVAL_S, type TraitTier } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import {
   PROFILE_WALK_TICKS,
@@ -31,7 +31,9 @@ import {
   ciliaTuftAt,
   ciliaTuftDrawnReachRadii,
   ciliaTufts,
+  hasCiliaTufts,
   isInsideTuft,
+  reachWithCiliaTufts,
   tuftArcWidening,
   tuftCentreTurn,
   tuftParameterOf,
@@ -223,11 +225,22 @@ describe('the cilia tufts’ motion', () => {
 });
 
 describe('ciliaTuftDrawnReachRadii', () => {
+  const player = (traitId: Parameters<typeof formFor>[0]) => ({ form: formFor(traitId), giantSpecies: null });
+
   it('reaches the full tuft and its cap past the membrane on the paramecium, and nothing on any other form', () => {
-    expect(ciliaTuftDrawnReachRadii(formFor('paramecium_cilia'))).toBe(
+    expect(ciliaTuftDrawnReachRadii(player('paramecium_cilia'))).toBe(
       CILIA_TUFT_REACH_RADII + CILIA_TUFT_TIP_WIDTH_RADII * HALF,
     );
-    expect(ciliaTuftDrawnReachRadii(formFor('amoeba_pseudopods'))).toBe(0);
-    expect(ciliaTuftDrawnReachRadii(formFor(null))).toBe(0);
+    expect(ciliaTuftDrawnReachRadii(player('amoeba_pseudopods'))).toBe(0);
+    expect(ciliaTuftDrawnReachRadii(player(null))).toBe(0);
+  });
+
+  it('gives the giant paramecium no tufts: it wears the fine fringe of its cilia hairs instead (#828)', () => {
+    const giant = { form: formFor('paramecium_cilia'), giantSpecies: GIANT_SPECIES.paramecium };
+    expect(hasCiliaTufts(player('paramecium_cilia'))).toBe(true);
+    expect(hasCiliaTufts(giant)).toBe(false);
+    expect(ciliaTuftDrawnReachRadii(giant)).toBe(0);
+    expect(reachWithCiliaTufts(giant, 1.4, 1.2)).toBe(1.4);
+    expect(reachWithCiliaTufts(player('paramecium_cilia'), 1.4, 1.2)).toBeGreaterThan(1.4);
   });
 });

@@ -163,6 +163,47 @@
     "WILD_CELL_STARVATION_FRACTION_PER_SECOND": 0.1,
     "WILD_CELL_TURN_CHANCE": 0.25
   },
+  "giants": {
+    "GIANT_BORN_MASS_MAX_BY_SPECIES": { "giant_amoeba": 1500, "giant_paramecium": 1300, "giant_diatom": 1500 },
+    "GIANT_BORN_MASS_MIN_BY_SPECIES": { "giant_amoeba": 900, "giant_paramecium": 900, "giant_diatom": 1000 },
+    "GIANT_BUILDS_BY_SPECIES": {
+      "giant_amoeba": [
+        { "traitId": "nucleoid", "tier": 1 },
+        { "traitId": "mitochondrion", "tier": 1 },
+        { "traitId": "nuclear_envelope", "tier": 1 },
+        { "traitId": "cytoskeleton", "tier": 1 },
+        { "traitId": "amoeba_pseudopods", "tier": 2 }
+      ],
+      "giant_paramecium": [
+        { "traitId": "nucleoid", "tier": 1 },
+        { "traitId": "mitochondrion", "tier": 1 },
+        { "traitId": "nuclear_envelope", "tier": 1 },
+        { "traitId": "cilia", "tier": 1 },
+        { "traitId": "paramecium_cilia", "tier": 1 }
+      ],
+      "giant_diatom": [
+        { "traitId": "nucleoid", "tier": 1 },
+        { "traitId": "chloroplast", "tier": 1 },
+        { "traitId": "nuclear_envelope", "tier": 1 },
+        { "traitId": "cell_wall", "tier": 1 },
+        { "traitId": "diatom_shell", "tier": 1 }
+      ]
+    },
+    "GIANT_DECAY_MULTIPLIER": 0.25,
+    "GIANT_DNA_BONUS": 200,
+    "GIANT_GRAZER_APPETITE_MASS": 100,
+    "GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES": 60,
+    "GIANT_HUNT_GIVE_UP_SECONDS": 8,
+    "GIANT_HUNT_MIN_PREY_MASS_FRACTION": 0.25,
+    "GIANT_MASS_CEILING": 1500,
+    "GIANT_MIN_CELL_DISTANCE_WU": 450,
+    "GIANT_MIN_GIANT_DISTANCE_WU": 1500,
+    "GIANT_MIN_PLAYER_DISTANCE_WU": 1500,
+    "GIANT_RESPAWN_SECONDS": 90,
+    "GIANT_SPECIES_IN_DISH": [],
+    "GIANT_SPEED_MULTIPLIER_BY_SPECIES": { "giant_amoeba": 0.7, "giant_paramecium": 0.85, "giant_diatom": 0.6 },
+    "GIANT_TURN_CHANCE_BY_SPECIES": { "giant_amoeba": 0.25, "giant_paramecium": 0.1, "giant_diatom": 0.05 }
+  },
   "absorption": {
     "ENGULF_ABSORB_SECONDS": 0.6,
     "ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE": 0.5,

@@ -1,7 +1,8 @@
 // The dive session's resolution governor (docs/rendering/opening-dive.md §6, ticket #804), over the fake Pixi app and
 // recording bands: slow frames step the dive's one canvas down and every band is told the ratio it renders at, smooth
 // frames never touch it, nothing is judged while a band still bakes, off screen or under the evidence probe, and while
-// the dive falls at DPR 2 the canvas renders at the mockup's 1.5 at most, sharp again on arrival.
+// the dive falls at DPR 2 the canvas renders at the mockup's 1.5 at most, sharp again on arrival. Each case steps a
+// started dive through hundreds of frames, and the fall through all of its bands, so they take the dive's heavy timeout.
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -9,9 +10,11 @@ import {
   tickUntilBuilt,
   type DiveSessionHarness,
 } from '../../../../testing/dive-session-harness';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../testing/dive-test-timeouts';
 import type { FakePixiApp } from '../../../../testing/fake-pixi-app';
 import {
   DIVE_MOVING_DEVICE_PIXEL_RATIO,
+  DIVE_PLAY_HOLD_MS,
   DIVE_RESOLUTION_GOVERNOR,
   DIVE_TARGET_FRAME_MS,
   type DivePhaseStop,
@@ -23,6 +26,8 @@ const SOFTWARE_FRAME_MS = 550;
 /** A dive scrubbed into the drop, where the lens covers the stage. */
 const DROP_ZOOM = -2.3;
 const FRAMES_TO_JUDGE = DIVE_RESOLUTION_GOVERNOR.windowFrames + 2;
+/** Frames drawn after a fall's last frame: the stop latched, then a whole governor window at the restored ratio, so it is shown to last. */
+const FRAMES_PAST_ARRIVAL = FRAMES_TO_JUDGE;
 
 type Started = DiveSessionHarness & { app: FakePixiApp };
 
@@ -51,7 +56,7 @@ async function inTheDrop(devicePixelRatio = 1): Promise<Started> {
   return parts;
 }
 
-describe('DiveSession resolution governor', () => {
+describe('DiveSession resolution governor', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('steps the dive’s canvas down under software GL’s frames, and tells every band the ratio it renders at', async () => {
     const parts = await inTheDrop();
     frames(parts, FRAMES_TO_JUDGE, softwareFrame);
@@ -136,7 +141,9 @@ describe('DiveSession resolution governor', () => {
     frames(parts, 2, DIVE_TARGET_FRAME_MS);
     expect(parts.app.resolutions).toEqual([DIVE_MOVING_DEVICE_PIXEL_RATIO]);
     expect(parts.views.at(-1)!.deviceRatio).toBe(DIVE_MOVING_DEVICE_PIXEL_RATIO);
-    frames(parts, Math.ceil((diveFallMs(stop) * 2) / DIVE_TARGET_FRAME_MS), DIVE_TARGET_FRAME_MS);
+    // The hold and the fall, frame by frame (each draws every band the fall passes), and no more.
+    const fallFrames = Math.ceil((DIVE_PLAY_HOLD_MS + diveFallMs(stop)) / DIVE_TARGET_FRAME_MS);
+    frames(parts, fallFrames + FRAMES_PAST_ARRIVAL, DIVE_TARGET_FRAME_MS);
     expect(parts.subject.controls.stopReached).toBe(stop);
     expect(parts.app.resolutions).toEqual([DIVE_MOVING_DEVICE_PIXEL_RATIO, 2]);
     expect(parts.views.at(-1)!.deviceRatio).toBe(2);

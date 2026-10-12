@@ -13,7 +13,7 @@ import { Container } from 'pixi.js';
 import { UNTIMED_STAGES, type StageMeasurer } from '../bench/render-stage-timer';
 import { isDiscVisibleInExtent, type CameraExtent } from '../camera';
 import { CELL_INSTANCE_CAPACITY } from '../constants';
-import { paletteFor } from '../palette';
+import { cellPaletteFor } from '../palette';
 import type { RenderTextures } from '../render-textures';
 import { ViewRegistry } from '../view-registry';
 import { deformationOf } from './cell-deformation';
@@ -206,7 +206,7 @@ function organelleDraw(view: CellView, output: CellFrameOutput, isAtRest: boolea
     instance: output.instance,
     lod: output.lod,
     organelles: output.organelles,
-    palette: paletteFor(view.avatarIndex),
+    palette: cellPaletteFor(view),
     isSprinting: output.terms.isSprinting,
     isAtRest,
   };

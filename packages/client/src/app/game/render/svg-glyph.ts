@@ -7,11 +7,15 @@ import { RADIANS_PER_FULL_TURN, type TraitId } from '@evolution/shared';
 import type { ENTRY_SUBJECT, EntryId, EntryIdOf } from '../encyclopedia/model/entry-id';
 
 /**
- * Every encyclopedia entry that is no trait: what `subject-glyphs.ts` draws, the traits being `trait-glyphs.ts`'s.
- * A type-only import of the model's ids is all a glyph ever takes from `encyclopedia/` (ui-type.md §7.2), so the
- * drawings stay a leaf both the HUD and the encyclopedia can read.
+ * Every encyclopedia entry that is no trait and no giant cell: what `subject-glyphs.ts` draws, the traits being
+ * `trait-glyphs.ts`'s, and a giant wearing its form's trait glyph (`game/giants/giant-forms.ts`). A type-only import of
+ * the model's ids is all a glyph ever takes from `encyclopedia/` (ui-type.md §7.2), so the drawings stay a leaf both
+ * the HUD and the encyclopedia can read.
  */
-export type SubjectEntryId = Exclude<EntryId, EntryIdOf<typeof ENTRY_SUBJECT.trait>>;
+export type SubjectEntryId = Exclude<
+  EntryId,
+  EntryIdOf<typeof ENTRY_SUBJECT.trait> | EntryIdOf<typeof ENTRY_SUBJECT.giant>
+>;
 
 /** Path coordinates keep two decimals: a hundredth of a unit is below a pixel at every glyph size. */
 const PATH_DECIMALS = 2;

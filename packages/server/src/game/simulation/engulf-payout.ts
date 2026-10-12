@@ -6,7 +6,8 @@
 //
 // A wild cell on either side is not a special case here beyond its own row: a wild predator keeps
 // the meal's mass and nothing else (the next settle turns it into growth, docs/ecology/wild-cells.md §3.3.4) and a
-// wild prey pays no DNA base, no tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3). Its death
+// wild prey pays no DNA base, no tag share and scores no `absorptions` (docs/ecology/wild-cells.md §3.3); a giant prey
+// pays `GIANT_DNA_BONUS` in place of the DNA base and share (docs/ecology/giants.md §3.5.8). Its death
 // emits `cell_absorbed` like a player's, with `playerId: null` (#270), so the predator's viewer sees the dissolve
 // either way.
 //
@@ -48,8 +49,14 @@ function preyDnaOf(world: WorldState, prey: CellRecord): number {
     : worldReferenceAt(world, world.tick).worldDna;
 }
 
-/** `ENGULF_DNA_BASE` + the prey's share; a wild prey carries no base (docs/ecology/wild-cells.md §3.3). */
+/**
+ * `ENGULF_DNA_BASE` + the prey's share; a wild prey carries no base (docs/ecology/wild-cells.md §3.3); a giant pays
+ * `GIANT_DNA_BONUS` instead of both (docs/ecology/giants.md §3.5.8). The caller's `gainDna` applies the eater's multiplier.
+ */
 function engulfDnaFor(world: WorldState, prey: CellRecord, balance: BalanceConfig): number {
+  if (prey.giantSpecies !== null) {
+    return balance.giants.GIANT_DNA_BONUS;
+  }
   const absorption = balance.absorption;
   const base = isPlayerCell(prey) ? absorption.ENGULF_DNA_BASE : 0;
   return base + preyDnaOf(world, prey) * absorption.ENGULF_DNA_SHARE;

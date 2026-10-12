@@ -75,9 +75,12 @@ float tuftStrands(float share, float halfWidthRadii, float pxRadii) {
   return 1.0 - smoothstep(halfLine - pxRadii * perRadius, halfLine + pxRadii * perRadius, line);
 }
 
-/** The slipper's tufts outside its membrane: the tufts round the nearest slot, the deepest one painted. */
+/**
+ * The slipper's tufts outside its membrane: the tufts round the nearest slot, the deepest one painted. None on a giant
+ * (paramecium-cilia.ts hasCiliaTufts): it wears the fine fringe of its 'cilia' hairs.
+ */
 vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {
-  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || frame.rho < 1.0) return acc;
+  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || inst.giantSpeciesId > HALF || frame.rho < 1.0) return acc;
   float membrane = frame.len / frame.rho / inst.r;
   vec3 place = vec3(wrapAngle(frame.theta - inst.heading), frame.len / inst.r, membrane);
   if (place.y - membrane > ${glslFloat(CILIA_TUFT_REACH_RADII + TIP_CAP)}) return acc;

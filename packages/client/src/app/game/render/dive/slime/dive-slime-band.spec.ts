@@ -9,7 +9,8 @@ import { DIVE_SLIME_WINDOW } from '../../constants';
 import { createFakePixiApp } from '../../../../../testing/fake-pixi-app';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
 import { bakedTestTiles } from '../../../../../testing/shore-paint-builder';
-import { SLIME_BAND_TEST_TIMEOUT_MS, quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { quickSlimeBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import type { ShoreTileSource } from '../shore/shore-tiles';
 import { diveViewAt } from '../dive-view';
 import { DiveSlimeBand } from './dive-slime-band';
@@ -47,7 +48,7 @@ function meshesOf(subject: DiveSlimeBand) {
   return { floor, clouds, diatoms, pocket, plankton, outside, rods, motes, skin };
 }
 
-describe('DiveSlimeBand', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
+describe('DiveSlimeBand', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('warms its programs up unseen when it opens, every mesh hidden after', () => {
     const { app, subject } = band();
     expect(app.textureRenders).toHaveLength(1);
@@ -157,7 +158,7 @@ describe('DiveSlimeBand', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
   });
 });
 
-describe('createSlimeParts', { timeout: SLIME_BAND_TEST_TIMEOUT_MS }, () => {
+describe('createSlimeParts', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
   it('keeps one set of bakes for the page at each device pixel ratio', () => {
     const shore = { tiles: bakedTestTiles(), factory: createFakeShoreCanvasFactory() };
     const app = createFakePixiApp();

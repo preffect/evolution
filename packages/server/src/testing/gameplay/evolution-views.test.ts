@@ -37,6 +37,7 @@ function viewOf(snapshot: Partial<EvolutionScenarioSnapshot>): EvolutionView {
       spawnedCounts: { food: 0, dnaFragments: 0 },
       progressByPlayer: {},
       wildSeats: [],
+      giantSeats: [],
       ...snapshot,
     },
     playerId: (index) => playerId(`player_${index}`),

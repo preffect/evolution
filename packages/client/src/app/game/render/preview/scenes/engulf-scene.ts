@@ -210,6 +210,7 @@ function engulfSchedule(balance: BalanceConfig): readonly ScheduledPreviewEffect
     predatorCellId: entityId(ACTION_SUBJECT_CELL_ID),
     predatorMassGained: geometry.preyMass * balance.absorption.ENGULF_MASS_YIELD,
     predatorDnaGained: balance.absorption.ENGULF_DNA_BASE,
+    preyGiantSpecies: null,
   };
   const respawn: GameEffect = {
     kind: EFFECT_KIND.respawn,

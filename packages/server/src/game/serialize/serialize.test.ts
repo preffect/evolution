@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   FOOD_KIND,
+  GIANT_SPECIES,
   ROUND_PHASE,
   SNAPSHOT_MASS_DECIMALS,
   SNAPSHOT_RADIUS_DECIMALS,
@@ -80,8 +81,17 @@ describe('view projections', () => {
         'sprintRemainingTicks',
         'sprintCooldownRemainingTicks',
         'isStarving',
+        'giantSpecies',
       ].sort(),
     );
+  });
+
+  it("carries a giant's species, and null for every other cell (giants.md §3.5.15)", () => {
+    const world = createTestWorld();
+    const cell = world.cells[0]!;
+    expect(toCellView(cell).giantSpecies).toBeNull();
+    cell.giantSpecies = GIANT_SPECIES.paramecium;
+    expect(toCellView(cell).giantSpecies).toBe(GIANT_SPECIES.paramecium);
   });
 
   it('rounds a cell’s velocity, mass and radius to their wire decimals and leaves the record exact', () => {

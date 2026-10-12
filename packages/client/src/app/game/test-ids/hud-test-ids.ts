@@ -87,6 +87,8 @@ export const HUD_TEST_ID = {
   upgradePopup: 'upgrade-popup',
   /** A form gained (rung 5): the larger popup with its real-life line, with `data-trait-id`. */
   formPopup: 'form-popup',
+  /** A giant the own cell swallowed (docs/ecology/giants.md §3.5.8): drawn as a form popup, with `data-giant-species`. */
+  giantPopup: 'giant-popup',
   /** The picker's extra footer line while the `offer` onboarding beat is up. */
   traitOfferOnboarding: 'trait-offer-onboarding',
   /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */

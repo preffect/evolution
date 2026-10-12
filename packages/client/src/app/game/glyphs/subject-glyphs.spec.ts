@@ -15,17 +15,18 @@ import { layerReach } from '../../../testing/glyph-bounds';
 import { SUBJECT_GLYPHS, SUBJECT_GLYPH_LIST } from './subject-glyphs';
 
 /**
- * Every code id the encyclopedia documents outside the traits, read from the model itself: a new subject or a new
- * member of one fails this file before it can reach the encyclopedia without a glyph. The glyph tables take only the
+ * Every code id the encyclopedia documents outside the traits and the giant cells (which wear their form's trait glyph,
+ * `encyclopedia/format/glyph-subject.ts`), read from the model itself: a new subject or a new member of one fails this
+ * file before it can reach the encyclopedia without a glyph. The glyph tables take only the
  * id *type* from `encyclopedia/` (ui-type.md §7.2); this spec is what may read its values, because checking them is
  * the whole point of it.
  *
- * A **new subject** lands here first as a `typecheck` error — this record is mapped over `NonTraitSubject`, so the
+ * A **new subject** lands here first as a `typecheck` error — this record is mapped over `SubjectGlyphSubject`, so the
  * missing key is named — and the fix is one row here plus its glyphs, never a row here alone: the row is what makes
  * the completeness test below ask for them.
  */
-type NonTraitSubject = Exclude<EntrySubject, typeof ENTRY_SUBJECT.trait>;
-const CODE_IDS_BY_SUBJECT: { readonly [Subject in NonTraitSubject]: readonly CodeIdBySubject[Subject][] } = {
+type SubjectGlyphSubject = Exclude<EntrySubject, typeof ENTRY_SUBJECT.trait | typeof ENTRY_SUBJECT.giant>;
+const CODE_IDS_BY_SUBJECT: { readonly [Subject in SubjectGlyphSubject]: readonly CodeIdBySubject[Subject][] } = {
   [ENTRY_SUBJECT.cellKind]: Object.values(CELL_KIND),
   [ENTRY_SUBJECT.food]: Object.values(FOOD_KIND),
   [ENTRY_SUBJECT.bacterium]: Object.values(BACTERIUM_VARIANT),
@@ -40,7 +41,7 @@ const CODE_IDS_BY_SUBJECT: { readonly [Subject in NonTraitSubject]: readonly Cod
   [ENTRY_SUBJECT.hud]: Object.values(HUD_TOPIC),
 };
 const SUBJECT_ENTRY_IDS: readonly SubjectEntryId[] = Object.entries(CODE_IDS_BY_SUBJECT).flatMap(([subject, codeIds]) =>
-  codeIds.map((codeId) => entryIdOf(subject as NonTraitSubject, codeId) as SubjectEntryId),
+  codeIds.map((codeId) => entryIdOf(subject as SubjectGlyphSubject, codeId) as SubjectEntryId),
 );
 
 /** Every colour `colours.ts` names, the tables' values (tag colours, seat rows) included: nothing else may be painted. */

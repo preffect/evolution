@@ -7,7 +7,8 @@ import { createFakeShoreCanvasFactory, type FakeShoreCanvas } from '../../../../
 import type { ShoreCanvas } from './shore-canvas';
 import { SHORE_TILE_BAKES, SHORE_TILE_NAMES, ShoreTiles, averageOf, type ShoreTileName } from './shore-tiles';
 import type { PeriodicNoise } from './shore-noise';
-import { QUICK_TILE_BAKES, SHORE_TILE_BAKE_TEST_TIMEOUT_MS } from '../../../../../testing/shore-paint-builder';
+import { QUICK_TILE_BAKES } from '../../../../../testing/shore-paint-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 
 /** A canvas whose pixels read back as `pixels`. */
 function canvasReading(pixels: number[]): ShoreCanvas {
@@ -53,7 +54,7 @@ describe('each tile bake', () => {
       const drawn = canvas.context.puts.length + canvas.context.paintCount + canvas.context.imageDraws.length;
       expect(drawn).toBeGreaterThan(0);
     },
-    SHORE_TILE_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 });
 

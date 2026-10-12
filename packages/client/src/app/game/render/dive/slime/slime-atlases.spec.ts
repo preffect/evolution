@@ -8,12 +8,8 @@ import { SLIME_SPRITE_LADDER } from '../../constants/dive-slime';
 import { SLIME_DIATOM_SPRITE, SLIME_PICTURE_BOXES, SLIME_PICTURE_MARGIN_PX } from '../../constants/dive-slime-diatoms';
 import { SLIME_MOTE_SPRITE, SLIME_ROD_SPRITE } from '../../constants/dive-slime-bacteria';
 import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-canvas';
-import {
-  SLIME_BAKE_TEST_TIMEOUT_MS,
-  quickSlimeBake,
-  runBake,
-  testSlimeScatters,
-} from '../../../../../testing/slime-builder';
+import { quickSlimeBake, runBake, testSlimeScatters } from '../../../../../testing/slime-builder';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../../testing/dive-test-timeouts';
 import {
   DIATOM_ATLAS_SLOTS,
   bacteriaAtlasLayout,
@@ -77,7 +73,7 @@ describe('the diatoms’ atlas', () => {
         pictureSize(SLIME_PICTURE_BOXES.cocconeis, { unitPx: SLIME_DIATOM_RUNGS.at(-1)!, scale: 1 })[0],
       );
     },
-    SLIME_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 });
 
@@ -112,7 +108,7 @@ describe('the plankton’s ladders', () => {
       expect(steps).toBe(total);
       expect(factory.canvases[0]!.width).toBeLessThan(factory.canvases.at(-1)!.width);
     },
-    SLIME_BAKE_TEST_TIMEOUT_MS,
+    DIVE_HEAVY_TEST_TIMEOUT_MS,
   );
 });
 

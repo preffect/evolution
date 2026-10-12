@@ -15,6 +15,7 @@ import {
   EYESPOT,
   EYESPOT_RIM,
   GAIN,
+  VAC_BASE,
   VAC_RIM,
   OUTLINE,
   RIBOSOME,
@@ -65,6 +66,8 @@ const COLOUR_UNIFORMS: Readonly<Record<string, string>> = {
   [CELL_UNIFORM.danger]: DANGER,
   [CELL_UNIFORM.gain]: GAIN,
   [CELL_UNIFORM.sallow]: STARVING_SALLOW,
+  [CELL_UNIFORM.vacuole]: VAC_BASE,
+  [CELL_UNIFORM.vacuoleRim]: VAC_RIM,
 };
 
 function createUniforms(pass: number): UniformGroup {

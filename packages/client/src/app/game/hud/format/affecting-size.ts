@@ -6,7 +6,7 @@
 // builder inside its size bar. Pure and DOM-free; every number comes from the live `balance` and the shared
 // formulas, never from the literals §3.7's worked example prints.
 
-import type { BalanceConfig, CellView } from '@evolution/shared';
+import { engulfStartMass, type BalanceConfig, type CellView } from '@evolution/shared';
 import { UI_FACT_MARKER_SHAPE, type UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import { AT_LEAST_SIGN, AT_MOST_SIGN } from '../../quantities/quantity-unit';
 import { DANGER, GAIN } from '../../render/constants';
@@ -54,13 +54,15 @@ function ceiledToDecimal(value: number): number {
  * prey figure down so the row never names a prey that is in fact too heavy, and the threat figure — the mass a cell
  * needs for `canEngulf(it, ownCell)`, the own membrane bonus included — up so it never names a cell that cannot
  * actually eat us.
+ *
+ * The threat figure is a cell eater's (`isCellEaterSpecies`): a player, a wild cell or the giant amoeba. The paramecium
+ * and the diatom eat no cell at any mass, so the row never speaks of them, and their missing ring and threat label say
+ * so cell by cell (docs/ecology/giants.md §3.5.11).
  */
 export function sizeRowsFor(input: AffectingSizeInput): readonly UiFactRow[] {
   const { ownCell, balance } = input;
   const preyBelow = flooredToDecimal(ownCell.mass / balance.absorption.ENGULF_MASS_RATIO);
-  const threatAbove = ceiledToDecimal(
-    ownCell.mass * (balance.absorption.ENGULF_MASS_RATIO + ownCell.membraneRatioBonus),
-  );
+  const threatAbove = ceiledToDecimal(engulfStartMass(ownCell, balance.absorption));
   return [
     {
       rowId: HUD_TEST_ID.affectingPreyBelow,

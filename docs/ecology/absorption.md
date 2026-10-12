@@ -30,14 +30,17 @@ below). `inHold` is the kept grab (#819, below): it holds an engulf that has sta
 
 `canStart` is the pure predicate `canEngulf(predator, prey, balance.absorption)` in
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
-`predator.mass`, `prey.mass`, `prey.membraneRatioBonus` (folded server-side and carried on the view,
-[`architecture/entity-model.md §2`](../architecture/entity-model.md#2-entity-model)) and `ENGULF_MASS_RATIO`. Three callers, no
-copies of the ratio arithmetic: the server engulf system (step 6), the HUD threat label (`threatsFor`,
-[`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)) and the
-renderer's engulf-warning ring ([`visual-style/motion-and-legibility.md §5`](../visual-style/motion-and-legibility.md#5-membrane-and-motion-language)),
-so the three can never disagree about who can engulf whom. `canContinue` is `canContinueEngulf` in the same
-file (same inputs, `ENGULF_RELEASE_RATIO`); only the server calls it. **Their signatures do not change**
-with this rework: the chip and the ring warn about mass, not touch, effort or luck. Everything below that
+`predator.mass`, `predator.giantSpecies` (the giant grazer and drifter engulf no cell, [`giants.md §3.5.6`](./giants.md)),
+`prey.mass`, `prey.membraneRatioBonus` (folded server-side and carried on the view,
+[`architecture/entity-model.md §2`](../architecture/entity-model.md#2-entity-model)) and `ENGULF_MASS_RATIO`. About a dozen
+callers, no copies of the rule: the server's contact and engulf steps (step 6), the wild cells' flee, hunt, hunt sprint
+and closer-rival rules, the bots, the HUD threat label (`threatsFor`,
+[`ui/hud.md §3.1`](../ui/hud.md#31-in-round-elements-visible-while-roundphase--playing-and-lifestate--alive)) and relations, the
+renderer's engulf-warning ring ([`visual-style/motion-and-legibility.md §5`](../visual-style/motion-and-legibility.md#5-membrane-and-motion-language))
+and the client's own-cell danger, so none can disagree about who can engulf whom. `canContinue` is `canContinueEngulf` in the same
+file (same inputs, `ENGULF_RELEASE_RATIO`); only the server calls it. Their signatures did not change with the
+#634 rework, and `canEngulf` has since gained one species test (giants.md §3.5.6: only a cell-eating
+species engulfs); the chip and the ring warn about mass and that test, not touch, effort or luck. Everything below that
 needs more than mass is a second shared pure function in the same folder:
 
 ```ts

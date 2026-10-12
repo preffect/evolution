@@ -50,6 +50,7 @@ export const ENCYCLOPEDIA_CATEGORY_ORDER: readonly EncyclopediaCategory[] = [
 export const CATEGORY_BY_SUBJECT: Readonly<Record<EntrySubject, EncyclopediaCategory>> = {
   [ENTRY_SUBJECT.concept]: ENCYCLOPEDIA_CATEGORY.basics,
   [ENTRY_SUBJECT.cellKind]: ENCYCLOPEDIA_CATEGORY.entities,
+  [ENTRY_SUBJECT.giant]: ENCYCLOPEDIA_CATEGORY.entities,
   [ENTRY_SUBJECT.food]: ENCYCLOPEDIA_CATEGORY.entities,
   [ENTRY_SUBJECT.bacterium]: ENCYCLOPEDIA_CATEGORY.entities,
   [ENTRY_SUBJECT.entity]: ENCYCLOPEDIA_CATEGORY.entities,

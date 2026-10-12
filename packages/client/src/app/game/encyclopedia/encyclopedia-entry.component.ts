@@ -30,6 +30,7 @@ import { EncyclopediaLensComponent } from './encyclopedia-lens.component';
 import { EncyclopediaLensControlComponent } from './encyclopedia-lens-control.component';
 import { ENCYCLOPEDIA_PREVIEW_STATE, EncyclopediaPreviewService, lensMotionFor } from './encyclopedia-preview.service';
 import { EncyclopediaProseComponent } from './encyclopedia-prose.component';
+import { EncyclopediaRealLifeComponent } from './encyclopedia-real-life.component';
 import { EncyclopediaStateService } from './encyclopedia-state.service';
 import {
   ENCYCLOPEDIA_CRUMB_SEPARATOR,
@@ -71,6 +72,7 @@ const NO_OWNED_TRAITS: readonly OwnedTrait[] = [];
     EncyclopediaLensComponent,
     EncyclopediaLensControlComponent,
     EncyclopediaProseComponent,
+    EncyclopediaRealLifeComponent,
     UiChipComponent,
     UiLinkChipComponent,
     UiScrollAreaComponent,
@@ -136,6 +138,10 @@ const NO_OWNED_TRAITS: readonly OwnedTrait[] = [];
           </div>
 
           <app-encyclopedia-prose class="prose" [segments]="entry().summary" />
+
+          @if (entry().realLife; as realLife) {
+            <app-encyclopedia-real-life class="real-life" [note]="realLife" />
+          }
 
           @if (entry().seeAlso.length > 0) {
             <section class="see-also">

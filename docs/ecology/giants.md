@@ -224,7 +224,7 @@ isGiantHuntTarget(seat, prey) = canEngulf(giant, prey) ∧ prey.mass ≥ GIANT_H
 unchanged for them. It reads only `giantSpecies`, which the view carries for the renderer anyway
 (§3.5.15), and `GIANT_ROLE_BY_SPECIES`, a fixed constant rather than a balance leaf (a role is what a
 species is, and no patch changes it), so the predicate gains no balance input and no mirrored view field.
-`canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`huntMinPreyMassFraction`:
+`canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`hunt.minPreyMassFraction`:
 0.25 for the hunter, 0 for a wild seat, §3.5.15), read only by the hunt's candidate filter at a decision.
 
 What follows:
@@ -276,7 +276,7 @@ What follows:
 The paramecium's decision is flee, then **graze**, then wander; it never hunts. Its graze is the wild
 rule with three changes:
 
-- **Bacteria too.** It targets and eats algae and detritus (`isWildFood`'s kinds) **and bacteria**,
+- **Bacteria too.** It targets and eats algae and detritus (a wild cell's food) **and bacteria**,
   never DNA fragments. Real paramecia live on bacteria. So the giant competes for a
   little of the players' DNA food, which is its role in the mockup: "it steals your food rather than
   you". A bacterium it eats is mass only (3), as a wild meal is; it credits nothing.
@@ -290,15 +290,18 @@ rule with three changes:
 - **Only while hungry.** It targets and eats food (step 4, by §1's eating rule, every mote whose centre
   lies within its radius) only while its `grownMass` is below `GIANT_GRAZER_APPETITE_MASS` (100). A
   sated paramecium passes over food: step 4 skips it, and its decision skips the graze and wanders
-  (G5's and G6's sated variants). The eating test is made once per tick before step 4, so one tick's meal
-  may overshoot by a few motes. Why 100: it bounds the first feed to about 50 to 70 motes, after which
+  (G5's and G6's sated variants). The eating test is made once per tick before step 4, so the last hungry
+  tick's meal is eaten whole, however far it carries the growth past the appetite: a mote or two in open water,
+  but tens of motes on a death pile (seen live in ticket #827's review: a paramecium sweeping a removed cell's detritus stopped
+  at a growth of about 147, 47 over its appetite, the last tick's meal alone about 25). The test reads the growth after the tick's settle, which has taken the tick's decay:
+  a grazer at exactly 100 is hungry again one tick later, so its steady state eats what its growth burns. Why 100: it bounds the first feed to about 50 to 70 motes (more on a death pile), after which
   it eats only what its growth burns (0.50 mass/s, §3.5.3), so over a default round it eats about 400
   mass in all, about 5 % of what the dish spawns for one player.
 
 The hunter eats no motes at all (step 4 skips it): it is a hunter, and a 1 500-mass body sweeping the
-dish would take more food than the grazer. The drifter eats nothing. Both are changes to step 4, which
-today feeds every non-player cell the `isWildFood` motes it covers (`simulation/eating.ts`), so G5 pins
-them: a mote inside the amoeba or the diatom is still there after the tick.
+dish would take more food than the grazer. The drifter eats nothing. Step 4 reads each cell's diet
+(`simulation/cell-diet.ts`; before ticket #827 it fed every non-player cell the algae and detritus it covered), so
+G5 pins them: a mote inside the amoeba or the diatom is still there after the tick.
 
 #### 3.5.8 Being eaten: the payout, the fact and the respawn
 
@@ -337,7 +340,9 @@ for the last minute.
   numbered after the wild seats by the species' place in the fixed `GiantSpecies` order (amoeba,
   paramecium, diatom), `WILD_CELL_COUNT` + _i_ (24, 25, 26), not by its place in
   `GIANT_SPECIES_IN_DISH`, so a giant seated by `debug_spawn` or the test fixture has the same seat
-  whether or not the list names it (it ships empty until slice 6). The decision stagger
+  whether or not the list names it (it ships empty until slice 6). The count is the one the world was
+  created with (`world.firstGiantSeatNumber`), so a mid-round patch of `WILD_CELL_COUNT` never
+  renumbers a giant seat. The decision stagger
   (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule.
   `GIANT_SPECIES_IN_DISH` is read once, at world creation, so the seat count never changes during a
   round; a `debug_set_balance` patch of it takes effect at the next round or rematch.
@@ -381,14 +386,22 @@ Each giant is drawn as its existing form at a large size, from its traits: the a
 (`amoeba_pseudopods`), the paramecium's ciliate body (`paramecium_cilia`, `cilia`) and the diatom's
 shell (`diatom_shell`). The renderer gets `CellView.giantSpecies` and uses it for:
 
-- **A palette per species, new art** (the mockup's): the amoeba violet (`#77729a` to `#25263d`, rim
-  `#cfc8ff`), the paramecium sea-green (`#5f9a86` to `#1a3330`, rim `#b8f6e0`), the diatom glass grey
-  (`#c9d4de` to `#3c4856`, rim `#e6ecf2`) with golden-brown chloroplasts (`#c88a2a`). Without it a giant
-  reads as a big wild cell. The graphics designer fixes the ramps against
-  visual-style/principles-and-palette.md and the threat and edible rings' contrast.
-- **New detail only where the form lacks it at giant size:** the paramecium's oral groove (the
-  mockup's curved line) and the diatom's concentric rings of pores and radial ribs. The graphics
-  designer checks each form at radius 120 to 155 wu first and adds only what is missing.
+- **A palette per species, new art** (the mockup's): the amoeba violet (`#77729a` to `#25263d`), the
+  paramecium sea-green (`#5f9a86` to `#1a3330`), the diatom glass grey (`#c9d4de` to `#3c4856`, rim
+  `#e6ecf2`) with golden-brown chloroplasts (`#c88a2a`), and no seat-mark beads. Without it a giant reads
+  as a big wild cell. Fixed against the palette rules by #828 (visual-style/cells-and-organelles.md
+  §4.1): the amoeba's and the paramecium's rims are desaturated to `#d4d2e5` and `#cfe9e0`, since the
+  mockup's `#cfc8ff` and `#b8f6e0` were the Violet and Mint player rims within ΔE 3, and a rim colours the
+  arms and the fringe.
+- **New detail only where the form lacks it at giant size** (#828 checked each form at radius 120 to 155
+  wu, visual-style/cells-and-organelles.md §4.1): the paramecium's oral groove (the mockup's curved line),
+  its two star-shaped contractile vacuoles and its fringe of fine cilia hairs in place of a player's tufts,
+  the amoeba's contractile vacuole and two digestive vacuoles, the diatom's concentric rings of pores (its
+  radial ribs were already drawn) and its plastids drawn golden brown.
+- **The diatom keeps its trait tells.** Its 8 spines and its cyan cell-wall band are not in the mockup's
+  plain disc, but they are what a player diatom shows for the same two rules: the spines spit a predator
+  out, and the wall means a predator needs 1.40 × its mass (the armour paragraph above). A giant drawn
+  without them would hide the rule that makes it the hardest of the three to swallow.
 - **Names, one home.** `cellDisplayName` (`hud/format/threats-for.ts`) returns a giant's display name
   from `GIANT_DISPLAY_NAME_BY_SPECIES` (`Giant amoeba`, `Paramecium`, `Giant diatom`, beside
   `GIANT_REAL_LIFE_LINES`) where it returns `Wild cell` for a wild cell, so the threat label and the
@@ -417,6 +430,15 @@ something new.
 | `giant_paramecium` | `Real paramecia sweep food into a groove that works as a mouth` | the oral groove and cytostome (Wikipedia "Paramecium")                                                         |
 | `giant_diatom`     | `Real diatoms make at least a fifth of Earth's oxygen`          | estimates of 20 % to 50 % of the oxygen produced each year (Wikipedia "Diatom")                                |
 
+**Real sizes** (`GIANT_REAL_SIZES`, the encyclopedia's real-life note, ui/encyclopedia.md §11.4), in words, since
+encyclopedia copy types no digit, each beside a thing the reader can picture:
+
+| Species            | Real size                                                                 | Checked against                                                                                       |
+| ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `giant_amoeba`     | `About half a millimetre long, hundreds of times longer than a bacterium` | _Amoeba proteus_ about 0.2 to 0.75 mm; a bacterium 1 to 2 µm (Wikipedia "Amoeba proteus", "Bacteria") |
+| `giant_paramecium` | `About a quarter of a millimetre long, like a grain of fine sand`         | _Paramecium caudatum_ 0.17 to 0.33 mm; fine sand 0.125 to 0.25 mm (Wikipedia "Paramecium", "Sand")    |
+| `giant_diatom`     | `Up to half a millimetre across, as big as a grain of sand`               | _Coscinodiscus_ up to about 0.5 mm across; sand 0.0625 to 2 mm (Wikipedia "Coscinodiscus", "Sand")    |
+
 The mockup's diatom line ("a fifth of the oxygen you breathe") is reworded: the sources give a range
 for the oxygen the planet produces, not for what one person breathes. The amoeba's "big enough to see
 without a microscope" is dropped: the sources disagree on whether a typical one is.
@@ -440,7 +462,9 @@ answer edits rows, not rules.
 `GiantSpecies` (`giant_amoeba`, `giant_paramecium`, `giant_diatom`) and `GiantRole` (`hunter`,
 `grazer`, `drifter`) are wire enums in `types/game.ts`; the records below are keyed by species. Every
 row is a balance leaf of the `giants` domain except `GIANT_ROLE_BY_SPECIES`, a plain constant in the same
-file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it.
+file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it. The ledger's rows
+are the `giants.ts` table of [`constants.md` §7](./constants.md); `GIANT_SPECIES_IN_DISH` ships empty there until
+the giants-on slice (§3.5.17).
 
 | Constant                                  | Value                      | Unit                         | Reason (section)                                                                   |
 | ----------------------------------------- | -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
@@ -466,24 +490,29 @@ file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch 
 Reused unchanged: `WILD_CELL_SIGHT_VIEW_MULTIPLE`, `WILD_CELL_FLEE_RANGE_RADII`, both sprint radii,
 `WILD_CELL_HUNT_CHARGE_RADII`, `WILD_CELL_HUNT_REST_SECONDS`, `WILD_CELL_RECOVERY_SECONDS`,
 `WILD_CELL_DECISION_INTERVAL_SECONDS`, the controls' sprint, and the trait tier tables. The client's
-`GIANT_REAL_LIFE_LINES` and `GIANT_DISPLAY_NAME_BY_SPECIES` live beside `FORM_REAL_LIFE_LINES`
-(`hud/format/`), as the form lines do. The balance test pins: every build a valid ladder ending in its
-form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
+`GIANT_REAL_LIFE_LINES`, `GIANT_DISPLAY_NAME_BY_SPECIES` and `GIANT_REAL_SIZES` live in the neutral
+`game/giants/giant-facts.ts`, since the HUD and the encyclopedia both read them and the encyclopedia never imports
+`hud/` (ticket #831). The balance test (`constants/giants.test.ts`) pins: every build a valid
+ladder ending in its form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
 (ENGULF_MASS_RATIO +` the build's `membraneRatioBonus) < CELL_MAX_MASS`; every species multiplier ≤ 1; and
 the hunter's `GIANT_BORN_MASS_MIN × GIANT_HUNT_MIN_PREY_MASS_FRACTION > ENTRY_MAX_MASS` (G14).
 
-`debug_set_balance` refuses a `giants` patch that breaks one of those, as the wild builds refuse a wrap
-past the top tier (#671, `isPastTopTraitTier`): a build that is not a valid ladder ending in its form, a
-born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
+`debug_set_balance` refuses a patch whose result breaks one of those, as the wild builds refuse a wrap
+past the top tier (#671, `isPastTopTraitTier`), whichever domain it names (`traits.TRAIT_TIER_COUNT` under the
+amoeba's Pseudopods II, `growth.CELL_STARTING_MASS` over a born minimum): a build that is not a valid ladder ending
+in a form, a born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
 speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, which G14 checks only on
-`DEFAULT_BALANCE`). A patch of `GIANT_SPECIES_IN_DISH` is accepted and applies at the next world
-creation (§3.5.9).
+`DEFAULT_BALANCE`). The rules have one home, `giantBalanceProblems` (`shared/simulation/giant-balance.ts`), which the
+balance test and the refusal both call. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
+structure a patch cannot name (`debug_set_balance` writes number leaves only, as for `WILD_CELL_BUILDS`): a test or
+fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice sets it in
+`DEFAULT_BALANCE`.
 
 #### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3, `architecture/constants-files-tests.md` §10 and `architecture/wire-contract.md` §4.1)
 
 - **The kind stays `wild`, with `giantSpecies` as the discriminator** (the architect's ruling on PR #823).
   Every wild rule and every `isPlayerCell` / `kind` test covers a giant without a new branch. The sites
-  that read `giantSpecies` are `canEngulf` (§3.5.6), the diet (`simulation/eating.ts`), the payout,
+  that read `giantSpecies` are `canEngulf` (§3.5.6), the diet (`simulation/cell-diet.ts`), the payout,
   `cellDisplayName` and the respawn lines, the palette, and the encyclopedia's cell-kind entries.
 - **`CellView` gains one field, `giantSpecies: GiantSpecies | null`** (null for player and wild cells).
   The hunt window is a seat rule (§3.5.6), so no hunt field is mirrored on the view. Wire cost: cells
@@ -493,9 +522,9 @@ creation (§3.5.9).
   bytes). **State hash:** `giantSpecies` is in `CELL_HASHED_FIELDS`; nothing is mirrored, so nothing is
   added to `DERIVED_FIELDS`.
 - **`canEngulf` widens its predator** from `Pick<CellView, 'mass'>` to `Pick<CellView, 'mass' |
-'giantSpecies'>`. It has about 12 call sites on main 5e1d3f10, not three: the "three callers" comment
-  in `engulf-eligibility.ts` and absorption.md §6.1's "Three callers" sentence are corrected in the same
-  slice. The sites that change:
+'giantSpecies'>` (`canContinueEngulf` and the hold keep the mass-only `EngulfHoldPredator`). It has about 12
+  call sites, not three: the "three callers" comment in `engulf-eligibility.ts` and absorption.md §6.1's "Three
+  callers" sentence were corrected with it (ticket #825). The sites that changed:
   - `wild/wild-hunt-sprint.ts` builds a synthetic predator `{ mass: massAfterHuntSprint(…) }`; it becomes
     `{ ...hunter, mass }`, or a giant hunter's sprint test loses its species.
   - `testing/bot-builders.ts` keeps a hand-rolled copy of the predicate, which would silently ignore the
@@ -503,12 +532,14 @@ creation (§3.5.9).
   - `bots/perception.ts` (`EngulfPredatorView`, `BotCellView`) and
     `testing/scenarios/trait-engulf-setups.ts` gain the field.
   - Every `CellView` literal gains it: `serialize.ts`, `world/cell-record.ts`, the shared and client
-    `testing/builders.ts`, `bench-scene.ts`, `preview-frame.ts` and `toy-adapter.ts`.
+    `testing/builders.ts`, `bench-scene.ts`, `preview-frame.ts` and `toy-adapter.ts`; every `cell_absorbed`
+    literal gains `preyGiantSpecies` (`session/death.ts` from the prey, the client's bench and engulf preview
+    scenes, the test builders).
 
   The other callers pick the rule up unchanged, which is the point of one home: `contact.ts`, `engulf.ts`
   (the body start and the arm grab's start, through `canStartEngulf`), `wild-perception.ts` (flee, hunt,
-  closer rival), `relations-for.ts`, `threats-for.ts`, `cell-instance-builder.ts`,
-  `snapshot-transitions.ts` and `escape-scene.ts`.
+  closer rival), `bots/evolution-binding.ts` (the bots' perception and the strategies that ask it),
+  `relations-for.ts`, `threats-for.ts`, `cell-instance-builder.ts`, `snapshot-transitions.ts` and `escape-scene.ts`.
 
 - `CellAbsorbedEffect` gains `preyGiantSpecies: GiantSpecies | null`.
 - **Seat records.** A shared base type, `SeatMindRecord`, holds what every seat's mind reads: `seatNumber`,
@@ -517,13 +548,15 @@ creation (§3.5.9).
   it with `sizeFactor` and `isStarving`; `GiantSeatRecord` with `species` and `bornMass`. Giant seats live
   in their own list beside `world.wildSeats`, so the die-off's sum and `WILD_CELL_COUNT` stay the wild
   seats'. `isHuntStale`, `giveUpStaleHunt`, `latchHunt`, `aimWildHunt` and the wander take the base type.
-- **The seat profile.** The settle, strategy, hunt aim, give-up and respawn take a profile instead of
-  reading the wild constants directly: the base size (`sizeFactor` × `worldMass`, or the born mass), the
-  growth ceiling (`fullMassOf` reads `WILD_CELL_MAX_WORLD_MASS_MULTIPLE` today; a giant's is
-  `GIANT_MASS_CEILING`), the ladder, the decision rules (the role's order: hunter flee, hunt, wander;
-  grazer flee, graze, wander; drifter flee, wander), the diet, the give-up seconds, the hunt window's
-  `huntMinPreyMassFraction` (0 for a wild seat), the turn chance, and the random stream
-  (`scriptContextFor` hard-wires `RANDOM_STREAM.wildCells` today; a giant's draws come from `giants`).
+- **The seat profile** (`wild/seat-profile.ts`, ticket #827). The settle, strategy, give-up, wander and respawn read a
+  profile instead of the wild constants: the growth ceiling (3 × `worldMass`, or `GIANT_MASS_CEILING`), the decision
+  rules (the role's order: hunter flee, hunt, wander; grazer flee, graze, wander; drifter flee, wander), the diet
+  (`simulation/cell-diet.ts`, which step 4 reads too), the give-up and rest seconds, the hunt window's
+  `hunt.minPreyMassFraction` (0 for a wild seat), the stage players become prey from (a giant's: tick 0), the turn
+  chance, the random stream (`wildCells`, or `giants`), and the respawn's countdown and what a vacated seat forgets
+  (ticket #826's per-kind respawn policy, folded in). The base size (`sizeFactor` × `worldMass`, or the born mass) and
+  the ladder (the world's, or the fixed build through `applyGiantBuild`) stay with each kind's settle
+  (`wild-settle.ts`, `giant-settle.ts`), since each reads its own seat's fields.
 - **The species speed multiplier has one home.** `applyWorldLadder` → `refreshCellDerivedStateFromTraits`
   refolds the modifiers every tick, so a giant's ladder step is one function that refreshes from traits
   and then applies `GIANT_SPEED_MULTIPLIER_BY_SPECIES` to the folded `speedMultiplier`, and every refresh
@@ -536,8 +569,9 @@ creation (§3.5.9).
   eats for the grazer while it is hungry and skips the hunter and the drifter (§3.5.7); step 9 respawns
   giant seats.
 - Debug MCP (architecture/debug-mcp.md §8): `debug_spawn(gameId, 'giant', x, y, { species, mass })` places
-  (or replaces) that species' giant, whether or not `GIANT_SPECIES_IN_DISH` seats it; `debug_get_entities`
-  shows `giantSpecies` through the view.
+  (or replaces) that species' giant, whether or not `GIANT_SPECIES_IN_DISH` seats it, at a born `mass` in
+  [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`] (refused outside it); the seat respawns its giant until the
+  rematch, list or not. `debug_get_entities` shows `giantSpecies` through the view.
 - Scenario fixture: `placeGiant({ species, bornMass, grownMass = 0, at | eastOfFirstCellWu, heading? })`
   seats the species' cell at `bornMass + grownMass` with that growth, no target, velocity (exactly
   (0, 0)) or sprint counters (as a respawn), and the heading given (default east). Placing anything
@@ -575,12 +609,14 @@ without its mind would sit still and swallow whatever touched it.
    and derived level, the speed multiplier's one home, die-off exclusion, the seat fields in the state
    hash, `RANDOM_STREAM.giants`, the payout (DNA bonus through the multiplier, the effect field), the
    `placeGiant` fixture, and `debug_spawn` for `giant` (debug-mcp.md §8). Rows G1 (on a balance whose
-   `GIANT_SPECIES_IN_DISH` is all three), G8, G9, G11, G12. Depends on 1.
+   `GIANT_SPECIES_IN_DISH` is all three), G8, G9, G11 (its tick-34 mass with slice 3's step 4), G12. A seated
+   giant has no mind yet: its seat's decision countdown is set at placement and counted from slice 3, and step 4
+   still feeds it the motes it covers. Depends on 1.
 3. **Server: giant minds**: the seat profile in the wild strategy (role decision orders, the hunt window
    as the hunter's target filter, the 8 s give-up, the drifter's flee then wander, the turn chances, the
    profile's stream and ceiling), and the grazer's diet (bacteria, the forward cone, appetite, step 4
-   eating and skipping). Rows G3, G4, G5, G6, G7, G10, G13, and G15 once ticket #819's kept grab is on
-   main. Depends on 2.
+   eating and skipping). Rows G3, G4, G5, G6, G7, G10, G13, G11's tick-34 mass, and G15 once ticket #819's kept
+   grab is on main. Depends on 2.
 4. **Client render** (graphics-designer): per-species palettes, a giant-size check of the amoeba,
    ciliate and diatom forms (the oral groove, the rings of pores and radial ribs where missing). Evidence
    on a private stack, with giants placed by `debug_spawn('giant')`. Depends on 1 and 2.
