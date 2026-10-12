@@ -1,15 +1,21 @@
-// The kept grab (docs/ecology/absorption.md §6.1, #819): an engulf that has started holds its prey while any of it is
-// still under the predator, unless the prey's sprint is running, when the start's half-covered bound holds it instead.
-// Starting an engulf and the seal still need the half-covered bound. The rows run on the E9 pair from
+// The kept grab (docs/ecology/absorption.md §6.1, #819): an engulf that has started holds its prey, and seals it,
+// while any of it is still under the predator, unless the prey's sprint is running, when the start's half-covered bound
+// holds and seals it instead. Starting an engulf still needs the half-covered bound. The rows run on the E9 pair from
 // `testing/engulf-builders.ts` (A 100 / B 20: A's radius 40, B's 17.9), the step driven directly.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, ENGULF_PHASE, ENGULF_RELEASE_REASON, engulfPhaseOf } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  EFFECT_KIND,
+  ENGULF_PHASE,
+  ENGULF_RELEASE_REASON,
+  engulfPhaseOf,
+  foldModifiers,
+} from '@evolution/shared';
 import {
   E9_PAYOUT_TICK,
   E9_SEAL_TICK,
   ENGULF_PREY_MASS,
-  ENGULF_SEAL_PROGRESS,
   createEngulfFixture,
   releaseReasonsOf,
   stepEngulf,
@@ -25,14 +31,18 @@ const absorption = DEFAULT_BALANCE.absorption;
 const PROGRESS_DIGITS = 10;
 /** Late in E9's cover band: 4/36, which two ticks of escape decay drain to 0. */
 const E9_LATE_COVER_TICK = 4;
-/** A sprint with this many ticks still to run: any running sprint, the last tick of one included. */
-const LAST_SPRINT_TICK = 1;
+/**
+ * `sprintRemainingTicks` as the engulf step reads it with one tick of the sprint still to run: the smallest value that
+ * counts as sprinting. Movement ages the field before the engulf step, so on the sprint's last full-speed tick it already
+ * reads 0 and the kept grab applies.
+ */
+const ONE_SPRINT_TICK_LEFT = 1;
 /** Inside or outside a contact bound by this much (wu). */
 const MARGIN_WU = 0.1;
 /** Far beyond any contact bound and still inside the dish (wu). */
 const OUT_OF_CONTACT_WU = 1000;
-/** Long enough for an unsealed prey held at the lip to pass E9's payout tick, had it sealed. */
-const PAST_THE_PAYOUT_TICKS = E9_PAYOUT_TICK + E9_SEAL_TICK;
+/** A predator with arms, so a prey that is not steering away is held by the arm wherever the body lets go (#735). */
+const AMOEBA_I = [{ traitId: 'amoeba_pseudopods', tier: 1 }] as const;
 
 /** The centre distance at which the predator covers `coverageFraction` of the prey's radius (wu). */
 const reachAt = (fixture: EngulfFixture, coverageFraction: number): number =>
@@ -83,7 +93,7 @@ describe('the kept grab bound (#819)', () => {
 
   it('holds a sprinting prey by the half-covered bound only', () => {
     const fixture = createEngulfFixture();
-    fixture.prey.sprintRemainingTicks = LAST_SPRINT_TICK;
+    fixture.prey.sprintRemainingTicks = ONE_SPRINT_TICK_LEFT;
     preyOnTheRim(fixture);
     expect(isEngulfHoldContact(fixture.predator, fixture.prey, DEFAULT_BALANCE)).toBe(false);
     fixture.prey.x = fixture.predator.x + reachAt(fixture, absorption.ENGULF_COVERAGE_FRACTION) - MARGIN_WU;
@@ -130,17 +140,51 @@ describe.each(PREY_KINDS)('the kept grab in the engulf step, the prey %s (#819)'
     expect(fixture.prey.engulfProgress).toBe(0);
   });
 
-  it('never seals a prey the kept grab alone holds: it waits at the lip until the body covers it', () => {
+  it('seals a held prey that is not sprinting past the half-covered bound, and swallows it', () => {
     const fixture = fixtureOf();
     stepEngulf(fixture, E9_LATE_COVER_TICK);
-    const placedX = fixture.prey.x;
     preyOnTheRim(fixture);
-    stepEngulf(fixture, PAST_THE_PAYOUT_TICKS);
-    expect(isHeldBy(fixture)).toBe(true);
-    expect(fixture.prey.engulfProgress).toBeLessThan(ENGULF_SEAL_PROGRESS);
+    stepEngulf(fixture, E9_SEAL_TICK - E9_LATE_COVER_TICK - 1);
+    expect(isEngulfContact(fixture.predator, fixture.prey, DEFAULT_BALANCE)).toBe(false);
     expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.wrap);
-    fixture.prey.x = placedX;
     stepEngulf(fixture);
     expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.absorb);
+    stepEngulf(fixture, E9_PAYOUT_TICK - E9_SEAL_TICK);
+    const absorbed = fixture.context.effects.filter((effect) => effect.kind === EFFECT_KIND.cellAbsorbed);
+    expect(absorbed).toHaveLength(1);
+    expect(releaseReasonsOf(fixture.context.effects)).toEqual([]);
+  });
+});
+
+/**
+ * The E9 pair with the prey on the predator's rim one tick short of the seal, held there by the kept grab. The predator
+ * then grows arms (their pull would have drawn the prey in on the way), so a prey steering nowhere is held by the arm
+ * whether or not it sprints: only the body's hold, which the sprint narrows, decides the seal.
+ */
+function armHeldAtTheLip(prey: 'sprinting' | 'swimming'): EngulfFixture {
+  const fixture = createEngulfFixture();
+  stepEngulf(fixture, E9_LATE_COVER_TICK);
+  preyOnTheRim(fixture);
+  stepEngulf(fixture, E9_SEAL_TICK - E9_LATE_COVER_TICK - 1);
+  fixture.predator.modifiers = foldModifiers(AMOEBA_I, DEFAULT_BALANCE.traits.TRAIT_TIERS);
+  fixture.prey.sprintRemainingTicks = prey === 'sprinting' ? E9_PAYOUT_TICK : 0;
+  return fixture;
+}
+
+describe('the seal under the kept grab (#819)', () => {
+  it('seals a prey on the rim that is not sprinting', () => {
+    const fixture = armHeldAtTheLip('swimming');
+    stepEngulf(fixture);
+    expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.absorb);
+  });
+
+  it('never seals a sprinting prey in the same spot: the arm holds it at the lip until the body covers half of it', () => {
+    const fixture = armHeldAtTheLip('sprinting');
+    const lipProgress = fixture.prey.engulfProgress;
+    stepEngulf(fixture);
+    expect(isEngulfContact(fixture.predator, fixture.prey, DEFAULT_BALANCE)).toBe(false);
+    expect(isHeldBy(fixture)).toBe(true);
+    expect(fixture.prey.engulfProgress).toBe(lipProgress);
+    expect(engulfPhaseOf(fixture.prey.engulfProgress, absorption)).toBe(ENGULF_PHASE.wrap);
   });
 });

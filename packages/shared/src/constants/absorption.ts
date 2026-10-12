@@ -10,10 +10,10 @@ export const ENGULF_PROGRESS_EPSILON = 1e-6;
 /** Contact: centre distance ≤ predator.radius − prey.radius × this. */
 export const ENGULF_COVERAGE_FRACTION = 0.5;
 /**
- * The kept grab (#819): once an engulf has started, until the seal, the body holds the prey while the centre distance
- * ≤ predator.radius − prey.radius × this. −1 is the cells touching, so the grab holds while any of the prey is still
- * under the predator. While the prey's sprint runs, the start's `ENGULF_COVERAGE_FRACTION` holds it instead; starting
- * an engulf and the seal always need it. Typed `number` because tsc's declaration emit garbles a negative literal type
+ * The kept grab (#819): once an engulf has started, the body holds the prey, and may seal it, while the centre
+ * distance ≤ predator.radius − prey.radius × this. −1 is the cells touching, so the grab holds while any of the prey is
+ * still under the predator. While the prey's sprint runs, the start's `ENGULF_COVERAGE_FRACTION` holds and seals it
+ * instead; starting an engulf always needs it. Typed `number` because tsc's declaration emit garbles a negative literal type
  * spread into `DEFAULT_BALANCE` (it printed balance.ts's own text in place of `-1`).
  */
 export const ENGULF_HOLD_COVERAGE_FRACTION: number = -1;

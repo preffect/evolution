@@ -133,9 +133,10 @@ function resolveHold(pairing: EngulfPairing, phase: EngulfPhase, world: WorldSta
   return false;
 }
 
-/** Where the prey is held this tick: the body's engulf contact, or the arm's (#735). */
+/** Where the prey is held this tick: by the body (the kept grab, #819), or by the arm (#735). */
 interface HoldContact {
-  readonly isBodyContact: boolean;
+  /** The body holds the prey: what the seal needs (docs/ecology/absorption.md §6.1, #819). */
+  readonly isBodyHold: boolean;
   readonly isInContact: boolean;
 }
 
@@ -152,14 +153,13 @@ function holdContactOf(
   balance: BalanceConfig,
 ): HoldContact {
   if (isSealed) {
-    return { isBodyContact: true, isInContact: true };
+    return { isBodyHold: true, isInContact: true };
   }
   dragPreyAlong(pairing, balance);
   pullPreyByArm(pairing, world, balance);
   const { predator, prey } = pairing;
-  const isBodyContact = isEngulfContact(predator, prey, balance);
-  const isBodyHold = isBodyContact || isEngulfHoldContact(predator, prey, balance);
-  return { isBodyContact, isInContact: isBodyHold || isArmHold(predator, prey, balance) };
+  const isBodyHold = isEngulfContact(predator, prey, balance) || isEngulfHoldContact(predator, prey, balance);
+  return { isBodyHold, isInContact: isBodyHold || isArmHold(predator, prey, balance) };
 }
 
 /** This tick's signed progress change for the pair (docs/ecology/absorption.md §6.1 step 5). */
@@ -187,13 +187,14 @@ function progressDeltaOf(
 /**
  * Steps 5 and 6: progress, then the escape, the seal or the payout the new progress implies. An arm hold (#735) counts
  * as contact, but only the body seals: progress that would seal while the prey is held by the arm alone stays at the
- * lip until the body covers the prey.
+ * lip until the body holds the prey. The body seals by the same hold that keeps the grab (#819), so a held prey that
+ * does not sprint is sealed; a sprinting one needs the start's bound.
  */
 function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: WorldState, context: StepContext): void {
   const absorption = context.balance.absorption;
   const { predator, prey } = pairing;
   const isSealed = phase === ENGULF_PHASE.absorb;
-  const { isBodyContact, isInContact } = holdContactOf(pairing, isSealed, world, context.balance);
+  const { isBodyHold, isInContact } = holdContactOf(pairing, isSealed, world, context.balance);
   const awayEffort = isSealed ? NO_AWAY_EFFORT : awayEffortOf(predator, prey);
   const progressBefore = prey.engulfProgress;
   prey.engulfProgress += progressDeltaOf(pairing, phase, { isInContact, awayEffort }, context.balance);
@@ -210,7 +211,7 @@ function advanceProgress(pairing: EngulfPairing, phase: EngulfPhase, world: Worl
     return;
   }
   if (!isSealed && engulfPhaseOf(prey.engulfProgress, absorption) === ENGULF_PHASE.absorb) {
-    if (isBodyContact) {
+    if (isBodyHold) {
       sealEngulf(pairing);
     } else {
       prey.engulfProgress = progressBefore;

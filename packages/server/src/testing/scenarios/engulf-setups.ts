@@ -101,10 +101,15 @@ export const E11_TOO_LATE_SPRINT_TICK = 14;
 export const E11_TOO_LATE_SEAL_TICK = 23;
 export const E11_TOO_LATE_END_TICK = 41;
 /**
- * Steering away from tick 10 without a sprint: released on tick 46 since ticket #819 (the kept grab holds B while it
- * still touches A, so it drains only once clear of A); 34 before, when leaving the half-covered bound began the drain.
+ * Steering away from tick 10 without a sprint: since ticket #819's seal under the kept grab B is still touching A when
+ * its progress reaches the seal, on tick 27 (past the half-covered bound since tick 26), and is absorbed on tick 45.
+ * With the kept grab alone it was released on tick 46; before #819 on tick 34, when leaving the half-covered bound began
+ * the drain. The last tick steering still gets out from is 4: released on tick 39.
  */
-export const E11_NO_SPRINT_RELEASE_TICK = 46;
+export const E11_NO_SPRINT_SEAL_TICK = 27;
+export const E11_NO_SPRINT_PAYOUT_TICK = 45;
+export const E11_LAST_STEERING_ESCAPE_TICK = 4;
+export const E11_LAST_STEERING_RELEASE_TICK = 39;
 
 /**
  * "A at mass 100, B at 20, centres 10 wu apart": the setup every engulf row shares.

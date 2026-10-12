@@ -54,10 +54,11 @@ export function engulfContactGap(predator: CellFootprint, prey: CellFootprint, b
 export type HeldPreyFootprint = CellFootprint & Pick<CellRecord, 'sprintRemainingTicks'>;
 
 /**
- * The kept grab (docs/ecology/absorption.md §6.1, #819): an engulf that has started keeps its body contact while
- * `|centres| ≤ predator.radius − prey.radius × ENGULF_HOLD_COVERAGE_FRACTION`, a looser bound than the start's, so a
- * prey that swims part way out from under the predator is still held. While the prey's sprint runs it is held by the
- * start's bound instead, so sprinting stays the way out (decision #139). Starting and sealing read `isEngulfContact`.
+ * The kept grab (docs/ecology/absorption.md §6.1, #819): an engulf that has started keeps its body contact, and may
+ * seal, while `|centres| ≤ predator.radius − prey.radius × ENGULF_HOLD_COVERAGE_FRACTION`, a looser bound than the
+ * start's, so a prey that swims part way out from under the predator is still held and then swallowed. While the prey's
+ * sprint runs it is held, and sealed, by the start's bound instead, so sprinting stays the way out (decision #139).
+ * Starting reads `isEngulfContact`.
  */
 export function isEngulfHoldContact(predator: CellFootprint, prey: HeldPreyFootprint, balance: BalanceConfig): boolean {
   const absorption = balance.absorption;

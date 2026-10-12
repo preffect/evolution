@@ -6,6 +6,10 @@
 //   HOLD=<fraction> pnpm --filter @evolution/server bench:engulf-pass    (HOLD patches ENGULF_HOLD_COVERAGE_FRACTION first; #819)
 //   COVER=<seconds> pnpm --filter @evolution/server bench:engulf-pass   (COVER patches ENGULF_COVER_SECONDS first; #819)
 //   PREY_TRAIT=cilia pnpm --filter @evolution/server bench:engulf-pass  (the prey owns that trait at tier I; #819's Cilia escape)
+//   TRIAL=<seconds> pnpm --filter @evolution/server bench:engulf-pass   (each trial's length; unset: 4 s. #819's 20 s hold check)
+//
+// "held at end" counts trials whose prey is still held, neither sealed and paid out nor released, when the trial ends;
+// "longest hold" is the longest one grab lasted in any of the row's trials, payout or release included (s).
 
 import {
   DEFAULT_BALANCE,
@@ -13,10 +17,12 @@ import {
   ENGULF_RELEASE_REASON,
   playerId,
   secondsToTicks,
+  ticksToSeconds,
   type TraitId,
 } from '@evolution/shared';
 import { setBalanceForDebug } from '../src/game/debug/debug-operations.js';
 import { setCellMass } from '../src/game/simulation/cell-mass.js';
+import { tryStartSprint } from '../src/game/simulation/inputs.js';
 import { stepWorld } from '../src/game/simulation/step.js';
 import type { CellRecord } from '../src/game/world/entities.js';
 import { BROTH_POINT } from '../src/testing/gameplay/placement.js';
@@ -34,7 +40,8 @@ const PAIRS: ReadonlyArray<readonly [number, number]> = [
 const OFFSETS = [0, 0.25, 0.5, 0.75];
 /** How far outside contact the predator starts, in its own radii, already at full speed. */
 const START_RADII = [1, 2, 3];
-const TRIAL_SECONDS = 4;
+const DEFAULT_TRIAL_SECONDS = 4;
+const TRIAL_SECONDS = Number(process.env.TRIAL ?? DEFAULT_TRIAL_SECONDS);
 const FAR_WU = 1000;
 /** `cross` (#819): the prey swims east across the pass line at full speed and never reacts, so the two meet mid-swim. */
 const PREY_STYLES = ['still', 'flee', 'flee+sprint', 'cross'] as const;
@@ -52,6 +59,8 @@ interface Outcome {
   finished: number;
   escaped: number;
   firstStartFinished: number;
+  heldAtEnd: number;
+  longestHoldTicks: number;
   trials: number;
 }
 
@@ -100,11 +109,9 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
   predator.y = prey.y - approachWu;
   predator.velocityX = 0;
   predator.velocityY = balance.growth.CELL_BASE_SPEED;
-  const outcome = { starts: 0, finished: 0, escaped: 0, firstStartFinished: 0 };
+  const outcome = { starts: 0, finished: 0, escaped: 0, firstStartFinished: 0, heldAtEnd: 0, longestHoldTicks: 0 };
   let wasHeld = false;
-  // Once a trial, the first tick the prey sees it is held (#819: keyed on `wasHeld` it never fired, since `wasHeld`
-  // is already true by the tick the prey first reads the hold).
-  let hasSprinted = false;
+  let holdTicks = 0;
   for (let tick = 0; tick < secondsToTicks(TRIAL_SECONDS); tick += 1) {
     if (aim === 'through') {
       predator.targetX = predator.x;
@@ -119,14 +126,15 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
       const distance = Math.hypot(prey.x - predator.x, prey.y - predator.y) || 1;
       prey.targetX = prey.x + ((prey.x - predator.x) / distance) * FAR_WU;
       prey.targetY = prey.y + ((prey.y - predator.y) / distance) * FAR_WU;
-      if (style === 'flee+sprint' && !hasSprinted) {
-        prey.sprintRemainingTicks = secondsToTicks(balance.controls.SPRINT_DURATION_SECONDS);
-        hasSprinted = true;
-      }
+      // Every tick it is held and its cooldown allows, paying the sprint's cost as a player's sprint does (#819: keyed
+      // on `wasHeld` it never fired; once a trial, a 20 s trial left a re-grabbed prey with no sprint).
+      if (style === 'flee+sprint') tryStartSprint(prey, balance);
     }
     stepWorld(world, context);
     const isHeld = prey.engulfedByCellId !== null;
     if (isHeld && !wasHeld) outcome.starts += 1;
+    holdTicks = isHeld ? holdTicks + 1 : 0;
+    outcome.longestHoldTicks = Math.max(outcome.longestHoldTicks, holdTicks);
     wasHeld = isHeld;
     for (const effect of world.effects.splice(0)) {
       if (effect.kind === EFFECT_KIND.cellAbsorbed && effect.cellId === prey.id) {
@@ -139,11 +147,20 @@ function trial(predatorMass: number, preyMass: number, offset: number, startRadi
     }
     if (outcome.finished > 0) break;
   }
+  outcome.heldAtEnd = outcome.finished === 0 && prey.engulfedByCellId !== null ? 1 : 0;
   return outcome;
 }
 
 function row(predatorMass: number, preyMass: number, aim: Aim, style: PreyStyle): Outcome {
-  const total: Outcome = { starts: 0, finished: 0, escaped: 0, firstStartFinished: 0, trials: 0 };
+  const total: Outcome = {
+    starts: 0,
+    finished: 0,
+    escaped: 0,
+    firstStartFinished: 0,
+    heldAtEnd: 0,
+    longestHoldTicks: 0,
+    trials: 0,
+  };
   for (const offset of OFFSETS) {
     for (const startRadii of START_RADII) {
       const one = trial(predatorMass, preyMass, offset, startRadii, aim, style);
@@ -151,6 +168,8 @@ function row(predatorMass: number, preyMass: number, aim: Aim, style: PreyStyle)
       total.finished += one.finished;
       total.escaped += one.escaped;
       total.firstStartFinished += one.firstStartFinished;
+      total.heldAtEnd += one.heldAtEnd;
+      total.longestHoldTicks = Math.max(total.longestHoldTicks, one.longestHoldTicks);
       total.trials += 1;
     }
   }
@@ -161,13 +180,16 @@ console.log(`drag ${process.env.DRAG ?? `default (${DEFAULT_BALANCE.absorption.E
 console.log(`hold ${process.env.HOLD ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_HOLD_COVERAGE_FRACTION})`}`);
 console.log(`cover ${process.env.COVER ?? `default (${DEFAULT_BALANCE.absorption.ENGULF_COVER_SECONDS})`} s`);
 console.log(`prey trait ${process.env.PREY_TRAIT ?? 'none'}`);
-console.log('| aim | prey | predator/prey mass | trials | starts | finished | dropped (escaped) | first pass eats |');
+console.log(`trial ${TRIAL_SECONDS} s`);
+console.log(
+  '| aim | prey | predator/prey mass | trials | starts | finished | dropped (escaped) | held at end | longest hold (s) | first pass eats |',
+);
 for (const aim of AIMS) {
   for (const style of PREY_STYLES) {
     for (const [predatorMass, preyMass] of PAIRS) {
       const r = row(predatorMass, preyMass, aim, style);
       console.log(
-        `| ${aim} | ${style} | ${predatorMass}/${preyMass} | ${r.trials} | ${r.starts} | ${r.finished} | ${r.escaped} | ${r.firstStartFinished}/${r.trials} |`,
+        `| ${aim} | ${style} | ${predatorMass}/${preyMass} | ${r.trials} | ${r.starts} | ${r.finished} | ${r.escaped} | ${r.heldAtEnd} | ${ticksToSeconds(r.longestHoldTicks)} | ${r.firstStartFinished}/${r.trials} |`,
       );
     }
   }

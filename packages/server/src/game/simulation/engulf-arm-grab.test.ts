@@ -175,14 +175,15 @@ describe('the arm draws the prey in (#735)', () => {
 });
 
 describe('only the body seals (#735)', () => {
-  it('holds the progress under the seal while the arm alone holds the prey, and seals once the body covers it', () => {
-    const fixture = armPair();
+  it('holds the progress under the seal while the arm alone holds the prey, and seals once the body holds it', () => {
+    const fixture = armOnlyPair();
     withoutPull(fixture);
     stepEngulf(fixture, LONG_HOLD_TICKS);
     expect(fixture.predator.engulfingCellId).toBe(fixture.prey.id);
     expect(fixture.prey.engulfProgress).toBeLessThan(ENGULF_SEAL_PROGRESS);
     expect(fixture.prey.carriedOffsetX).toBeNull();
-    placeOutTheArm(fixture, 0, -PAST_THE_ARM_WU);
+    // Just inside the kept grab (#819), which holds and seals a prey that is not sprinting.
+    fixture.prey.x = fixture.predator.x + fixture.predator.radius + fixture.prey.radius - PAST_THE_ARM_WU;
     stepEngulf(fixture);
     expect(fixture.prey.carriedOffsetX).not.toBeNull();
     expect(fixture.prey.engulfProgress).toBeGreaterThan(ENGULF_SEAL_PROGRESS);
