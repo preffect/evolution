@@ -1,16 +1,18 @@
 // Step 1's giant settle (docs/ecology/giants.md §3.5.3, §3.5.10): after the wild settle, in seat order, each seated
-// giant's mass is laid on its full size by the wild settle's own core, with the born mass for the base size, the fixed
-// `GIANT_MASS_CEILING` for the growth ceiling and the player's decay × `GIANT_DECAY_MULTIPLIER` taken from the growth.
+// giant's mass is laid on its full size by the wild settle's own core, with the born mass for the base size, its
+// profile's growth ceiling (the fixed `GIANT_MASS_CEILING`, `seat-profile.ts`) and the player's decay × `GIANT_DECAY_MULTIPLIER` taken from the growth.
 // Then its fixed build is laid on again (`applyGiantBuild`, the speed multiplier's one home). A giant is outside the
 // die-off: the giant seats are not among the wild seats the die-off sums, and nothing here ever starves one.
 
 import type { BalanceConfig } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { decayPerSecond, metabolismInputOf } from '../simulation/metabolism.js';
+import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, GiantSeatRecord } from '../world/entities.js';
 import { seatedGiantCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { applyGiantBuild } from './giant-build.js';
+import { giantSeatProfile } from './seat-profile.js';
 import { settleWildMass } from './wild-settle.js';
 
 /** §4's decay of the giant's cell at its mass, zone and trait multipliers included, × `GIANT_DECAY_MULTIPLIER`. */
@@ -32,7 +34,9 @@ export function settleGiantCell(
       grownMass: seat.grownMass,
       decayPerSecond: giantDecayPerSecond(cell, world, balance),
       baseMass: seat.bornMass,
-      growthCeiling: balance.giants.GIANT_MASS_CEILING,
+      growthCeiling: giantSeatProfile(seat.species, balance).growthCeiling(
+        worldReferenceAt(world, world.tick).worldMass,
+      ),
     },
     balance,
   );

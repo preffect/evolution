@@ -276,7 +276,7 @@ What follows:
 The paramecium's decision is flee, then **graze**, then wander; it never hunts. Its graze is the wild
 rule with three changes:
 
-- **Bacteria too.** It targets and eats algae and detritus (`isWildFood`'s kinds) **and bacteria**,
+- **Bacteria too.** It targets and eats algae and detritus (a wild cell's food) **and bacteria**,
   never DNA fragments. Real paramecia live on bacteria. So the giant competes for a
   little of the players' DNA food, which is its role in the mockup: "it steals your food rather than
   you". A bacterium it eats is mass only (3), as a wild meal is; it credits nothing.
@@ -291,14 +291,15 @@ rule with three changes:
   lies within its radius) only while its `grownMass` is below `GIANT_GRAZER_APPETITE_MASS` (100). A
   sated paramecium passes over food: step 4 skips it, and its decision skips the graze and wanders
   (G5's and G6's sated variants). The eating test is made once per tick before step 4, so one tick's meal
-  may overshoot by a few motes. Why 100: it bounds the first feed to about 50 to 70 motes, after which
+  may overshoot by a few motes. The test reads the growth after the tick's settle, which has taken the tick's decay:
+  a grazer at exactly 100 is hungry again one tick later, so its steady state eats what its growth burns. Why 100: it bounds the first feed to about 50 to 70 motes, after which
   it eats only what its growth burns (0.50 mass/s, §3.5.3), so over a default round it eats about 400
   mass in all, about 5 % of what the dish spawns for one player.
 
 The hunter eats no motes at all (step 4 skips it): it is a hunter, and a 1 500-mass body sweeping the
-dish would take more food than the grazer. The drifter eats nothing. Both are changes to step 4, which
-today feeds every non-player cell the `isWildFood` motes it covers (`simulation/eating.ts`), so G5 pins
-them: a mote inside the amoeba or the diatom is still there after the tick.
+dish would take more food than the grazer. The drifter eats nothing. Step 4 reads each cell's diet
+(`simulation/cell-diet.ts`; before ticket #827 it fed every non-player cell the algae and detritus it covered), so
+G5 pins them: a mote inside the amoeba or the diatom is still there after the tick.
 
 #### 3.5.8 Being eaten: the payout, the fact and the respawn
 
@@ -491,7 +492,7 @@ fixture balance sets the species list, read at world creation (§3.5.9), and the
 
 - **The kind stays `wild`, with `giantSpecies` as the discriminator** (the architect's ruling on PR #823).
   Every wild rule and every `isPlayerCell` / `kind` test covers a giant without a new branch. The sites
-  that read `giantSpecies` are `canEngulf` (§3.5.6), the diet (`simulation/eating.ts`), the payout,
+  that read `giantSpecies` are `canEngulf` (§3.5.6), the diet (`simulation/cell-diet.ts`), the payout,
   `cellDisplayName` and the respawn lines, the palette, and the encyclopedia's cell-kind entries.
 - **`CellView` gains one field, `giantSpecies: GiantSpecies | null`** (null for player and wild cells).
   The hunt window is a seat rule (§3.5.6), so no hunt field is mirrored on the view. Wire cost: cells
@@ -527,13 +528,15 @@ fixture balance sets the species list, read at world creation (§3.5.9), and the
   it with `sizeFactor` and `isStarving`; `GiantSeatRecord` with `species` and `bornMass`. Giant seats live
   in their own list beside `world.wildSeats`, so the die-off's sum and `WILD_CELL_COUNT` stay the wild
   seats'. `isHuntStale`, `giveUpStaleHunt`, `latchHunt`, `aimWildHunt` and the wander take the base type.
-- **The seat profile.** The settle, strategy, hunt aim, give-up and respawn take a profile instead of
-  reading the wild constants directly: the base size (`sizeFactor` × `worldMass`, or the born mass), the
-  growth ceiling (`fullMassOf` reads `WILD_CELL_MAX_WORLD_MASS_MULTIPLE` today; a giant's is
-  `GIANT_MASS_CEILING`), the ladder, the decision rules (the role's order: hunter flee, hunt, wander;
-  grazer flee, graze, wander; drifter flee, wander), the diet, the give-up seconds, the hunt window's
-  `huntMinPreyMassFraction` (0 for a wild seat), the turn chance, and the random stream
-  (`scriptContextFor` hard-wires `RANDOM_STREAM.wildCells` today; a giant's draws come from `giants`).
+- **The seat profile** (`wild/seat-profile.ts`, ticket #827). The settle, strategy, give-up, wander and respawn read a
+  profile instead of the wild constants: the growth ceiling (3 × `worldMass`, or `GIANT_MASS_CEILING`), the decision
+  rules (the role's order: hunter flee, hunt, wander; grazer flee, graze, wander; drifter flee, wander), the diet
+  (`simulation/cell-diet.ts`, which step 4 reads too), the give-up and rest seconds, the hunt window's
+  `huntMinPreyMassFraction` (0 for a wild seat), the stage players become prey from (a giant's: tick 0), the turn
+  chance, the random stream (`wildCells`, or `giants`), and the respawn's countdown and what a vacated seat forgets
+  (ticket #826's per-kind respawn policy, folded in). The base size (`sizeFactor` × `worldMass`, or the born mass) and
+  the ladder (the world's, or the fixed build through `applyGiantBuild`) stay with each kind's settle
+  (`wild-settle.ts`, `giant-settle.ts`), since each reads its own seat's fields.
 - **The species speed multiplier has one home.** `applyWorldLadder` → `refreshCellDerivedStateFromTraits`
   refolds the modifiers every tick, so a giant's ladder step is one function that refreshes from traits
   and then applies `GIANT_SPEED_MULTIPLIER_BY_SPECIES` to the folded `speedMultiplier`, and every refresh

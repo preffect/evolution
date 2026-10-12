@@ -4,7 +4,8 @@
 // balance (`wild/giant-seats.test.ts`), G8 the pure speed row (`wild/giant-build.test.ts`); G9's tick-21 600 variant
 // is pinned on the payout itself (`simulation/engulf-payout-giants.test.ts`), sparing a 21 600-tick seeded preamble.
 // The placed rows run on seed 48 (docs/testing/scenario-runner.md §8.1); the "no player" rows keep the one player idle
-// away from every placed cell. No giant has a mind yet (slice 3), so a placed giant sits where it is put.
+// away from every placed cell. A placed giant decides first on its seat's tick (24, 25, 26), so the rows that end
+// sooner see it sit where it is put; its minds are ecology-giant-minds and ecology-giant-diet.
 
 import { describe, it } from 'vitest';
 import {
@@ -20,6 +21,7 @@ import {
 import { giantBuildOf } from '../../game/wild/giant-build.js';
 import {
   cellOf,
+  detritusMass,
   effectsOfKind,
   giantCellOf,
   giantSeatOf,
@@ -31,10 +33,10 @@ import {
 } from '../gameplay/evolution-views.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { absorption } from './engulf-setups.js';
-import { MASS_TOLERANCE, decayed, placedSolo } from './shared-setups.js';
+import { MASS_TOLERANCE, decayed, expectedDetritusMass, placedSolo } from './shared-setups.js';
 import { PLACED_SEAT, worldMassAtTick } from './wild-setups.js';
 
-const { giants, growth, wildCells } = DEFAULT_BALANCE;
+const { ecology, giants, growth, wildCells } = DEFAULT_BALANCE;
 const ONE_TICK = 1;
 const AMOEBA = GIANT_SPECIES.amoeba;
 /** Where the "no player" rows keep their idle player: clear of every placed cell. */
@@ -57,8 +59,7 @@ const NUCLEOID_I = DEFAULT_BALANCE.traits.TRAIT_TIERS.nucleoid[0]!.dnaGainMultip
 
 /**
  * G11: the amoeba born 1 400 eats seat 0 at size 20 (400 + t/3) on tick 33, then settles at the ceiling on tick 34.
- * Until slice 3's diet (giants.md §3.5.7: step 4 skips the hunter), step 4 of tick 34 feeds it the prey's detritus,
- * which lands inside it, so its mass is back at the ceiling on tick 35, after the next settle.
+ * Step 4 skips the hunter (giants.md §3.5.7), so the prey's detritus, which lands inside it, stays in the dish.
  */
 const G11_AMOEBA_BORN_MASS = 1400;
 const G11_SEAT_SIZE = 20;
@@ -193,7 +194,7 @@ describe('ecology/acceptance.md §8.2: the giants seated, eaten and respawned', 
         sizeFactor: G11_SEAT_SIZE,
         at: { x: BROTH_POINT.x + G9_CENTRE_DISTANCE_WU, y: BROTH_POINT.y },
       })
-      .advance(G11_PAYOUT_TICK + 2 * ONE_TICK)
+      .advance(G11_PAYOUT_TICK + ONE_TICK)
       .expect('seat 0 still there the tick before', (view) => wildCellOf(view, PLACED_SEAT)?.mass)
       .atTick(G11_PAYOUT_TICK - ONE_TICK)
       .toBeCloseTo(G11_SEAT_SIZE * worldMassAtTick(G11_PAYOUT_TICK - ONE_TICK), MASS_TOLERANCE)
@@ -203,18 +204,16 @@ describe('ecology/acceptance.md §8.2: the giants seated, eaten and respawned', 
       .expect('the amoeba = 1400 + 0.8 × 411', (view) => giantCellOf(view, AMOEBA)?.mass)
       .atTick(G11_PAYOUT_TICK)
       .toBeCloseTo(G11_AMOEBA_BORN_MASS + G11_PREY_MASS * absorption.ENGULF_MASS_YIELD, MASS_TOLERANCE)
-      .expect('after tick 34: fullMass 1500, grownMass 100', (view) => [
+      .expect('after tick 34: fullMass 1500, grownMass 100, mass 1500 (the meal past the ceiling lost)', (view) => [
         giantSeatOf(view, AMOEBA)?.fullMass,
         giantSeatOf(view, AMOEBA)?.grownMass,
+        giantCellOf(view, AMOEBA)?.mass,
       ])
       .atTick(G11_PAYOUT_TICK + ONE_TICK)
-      .toEqual([giants.GIANT_MASS_CEILING, G11_CEILING_GROWTH])
-      .expect('the meal past the ceiling lost, the prey detritus it covered on tick 34 too: mass 1500', (view) => [
-        giantCellOf(view, AMOEBA)?.mass,
-        giantSeatOf(view, AMOEBA)?.grownMass,
-      ])
-      .atTick(G11_PAYOUT_TICK + 2 * ONE_TICK)
-      .toEqual([giants.GIANT_MASS_CEILING, G11_CEILING_GROWTH])
+      .toEqual([giants.GIANT_MASS_CEILING, G11_CEILING_GROWTH, giants.GIANT_MASS_CEILING])
+      .expect('the detritus inside it not eaten', (view) => detritusMass(view, ecology.DETRITUS_MOTE_MASS))
+      .atTick(G11_PAYOUT_TICK + ONE_TICK)
+      .toBe(expectedDetritusMass(G11_PREY_MASS))
       .expect('no DNA, tag points or score to anyone', (view) => [
         progressOf(view, 0)?.dnaCumulative,
         progressOf(view, 0)?.dnaTagPoints[DNA_TAG.predatory],
