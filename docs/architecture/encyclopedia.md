@@ -264,6 +264,7 @@ export type FactDefinition =
       readonly label: string;
       readonly unit: QuantityUnit;
       readonly presentation: QuantityPresentation;
+      readonly rounding?: QuantityRounding; // the unit's own when absent; `ceil` for a mass the player must reach
       readonly source: ValueFactSource;
     }
   | { readonly key: string; readonly label: string; readonly source: LinkFactSource };
@@ -513,6 +514,7 @@ export const QUANTITY_UNIT = {
   clock: 'clock', // seconds as `m:ss` (the round timer)
   massPerSecond: 'mass_per_second',
   share: 'share', // a 0..1 ratio, shown as a percent
+  shareOfItsMass: 'share_of_its_mass', // a 0..1 share of the subject's own mass: `25 % of its mass`
   sharePerSecond: 'share_per_second',
   multiplier: 'multiplier', // ×
   radii: 'radii',
@@ -534,8 +536,9 @@ export const QUANTITY_PRESENTATION = {
 } as const;
 export type QuantityPresentation = ValueOf<typeof QUANTITY_PRESENTATION>;
 
-/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent, the clock). */
-export const QUANTITY_ROUNDING = { nearest: 'nearest', floor: 'floor' } as const;
+/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent, the clock);
+ *  `ceil` where it must never claim less than is needed (the mass that swallows a giant), float noise dropped first. */
+export const QUANTITY_ROUNDING = { nearest: 'nearest', floor: 'floor', ceil: 'ceil' } as const;
 
 /** Per unit: prefix, suffix, singular suffix, scale (a share × `PERCENT`), decimals (trailing zeros dropped), rounding
  *  and form (a decimal figure, `m:ss`, or a tier numeral from `TIER_NUMERALS`). */

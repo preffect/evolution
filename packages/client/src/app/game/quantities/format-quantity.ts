@@ -33,12 +33,20 @@ export interface FormatOptions {
 
 const DECIMAL_BASE = 10;
 const NO_SIGN = '';
+/** A ceiling first drops float noise past this many places, so a `1125.0000000002` reads `1125`, never `1126`. */
+const CEIL_NOISE_DECIMALS = 6;
 
-/** `magnitude` (never negative) rounded to `decimals`, down or to the nearest. */
+/** `magnitude` (never negative) rounded to `decimals`: to the nearest, down or up. */
 function roundedMagnitude(magnitude: number, decimals: number, rounding: QuantityRounding): number {
-  if (rounding === QUANTITY_ROUNDING.nearest) return Number(magnitude.toFixed(decimals));
   const factor = DECIMAL_BASE ** decimals;
-  return Math.floor(magnitude * factor) / factor;
+  switch (rounding) {
+    case QUANTITY_ROUNDING.nearest:
+      return Number(magnitude.toFixed(decimals));
+    case QUANTITY_ROUNDING.floor:
+      return Math.floor(magnitude * factor) / factor;
+    case QUANTITY_ROUNDING.ceil:
+      return Math.ceil(Number((magnitude * factor).toFixed(CEIL_NOISE_DECIMALS))) / factor;
+  }
 }
 
 /** `7:42` from 462 whole seconds: minutes unpadded, seconds always two digits. */

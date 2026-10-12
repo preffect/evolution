@@ -4,7 +4,7 @@
 // balance's builds and `game/giants/giant-facts.ts`. No number and no arithmetic here (lint).
 
 import { GIANT_SPECIES, type GiantSpecies } from '@evolution/shared';
-import { QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { QUANTITY_ROUNDING, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { balancePath } from '../facts/balance-path';
 import { FACT_FORMULA, GIANT_MASS } from '../facts/formula-table';
 import type { WrittenEntryContent } from '../model/entry';
@@ -15,15 +15,23 @@ import { balanceFact, formulaFact } from './fact-builders';
 /** What a giant's content file writes: its title, preview and real-life note are built from the species. */
 export type GiantEntryContent = Omit<WrittenEntryContent, 'title' | 'preview' | 'realLife'>;
 
-/** The facts every giant shows, the mass that swallows it first: the question a player brings to the page. */
+/**
+ * The facts every giant shows, the mass that swallows it first: the question a player brings to the page. A swallow
+ * mass rounds up, so the page never names a mass `canEngulf` refuses.
+ */
 function giantFacts(species: GiantSpecies): readonly ValueFactDefinition[] {
   return [
     formulaFact(
-      { key: 'swallowSmallest', label: 'You swallow the smallest from', unit: QUANTITY_UNIT.mass },
+      {
+        key: 'swallowSmallest',
+        label: 'Swallow the smallest from',
+        unit: QUANTITY_UNIT.mass,
+        rounding: QUANTITY_ROUNDING.ceil,
+      },
       { id: FACT_FORMULA.giantSwallowMass, argument: { species, mass: GIANT_MASS.smallestBorn } },
     ),
     formulaFact(
-      { key: 'swallowAny', label: 'You swallow any from', unit: QUANTITY_UNIT.mass },
+      { key: 'swallowAny', label: 'Swallow any from', unit: QUANTITY_UNIT.mass, rounding: QUANTITY_ROUNDING.ceil },
       { id: FACT_FORMULA.giantSwallowMass, argument: { species, mass: GIANT_MASS.ceiling } },
     ),
     balanceFact(
@@ -54,14 +62,14 @@ const WILD_CELL_ENTRY: EntryId = 'cell_kind:wild';
 
 /** The hunter's own row, first on its page: the share of its mass a cell must reach before it is chased. */
 const HUNT_SHARE_FACT = balanceFact(
-  { key: 'huntShare', label: 'Hunts cells from, of its mass', unit: QUANTITY_UNIT.share },
+  { key: 'huntShare', label: 'Hunts cells from', unit: QUANTITY_UNIT.shareOfItsMass },
   balancePath('giants', 'GIANT_HUNT_MIN_PREY_MASS_FRACTION'),
 );
 
 export const GIANT_ENTRY_CONTENT: Readonly<Record<GiantSpecies, GiantEntryContent>> = {
   [GIANT_SPECIES.amoeba]: {
     summary:
-      'The dish’s hunter, and it eats only cells. While you weigh under {huntShare} of its mass it swims past you to bigger prey, but touch it and it swallows you all the same. Any heavier, and still small enough to swallow, you are its prey: it is slow, so swim away, and if it grabs you, [[action:sprint|sprint]] at once.\n\nFrom {swallowSmallest} you can swallow the smallest, and then it flees you like any [[cell_kind:wild|wild cell]]. Swallowing one pays {dnaBonus}; it comes back after {respawn}.',
+      'The dish’s hunter, and it eats only cells. While you weigh under {huntShare} it swims past you to bigger prey, but touch it and it swallows you all the same. Any heavier, and still small enough for it to swallow, you are its prey: it is slow, so swim away, and if it grabs you, [[action:sprint|sprint]] at once.\n\nFrom {swallowSmallest} you can swallow the smallest, and then it flees you like any [[cell_kind:wild|wild cell]]. Swallowing one pays {dnaBonus}; it comes back after {respawn}.',
     facts: [HUNT_SHARE_FACT, ...giantFacts(GIANT_SPECIES.amoeba)],
     sections: [],
     seeAlso: [WILD_CELL_ENTRY, 'concept:engulf_ratio', 'action:escape', 'trait:amoeba_pseudopods'],

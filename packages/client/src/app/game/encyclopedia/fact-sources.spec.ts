@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, ENGULF_PHASE, GIANT_SPECIES, type BalanceConfig } from '@evolution/shared';
+import { readsOf, valueUnderPatch } from '../../../testing/balance-read-probe';
 import { readBalancePath } from './facts/balance-path';
 import {
   CATALOG_QUANTITY,
@@ -28,39 +29,6 @@ import { ABILITY } from './model/abilities';
 import { FACT_SOURCE, type FactDefinition } from './model/fact';
 import { ENCYCLOPEDIA_ENTRIES } from './registry';
 import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
-
-type Path = readonly string[];
-
-/** A proxy over `target` that records the path of every number it hands out, `length` included. */
-function recording<Value extends object>(target: Value, reads: Path[], path: Path = []): Value {
-  return new Proxy(target, {
-    get(object, key, receiver) {
-      const value: unknown = Reflect.get(object, key, receiver);
-      if (typeof key !== 'string') return value;
-      if (typeof value === 'number') reads.push([...path, key]);
-      if (typeof value === 'object' && value !== null) return recording(value, reads, [...path, key]);
-      return value;
-    },
-  });
-}
-
-function readsOf<Result>(evaluate: (balance: BalanceConfig) => Result): { result: Result; reads: Path[] } {
-  const reads: Path[] = [];
-  const result = evaluate(recording(structuredClone(DEFAULT_BALANCE) as BalanceConfig, reads));
-  return { result, reads };
-}
-
-/** A clone with the number at `path` doubled, or set to one when it is zero. */
-function patched(path: Path): BalanceConfig {
-  const balance = structuredClone(DEFAULT_BALANCE) as BalanceConfig;
-  const parent = path
-    .slice(0, -1)
-    .reduce<Record<string, unknown>>((node, key) => node[key] as Record<string, unknown>, balance as never);
-  const leaf = path[path.length - 1] ?? '';
-  const value = parent[leaf] as number;
-  parent[leaf] = value === 0 ? 1 : value * 2;
-  return balance;
-}
 
 const traitIds = DEFAULT_BALANCE.traits.TRAIT_CATALOG.map((row) => row.id);
 
@@ -127,16 +95,6 @@ const LINK_CALLS: { readonly [Id in DerivedLinkId]: readonly DerivedLinkCall[] }
     callOf(DERIVED_LINK.fragmentTagZones, { tag }),
   ),
 };
-
-// The row's value with `path` patched, or `null` where the patch leaves no balance (a giant's build doubled in length is
-// half holes): `debug_set_balance` refuses such a patch (`giantBalanceProblems`), so it moves nothing.
-function valueUnderPatch<Call>(evaluate: (balance: BalanceConfig, call: Call) => unknown, call: Call, path: Path) {
-  try {
-    return JSON.stringify(evaluate(patched(path), call));
-  } catch {
-    return null;
-  }
-}
 
 /** Every call reads a leaf, and for the row as a whole at least one leaf read moves some call's value. */
 function expectRowReadsTheBalance<Call>(

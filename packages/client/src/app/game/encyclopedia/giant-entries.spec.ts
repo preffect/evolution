@@ -66,6 +66,15 @@ describe('the giant cells’ encyclopedia entries', () => {
     expect(factText(entry, 'swallowAny')).toBe(mass(any));
   });
 
+  it('rounds a swallow mass up, so the page never names a mass the engulf rule refuses', () => {
+    const balance = structuredClone(DEFAULT_BALANCE) as BalanceConfig;
+    const patch = balance as unknown as MutableBalance;
+    const bornMin = patch.giants['GIANT_BORN_MASS_MIN_BY_SPECIES'] as Record<GiantSpecies, number>;
+    // 901 × 1.25 = 1126.25: a 1126-mass player cannot swallow it yet.
+    bornMin[GIANT_SPECIES.amoeba] = 901;
+    expect(factText(giantEntry(GIANT_SPECIES.amoeba, balance), 'swallowSmallest')).toBe(mass(1127));
+  });
+
   it('quotes each species’ own birth range and the one ceiling, read from the balance', () => {
     for (const species of SPECIES) {
       const entry = giantEntry(species);
@@ -79,7 +88,7 @@ describe('the giant cells’ encyclopedia entries', () => {
     const amoeba = giantEntry(GIANT_SPECIES.amoeba);
     expect(amoeba.headline?.key).toBe('huntShare');
     expect(factText(amoeba, 'huntShare')).toBe(
-      formatQuantity(DEFAULT_BALANCE.giants.GIANT_HUNT_MIN_PREY_MASS_FRACTION, QUANTITY_UNIT.share),
+      formatQuantity(DEFAULT_BALANCE.giants.GIANT_HUNT_MIN_PREY_MASS_FRACTION, QUANTITY_UNIT.shareOfItsMass),
     );
     for (const species of [GIANT_SPECIES.paramecium, GIANT_SPECIES.diatom]) {
       expect(factText(giantEntry(species), 'huntShare')).toBeUndefined();

@@ -13,7 +13,7 @@ import {
 } from './quantity-unit';
 
 const { plain, signedChange, changeFromOne, rateFromDuration, numeral, countdown } = QUANTITY_PRESENTATION;
-const { nearest, floor } = QUANTITY_ROUNDING;
+const { nearest, floor, ceil } = QUANTITY_ROUNDING;
 
 type Expected = readonly [plain: string, signed: string, numeral: string, countdown: string];
 
@@ -27,6 +27,7 @@ const VALUE_BY_UNIT: Readonly<Record<QuantityUnit, number>> = {
   [QUANTITY_UNIT.clock]: 62.5,
   [QUANTITY_UNIT.massPerSecond]: 2.5,
   [QUANTITY_UNIT.share]: 0.025,
+  [QUANTITY_UNIT.shareOfItsMass]: 0.025,
   [QUANTITY_UNIT.sharePerSecond]: 0.025,
   [QUANTITY_UNIT.multiplier]: 2.5,
   [QUANTITY_UNIT.radii]: 2.5,
@@ -45,6 +46,7 @@ const EXPECTED_BY_UNIT: Readonly<Record<QuantityUnit, Expected>> = {
   [QUANTITY_UNIT.clock]: ['1:02', '+1:02', '1:02', '1:02'],
   [QUANTITY_UNIT.massPerSecond]: ['2.5 mass / s', '+2.5 mass / s', '2.5', '2.5 mass / s'],
   [QUANTITY_UNIT.share]: ['3 %', '+3 %', '3', '2.5 %'],
+  [QUANTITY_UNIT.shareOfItsMass]: ['3 % of its mass', '+3 % of its mass', '3', '2.5 % of its mass'],
   [QUANTITY_UNIT.sharePerSecond]: ['3 % / s', '+3 % / s', '3', '2.5 % / s'],
   [QUANTITY_UNIT.multiplier]: ['2.5×', '+2.5×', '2.5', '2.5×'],
   [QUANTITY_UNIT.radii]: ['2.5 radii', '+2.5 radii', '2.5', '2.5 radii'],
@@ -116,6 +118,14 @@ describe('formatQuantity', () => {
     expect(formatQuantity(59.99, QUANTITY_UNIT.clock)).toBe('0:59');
     expect(formatQuantity(59.99, QUANTITY_UNIT.clock, { rounding: nearest })).toBe('1:00');
     expect(formatQuantity(2.9, QUANTITY_UNIT.tier, { rounding: floor })).toBe('Tier II');
+  });
+
+  it('rounds up where asked, never past a figure that is whole but for float noise', () => {
+    expect(formatQuantity(1126.25, QUANTITY_UNIT.mass, { rounding: ceil })).toBe('1127 mass');
+    expect(formatQuantity(1126.25, QUANTITY_UNIT.mass)).toBe('1126 mass');
+    expect(formatQuantity(0.621, QUANTITY_UNIT.share, { rounding: ceil })).toBe('63 %');
+    expect(formatQuantity(1.1 * 3, QUANTITY_UNIT.dna, { rounding: ceil })).toBe('3.3 DNA');
+    expect(formatQuantity(0.1 + 0.2, QUANTITY_UNIT.share, { rounding: ceil })).toBe('30 %');
   });
 
   it('writes the clock as m:ss, minutes unpadded and seconds always two digits', () => {

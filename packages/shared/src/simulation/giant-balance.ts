@@ -37,10 +37,12 @@ function buildEntryProblem(entry: GiantBuildEntry, before: readonly TraitId[], b
   return missing.length === 0 ? null : `${entry.traitId} requires ${missing.join(', ')} before it`;
 }
 
-/** Why the species' build is not a valid ladder ending in a form; null when it is. */
+/** Why the species' build is not a valid ladder ending in a form (a gap in it included); null when it is. */
 function buildProblem(species: GiantSpecies, balance: BalanceConfig): string | null {
   const build = balance.giants.GIANT_BUILDS_BY_SPECIES[species];
-  for (const [index, entry] of build.entries()) {
+  for (let index = 0; index < build.length; index += 1) {
+    const entry = build[index];
+    if (entry === undefined) return `${species} build: entry ${index} is missing`;
     const problem = buildEntryProblem(
       entry,
       build.slice(0, index).map(({ traitId }) => traitId),
