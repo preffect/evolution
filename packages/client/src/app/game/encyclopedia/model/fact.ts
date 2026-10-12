@@ -3,7 +3,7 @@
 // Every value is read from the live balance in the `FactContext`.
 
 import type { BalanceConfig, ValueOf } from '@evolution/shared';
-import type { QuantityPresentation, QuantityUnit } from '../../quantities/quantity-unit';
+import type { QuantityPresentation, QuantityRounding, QuantityUnit } from '../../quantities/quantity-unit';
 import type { BalancePath } from '../facts/balance-path';
 import type { CatalogQuantityCall } from '../facts/catalog-quantities';
 import type { DerivedLinkCall } from '../facts/derived-links';
@@ -43,6 +43,8 @@ interface FactDefinitionBase {
 export interface ValueFactDefinition extends FactDefinitionBase {
   readonly unit: QuantityUnit;
   readonly presentation: QuantityPresentation;
+  /** The unit's own rounding when absent; `ceil` for a mass the player must reach, which must never read too low. */
+  readonly rounding?: QuantityRounding;
   readonly source: ValueFactSource;
 }
 

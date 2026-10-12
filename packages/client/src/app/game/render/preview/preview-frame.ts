@@ -19,6 +19,7 @@ import {
   type CellState,
   type CellView,
   type EntityId,
+  type GiantSpecies,
   type OwnedTrait,
   type PlayerId,
 } from '@evolution/shared';
@@ -48,6 +49,8 @@ export interface PreviewCellSpec {
   readonly sprintCooldownRemainingTicks?: number;
   /** Only a scene that actually draws a level sets this; `PREVIEW_UNUSED_LEVEL` otherwise. */
   readonly level?: number;
+  /** A giant cell's species; absent (`null` on the view) for every other cell. */
+  readonly giantSpecies?: GiantSpecies;
 }
 
 const FREE: readonly CellState[] = [CELL_STATE.free];
@@ -91,7 +94,7 @@ export function previewCellView(spec: PreviewCellSpec, balance: BalanceConfig): 
     sprintRemainingTicks: spec.sprintRemainingTicks ?? NO_SPRINT_TICKS,
     sprintCooldownRemainingTicks: spec.sprintCooldownRemainingTicks ?? NO_SPRINT_TICKS,
     isStarving: false,
-    giantSpecies: null,
+    giantSpecies: spec.giantSpecies ?? null,
   };
 }
 

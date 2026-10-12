@@ -5,7 +5,8 @@
 // (× 2, or + 1 at 0; an array's `length` counts as a leaf, so a count over structure is pinned too).
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, ENGULF_PHASE, type BalanceConfig } from '@evolution/shared';
+import { DEFAULT_BALANCE, ENGULF_PHASE, GIANT_SPECIES, type BalanceConfig } from '@evolution/shared';
+import { readsOf, valueUnderPatch } from '../../../testing/balance-read-probe';
 import { readBalancePath } from './facts/balance-path';
 import {
   CATALOG_QUANTITY,
@@ -17,6 +18,7 @@ import { DERIVED_LINK, derivedLinkTargets, type DerivedLinkCall, type DerivedLin
 import {
   BALANCE_MASS,
   FACT_FORMULA,
+  GIANT_MASS,
   LEVEL_SELECTOR,
   ROUND_MOMENT,
   evaluateFormula,
@@ -27,45 +29,6 @@ import { ABILITY } from './model/abilities';
 import { FACT_SOURCE, type FactDefinition } from './model/fact';
 import { ENCYCLOPEDIA_ENTRIES } from './registry';
 import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
-
-type Path = readonly string[];
-
-/**
- * Balance domains no fact reads yet, each until the ticket that writes its entries: the giant cells' constants land
- * before the giants do (docs/ecology/giants.md §3.5.17), and their encyclopedia entries are ticket #831.
- */
-const DOMAINS_WAITING_FOR_ENTRIES: readonly string[] = ['giants'];
-
-/** A proxy over `target` that records the path of every number it hands out, `length` included. */
-function recording<Value extends object>(target: Value, reads: Path[], path: Path = []): Value {
-  return new Proxy(target, {
-    get(object, key, receiver) {
-      const value: unknown = Reflect.get(object, key, receiver);
-      if (typeof key !== 'string') return value;
-      if (typeof value === 'number') reads.push([...path, key]);
-      if (typeof value === 'object' && value !== null) return recording(value, reads, [...path, key]);
-      return value;
-    },
-  });
-}
-
-function readsOf<Result>(evaluate: (balance: BalanceConfig) => Result): { result: Result; reads: Path[] } {
-  const reads: Path[] = [];
-  const result = evaluate(recording(structuredClone(DEFAULT_BALANCE) as BalanceConfig, reads));
-  return { result, reads };
-}
-
-/** A clone with the number at `path` doubled, or set to one when it is zero. */
-function patched(path: Path): BalanceConfig {
-  const balance = structuredClone(DEFAULT_BALANCE) as BalanceConfig;
-  const parent = path
-    .slice(0, -1)
-    .reduce<Record<string, unknown>>((node, key) => node[key] as Record<string, unknown>, balance as never);
-  const leaf = path[path.length - 1] ?? '';
-  const value = parent[leaf] as number;
-  parent[leaf] = value === 0 ? 1 : value * 2;
-  return balance;
-}
 
 const traitIds = DEFAULT_BALANCE.traits.TRAIT_CATALOG.map((row) => row.id);
 
@@ -91,6 +54,9 @@ const FORMULA_CALLS: { readonly [Id in FactFormulaId]: readonly FactFormulaCall[
   [FACT_FORMULA.worldMassAt]: Object.values(ROUND_MOMENT).map((moment) => callOf(FACT_FORMULA.worldMassAt, { moment })),
   [FACT_FORMULA.engulfPhaseSpan]: Object.values(ENGULF_PHASE).map((phase) =>
     callOf(FACT_FORMULA.engulfPhaseSpan, { phase }),
+  ),
+  [FACT_FORMULA.giantSwallowMass]: Object.values(GIANT_SPECIES).flatMap((species) =>
+    Object.values(GIANT_MASS).map((mass) => callOf(FACT_FORMULA.giantSwallowMass, { species, mass })),
   ),
 };
 
@@ -139,7 +105,10 @@ function expectRowReadsTheBalance<Call>(
   const isMovedByAPatch = calls.some((call) => {
     const { result, reads } = readsOf((balance) => evaluate(balance, call));
     expect(reads.length, JSON.stringify(call)).toBeGreaterThan(0);
-    return reads.some((path) => JSON.stringify(evaluate(patched(path), call)) !== JSON.stringify(result));
+    return reads.some((path) => {
+      const moved = valueUnderPatch(evaluate, call, path);
+      return moved !== null && moved !== JSON.stringify(result);
+    });
   });
   expect(isMovedByAPatch).toBe(true);
 }
@@ -281,18 +250,8 @@ describe('the fact sources', () => {
     return domains;
   }
 
-  it('reads every balance domain from some fact, but the domains still waiting for their entries', () => {
+  it('reads every balance domain from some fact', () => {
     const domains = domainsReadByFacts();
-    for (const domain of Object.keys(DEFAULT_BALANCE)) {
-      if (!DOMAINS_WAITING_FOR_ENTRIES.includes(domain)) expect(domains.has(domain), domain).toBe(true);
-    }
+    for (const domain of Object.keys(DEFAULT_BALANCE)) expect(domains.has(domain), domain).toBe(true);
   });
-
-  it.each(DOMAINS_WAITING_FOR_ENTRIES)(
-    'still reads nothing of the waiting %s domain, so the list cannot rot',
-    (domain) => {
-      expect(Object.keys(DEFAULT_BALANCE)).toContain(domain);
-      expect(domainsReadByFacts().has(domain)).toBe(false);
-    },
-  );
 });

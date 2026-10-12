@@ -11,6 +11,7 @@ export const ENTRY_GROUP = {
   rules: 'rules',
   readingTheScreen: 'reading_the_screen',
   cells: 'cells',
+  giants: 'giants',
   food: 'food',
   stages: 'stages',
   ...TRAIT_CATEGORY,
@@ -24,6 +25,7 @@ export const ENTRY_GROUP_LABEL: Readonly<Record<EntryGroupId, string>> = {
   [ENTRY_GROUP.rules]: 'Rules',
   [ENTRY_GROUP.readingTheScreen]: 'Reading the screen',
   [ENTRY_GROUP.cells]: 'Cells',
+  [ENTRY_GROUP.giants]: 'Giant cells',
   [ENTRY_GROUP.food]: 'Food',
   [ENTRY_GROUP.stages]: 'Stages',
   [ENTRY_GROUP.genome]: 'Genome',
@@ -43,7 +45,7 @@ export const ENTRY_GROUP_LABEL: Readonly<Record<EntryGroupId, string>> = {
 /** Each category's groups in list order; an ungrouped category has none. */
 export const CATEGORY_GROUPS: Readonly<Record<EncyclopediaCategory, readonly EntryGroupId[]>> = {
   [ENCYCLOPEDIA_CATEGORY.basics]: [ENTRY_GROUP.rules, ENTRY_GROUP.readingTheScreen],
-  [ENCYCLOPEDIA_CATEGORY.entities]: [ENTRY_GROUP.cells, ENTRY_GROUP.food],
+  [ENCYCLOPEDIA_CATEGORY.entities]: [ENTRY_GROUP.cells, ENTRY_GROUP.giants, ENTRY_GROUP.food],
   [ENCYCLOPEDIA_CATEGORY.evolutions]: [ENTRY_GROUP.stages, ...Object.values(TRAIT_CATEGORY), ENTRY_GROUP.dnaTags],
   [ENCYCLOPEDIA_CATEGORY.abilities]: [],
   [ENCYCLOPEDIA_CATEGORY.actions]: [],
@@ -56,6 +58,7 @@ export const GROUP_BY_SUBJECT: Readonly<
 > = {
   [ENTRY_SUBJECT.concept]: ENTRY_GROUP.rules,
   [ENTRY_SUBJECT.cellKind]: ENTRY_GROUP.cells,
+  [ENTRY_SUBJECT.giant]: ENTRY_GROUP.giants,
   [ENTRY_SUBJECT.food]: ENTRY_GROUP.food,
   [ENTRY_SUBJECT.bacterium]: ENTRY_GROUP.food,
   [ENTRY_SUBJECT.entity]: ENTRY_GROUP.food,

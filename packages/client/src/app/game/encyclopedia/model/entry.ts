@@ -20,6 +20,17 @@ export interface EntryDefinition {
   /** Hand-picked links; the derived ones (a trait's requires) are added at resolve time. */
   readonly seeAlso: readonly EntryId[];
   readonly preview: PreviewSpec | null;
+  /** What the real organism does and how big it is (§11.4's real-life note); only the giant cells carry one so far. */
+  readonly realLife?: RealLifeNote;
+}
+
+/**
+ * The real-life note of an entry about a real organism (docs/ui/encyclopedia.md §11.4): one true line about it and its
+ * real size in words. Copy, never a number: a real size is no tunable, and §12.6's no-digit rule holds for it too.
+ */
+export interface RealLifeNote {
+  readonly line: string;
+  readonly size: string;
 }
 
 /** An entry its content file writes whole: everything but the id, which the builder makes from the subject and code id. */
@@ -110,6 +121,8 @@ export interface ResolvedEntry {
   readonly sections: readonly ResolvedSection[];
   readonly seeAlso: readonly EntryLink[];
   readonly preview: PreviewSpec | null;
+  /** `null` on an entry with no real organism behind it. */
+  readonly realLife: RealLifeNote | null;
 }
 
 /** `entriesIn(category)`: the category's groups in walk order, each with its entries; one `null` group when ungrouped. */

@@ -10,6 +10,7 @@
 import {
   GIANT_SPECIES_ORDER,
   RANDOM_STREAM,
+  giantBuildOf,
   type BalanceConfig,
   type GiantSpecies,
   type RandomSource,
@@ -22,7 +23,7 @@ import { isPlayerCell, type CellRecord, type GiantSeatRecord } from '../world/en
 import { cellOfSeat } from '../world/lookups.js';
 import type { LiveStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
-import { applyGiantBuild, giantBuildOf, giantLevelOf } from './giant-build.js';
+import { applyGiantBuild, giantLevelOf } from './giant-build.js';
 import { bornSeatedCell, createSeatMindRecord } from './seat-mind.js';
 import { drawWildHeading, setSeatHeading } from './wild-wander.js';
 

@@ -39,6 +39,8 @@ export const ENCYCLOPEDIA_TEST_ID = {
   previewMotion: 'encyclopedia-preview-motion',
   /** The entry's facts table. */
   facts: 'encyclopedia-facts',
+  /** The real-life note of an entry about a real organism (§11.4); absent on every other entry. */
+  realLife: 'encyclopedia-real-life',
   /** The lobby header's button that opens the panel outside a room (docs/ui/encyclopedia.md §11.1). */
   lobbyButton: 'lobby-encyclopedia',
 } as const;

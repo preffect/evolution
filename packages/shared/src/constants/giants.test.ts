@@ -106,6 +106,11 @@ describe('giantBalanceProblems: each rule goes red on a balance that breaks it',
     ['a tier past the top', (balance: BalanceConfig) => (balance.traits.TRAIT_TIER_COUNT = 1), /tier 2 is outside/],
     ['no form at the end', rebuildAmoeba((build) => build.slice(0, -1)), /does not end in a form/],
     [
+      'a gap in the build, reported rather than thrown',
+      rebuildAmoeba((build) => Object.assign([...build], { length: build.length + 1 })),
+      /entry \d+ is missing/,
+    ],
+    [
       'a born minimum above its maximum',
       (balance: BalanceConfig) => (balance.giants.GIANT_BORN_MASS_MIN_BY_SPECIES[amoeba] = 1600),
       /minimum 1600 is above its maximum 1500/,

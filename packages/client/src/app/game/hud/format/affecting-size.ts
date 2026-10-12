@@ -6,7 +6,7 @@
 // builder inside its size bar. Pure and DOM-free; every number comes from the live `balance` and the shared
 // formulas, never from the literals §3.7's worked example prints.
 
-import type { BalanceConfig, CellView } from '@evolution/shared';
+import { engulfStartMass, type BalanceConfig, type CellView } from '@evolution/shared';
 import { UI_FACT_MARKER_SHAPE, type UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import { AT_LEAST_SIGN, AT_MOST_SIGN } from '../../quantities/quantity-unit';
 import { DANGER, GAIN } from '../../render/constants';
@@ -62,9 +62,7 @@ function ceiledToDecimal(value: number): number {
 export function sizeRowsFor(input: AffectingSizeInput): readonly UiFactRow[] {
   const { ownCell, balance } = input;
   const preyBelow = flooredToDecimal(ownCell.mass / balance.absorption.ENGULF_MASS_RATIO);
-  const threatAbove = ceiledToDecimal(
-    ownCell.mass * (balance.absorption.ENGULF_MASS_RATIO + ownCell.membraneRatioBonus),
-  );
+  const threatAbove = ceiledToDecimal(engulfStartMass(ownCell, balance.absorption));
   return [
     {
       rowId: HUD_TEST_ID.affectingPreyBelow,

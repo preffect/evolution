@@ -10,6 +10,8 @@ import {
   CELL_STAGE,
   DNA_TAG,
   FOOD_KIND,
+  GIANT_BUILDS_BY_SPECIES,
+  GIANT_SPECIES_ORDER,
   ZONE_ID,
   type OwnedTrait,
   type TraitId,
@@ -67,6 +69,14 @@ export const SUBJECT_SPECS: readonly PreviewSpec[] = [
     })),
   ),
   { scene: PREVIEW_SCENE.cell, cellKind: CELL_KIND.wild, traits: [], motion: PREVIEW_MOTION.resting },
+  // The giant cells' entries (ticket #831): a wild cell owning its species' build, in its species' palette.
+  ...GIANT_SPECIES_ORDER.map((giantSpecies): PreviewSpec => ({
+    scene: PREVIEW_SCENE.cell,
+    cellKind: CELL_KIND.wild,
+    traits: GIANT_BUILDS_BY_SPECIES[giantSpecies],
+    motion: PREVIEW_MOTION.swimming,
+    giantSpecies,
+  })),
   ...EXTREME_TRAIT_SETS.map((traits): PreviewSpec => ({
     scene: PREVIEW_SCENE.cell,
     cellKind: CELL_KIND.player,
