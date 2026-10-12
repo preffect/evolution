@@ -3,8 +3,9 @@
 // a higher tier than the last snapshot said, fires an upgrade popup; a form (the rung-5 gates, `form-facts.ts`) gained
 // fires the larger form popup with its real-life line instead. The text is a picker card's (`traitCardViewFor`):
 // the catalog's name, the tier numeral and the tier row's effect lines with their tones, so no number is typed. A giant
-// the own cell swallowed fires the giant popup, as large as a form's (`giant-popups.ts`): an event of the snapshot's
-// effects rather than a change between two snapshots, so it fires once per new tick, never on a recomputation.
+// the own cell swallowed fires the giant popup, as large as a form's (`giant-popups.ts`): an event the bus reported
+// rather than a change between two snapshots, so each swallow after the last folded tick fires once, never on a
+// recomputation, however many snapshots landed since that fold.
 //
 // Popups queue rather than stack: one is up at a time, each for its kind's duration in room ticks, and a popup fired
 // while another is up or waiting starts when the last one ends. Every trigger is a change between two snapshots of the
@@ -16,8 +17,6 @@ import {
   CELL_STAGE,
   PLAYER_LIFE_STATE,
   secondsToTicks,
-  type EntityId,
-  type GameEffect,
   type PlayerLifeState,
   type OwnProgressView,
   type OwnedTrait,
@@ -25,7 +24,7 @@ import {
 } from '@evolution/shared';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
 import { formRealLifeLine, isFormTrait } from './form-facts';
-import { giantPopupsIn } from './giant-popups';
+import { giantPopupsIn, type GiantSwallow } from './giant-popups';
 import {
   UPGRADE_POPUP_KIND,
   type UpgradePopup,
@@ -60,10 +59,8 @@ export interface UpgradePopupSample {
   readonly ownProgress: OwnProgressView | null;
   /** The live balance's tier tables; `null` before the room sends it, when a sample only remembers. */
   readonly traits: TraitModifierTables | null;
-  /** The own cell's id, `null` while it has none: the giant popup fires only for a giant this cell swallowed. */
-  readonly ownCellId: EntityId | null;
-  /** This broadcast window's effects, where a giant swallowed shows as a `cell_absorbed`. */
-  readonly effects: readonly GameEffect[];
+  /** The own cell's giant swallows not yet past (`withGiantSwallow`); only those after the last fold fire. */
+  readonly giantSwallows: readonly GiantSwallow[];
 }
 
 /** What the last sample of this seat held, and the popups up or waiting, oldest first. */
@@ -156,9 +153,10 @@ export function upgradePopupStepFor(previous: UpgradePopupMemory, sample: Upgrad
   const isSameSeat = previous.seatKey === sample.seatKey && (previous.tick === null || sample.tick >= previous.tick);
   const carried = isSameSeat ? previous : { ...INITIAL_UPGRADE_POPUP_MEMORY, seatKey: sample.seatKey };
   const ownProgress = sample.ownProgress;
-  // A giant swallowed is an event, not a change: only a tick not yet seen may fire it, so a recomputation cannot.
-  const isNewTick = carried.tick === null || sample.tick > carried.tick;
-  const giants = isNewTick && sample.ownCellId !== null ? giantPopupsIn(sample.effects, sample.ownCellId) : [];
+  // A giant swallowed is an event, not a change: only one after the last folded tick fires, so a recomputation
+  // cannot. The first sample of a seat only remembers, as for the traits: a swallow from before it is not this visit's.
+  const giants =
+    carried.tick === null ? [] : giantPopupsIn(sample.giantSwallows, sample.seatKey, carried.tick, sample.tick);
   const fired = [...giants, ...(ownProgress === null ? [] : firedTraitPopups(carried, sample, ownProgress))];
   const queue = enqueue(carried.queue, fired, sample.tick).filter((popup) => popup.endTick > sample.tick);
   return {

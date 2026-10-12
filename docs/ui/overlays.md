@@ -384,11 +384,11 @@ moment and gets a bigger popup with one real-life line.
 | `form`    | `form-popup`    | a form (the specialised rung's gates, `STAGE_GATE_TRAITS`) not held before           | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
 | `giant`   | `giant-popup`   | a `cell_absorbed` whose predator is the own cell and whose `preyGiantSpecies` is set | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
 
-Both carry `data-trait-id`. **Text.** The title is the catalog's name and the tier numeral (`Paramecium Cilia II`),
-under it the tier row's effect lines, each after its `ui-effect-mark` (▲ gain, ▼ drawback): the picker card's own
-record (`traitCardViewFor`, §3.2), so the numbers are the live balance's and never typed, and a card and its popup
-always agree. A form popup adds its one real-life line, in the coach pill's style (no full stop), from
-`hud/format/form-facts.ts` (`FORM_REAL_LIFE_LINES`):
+The trait popups carry `data-trait-id`; the giant popup carries `data-giant-species` (below). **Text.** The title
+is the catalog's name and the tier numeral (`Paramecium Cilia II`), under it the tier row's effect lines, each after
+its `ui-effect-mark` (▲ gain, ▼ drawback): the picker card's own record (`traitCardViewFor`, §3.2), so the numbers
+are the live balance's and never typed, and a card and its popup always agree. A form popup adds its one real-life
+line, in the coach pill's style (no full stop), from `hud/format/form-facts.ts` (`FORM_REAL_LIFE_LINES`):
 
 | Form              | Real-life line                                             |
 | ----------------- | ---------------------------------------------------------- |
@@ -447,8 +447,11 @@ once. The life is counted in room ticks, like a toast's, and the CSS fade is tim
 **Trigger.** A change between two snapshots of the same seat, like the toasts (§3.6): the first snapshot of a seat
 only remembers, so a late joiner's traits and a reconnect fire nothing; a rematch empties the traits, which gains
 nothing; the clock going back or a new seat starts the memory over. A snapshot before the live balance only
-remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). The giant popup is an event, not a change:
-it fires from the effects of a snapshot of a tick the seat has not seen (`hud/format/giant-popups.ts`), so a
-recomputation never fires it twice, and it queues ahead of a trait popup fired by the same snapshot. The step is pure
-(`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
+remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). A trait gained is a change, which
+the newest snapshot still shows, so two gains whose snapshots land before one refresh both fire. The giant popup is an
+event, which the newest snapshot alone would lose then, so the service takes the swallow from the `GameEventBus`
+(architecture/client.md §6), which hears every snapshot in order, and keeps it until folded
+(`hud/format/giant-popups.ts`). A fold fires each swallow of the seat after the last folded tick, so a recomputation
+never fires it twice and the first snapshot of a seat only remembers; it queues ahead of a trait popup fired by the
+same fold. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
 binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.

@@ -1,10 +1,13 @@
 // The upgrade popups' one owner (docs/ui/overlays.md §3.8, #783): it folds every snapshot into the pure step
 // (`format/upgrade-popups.ts`) and answers which popup is up. `upgrade-popup.component.ts` binds it. The memory is
 // kept per seat (room and player), as the toasts' is (`toast.service.ts`): a reconnect inside the grace keeps it, and
-// leaving the room clears the snapshot and the memory with it.
+// leaving the room clears the snapshot and the memory with it. A trait gained is a change, which the newest snapshot
+// still shows when two land before one fold; a giant swallowed is an event, which it would not, so the swallows come
+// from the `GameEventBus` (docs/architecture/client.md §6), which hears every snapshot, and wait here to be folded.
 
-import { Injectable, computed, effect, inject, linkedSignal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, linkedSignal, signal } from '@angular/core';
 import type { GameSnapshot } from '@evolution/shared';
+import { giantSwallowOf, withGiantSwallow, type GiantSwallow } from './format/giant-popups';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
   upgradePopupStepFor,
@@ -12,11 +15,18 @@ import {
   type UpgradePopupMemory,
 } from './format/upgrade-popups';
 import type { UpgradePopup } from './format/upgrade-popup-kinds';
+import { GAME_EVENT_KIND, GameEventBus, type GameEvent } from '../state/game-event-bus';
 import { GameStateService } from '../state/game-state.service';
 
 @Injectable({ providedIn: 'root' })
 export class UpgradePopupService {
   private readonly gameState = inject(GameStateService);
+
+  /** The room and player a memory belongs to. */
+  private readonly seatKey = computed(() => `${this.gameState.gameId() ?? ''}/${this.gameState.ownPlayerId() ?? ''}`);
+
+  /** The giants the own cell swallowed, in the order the bus reported them, until past (`withGiantSwallow`). */
+  private readonly giantSwallows = signal<readonly GiantSwallow[]>([]);
 
   /** Carried from snapshot to snapshot; a recomputation on the same snapshot changes nothing. */
   private readonly memory = linkedSignal<GameSnapshot | null, UpgradePopupMemory>({
@@ -25,12 +35,11 @@ export class UpgradePopupService {
       const last = previous?.value ?? INITIAL_UPGRADE_POPUP_MEMORY;
       if (snapshot === null) return INITIAL_UPGRADE_POPUP_MEMORY;
       return upgradePopupStepFor(last, {
-        seatKey: `${this.gameState.gameId() ?? ''}/${this.gameState.ownPlayerId() ?? ''}`,
+        seatKey: this.seatKey(),
         tick: snapshot.tick,
         ownProgress: this.gameState.ownProgress(),
         traits: this.gameState.balance()?.traits ?? null,
-        ownCellId: this.gameState.ownCell()?.id ?? null,
-        effects: snapshot.effects,
+        giantSwallows: this.giantSwallows(),
       });
     },
   });
@@ -45,5 +54,13 @@ export class UpgradePopupService {
     // The memory steps only when read; this read steps it once per change detection, so no snapshot's gain is missed
     // while no popup is up to be read.
     effect(() => this.memory());
+    const unsubscribe = inject(GameEventBus).subscribe((event) => this.recordGiantSwallow(event));
+    inject(DestroyRef).onDestroy(unsubscribe);
+  }
+
+  private recordGiantSwallow(event: GameEvent): void {
+    if (event.kind !== GAME_EVENT_KIND.effect) return;
+    const swallow = giantSwallowOf(event.effect, event.isOwnPredator, this.seatKey());
+    if (swallow !== null) this.giantSwallows.update((kept) => withGiantSwallow(kept, swallow));
   }
 }

@@ -4,8 +4,9 @@
 // popup pops in, holds and rises as it fades; a form popup is larger, under a `NEW FORM` kicker, overshoots in with a
 // flaring glow and one expanding ring in the seat colour, holds about five seconds and adds its real-life line.
 // A giant swallowed raises the giant popup, drawn as a form popup under a `GIANT ENGULFED` kicker: the giant's name,
-// the DNA it paid and its real-life line (docs/ecology/giants.md §3.5.8). Under reduced motion all of them only fade. It decides nothing: `UpgradePopupService` says which popup is up and what it
-// says. It is read, never pressed: no pointer, no focus, a polite live region.
+// the DNA it paid and its real-life line (docs/ecology/giants.md §3.5.8). Under reduced motion all of them only fade.
+// It decides nothing: `UpgradePopupService` says which popup is up and what it says. It is read, never pressed: no
+// pointer, no focus, a polite live region.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';

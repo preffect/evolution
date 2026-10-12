@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
   GIANT_SPECIES,
+  TICK_HZ,
   entityId,
   type CellAbsorbedEffect,
   type GiantSpecies,
@@ -10,11 +11,22 @@ import {
 import { createTestCellAbsorbedEffect, createTestEatEffect } from '../../../../testing/builders';
 import { UI_EFFECT } from '../../../ui-kit/ui-effect-mark.component';
 import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './giant-facts';
-import { GIANT_POPUP_KICKER_TEXT, giantPopupsIn } from './giant-popups';
+import { FORM_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
+import {
+  GIANT_POPUP_KICKER_TEXT,
+  giantPopupsIn,
+  giantSwallowOf,
+  withGiantSwallow,
+  type GiantSwallow,
+} from './giant-popups';
 import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
 
 const OWN_CELL_ID = entityId('c-own');
-const RIVAL_CELL_ID = entityId('c-rival');
+const SEAT = 'game-1/player-me';
+const OTHER_SEAT = 'game-2/player-me';
+const SWALLOW_TICK = 900;
+/** How long a swallow waits to be folded: a giant popup's life. */
+const KEPT_TICKS = FORM_POPUP_DURATION_SECONDS * TICK_HZ;
 /** The payout with no Nucleoid: the bonus alone (docs/ecology/giants.md §3.5.8). */
 const GIANT_DNA = DEFAULT_BALANCE.giants.GIANT_DNA_BONUS;
 /** A Nucleoid I eater's payout, the bonus × 1.05: the line shows what the effect measured, not the bonus. */
@@ -30,10 +42,47 @@ function swallowed(species: GiantSpecies | null, overrides: Partial<CellAbsorbed
   });
 }
 
+/** The amoeba swallowed on `tick`, as the bus reported it to `seatKey`. */
+function swallowOn(tick: number, seatKey: string = SEAT): GiantSwallow {
+  return { seatKey, tick, species: GIANT_SPECIES.amoeba, dnaGained: GIANT_DNA };
+}
+
+describe('giantSwallowOf (docs/ecology/giants.md §3.5.8)', () => {
+  it('reads a giant the own cell swallowed: the seat, the tick it happened, the giant and the DNA it paid', () => {
+    const effect = swallowed(GIANT_SPECIES.paramecium, { tick: SWALLOW_TICK });
+    expect(giantSwallowOf(effect, true, SEAT)).toEqual({
+      seatKey: SEAT,
+      tick: SWALLOW_TICK,
+      species: GIANT_SPECIES.paramecium,
+      dnaGained: GIANT_DNA,
+    });
+  });
+
+  it('reads nothing from a giant another cell ate, a prey that was not a giant, or another effect', () => {
+    expect(giantSwallowOf(swallowed(GIANT_SPECIES.amoeba), false, SEAT)).toBeNull();
+    expect(giantSwallowOf(swallowed(null), true, SEAT)).toBeNull();
+    expect(giantSwallowOf(createTestEatEffect(), true, SEAT)).toBeNull();
+  });
+});
+
+describe('withGiantSwallow', () => {
+  it('keeps the swallows of the seat that are waiting, and lets go of another seat’s, a later one’s and a past one', () => {
+    const waiting = swallowOn(SWALLOW_TICK - KEPT_TICKS + 1);
+    const kept = [
+      swallowOn(SWALLOW_TICK - KEPT_TICKS),
+      swallowOn(SWALLOW_TICK, OTHER_SEAT),
+      swallowOn(SWALLOW_TICK + 1),
+    ];
+    const added = swallowOn(SWALLOW_TICK);
+    expect(withGiantSwallow([...kept, waiting], added)).toEqual([waiting, added]);
+  });
+});
+
 describe('giantPopupsIn (docs/ui/overlays.md §3.8, docs/ecology/giants.md §3.5.8)', () => {
   it('fires for each giant the own cell swallowed: its name, the DNA it paid and its real-life line', () => {
     for (const species of Object.values(GIANT_SPECIES)) {
-      expect(giantPopupsIn([swallowed(species)], OWN_CELL_ID)).toEqual([
+      const swallow = giantSwallowOf(swallowed(species, { tick: SWALLOW_TICK }), true, SEAT);
+      expect(giantPopupsIn(swallow === null ? [] : [swallow], SEAT, SWALLOW_TICK - 1, SWALLOW_TICK)).toEqual([
         {
           kind: UPGRADE_POPUP_KIND.giant,
           kicker: GIANT_POPUP_KICKER_TEXT,
@@ -49,19 +98,20 @@ describe('giantPopupsIn (docs/ui/overlays.md §3.8, docs/ecology/giants.md §3.5
   });
 
   it('shows the DNA the payout measured, a Nucleoid’s share included', () => {
-    const [popup] = giantPopupsIn(
-      [swallowed(GIANT_SPECIES.diatom, { predatorDnaGained: NUCLEOID_GIANT_DNA })],
-      OWN_CELL_ID,
-    );
+    const swallow = { ...swallowOn(SWALLOW_TICK), dnaGained: NUCLEOID_GIANT_DNA };
+    const [popup] = giantPopupsIn([swallow], SEAT, SWALLOW_TICK - 1, SWALLOW_TICK);
     expect(popup?.effects).toEqual([`+${NUCLEOID_GIANT_DNA} DNA`]);
   });
 
-  it('fires nothing for a giant another cell ate, for a prey that was not a giant, or for another effect', () => {
-    const effects = [
-      swallowed(GIANT_SPECIES.amoeba, { predatorCellId: RIVAL_CELL_ID }),
-      swallowed(null),
-      createTestEatEffect(),
+  it('fires only the seat’s swallows after the last fold and by this one, in their order', () => {
+    const swallows = [
+      swallowOn(SWALLOW_TICK - 1),
+      { ...swallowOn(SWALLOW_TICK), species: GIANT_SPECIES.diatom },
+      swallowOn(SWALLOW_TICK, OTHER_SEAT),
+      { ...swallowOn(SWALLOW_TICK + 1), species: GIANT_SPECIES.paramecium },
+      swallowOn(SWALLOW_TICK + 2),
     ];
-    expect(giantPopupsIn(effects, OWN_CELL_ID)).toEqual([]);
+    const fired = giantPopupsIn(swallows, SEAT, SWALLOW_TICK - 1, SWALLOW_TICK + 1);
+    expect(fired.map((popup) => popup.giantSpecies)).toEqual([GIANT_SPECIES.diatom, GIANT_SPECIES.paramecium]);
   });
 });

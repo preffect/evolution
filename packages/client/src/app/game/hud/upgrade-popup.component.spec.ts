@@ -13,9 +13,12 @@ import {
   playerId,
   type OwnedTrait,
   type PlayerLifeState,
+  type GameSnapshot,
   type TraitId,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
+import { GameEventBus } from '../state/game-event-bus';
+import { SnapshotTransitionTracker } from '../state/snapshot-transitions';
 import { createTestCellAbsorbedEffect, createTestCellView } from '../../../testing/builders';
 import { paletteFor } from '../render/palette';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
@@ -40,6 +43,13 @@ const GIANT_DNA = DEFAULT_BALANCE.giants.GIANT_DNA_BONUS;
 describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
   let fixture: ComponentFixture<UpgradePopupComponent>;
   let multiplayer: MultiplayerService;
+  let tracker: SnapshotTransitionTracker;
+
+  /** One `game_snapshot` as the client takes it: the signal holds the newest, the bus hears every one (`render-session.ts`). */
+  function deliver(snapshot: GameSnapshot): void {
+    multiplayer.snapshot.set(snapshot);
+    tracker.observe(snapshot);
+  }
 
   function receive(
     tick: number,
@@ -52,12 +62,12 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
       ownedTraits,
       lifeState,
     });
-    multiplayer.snapshot.set(createTestSnapshot({ tick, ownProgress }));
+    deliver(createTestSnapshot({ tick, ownProgress }));
     fixture.detectChanges();
   }
 
   /** A snapshot in which the own cell has just swallowed the giant diatom. */
-  function receiveDiatomSwallowed(tick: number): void {
+  function diatomSwallowedAt(tick: number): GameSnapshot {
     const ownProgress = createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.eukaryote });
     const cells = [createTestCellView({ id: OWN_CELL_ID, playerId: OWN_PLAYER_ID })];
     const swallow = createTestCellAbsorbedEffect({
@@ -67,8 +77,7 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
       predatorDnaGained: GIANT_DNA,
       preyGiantSpecies: GIANT_SPECIES.diatom,
     });
-    multiplayer.snapshot.set(createTestSnapshot({ tick, ownProgress, cells, effects: [swallow] }));
-    fixture.detectChanges();
+    return createTestSnapshot({ tick, ownProgress, cells, effects: [swallow] });
   }
 
   function textOf(element: HTMLElement | null, selector: string): string | undefined {
@@ -90,6 +99,11 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     multiplayer.playerId.set(OWN_PLAYER_ID);
     multiplayer.balance.set(DEFAULT_BALANCE);
     multiplayer.avatarAssignments.set({ [OWN_PLAYER_ID]: OWN_AVATAR_INDEX });
+    tracker = new SnapshotTransitionTracker(TestBed.inject(GameEventBus), {
+      ownPlayerId: OWN_PLAYER_ID,
+      balance: DEFAULT_BALANCE,
+      roundDurationSeconds: DEFAULT_BALANCE.session.ROUND_DURATION_SECONDS,
+    });
     fixture = TestBed.createComponent(UpgradePopupComponent);
     receive(START_TICK, []);
   });
@@ -132,6 +146,18 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(host().querySelector('.popup')).toBeNull();
   });
 
+  it('still shows both gains when the second pick’s snapshot overtook the first before the screen refreshed', () => {
+    const firstTick = START_TICK + 1;
+    const ownProgressOf = (ownedTraits: OwnedTrait[]) =>
+      createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.eukaryote, ownedTraits });
+    deliver(createTestSnapshot({ tick: firstTick, ownProgress: ownProgressOf([FLAGELLUM]) }));
+    deliver(createTestSnapshot({ tick: firstTick + 1, ownProgress: ownProgressOf([FLAGELLUM, CILIA]) }));
+    fixture.detectChanges();
+    expect(popup(HUD_TEST_ID.upgradePopup)?.getAttribute('data-trait-id')).toBe(FLAGELLUM.traitId);
+    receive(firstTick + 1 + UPGRADE_TICKS, [FLAGELLUM, CILIA]);
+    expect(popup(HUD_TEST_ID.upgradePopup)?.getAttribute('data-trait-id')).toBe(CILIA.traitId);
+  });
+
   it('shows the form popup with its real-life line in the seat colour, for the form’s longer life', () => {
     receive(START_TICK + 1, [CILIA]);
     receive(START_TICK + 1 + UPGRADE_TICKS, [CILIA]);
@@ -162,7 +188,8 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
 
   it('shows the giant popup as large as a form’s: the giant’s name, the DNA it paid and its real-life line', () => {
     const swallowTick = START_TICK + 1;
-    receiveDiatomSwallowed(swallowTick);
+    deliver(diatomSwallowedAt(swallowTick));
+    fixture.detectChanges();
     const shown = popup(HUD_TEST_ID.giantPopup);
     expect(shown).not.toBeNull();
     expect(shown?.getAttribute('data-giant-species')).toBe(GIANT_SPECIES.diatom);
@@ -177,5 +204,23 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(popup(HUD_TEST_ID.giantPopup)).not.toBeNull();
     receive(swallowTick + FORM_TICKS, []);
     expect(popup(HUD_TEST_ID.giantPopup)).toBeNull();
+  });
+
+  it('shows a swallow whose snapshot a later one overtook before the screen refreshed, and only once', () => {
+    const swallowTick = START_TICK + 1;
+    const refreshTick = swallowTick + 1;
+    deliver(diatomSwallowedAt(swallowTick));
+    deliver(
+      createTestSnapshot({ tick: refreshTick, ownProgress: createTestPlayerProgressView({ playerId: OWN_PLAYER_ID }) }),
+    );
+    fixture.detectChanges();
+    expect(popup(HUD_TEST_ID.giantPopup)?.getAttribute('data-giant-species')).toBe(GIANT_SPECIES.diatom);
+
+    receive(refreshTick + FORM_TICKS - 1, []);
+    expect(host().querySelectorAll('.popup')).toHaveLength(1);
+    receive(refreshTick + FORM_TICKS, []);
+    expect(host().querySelector('.popup')).toBeNull();
+    receive(refreshTick + FORM_TICKS + 1, []);
+    expect(host().querySelector('.popup')).toBeNull();
   });
 });
