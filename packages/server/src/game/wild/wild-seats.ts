@@ -96,7 +96,7 @@ export function placeWildCell(
  * docs/ecology/giants.md §3.5.2): a placed scenario row (docs/testing/scenario-runner.md §8.1) and the unit-test world
  * keep only the seated cells they place, so no wanderer walks into a placed cell.
  */
-export function removeWildSeats(world: WorldState): void {
+export function removeSeatedCells(world: WorldState): void {
   world.cells = world.cells.filter(isPlayerCell);
   world.wildSeats = [];
   world.giantSeats = [];

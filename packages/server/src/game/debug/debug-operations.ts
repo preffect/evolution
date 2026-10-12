@@ -6,6 +6,7 @@ import {
   FIRST_LEVEL,
   ENTITY_KIND,
   FOOD_KIND,
+  GIANT_SPAWN_KIND,
   giantBalanceProblems,
   isBacteriumVariant,
   isDnaTag,
@@ -17,7 +18,7 @@ import {
 } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
-import { GIANT_SPAWN_KIND, spawnGiantForDebug } from './debug-giant-spawn.js';
+import { spawnGiantForDebug } from './debug-giant-spawn.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
 import { refreshPlayerStage } from '../progression/ladder.js';

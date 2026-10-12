@@ -294,6 +294,7 @@ export interface WorldState {
   players: PlayerRecord[]; // join order
   wildSeats: WildSeatRecord[]; // seat order (ecology/wild-cells.md §3.3)
   giantSeats: GiantSeatRecord[]; // seat order: one per species GIANT_SPECIES_IN_DISH names at creation, or a fixture or debug_spawn seats (ecology/giants.md §3.5.9)
+  firstGiantSeatNumber: number; // WILD_CELL_COUNT at creation: giant seats are numbered from it, whatever a patch does later (ecology/giants.md §3.5.9)
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ecology/food-and-spawn.md §3)
   random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5)

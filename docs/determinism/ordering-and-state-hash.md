@@ -34,7 +34,7 @@ beside the records it walks. Both lanes fold bytes with the one FNV-1a primitive
 or `{ key, hash }` for a nested value, so listing a field with the wrong shape is a type error.
 
 - Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`, `roundStartTick`,
-  `roundPhase`, `roundTimeLeftMs`, `roundFirstEntityNumber`, then each array in order (`cells`,
+  `roundPhase`, `roundTimeLeftMs`, `roundFirstEntityNumber`, `firstGiantSeatNumber`, then each array in order (`cells`,
   `food`, `dnaFragments`, `players`, `wildSeats`, `giantSeats`, `gelPatches`), the two `spawners`, the `random`
   streams in `SERVER_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`; each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag

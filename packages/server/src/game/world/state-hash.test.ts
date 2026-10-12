@@ -81,8 +81,12 @@ describe('computeStateHash', () => {
     ['a spawner flag', (world) => (world.spawners.dnaFragments.isEnabled = true)],
     ['a random stream', (world) => (world.random.spawner = { ...world.random.spawner, position: 7 })],
     ['the entity counter', (world) => (world.nextEntityNumber += 1)],
-    ['a giant seat', (world) => world.giantSeats.push(createGiantSeatRecord(GIANT_SPECIES.diatom, DEFAULT_BALANCE))],
+    [
+      'a giant seat',
+      (world) => world.giantSeats.push(createGiantSeatRecord(GIANT_SPECIES.diatom, world.firstGiantSeatNumber)),
+    ],
     ['the giants stream', (world) => (world.random.giants = { ...world.random.giants, position: 7 })],
+    ['the first giant seat number', (world) => (world.firstGiantSeatNumber += 1)],
   ])('changes when %s changes', (_label, mutate) => {
     const base = computeStateHash(populatedWorld());
     const changed = populatedWorld();
@@ -157,7 +161,7 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
   });
 
   it('giant seats: every field, so a seat field added later is hashed or fails here', () => {
-    const seat = createGiantSeatRecord(GIANT_SPECIES.amoeba, DEFAULT_BALANCE);
+    const seat = createGiantSeatRecord(GIANT_SPECIES.amoeba, DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT);
     expect(keysOf(GIANT_SEAT_HASHED_FIELDS)).toEqual(Object.keys(seat).sort());
   });
 });

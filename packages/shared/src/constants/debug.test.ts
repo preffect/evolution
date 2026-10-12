@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEBUG_JSON_INDENT_SPACES, DEFAULT_BOT_SEED } from './debug.js';
+import { ENTITY_KIND } from '../types/game.js';
+import { DEBUG_JSON_INDENT_SPACES, DEFAULT_BOT_SEED, GIANT_SPAWN_KIND } from './debug.js';
 import { SEED_MAX } from './session.js';
 import { CLIENT_ID_STORAGE_KEY } from './identity.js';
 
@@ -13,6 +14,10 @@ describe('debug and identity constants', () => {
     expect(Number.isInteger(DEFAULT_BOT_SEED)).toBe(true);
     expect(DEFAULT_BOT_SEED).toBeGreaterThanOrEqual(0);
     expect(DEFAULT_BOT_SEED).toBeLessThanOrEqual(SEED_MAX);
+  });
+
+  it('names the giant spawn kind apart from every entity kind debug_spawn takes', () => {
+    expect(Object.values(ENTITY_KIND)).not.toContain(GIANT_SPAWN_KIND);
   });
 
   it('namespaces the storage key so it cannot collide with another app on the same origin', () => {

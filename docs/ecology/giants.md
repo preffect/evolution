@@ -337,7 +337,9 @@ for the last minute.
   numbered after the wild seats by the species' place in the fixed `GiantSpecies` order (amoeba,
   paramecium, diatom), `WILD_CELL_COUNT` + _i_ (24, 25, 26), not by its place in
   `GIANT_SPECIES_IN_DISH`, so a giant seated by `debug_spawn` or the test fixture has the same seat
-  whether or not the list names it (it ships empty until slice 6). The decision stagger
+  whether or not the list names it (it ships empty until slice 6). The count is the one the world was
+  created with (`world.firstGiantSeatNumber`), so a mid-round patch of `WILD_CELL_COUNT` never
+  renumbers a giant seat. The decision stagger
   (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule.
   `GIANT_SPECIES_IN_DISH` is read once, at world creation, so the seat count never changes during a
   round; a `debug_set_balance` patch of it takes effect at the next round or rematch.
@@ -544,8 +546,9 @@ fixture balance sets the species list, read at world creation (§3.5.9), and the
   eats for the grazer while it is hungry and skips the hunter and the drifter (§3.5.7); step 9 respawns
   giant seats.
 - Debug MCP (architecture/debug-mcp.md §8): `debug_spawn(gameId, 'giant', x, y, { species, mass })` places
-  (or replaces) that species' giant, whether or not `GIANT_SPECIES_IN_DISH` seats it; `debug_get_entities`
-  shows `giantSpecies` through the view.
+  (or replaces) that species' giant, whether or not `GIANT_SPECIES_IN_DISH` seats it, at a born `mass` in
+  [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`] (refused outside it); the seat respawns its giant until the
+  rematch, list or not. `debug_get_entities` shows `giantSpecies` through the view.
 - Scenario fixture: `placeGiant({ species, bornMass, grownMass = 0, at | eastOfFirstCellWu, heading? })`
   seats the species' cell at `bornMass + grownMass` with that growth, no target, velocity (exactly
   (0, 0)) or sprint counters (as a respawn), and the heading given (default east). Placing anything

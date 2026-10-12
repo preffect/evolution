@@ -1,11 +1,12 @@
 // docs/architecture/debug-mcp.md §8 and docs/ecology/giants.md §3.5.15: `debug_spawn(gameId, 'giant', x, y, { species,
 // mass })` seats that species' giant at the point in its own seat whether or not the dish lists it, replaces one
 // already there without detritus, draws a born mass from the `giants` stream when none is named, and refuses an
-// unknown species or a mass that is not a positive number. A balance patch of the trait tiers refolds a giant through
+// unknown species or a mass outside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`]. A balance patch of the trait tiers refolds a giant through
 // its build, so its species speed multiplier stays (giants.md §3.5.15, the multiplier's one home).
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  GIANT_SPAWN_KIND,
   GIANT_SPECIES,
   foldModifiers,
   RANDOM_STREAM,
@@ -15,7 +16,6 @@ import {
 import { seatTestGiantCell } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import type { WorldState } from '../world/world-state.js';
-import { GIANT_SPAWN_KIND } from './debug-giant-spawn.js';
 import { applyDebugPatch, DEBUG_PATCH_KIND, setBalanceForDebug, spawnForDebug } from './debug-operations.js';
 import { DebugRequestError } from './debug-request-error.js';
 
@@ -70,14 +70,23 @@ describe('spawnForDebug, a giant', () => {
     expect(applyDebugPatch(createTestWorld(), patch)).toEqual(applyDebugPatch(createTestWorld(), patch));
   });
 
-  it('refuses an unknown species and a mass that is not a positive number', () => {
+  it('refuses an unknown species and a mass outside [CELL_STARTING_MASS, GIANT_MASS_CEILING]', () => {
     const world = createTestWorld();
     expect(() => spawnGiant(world, {})).toThrow(DebugRequestError);
     expect(() => spawnGiant(world, { species: 'amoeba' })).toThrow(/giant_amoeba, giant_paramecium, giant_diatom/);
-    for (const mass of [0, -5, 'big', Number.NaN]) {
+    const floor = DEFAULT_BALANCE.growth.CELL_STARTING_MASS;
+    const ceiling = giants.GIANT_MASS_CEILING;
+    for (const mass of [0, -5, floor - 1, ceiling + 1, 4000, 'big', Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => spawnGiant(world, { species: GIANT_SPECIES.amoeba, mass }), String(mass)).toThrow(DebugRequestError);
     }
     expect(world.giantSeats).toEqual([]);
+  });
+
+  it('takes the bounds themselves: a giant of CELL_STARTING_MASS and one at the ceiling', () => {
+    const world = createTestWorld();
+    const floor = DEFAULT_BALANCE.growth.CELL_STARTING_MASS;
+    expect(spawnGiant(world, { species: GIANT_SPECIES.amoeba, mass: floor }).mass).toBe(floor);
+    expect(spawnGiant(world, { species: GIANT_SPECIES.diatom, mass: giants.GIANT_MASS_CEILING }).mass).toBe(1500);
   });
 });
 

@@ -51,7 +51,7 @@ const G9_CENTRE_DISTANCE_WU = 10;
 const G9_SEAL_TICK = 23;
 const G9_PAYOUT_TICK = 46;
 const G9_PAYOUT_MASS = decayed(G9_PREDATOR_MASS, G9_PAYOUT_TICK) + G9_AMOEBA_BORN_MASS * absorption.ENGULF_MASS_YIELD;
-/** The wild count (W4): vacated on 45, `respawnInTicks` 5 400, alive again on the tick after it reaches zero. */
+/** The wild count (W4): vacated on 46, `respawnInTicks` 5 400, alive again on the tick after it reaches zero. */
 const G9_RESPAWN_TICK = G9_PAYOUT_TICK + GIANT_RESPAWN_TICKS + ONE_TICK;
 const NUCLEOID_I = DEFAULT_BALANCE.traits.TRAIT_TIERS.nucleoid[0]!.dnaGainMultiplier!;
 

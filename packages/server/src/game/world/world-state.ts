@@ -54,6 +54,11 @@ export interface WorldState {
    * `WILD_CELL_COUNT` stay the wild seats'.
    */
   giantSeats: GiantSeatRecord[];
+  /**
+   * The first giant seat's number: `WILD_CELL_COUNT` as the world was created, so a mid-round `debug_set_balance` of
+   * the count never renumbers a giant seat or gives one a live wild seat's number (docs/ecology/giants.md §3.5.9).
+   */
+  firstGiantSeatNumber: number;
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState };
   /** The server streams' state, walked in `SERVER_RANDOM_STREAM_LABELS` order (docs/determinism/random-streams.md §3, docs/determinism/ordering-and-state-hash.md §5). */

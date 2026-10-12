@@ -81,9 +81,9 @@ export const forkStreamStates: <Label extends string>(
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
 - **`giants` is a separate stream** (ecology/giants.md §3.5.9, ticket #826): a giant's born mass, its first
-  heading and its placement candidates are drawn from it, at world creation, at a respawn and at a
-  `debug_spawn('giant')` that names no mass, so a giant never shifts a mote, a wild cell's draw or a player's
-  spawn. Adding the stream moved every world's state hash once (the walk covers every stream), and no
+  heading and its placement candidates are drawn from it, at world creation and at a respawn; every
+  `debug_spawn('giant')` draws the born mass and the heading too (a named mass replaces the drawn one, so the stream
+  advances the same either way). So a giant never shifts a mote, a wild cell's draw or a player's spawn. Adding the stream moved every world's state hash once (the walk covers every stream), and no
   other stream's draws.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the server
   streams from the round seed (`forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS)`)

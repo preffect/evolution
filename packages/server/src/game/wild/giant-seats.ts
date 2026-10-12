@@ -1,6 +1,6 @@
 // The giant seats (docs/ecology/giants.md §3.5.9, §3.5.15): one seat per species of `GIANT_SPECIES_IN_DISH`, read once
 // at world creation, numbered after the wild seats by the species' place in the fixed `GIANT_SPECIES_ORDER`
-// (`WILD_CELL_COUNT` + i), so a giant seated by `debug_spawn` or a fixture has the same seat whether or not the list
+// (`WILD_CELL_COUNT` as the world was created + i), so a giant seated by `debug_spawn` or a fixture has the same seat whether or not the list
 // names it. A giant's cell is placed by the giant clearance (`GIANT_MIN_PLAYER_DISTANCE_WU` from every player cell,
 // `GIANT_MIN_GIANT_DISTANCE_WU` from every other giant, `GIANT_MIN_CELL_DISTANCE_WU` from every other cell, through
 // `findSafeSpawnPoint` and its farthest-candidate fallback) at a born mass drawn uniform on its species' range, with no
@@ -27,12 +27,12 @@ import { bornSeatedCell, createSeatMindRecord } from './seat-mind.js';
 import { drawWildHeading, setSeatHeading } from './wild-wander.js';
 
 /** The seat a species' giant always sits in: after the wild seats, by its place in `GIANT_SPECIES_ORDER`. */
-export function giantSeatNumber(species: GiantSpecies, balance: BalanceConfig): number {
-  return balance.wildCells.WILD_CELL_COUNT + GIANT_SPECIES_ORDER.indexOf(species);
+export function giantSeatNumber(species: GiantSpecies, firstGiantSeatNumber: number): number {
+  return firstGiantSeatNumber + GIANT_SPECIES_ORDER.indexOf(species);
 }
 
-export function createGiantSeatRecord(species: GiantSpecies, balance: BalanceConfig): GiantSeatRecord {
-  return { ...createSeatMindRecord(giantSeatNumber(species, balance)), species, bornMass: 0 };
+export function createGiantSeatRecord(species: GiantSpecies, firstGiantSeatNumber: number): GiantSeatRecord {
+  return { ...createSeatMindRecord(giantSeatNumber(species, firstGiantSeatNumber)), species, bornMass: 0 };
 }
 
 /** The species' seat, created on demand and kept in seat order: what world creation, a fixture and a debug spawn seat. */
@@ -41,7 +41,7 @@ export function giantSeatOf(world: WorldState, species: GiantSpecies): GiantSeat
   if (existing !== undefined) {
     return existing;
   }
-  const seat = createGiantSeatRecord(species, world.balance);
+  const seat = createGiantSeatRecord(species, world.firstGiantSeatNumber);
   world.giantSeats.push(seat);
   world.giantSeats.sort((left, right) => left.seatNumber - right.seatNumber);
   return seat;

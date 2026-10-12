@@ -22,7 +22,7 @@ import { refreshCellDerivedState } from '../../game/progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../../game/progression/owned-traits.js';
 import { setCellMass } from '../../game/simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../../game/simulation/spawn-mote.js';
-import { removeWildSeats } from '../../game/wild/wild-seats.js';
+import { removeSeatedCells } from '../../game/wild/wild-seats.js';
 import type { CellRecord, PlayerRecord } from '../../game/world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../../game/world/lookups.js';
 import type { WorldState } from '../../game/world/world-state.js';
@@ -68,7 +68,7 @@ export function prepareWorldForPlacement(world: WorldState): void {
   world.dnaFragments = [];
   world.spawners.food.isEnabled = false;
   world.spawners.dnaFragments.isEnabled = false;
-  removeWildSeats(world);
+  removeSeatedCells(world);
 }
 
 function requirePlacedCell(world: WorldState, playerIndex: number, context: FixtureContext): CellRecord {

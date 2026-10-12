@@ -14,11 +14,13 @@ import {
   distanceBetween,
   type BalanceConfig,
   type GiantSpecies,
+  type Vec2,
 } from '@evolution/shared';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { isInsideAnyCell } from '../simulation/spawn-point.js';
-import { spawnReach } from '../simulation/spawn-placement.js';
+import { drawSpawnCandidate, spawnReach, threatClearance } from '../simulation/spawn-placement.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
+import type { WorldState } from '../world/world-state.js';
 import { giantBuildOf, giantLevelOf } from './giant-build.js';
 import {
   createGiantSeats,
@@ -36,6 +38,7 @@ const { giants, wildCells, world: worldBalance } = DEFAULT_BALANCE;
 const LIFE_DRAWS = 2;
 
 const SPECIES_IN_DISH_LEAF = 'GIANT_SPECIES_IN_DISH';
+const WILD_COUNT_LEAF = 'WILD_CELL_COUNT';
 
 function balanceSeating(species: readonly GiantSpecies[]): BalanceConfig {
   return { ...DEFAULT_BALANCE, giants: { ...giants, [SPECIES_IN_DISH_LEAF]: species } };
@@ -43,9 +46,25 @@ function balanceSeating(species: readonly GiantSpecies[]): BalanceConfig {
 
 const ALL_THREE = balanceSeating(GIANT_SPECIES_ORDER);
 
+/** Between the player rule's 600 wu and the giant rule's 1 500 wu. */
+const NEIGHBOUR_DISTANCE_WU = 1000;
+
+/** The only cell in the dish: an amoeba of 1 000 (a threat to the player rule) at `centre`. */
+function seatAmoebaAlone(world: WorldState, centre: Vec2): CellRecord {
+  world.cells = [];
+  return seatGiantCell(world, giantSeatOf(world, GIANT_SPECIES.amoeba), { centre, bornMass: 1000, grownMass: 0 });
+}
+
+/** The world's player cell (no threat to the player rule) moved to `centre`. */
+function movePlayer(world: WorldState, centre: Vec2): CellRecord {
+  return Object.assign(world.cells[0]!, centre);
+}
+
 describe('giantSeatNumber and giantSeatOf', () => {
   it('numbers the seats after the wild seats by the fixed species order: 24, 25, 26', () => {
-    expect(GIANT_SPECIES_ORDER.map((species) => giantSeatNumber(species, DEFAULT_BALANCE))).toEqual([24, 25, 26]);
+    expect(GIANT_SPECIES_ORDER.map((species) => giantSeatNumber(species, wildCells.WILD_CELL_COUNT))).toEqual([
+      24, 25, 26,
+    ]);
   });
 
   it('creates a species seat once and keeps the list in seat order, whatever order they are asked for', () => {
@@ -56,6 +75,15 @@ describe('giantSeatNumber and giantSeatOf', () => {
     expect(world.giantSeats).toEqual([amoeba, diatom]);
     expect([amoeba.seatNumber, diatom.seatNumber]).toEqual([24, 26]);
     expect(world.wildSeats).toEqual([]);
+  });
+
+  it('numbers from the wild count the world was created with, not a count patched since', () => {
+    const world = createTestWorld();
+    world.balance = {
+      ...DEFAULT_BALANCE,
+      wildCells: { ...wildCells, [WILD_COUNT_LEAF]: wildCells.WILD_CELL_COUNT + 6 },
+    };
+    expect(giantSeatOf(world, GIANT_SPECIES.paramecium).seatNumber).toBe(25);
   });
 });
 
@@ -137,6 +165,25 @@ describe('placeGiantCell', () => {
       expect(context.streams[label].getState(), label).toEqual(world.random[label]);
     }
     expect(distanceBetween(cell, world.cells[0]!)).toBeGreaterThanOrEqual(giants.GIANT_MIN_PLAYER_DISTANCE_WU);
+  });
+
+  // The player rule (600 wu from a threat) would take the first candidate here; the giant rule must not, whatever the
+  // seed draws, since the neighbour is put 1 000 wu from where that candidate falls.
+  it.each([
+    { neighbour: 'another giant', minimumWu: giants.GIANT_MIN_GIANT_DISTANCE_WU, place: seatAmoebaAlone },
+    { neighbour: 'a player cell', minimumWu: giants.GIANT_MIN_PLAYER_DISTANCE_WU, place: movePlayer },
+  ])('skips a first candidate 1 000 wu from $neighbour, inside the giant clearance', ({ minimumWu, place }) => {
+    const world = createTestWorld();
+    const stream = createSeededRandomFromState(world.random[RANDOM_STREAM.giants]);
+    for (let draw = 0; draw < LIFE_DRAWS; draw += 1) {
+      stream.nextFloat();
+    }
+    const firstCandidate = drawSpawnCandidate(stream, DEFAULT_BALANCE);
+    const neighbour = place(world, { x: firstCandidate.x + NEIGHBOUR_DISTANCE_WU, y: firstCandidate.y });
+    expect(threatClearance(firstCandidate, world.cells, DEFAULT_BALANCE)).toBeGreaterThanOrEqual(0);
+    const cell = placeGiantCell(world, giantSeatOf(world, GIANT_SPECIES.diatom), createTestStepContext(world).streams);
+    expect({ x: cell.x, y: cell.y }).not.toEqual(firstCandidate);
+    expect(distanceBetween(cell, neighbour)).toBeGreaterThanOrEqual(minimumWu);
   });
 });
 

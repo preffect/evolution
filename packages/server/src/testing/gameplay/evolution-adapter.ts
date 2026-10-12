@@ -17,10 +17,10 @@ import { createEvolutionModule, type EvolutionModule } from '../../game/evolutio
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
 import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
-import { removeWildSeats } from '../../game/wild/wild-seats.js';
+import { removeSeatedCells } from '../../game/wild/wild-seats.js';
 import { cellOfSeat } from '../../game/world/lookups.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
-import type { GiantSeatRecord, WildSeatRecord } from '../../game/world/entities.js';
+import type { GiantSeatRecord, SeatMindRecord, WildSeatRecord } from '../../game/world/entities.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -45,13 +45,17 @@ export interface SpawnedCounts {
 }
 
 /**
- * A wild seat as the W rows read it (docs/ecology/acceptance.md §8.1): the record, plus the latched target of its cell
- * (`CellRecord.targetX/Y`, which no wire view carries: W6 and W7 read where a decision sent the seat).
+ * A seat as the W and G rows read it (docs/ecology/acceptance.md §8.1, §8.2): the record, plus the latched target of
+ * its cell (`CellRecord.targetX/Y`, which no wire view carries: W6, W7 and the G decision rows read where a decision
+ * sent the seat).
  */
-export interface WildSeatView extends Readonly<WildSeatRecord> {
+export type SeatView<Seat extends SeatMindRecord> = Readonly<Seat> & {
   readonly targetX: number | null;
   readonly targetY: number | null;
-}
+};
+
+export type WildSeatView = SeatView<WildSeatRecord>;
+export type GiantSeatView = SeatView<GiantSeatRecord>;
 
 /** The wire snapshot plus what the tables count that never rides the wire. */
 export interface EvolutionScenarioSnapshot extends GameSnapshot {
@@ -61,10 +65,10 @@ export interface EvolutionScenarioSnapshot extends GameSnapshot {
   /** The wild seats in seat order: the world clock is never sent (docs/ecology/wild-cells.md §3.3), a W row reads it. */
   readonly wildSeats: readonly WildSeatView[];
   /** The giant seats in seat order (docs/ecology/giants.md §3.5.9): a G row reads a giant's born mass and growth. */
-  readonly giantSeats: readonly Readonly<GiantSeatRecord>[];
+  readonly giantSeats: readonly GiantSeatView[];
 }
 
-function toWildSeatView(world: WorldState, seat: WildSeatRecord): WildSeatView {
+function toSeatView<Seat extends SeatMindRecord>(world: WorldState, seat: Seat): SeatView<Seat> {
   const cell = cellOfSeat(world, seat);
   return { ...seat, targetX: cell?.targetX ?? null, targetY: cell?.targetY ?? null };
 }
@@ -75,7 +79,7 @@ export const WORLD_FIXTURE_KIND = {
   /** E14, W3, W9: every mote and fragment removed, so neither spawner is capped. */
   clearFood: 'clear_food',
   /** E3: every wild seat and its cell removed, so the spawner row counts the spawner alone, not the wild grazing. */
-  removeWildSeats: 'remove_wild_seats',
+  removeSeatedCells: 'remove_seated_cells',
   /**
    * T4 (#402): every gel patch removed, so a placed row can run on a seed whose patch reaches the broth point
    * (seed 42, whose `engulf` stream the row's spit-out is drawn from). Placed before the cells, it clears the
@@ -92,7 +96,7 @@ export type EvolutionFixture = PlacedFixture | WorldFixture;
 
 export const resetSpawnerAccumulators: WorldFixture = { kind: WORLD_FIXTURE_KIND.resetSpawnerAccumulators };
 export const clearFood: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearFood };
-export const withoutWildSeats: WorldFixture = { kind: WORLD_FIXTURE_KIND.removeWildSeats };
+export const withoutSeatedCells: WorldFixture = { kind: WORLD_FIXTURE_KIND.removeSeatedCells };
 export const withoutGelPatches: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearGelPatches };
 
 const PLACED_KINDS: readonly string[] = Object.values(PLACED_KIND);
@@ -107,8 +111,8 @@ function applyWorldFixture(world: WorldState, fixture: WorldFixture): void {
     world.spawners.dnaFragments.accumulator = 0;
     return;
   }
-  if (fixture.kind === WORLD_FIXTURE_KIND.removeWildSeats) {
-    removeWildSeats(world);
+  if (fixture.kind === WORLD_FIXTURE_KIND.removeSeatedCells) {
+    removeSeatedCells(world);
     return;
   }
   if (fixture.kind === WORLD_FIXTURE_KIND.clearGelPatches) {
@@ -173,8 +177,8 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
       world.players.map((player) => [player.playerId, toOwnProgressView(world, player, EXACT_SNAPSHOT_VALUES)]),
     ),
   );
-  const wildSeats = projectOnce(() => world.wildSeats.map((seat) => toWildSeatView(world, seat)));
-  const giantSeats = projectOnce(() => world.giantSeats.map((seat) => ({ ...seat })));
+  const wildSeats = projectOnce(() => world.wildSeats.map((seat) => toSeatView(world, seat)));
+  const giantSeats = projectOnce(() => world.giantSeats.map((seat) => toSeatView(world, seat)));
   // A scenario drains every tick, so its window (the effects and the sprint spend, #383) is the tick's.
   const effects = drainBroadcastWindow(world);
   const snapshot = {

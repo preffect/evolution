@@ -56,6 +56,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     players: [],
     wildSeats: [],
     giantSeats: [],
+    firstGiantSeatNumber: options.balance.wildCells.WILD_CELL_COUNT,
     leaderboard: [],
     spawners: { food: createSpawnerState(), dnaFragments: createSpawnerState() },
     random: forkServerStreams(options.seed),

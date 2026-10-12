@@ -13,8 +13,7 @@ import {
   type MassFlowView,
   type OwnProgressView,
 } from '@evolution/shared';
-import type { GiantSeatRecord } from '../../game/world/entities.js';
-import type { EvolutionScenarioSnapshot, WildSeatView } from './evolution-adapter.js';
+import type { EvolutionScenarioSnapshot, GiantSeatView, WildSeatView } from './evolution-adapter.js';
 import type { ScenarioView } from './expectations.js';
 
 export type EvolutionView = ScenarioView<EvolutionScenarioSnapshot>;
@@ -41,7 +40,7 @@ function seatedCellOf(view: EvolutionView, seat: { readonly cellId: string | nul
 }
 
 /** The species' giant seat (docs/ecology/acceptance.md §8.2); `undefined` for a species the world seats none of. */
-export function giantSeatOf(view: EvolutionView, species: GiantSpecies): Readonly<GiantSeatRecord> | undefined {
+export function giantSeatOf(view: EvolutionView, species: GiantSpecies): GiantSeatView | undefined {
   return view.snapshot.giantSeats.find((seat) => seat.species === species);
 }
 
