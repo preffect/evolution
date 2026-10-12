@@ -147,4 +147,4 @@ strands on a 200 px giant, where three strands in a 80 px tuft read as a hollow 
 
 **Cost.** One branch per fragment for every cell that is not a giant; the vacuoles cost one profile walk each. On the
 1080 Ti box, three giants on screen beside the own cell measured the same GPU time with the detail on and off
-(PR evidence, `qa/evidence/pr-<N>/`).
+(`qa/evidence/pr-844/`).
