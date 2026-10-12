@@ -6,6 +6,7 @@ export const SECONDS_PER_MINUTE = 60;
 export const BYTES_PER_KIBIBYTE = 1024;
 export const BYTES_PER_MEBIBYTE = BYTES_PER_KIBIBYTE * BYTES_PER_KIBIBYTE;
 export const RADIANS_PER_FULL_TURN = 2 * Math.PI;
+export const DEGREES_PER_FULL_TURN = 360;
 /** GL timer queries report nanoseconds (`EXT_disjoint_timer_query_webgl2`). */
 export const NANOSECONDS_PER_MILLISECOND = 1_000_000;
 /** The quantile every p95 in the server's tick stats and the client's frame report reads. */

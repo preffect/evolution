@@ -177,9 +177,9 @@ of the same size sees at least as far as the wild cell, and further to the sides
 player's view does, so a giant notices more of the dish than a protocell but never the whole of it (the dish radius is 3 000). One multiple (1.0) is the knob; nothing else is new.
 
 The behaviour is the #15 bot strategies composed into one wild strategy
-(`packages/server/src/game/wild/wild-strategy.ts`; #15 homes `wander`, `hunt`, `flee` and `grazer`
-under `packages/server/src/game/bots/`, where both this file and the gameplay framework's `.bot()`
-import them). The perception a wild seat hands them is filtered to entities whose centre lies within
+(`packages/server/src/game/wild/wild-strategy.ts` and `seat-decision.ts`, by the seat's profile, `seat-profile.ts`,
+which a giant's changes, giants.md §3.5.15; #15 homes `wander`, `hunt`, `flee` and `grazer` under
+`packages/server/src/game/bots/`, where both the strategy and the gameplay framework's `.bot()` import them). The perception a wild seat hands them is filtered to entities whose centre lies within
 its sight range. A seat decides every `WILD_CELL_DECISION_INTERVAL_SECONDS`, staggered by seat: seat
 _n_ decides on ticks ≡ _n_ mod the interval in ticks, and `decideInTicks`, set at placement to the
 ticks until that tick, counts down and restarts at the interval. Between decisions the seat latches
