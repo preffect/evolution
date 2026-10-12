@@ -25,7 +25,7 @@ import {
 import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { separateOverlappingCells, type StartCentres } from './contact.js';
-import { engulfedPreyOf, engulfingPredatorOf, isCarried } from './engulf-state.js';
+import { engulfedPreyOf, engulfingPredatorOf, isCarried, settleCarriedOffset } from './engulf-state.js';
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
 export function sprintSpeedFactor(cell: CellRecord, balance: BalanceConfig): number {
@@ -147,8 +147,8 @@ function restorePins(world: WorldState): void {
 
 /**
  * A carried prey (docs/ecology/absorption.md §6.1, from the seal on) skips the kernel: its centre is its
- * predator's plus the frozen offset and its velocity is the predator's, resolved after the
- * predator has moved. A carried predator is resolved first, so a sealed B carrying C rides A and
+ * predator's plus the carried offset, first settled toward the inside (`settleCarriedOffset`, #819 review), and its
+ * velocity is the predator's, resolved after the predator has moved. A carried predator is resolved first, so a sealed B carrying C rides A and
  * carries C from its own carried centre (§6.3, the chain row).
  */
 function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellRecord>, balance: BalanceConfig): void {
@@ -161,6 +161,7 @@ function placeCarriedCell(cell: CellRecord, world: WorldState, placed: Set<CellR
     return;
   }
   placeCarriedCell(predator, world, placed, balance);
+  settleCarriedOffset({ predator, prey: cell }, balance.absorption);
   // The same wall clamp the kernel applies, so docs/ecology/absorption.md §6.3 "engulf at the wall" ("clamping
   // only moves centres inward") keeps holding for a carried prey that never goes through the kernel.
   const carried = {

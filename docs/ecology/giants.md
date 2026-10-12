@@ -341,7 +341,7 @@ for the last minute.
   numbered after the wild seats by the species' place in the fixed `GiantSpecies` order (amoeba,
   paramecium, diatom), `WILD_CELL_COUNT` + _i_ (24, 25, 26), not by its place in
   `GIANT_SPECIES_IN_DISH`, so a giant seated by `debug_spawn` or the test fixture has the same seat
-  whether or not the list names it (it ships empty until slice 6). The count is the one the world was
+  whether or not the list names it (a test balance may empty it; the default names all three since slice 6). The count is the one the world was
   created with (`world.firstGiantSeatNumber`), so a mid-round patch of `WILD_CELL_COUNT` never
   renumbers a giant seat. The decision stagger
   (§3.3.3: seat _n_ decides on ticks ≡ _n_ mod 30) and the stable ordering need no new rule.
@@ -464,8 +464,8 @@ answer edits rows, not rules.
 `grazer`, `drifter`) are wire enums in `types/game.ts`; the records below are keyed by species. Every
 row is a balance leaf of the `giants` domain except `GIANT_ROLE_BY_SPECIES`, a plain constant in the same
 file: a role is what a species is, `canEngulf` reads it (§3.5.6), and no patch may change it. The ledger's rows
-are the `giants.ts` table of [`constants.md` §7](./constants.md); `GIANT_SPECIES_IN_DISH` ships empty there until
-the giants-on slice (§3.5.17).
+are the `giants.ts` table of [`constants.md` §7](./constants.md); `GIANT_SPECIES_IN_DISH` names all three
+species since the giants-on slice (§3.5.17).
 
 | Constant                                  | Value                      | Unit                         | Reason (section)                                                                   |
 | ----------------------------------------- | -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
@@ -506,8 +506,9 @@ speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, w
 `DEFAULT_BALANCE`). The rules have one home, `giantBalanceProblems` (`shared/simulation/giant-balance.ts`), which the
 balance test and the refusal both call. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
 structure a patch cannot name (`debug_set_balance` writes number leaves only, as for `WILD_CELL_BUILDS`): a test or
-fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice sets it in
-`DEFAULT_BALANCE`.
+fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice set it in
+`DEFAULT_BALANCE`; a seeded-world unit test about something else runs on `NO_GIANTS_BALANCE`
+(`server/src/testing/world-builders.ts`), which empties it.
 
 #### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3, `architecture/constants-files-tests.md` §10 and `architecture/wire-contract.md` §4.1)
 
@@ -593,9 +594,9 @@ fixture balance sets the species list, read at world creation (§3.5.9), and the
 
 #### 3.5.17 Build slices (each one subsystem, at most about 40 files)
 
-The dish holds no giant on the human's live game until the last server slice: `GIANT_SPECIES_IN_DISH`
-ships empty in `DEFAULT_BALANCE`, and giants are seated only through `placeGiant` or `debug_spawn`, until
-their minds, art and HUD have landed. Main deploys to the human's game on every merge, and a giant
+The dish held no giant on the human's live game until the last server slice: `GIANT_SPECIES_IN_DISH`
+shipped empty in `DEFAULT_BALANCE`, and giants were seated only through `placeGiant` or `debug_spawn`, until
+their minds, art and HUD had landed; slice 6 (ticket #830) seats them in every round. Main deploys to the human's game on every merge, and a giant
 without its mind would sit still and swallow whatever touched it.
 
 1. **Shared contract and constants** (architect and engineer): `constants/giants.ts` (balance domain

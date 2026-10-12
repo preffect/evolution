@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_KIND,
   EFFECT_KIND,
+  GIANT_SPECIES,
   createTestCellView,
   createTestPlayerProgressView,
   createTestSnapshot,
@@ -85,13 +86,19 @@ describe('evolution views', () => {
     expect(effectsOfKind(view, EFFECT_KIND.eat)).toEqual([]);
   });
 
-  it('reads a wild seat, its cell while it has one, and every wild cell', () => {
+  it('reads a wild seat, its cell while it has one, and every wild cell but the giants', () => {
     const seated = { ...createWildSeatRecord(0), cellId: entityId('w-0'), targetX: 7, targetY: 8 };
     const vacant = { ...createWildSeatRecord(1), targetX: null, targetY: null };
     const wildView = viewOf({
       cells: [
         createTestCellView({ id: entityId('c-1'), playerId: alice }),
         createTestCellView({ id: entityId('w-0'), kind: CELL_KIND.wild, playerId: null }),
+        createTestCellView({
+          id: entityId('g-0'),
+          kind: CELL_KIND.wild,
+          playerId: null,
+          giantSpecies: GIANT_SPECIES.amoeba,
+        }),
       ],
       wildSeats: [seated, vacant],
     });

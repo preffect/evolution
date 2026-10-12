@@ -33,8 +33,11 @@ const VIEWERS = [ALICE, BOB] as const;
 /** Opposite sides of the dish: no starting view reaches from one to the other. */
 const ALICE_AT = { x: -2000, y: 0 };
 const BOB_AT = { x: 2000, y: 0 };
-/** Beside Bob, clear of his cell, and where Alice goes to see it. */
-const BESIDE_BOB = { x: BOB_AT.x + 150, y: 150 };
+/**
+ * Beside Bob, clear of his cell, and where Alice goes to see it. Below him: since the giants are seated (ticket #830) a
+ * seed-42 wild cell grazes the spot above him before Alice's first visit.
+ */
+const BESIDE_BOB = { x: BOB_AT.x + 150, y: -150 };
 const ALICE_VISITING = { x: BOB_AT.x - 150, y: 0 };
 const FRAGMENT_TAG = 'motile';
 /** Long enough for a camera to pan across the dish and for its older states to leave the area. */

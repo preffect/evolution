@@ -5,7 +5,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
-  CELL_KIND,
   DEFAULT_BALANCE,
   FOOD_KIND,
   GIANT_SPECIES,
@@ -13,6 +12,7 @@ import {
   entityId,
 } from '@evolution/shared';
 import { LUNCH_MASS, THREAT_MASS } from '../../testing/wild-arena.js';
+import { wildSeatCellsOf } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { WILD_CELL_DIET, giantDiet } from '../simulation/cell-diet.js';
 import { setCellMass } from '../simulation/cell-mass.js';
@@ -42,7 +42,7 @@ describe('wildSightRange (W11)', () => {
 describe('wildSightOf', () => {
   it('matches a brute-force distance check on a seeded population, the boundary included', () => {
     const world = createTestWorld({ hasWildSeats: true, isFilled: true });
-    const viewer = world.cells.find((cell) => cell.kind === CELL_KIND.wild)!;
+    const viewer = wildSeatCellsOf(world.cells)[0]!;
     const range = wildSightRange(viewer.radius, DEFAULT_BALANCE);
     const onTheEdge = spawnFoodMote(world, {
       kind: FOOD_KIND.algae,
@@ -59,14 +59,14 @@ describe('wildSightOf', () => {
 
   it('leaves bacteria out of what it would graze', () => {
     const world = createTestWorld({ hasWildSeats: true });
-    const viewer = world.cells.find((cell) => cell.kind === CELL_KIND.wild)!;
+    const viewer = wildSeatCellsOf(world.cells)[0]!;
     spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: BACTERIUM_VARIANT.plain, at: viewer });
     expect(wildSightOf(world, viewer, DEFAULT_BALANCE, WILD_CELL_DIET.foodKinds).motes).toEqual([]);
   });
 
   it("sees the bacteria the grazing giant's diet eats, and no mote on an empty diet", () => {
     const world = createTestWorld({ hasWildSeats: true });
-    const viewer = world.cells.find((cell) => cell.kind === CELL_KIND.wild)!;
+    const viewer = wildSeatCellsOf(world.cells)[0]!;
     const bacterium = spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: BACTERIUM_VARIANT.plain, at: viewer });
     const grazer = giantDiet(GIANT_SPECIES.paramecium, DEFAULT_BALANCE);
     expect(wildSightOf(world, viewer, DEFAULT_BALANCE, grazer.foodKinds).motes).toEqual([bacterium]);
@@ -77,7 +77,7 @@ describe('wildSightOf', () => {
 describe('createWildPerception', () => {
   const world = createTestWorld({ hasWildSeats: true });
   const player = world.cells[0]!;
-  const wild = world.cells.find((cell) => cell.kind === CELL_KIND.wild)!;
+  const wild = wildSeatCellsOf(world.cells)[0]!;
   const sight = { cells: [player, wild], motes: [] };
 
   it('locates the own cell by its entity id, and nothing by an id that is not in the world', () => {
@@ -107,7 +107,7 @@ const PREY_AT_X = 200;
 describe('hasCloserRival and the hunt perception (ticket #737)', () => {
   function rivalry(rivalAtX: number, rivalMass = THREAT_MASS) {
     const world = createTestWorld({ hasWildSeats: true });
-    const [hunter, prey, rival] = world.cells.filter((cell) => cell.kind === CELL_KIND.wild);
+    const [hunter, prey, rival] = wildSeatCellsOf(world.cells);
     const place = (cell: typeof hunter, x: number, mass: number) => {
       setCellMass(cell!, mass, world.balance);
       cell!.x = x;
@@ -173,7 +173,7 @@ const ON_WINDOW_MASS = 300;
 describe('createWildHuntPerception: the hunt window (docs/ecology/giants.md §3.5.6)', () => {
   function windowed(preyMass: number) {
     const world = createTestWorld({ hasWildSeats: true });
-    const [hunter, prey] = world.cells.filter((cell) => cell.kind === CELL_KIND.wild);
+    const [hunter, prey] = wildSeatCellsOf(world.cells);
     setCellMass(hunter!, HUNTER_MASS, world.balance);
     setCellMass(prey!, preyMass, world.balance);
     return { world, hunter: hunter!, prey: prey!, sight: { cells: [hunter!, prey!], motes: [] } };

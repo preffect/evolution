@@ -43,11 +43,12 @@ const W3_MASS_BEFORE_LEVEL = 199.983;
 const W3_MASS_AT_LEVEL = 200;
 const W3_TOLERANCE = 0.01;
 /**
- * W3: since ticket #819 (a started grab holds while the prey still touches its predator) the wild cells eat the idle
- * player on tick 10 490, its spectate over before the window opens, and not in the window: the budget is 351.17, so
- * "between 351 and 355". From #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in 5 s
- * and then rests 15 s) to #819 a wild cell ate it once in the window, on tick 11 891, its whole 182-tick spectate
- * inside: 351.17 − 182 / 60 = 348.13, so 348–352. From #710 (nothing rides past the rim) to #738 no wild cell ate
+ * W3: since ticket #819's seal under the kept grab (a held prey that does not sprint is sealed; moved by the seal, not
+ * by the giants) no wild cell eats the idle player in the window: the budget is 351.17, so "between 351 and 355". From
+ * ticket #830 (the three giants are seated before the wild seats, which moves every wild centre) to #819 wild cells
+ * ate it twice in the window, on ticks 11 087 and 13 613, each 182-tick spectate whole inside:
+ * 351.17 − 2 × 182 / 60 = 345.10, so 345–349. From ticket #738 (a wild hunter charges in, holds over its
+ * prey, gives up a hunt not landed in 5 s and then rests 15 s) to #830 once, on tick 11 891: 348–352. From #710 (nothing rides past the rim) to #738 no wild cell ate
  * it in or near the window: the budget is 351.17, so 351–355. Across seeds 1–11, 3 of 11 windows hold one death
  * (348–352) and the rest none (351–354). From #677 to #710 the pinned seed held one death, on tick 12 365 (348–352);
  * before #677 its death fell just before the window (tick 10 667, 48 spectate ticks inside: 350–354); #638's run had
@@ -57,22 +58,23 @@ const W3_DEATHS_IN_WINDOW = 0;
 const W3_SPAWNED_LOW = 351;
 const W3_SPAWNED_HIGH = 355;
 /**
- * W3 on the pinned seed: 236 algae in 351 motes, 0.672 since ticket #819 (the kept grab changes which of the seats'
- * engulfs land); 268 in 348, 0.770 from ticket #738 (a wild hunter charges in, holds over its prey,
+ * W3 on the pinned seed: 261 algae in 351 motes, 0.744 since ticket #819 (the seal takes the deaths out of the window,
+ * and the carried prey's settle moves the seats' later draws: 0.646, 228 in 353, with the seal alone); 0.783 (270 in
+ * 345) from ticket #830 (the giants move every wild centre); 0.770
+ * (268 in 348) from ticket #738 (a wild hunter charges in, holds over its prey,
  * gives up a hunt not landed in 5 s and rests 15 s, so the seats move differently from the first hunt on); 0.801 from #772 (281 in 351: the drag changes how
  * the seats' engulfs end); 0.715 from #737 (251 in 351: a wild cell leaves a prey to a
  * closer rival); 0.675 from #710 (239 in 354; the 0.70 row; the window's σ is ≈ 0.07; 0.713 from #677, 0.700 before).
  */
-const W3_ALGAE_SHARE_ON_SEED = 0.672;
+const W3_ALGAE_SHARE_ON_SEED = 0.744;
 /**
- * W9: since ticket #819's seal under the kept grab (a held prey that does not sprint is sealed, decision of 2026-10-12)
- * the hunting-era seats eat the idle player 3 times in the window (ticks 32 888, 34 502 and 35 259, the last spectate
- * 149 ticks inside): 526.75 − 513 / 60 × 1.5 = 513.93 → "between 513 and 517"; algae share on the seed 301 in 516,
- * 0.583. With the kept grab alone (#819's first cut), 4 times (ticks 32 888, 34 286, 34 816 and 35 278, the last
- * spectate 130 ticks inside): 526.75 − 676 / 60 × 1.5 = 509.85 → 509–513; 283 in 513, 0.552. From #738 (a wild
- * hunter charges in, holds over its prey, gives up a hunt not landed in 5 s and then rests 15 s) to #819 also 4 times
- * (ticks 32 936, 33 413, 34 187 and 35 190, each spectate whole): 526.75 − 4 × 182 / 60 × 1.5 = 508.55 → 508–512, 285
- * in 510, 0.559. From #772 (the drag changes how the seats' engulfs end) to #738, twice (ticks 33 465 and 34 879): 517–521,
+ * W9: since ticket #819's seal under the kept grab and the carried prey's settle (moved by #819, not by the giants) the
+ * hunting-era wild seats eat the idle player 4 times in the window (ticks 32 768, 33 521, 33 904 and 34 442, each
+ * spectate whole): 526.75 − 4 × 182 / 60 × 1.5 = 508.55 → "between 508 and 512", the band #830 left; algae share on
+ * the seed 228 in 508, 0.449 (the seal alone, without the settle: 6 deaths, 499 motes). From ticket #830 (the three
+ * giants are seated before the wild seats, which moves every wild centre) to #819 also 4 times (ticks 32 508, 33 794,
+ * 34 294 and 35 020): 508–512, 248 in 508, 0.488. From ticket #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in 5 s and then
+ * rests 15 s) to #830 also 4 times (ticks 32 936, 33 413, 34 187 and 35 190): 508–512, 285 in 510, 0.559. From #772 (the drag changes how the seats' engulfs end) to #738, twice (ticks 33 465 and 34 879): 517–521,
  297 in 517, 0.574. From ticket #737 (a wild cell leaves a prey to a closer rival,
  * so fewer seats are stuck shoving each other) to #772, 4 times: 508–512, 270 in 510, 0.529. From #710 (nothing rides past the rim) to #737 none did:
  * 526–530, 301 in 526, 0.572. Across seeds 1–11 the window held 1 to 3 deaths (513–526), each count inside its own
@@ -80,10 +82,10 @@ const W3_ALGAE_SHARE_ON_SEED = 0.672;
  * ≈ 0.07 (W3), so since #710 the share is pinned to the seed, never to a band (0.50 ± 0.06 until then). That the
  * spawner draws the `eukaryote` row at all is held by `spawner.test.ts` (20 000 motes, 0.50 ± 0.03).
  */
-const W9_DEATHS_IN_WINDOW = 3;
-const W9_SPAWNED_LOW = 513;
-const W9_SPAWNED_HIGH = 517;
-const W9_ALGAE_SHARE_ON_SEED = 0.583;
+const W9_DEATHS_IN_WINDOW = 4;
+const W9_SPAWNED_LOW = 508;
+const W9_SPAWNED_HIGH = 512;
+const W9_ALGAE_SHARE_ON_SEED = 0.449;
 /** A seed's share is one number: the tolerance only absorbs the rounding of the literal the row states (± 0.001). */
 const SEED_SHARE_TOLERANCE = 0.001;
 /** W6: seat 0 at mass 380 (radius 77.97) and A at 20, pinned, 390 wu east; the velocity read 60 ticks on. */
@@ -151,7 +153,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
     expect(Math.abs(algaeShareOf(counts) - W3_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);
   });
 
-  it('W9: the eukaryote bloom spawns 513–517 motes in the window (3 deaths) at the 50 % algae row; the variant table', async () => {
+  it('W9: the eukaryote bloom spawns 508–512 motes in the window (4 deaths) at the 50 % algae row; the variant table', async () => {
     const run = seededSolo('W9').advance(EUKARYOTE_TICK + WILD_WINDOW_TICKS + ONE_TICK);
     const { counts, windowEnd } = heldWindow(run, EUKARYOTE_TICK + ONE_TICK);
     await run
@@ -159,7 +161,7 @@ describe('ecology/acceptance.md §8.1: the world clock and the wild cells', () =
       .atTick(windowEnd)
       .toBeBetween(W9_SPAWNED_LOW, W9_SPAWNED_HIGH)
       .runDeterministic();
-    // Seats eat the idle player 3 times in the window on this seed; each spectate takes the per-player rate off the budget.
+    // Seats eat the idle player 4 times in the window on this seed; each spectate takes the per-player rate off the budget.
     expect(counts.deaths).toBe(RUNS_PER_ROW * W9_DEATHS_IN_WINDOW);
     expect(ecology.FOOD_KIND_WEIGHTS_BY_WORLD_STAGE.eukaryote).toEqual({ algae: 0.5, bacterium: 0.5 });
     expect(Math.abs(algaeShareOf(counts) - W9_ALGAE_SHARE_ON_SEED)).toBeLessThanOrEqual(SEED_SHARE_TOLERANCE);

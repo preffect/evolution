@@ -82,26 +82,26 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 
 ### `giants.ts` (§3.5, [`giants.md`](./giants.md); records keyed by `GiantSpecies`: amoeba, paramecium, diatom)
 
-| Constant                                  | Value                                                                               | Unit                                                          |
-| ----------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `GIANT_SPECIES_IN_DISH`                   | none until the giants-on slice (giants.md §3.5.17), then amoeba, paramecium, diatom | species, one seat each, read at world creation                |
-| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter                                                             | `GiantRole` (a plain constant, not a balance leaf)            |
-| `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1000                                                                      | mass                                                          |
-| `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1500, 1300, 1500                                                                    | mass                                                          |
-| `GIANT_MASS_CEILING`                      | 1500                                                                                | mass                                                          |
-| `GIANT_DECAY_MULTIPLIER`                  | 0.25                                                                                | × the player's decay                                          |
-| `GIANT_BUILDS_BY_SPECIES`                 | the three builds of giants.md §3.5.4                                                | trait ids and tiers                                           |
-| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6                                                                      | × the traits' speed                                           |
-| `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05                                                                     | per wander decision                                           |
-| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                                                                                | × the hunter's mass; gates the hunt target, never the swallow |
-| `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                                                                                   | s                                                             |
-| `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                                                                                  | degrees either side of ahead                                  |
-| `GIANT_GRAZER_APPETITE_MASS`              | 100                                                                                 | mass of growth                                                |
-| `GIANT_DNA_BONUS`                         | 200                                                                                 | DNA                                                           |
-| `GIANT_RESPAWN_SECONDS`                   | 90                                                                                  | s                                                             |
-| `GIANT_MIN_PLAYER_DISTANCE_WU`            | 1500                                                                                | wu                                                            |
-| `GIANT_MIN_GIANT_DISTANCE_WU`             | 1500                                                                                | wu                                                            |
-| `GIANT_MIN_CELL_DISTANCE_WU`              | 450                                                                                 | wu                                                            |
+| Constant                                  | Value                                                                     | Unit                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom (since the giants-on slice, giants.md §3.5.17) | species, one seat each, read at world creation                |
+| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter                                                   | `GiantRole` (a plain constant, not a balance leaf)            |
+| `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1000                                                            | mass                                                          |
+| `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1500, 1300, 1500                                                          | mass                                                          |
+| `GIANT_MASS_CEILING`                      | 1500                                                                      | mass                                                          |
+| `GIANT_DECAY_MULTIPLIER`                  | 0.25                                                                      | × the player's decay                                          |
+| `GIANT_BUILDS_BY_SPECIES`                 | the three builds of giants.md §3.5.4                                      | trait ids and tiers                                           |
+| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6                                                            | × the traits' speed                                           |
+| `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05                                                           | per wander decision                                           |
+| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                                                                      | × the hunter's mass; gates the hunt target, never the swallow |
+| `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                                                                         | s                                                             |
+| `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                                                                        | degrees either side of ahead                                  |
+| `GIANT_GRAZER_APPETITE_MASS`              | 100                                                                       | mass of growth                                                |
+| `GIANT_DNA_BONUS`                         | 200                                                                       | DNA                                                           |
+| `GIANT_RESPAWN_SECONDS`                   | 90                                                                        | s                                                             |
+| `GIANT_MIN_PLAYER_DISTANCE_WU`            | 1500                                                                      | wu                                                            |
+| `GIANT_MIN_GIANT_DISTANCE_WU`             | 1500                                                                      | wu                                                            |
+| `GIANT_MIN_CELL_DISTANCE_WU`              | 450                                                                       | wu                                                            |
 
 ### `absorption.ts`
 
@@ -125,6 +125,7 @@ defaults live in `absorption-derived.ts`): patch a phase second, not them (#367,
 | `ENGULF_PROGRESS_EPSILON`                                                                        | 1e-6             | progress                                                                                                                                                  |
 | `ENGULF_COVERAGE_FRACTION`                                                                       | 0.5              | prey radii                                                                                                                                                |
 | `ENGULF_HOLD_COVERAGE_FRACTION`                                                                  | −1               | prey radii (the kept grab, #819: a started engulf holds and seals the prey while it touches the predator; a sprinting prey by `ENGULF_COVERAGE_FRACTION`) |
+| `ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND`                                                      | 9                | prey radii/s (#819: a carried prey's offset eases inside `predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`)                                      |
 | `ENGULF_COVER_SECONDS`                                                                           | 0.2              | s                                                                                                                                                         |
 | `ENGULF_WRAP_SECONDS`                                                                            | 0.4              | s                                                                                                                                                         |
 | `ENGULF_ABSORB_SECONDS`                                                                          | 0.6              | s                                                                                                                                                         |

@@ -11,6 +11,16 @@ import { resumeStreams } from '../game/world/streams.js';
 import { createInputRejectionCounters, type StepContext, type WorldState } from '../game/world/world-state.js';
 
 const TEST_SEED = 42;
+const SPECIES_IN_DISH_LEAF = 'GIANT_SPECIES_IN_DISH';
+
+/**
+ * `DEFAULT_BALANCE` with no giant in the dish (docs/ecology/giants.md §3.5.17): for a seeded-world row about something
+ * else, which a giant would change the meaning of.
+ */
+export const NO_GIANTS_BALANCE: BalanceConfig = {
+  ...DEFAULT_BALANCE,
+  giants: { ...DEFAULT_BALANCE.giants, [SPECIES_IN_DISH_LEAF]: [] },
+};
 
 export const TEST_PLAYER: PlayerIdentity = { playerId: playerId('p1'), playerName: 'Alice', avatarIndex: 0 };
 

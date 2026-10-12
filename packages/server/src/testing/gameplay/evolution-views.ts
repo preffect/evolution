@@ -49,8 +49,9 @@ export function giantCellOf(view: EvolutionView, species: GiantSpecies): CellVie
   return seatedCellOf(view, giantSeatOf(view, species));
 }
 
+/** The wild seats' cells: `kind` wild with no giant species (the giants are `giantCellOf`'s, giants.md §3.5.9). */
 export function wildCellsOf(view: EvolutionView): CellView[] {
-  return view.snapshot.cells.filter((cell) => cell.kind === CELL_KIND.wild);
+  return view.snapshot.cells.filter((cell) => cell.kind === CELL_KIND.wild && cell.giantSpecies === null);
 }
 
 export function progressOf(view: EvolutionView, playerIndex: number): OwnProgressView | undefined {

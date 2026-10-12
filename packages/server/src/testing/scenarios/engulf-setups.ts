@@ -54,6 +54,14 @@ export const OFFSET_TOLERANCE_WU = 0.01;
 export const E16_START_MASS = 30;
 export const E16_HELD_MASS = 23;
 export const E16_RELEASED_MASS = 21.5;
+/**
+ * E16b's ejection point (wu): the carried prey settles inside the start's bound at the predator's radius of the moment
+ * (#819 review), so the movement step of tick 40, A now at 21.5, draws B's 10 wu offset in to ≈ 9.60 before the
+ * engulf step releases it there.
+ */
+export const E16B_EJECT_DISTANCE_WU =
+  radiusForMass(E16_RELEASED_MASS, DEFAULT_BALANCE.growth) -
+  radiusForMass(PREY_MASS, DEFAULT_BALANCE.growth) * absorption.ENGULF_COVERAGE_FRACTION;
 /** E10's under-ratio pair runs 120 ticks. */
 export const E10_SEPARATION_TICKS = 120;
 /** E10's stated bound: `A.radius + B.radius − distance` < 0.01 wu (docs/ecology/acceptance.md §8). */
