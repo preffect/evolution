@@ -14,7 +14,7 @@ import {
   type CellView,
 } from '@evolution/shared';
 import { seatTestGiantCell } from '../../testing/wild-builders.js';
-import { createTestWorld } from '../../testing/world-builders.js';
+import { createTestWorld, NO_GIANTS_BALANCE } from '../../testing/world-builders.js';
 import type { WorldState } from '../world/world-state.js';
 import { applyDebugPatch, DEBUG_PATCH_KIND, setBalanceForDebug, spawnForDebug } from './debug-operations.js';
 import { DebugRequestError } from './debug-request-error.js';
@@ -31,8 +31,8 @@ function spawnGiant(world: WorldState, params: Record<string, unknown>): CellVie
 
 describe('spawnForDebug, a giant', () => {
   it('seats the species at the point and born mass named, in its seat, on a balance that lists no giant', () => {
-    const world = createTestWorld();
-    expect(giants.GIANT_SPECIES_IN_DISH).toEqual([]);
+    const world = createTestWorld({ balance: NO_GIANTS_BALANCE });
+    expect(world.balance.giants.GIANT_SPECIES_IN_DISH).toEqual([]);
     const view = spawnGiant(world, { species: GIANT_SPECIES.diatom, mass: 1234 });
     expect(view).toMatchObject({ ...POINT, mass: 1234, giantSpecies: GIANT_SPECIES.diatom, level: 6, playerId: null });
     expect(world.giantSeats).toHaveLength(1);

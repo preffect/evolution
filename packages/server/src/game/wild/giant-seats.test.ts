@@ -1,6 +1,7 @@
 // docs/ecology/giants.md §3.5.9 and docs/ecology/acceptance.md §8.2 G1: the giant seats (numbered by species order),
-// the born-mass draw, the giant clearance, what a seated giant looks like, and the world seated on a balance whose
-// `GIANT_SPECIES_IN_DISH` is all three species: the giants first, the wild seats clear of them.
+// the born-mass draw, the giant clearance, what a seated giant looks like, and the world seated on the default
+// balance, whose `GIANT_SPECIES_IN_DISH` is all three species (giants.md §3.5.17): the giants first, the wild seats
+// clear of them.
 import { describe, expect, it } from 'vitest';
 import {
   CELL_KIND,
@@ -44,8 +45,6 @@ const WILD_COUNT_LEAF = 'WILD_CELL_COUNT';
 function balanceSeating(species: readonly GiantSpecies[]): BalanceConfig {
   return { ...DEFAULT_BALANCE, giants: { ...giants, [SPECIES_IN_DISH_LEAF]: species } };
 }
-
-const ALL_THREE = balanceSeating(GIANT_SPECIES_ORDER);
 
 /** Between the player rule's 600 wu and the giant rule's 1 500 wu. */
 const NEIGHBOUR_DISTANCE_WU = 1000;
@@ -189,8 +188,8 @@ describe('placeGiantCell', () => {
 });
 
 describe('createGiantSeats', () => {
-  it('seats no giant on the default balance, which leaves the list empty', () => {
-    const world = createTestWorld({ hasWildSeats: true });
+  it('seats no giant on a balance whose list is empty', () => {
+    const world = createTestWorld({ balance: balanceSeating([]), hasWildSeats: true });
     expect(world.giantSeats).toEqual([]);
     expect(world.cells.filter((cell) => cell.giantSpecies !== null)).toEqual([]);
   });
@@ -207,8 +206,8 @@ describe('createGiantSeats', () => {
 });
 
 /** The farthest-candidate fallback is pinned: none of seed 42's giants and wild cells needs it. */
-describe('createWorld on a balance seating all three giants (G1)', () => {
-  const world = createTestWorld({ balance: ALL_THREE, hasWildSeats: true, isFilled: true });
+describe('createWorld on the default balance, which seats all three giants (G1)', () => {
+  const world = createTestWorld({ hasWildSeats: true, isFilled: true });
   const giantCells = world.cells.filter((cell) => cell.giantSpecies !== null);
   const wild = world.cells.filter((cell) => !isPlayerCell(cell) && cell.giantSpecies === null);
   const player = world.cells.find(isPlayerCell)!;

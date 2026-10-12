@@ -10,6 +10,7 @@ import * as absorptionDerived from './absorption-derived.js';
 import * as giants from './giants.js';
 import * as ladder from './ladder.js';
 import { TRAIT_TIERS } from './traits.js';
+import { GIANT_SPECIES_ORDER } from '../types/game.js';
 
 const BALANCE_FILE = new URL('../../../../data/balance.json', import.meta.url);
 const GENERATE_COMMAND = 'pnpm generate:balance';
@@ -53,8 +54,8 @@ describe('DEFAULT_BALANCE', () => {
     expect(Object.keys(DEFAULT_BALANCE.giants).sort()).toEqual(giantConstants.sort());
   });
 
-  it('seats no giant until the giants-on slice (giants.md §3.5.17)', () => {
-    expect(DEFAULT_BALANCE.giants.GIANT_SPECIES_IN_DISH).toEqual([]);
+  it('seats all three giants in every round since the giants-on slice (giants.md §3.5.17)', () => {
+    expect(DEFAULT_BALANCE.giants.GIANT_SPECIES_IN_DISH).toEqual(GIANT_SPECIES_ORDER);
   });
 
   // The design-table side (every `derived` row is listed) is constants-ledger.test.ts.

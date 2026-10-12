@@ -3,7 +3,7 @@
 // docs/ecology/giants.md §3.5.9), so a test of the death or the payout seam meets the record the world makes, `kind`,
 // `organismId`, species and seat included, not a player cell with its id blanked.
 
-import type { GiantSpecies, Vec2 } from '@evolution/shared';
+import { CELL_KIND, type GiantSpecies, type Vec2 } from '@evolution/shared';
 import { worldReferenceAt } from '../game/simulation/round-clock.js';
 import { giantSeatOf, seatGiantCell } from '../game/wild/giant-seats.js';
 import { createWildSeatRecord, seatWildCell } from '../game/wild/wild-seats.js';
@@ -58,4 +58,9 @@ export function seatTestGiantCell(world: WorldState, options: TestGiantCellOptio
   const seat = giantSeatOf(world, options.species);
   const seating = { centre: options.at, bornMass: options.bornMass, grownMass: options.grownMass ?? 0 };
   return { seat, cell: seatGiantCell(world, seat, seating) };
+}
+
+/** The wild seats' cells in world order: every wild cell but the giants (docs/ecology/giants.md §3.5.9). */
+export function wildSeatCellsOf(cells: readonly CellRecord[]): CellRecord[] {
+  return cells.filter((cell) => cell.kind === CELL_KIND.wild && cell.giantSpecies === null);
 }

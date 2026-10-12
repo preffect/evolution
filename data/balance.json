@@ -200,7 +200,7 @@
     "GIANT_MIN_GIANT_DISTANCE_WU": 1500,
     "GIANT_MIN_PLAYER_DISTANCE_WU": 1500,
     "GIANT_RESPAWN_SECONDS": 90,
-    "GIANT_SPECIES_IN_DISH": [],
+    "GIANT_SPECIES_IN_DISH": ["giant_amoeba", "giant_paramecium", "giant_diatom"],
     "GIANT_SPEED_MULTIPLIER_BY_SPECIES": { "giant_amoeba": 0.7, "giant_paramecium": 0.85, "giant_diatom": 0.6 },
     "GIANT_TURN_CHANCE_BY_SPECIES": { "giant_amoeba": 0.25, "giant_paramecium": 0.1, "giant_diatom": 0.05 }
   },
