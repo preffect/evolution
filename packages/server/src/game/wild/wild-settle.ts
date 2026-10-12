@@ -35,9 +35,10 @@ export interface WildSettleInput {
   readonly grownMass: number;
   /** §4's decay for this cell at `mass`, zone and trait multipliers included (mass/s); taken from the growth alone. */
   readonly decayPerSecond: number;
-  /** This tick's base size, `worldMass × sizeFactor`. */
+  /** This tick's base size: `worldMass × sizeFactor` for a wild cell, the born mass for a giant. */
   readonly baseMass: number;
-  readonly worldMass: number;
+  /** The mass growth stops at: 3 × `worldMass` for a wild cell (`wildGrowthCeiling`), `GIANT_MASS_CEILING` for a giant. */
+  readonly growthCeiling: number;
 }
 
 /** What one settle writes: the cell's mass and the seat's growth and full size. */
@@ -52,19 +53,23 @@ export function wildRecoveryFactorPerTick(balance: BalanceConfig): number {
   return 1 - TICK_INTERVAL_S / balance.wildCells.WILD_CELL_RECOVERY_SECONDS;
 }
 
+/** A wild cell's growth ceiling at `worldMass` (docs/ecology/wild-cells.md §3.3.1). */
+export function wildGrowthCeiling(worldMass: number, balance: BalanceConfig): number {
+  return balance.wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
+}
+
 /** `min(baseMass + grownMass, max(baseMass, ceiling))`: growth stops at the ceiling, a base above it is kept whole. */
-function fullMassOf(baseMass: number, grownMass: number, worldMass: number, balance: BalanceConfig): number {
-  const growthCeiling = balance.wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
+function fullMassOf(baseMass: number, grownMass: number, growthCeiling: number): number {
   return Math.min(baseMass + grownMass, Math.max(baseMass, growthCeiling));
 }
 
-/** The settle's pure core (docs/ecology/wild-cells.md §3.3.1). */
+/** The settle's pure core (docs/ecology/wild-cells.md §3.3.1), a giant's too (docs/ecology/giants.md §3.5.3). */
 export function settleWildMass(input: WildSettleInput, balance: BalanceConfig): WildSettleResult {
   const offset = input.mass - input.fullMass;
   const grownWithMeal = input.grownMass + Math.max(0, offset);
   const wound = Math.min(0, offset) * wildRecoveryFactorPerTick(balance);
   const grownAfterDecay = Math.max(0, grownWithMeal - input.decayPerSecond * TICK_INTERVAL_S);
-  const fullMass = fullMassOf(input.baseMass, grownAfterDecay, input.worldMass, balance);
+  const fullMass = fullMassOf(input.baseMass, grownAfterDecay, input.growthCeiling);
   const floor = Math.min(balance.growth.CELL_STARTING_MASS, input.baseMass);
   return { mass: Math.max(floor, fullMass + wound), grownMass: fullMass - input.baseMass, fullMass };
 }
@@ -107,7 +112,7 @@ function settledMassOf(world: WorldState, seat: WildSeatRecord, cell: CellRecord
       grownMass: seat.grownMass,
       decayPerSecond: decayPerSecond(metabolismInputOf(cell, world, balance), balance),
       baseMass: wildBaseMass(seat, reference),
-      worldMass: reference.worldMass,
+      growthCeiling: wildGrowthCeiling(reference.worldMass, balance),
     },
     balance,
   );

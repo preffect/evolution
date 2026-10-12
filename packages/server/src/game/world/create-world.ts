@@ -1,6 +1,7 @@
 // Builds a round's world (docs/architecture/entity-model.md §2, docs/determinism/random-streams.md §3): forks the server
 // streams from the round seed, places the gel patches, spawns every roster member by safe
-// placement (join order), seats the wild cells (docs/ecology/wild-cells.md §3.3), then runs the initial fill so no
+// placement (join order), seats the giants (docs/ecology/giants.md §3.5.9) and then the wild cells
+// (docs/ecology/wild-cells.md §3.3), so the wild placement keeps clear of the giants, then runs the initial fill so no
 // mote lands inside any cell. Both the room's first round and every rematch come through here; a rematch passes
 // the incremented seed and the continued counters, and its wild cells start again at protocell scale.
 
@@ -10,6 +11,7 @@ import { updateLeaderboard } from '../session/leaderboard.js';
 import { placeGelPatches } from '../simulation/zones.js';
 import { runInitialFill } from '../simulation/spawner.js';
 import { roundTimeLeftMsAt } from '../simulation/round-clock.js';
+import { createGiantSeats } from '../wild/giant-seats.js';
 import { createWildSeats } from '../wild/wild-seats.js';
 import type { SpawnerState } from './entities.js';
 import { createMassFlowLedger } from './mass-flow-ledger.js';
@@ -53,6 +55,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     dnaFragments: [],
     players: [],
     wildSeats: [],
+    giantSeats: [],
     leaderboard: [],
     spawners: { food: createSpawnerState(), dnaFragments: createSpawnerState() },
     random: forkServerStreams(options.seed),
@@ -74,6 +77,7 @@ export function createWorld(options: CreateWorldOptions): WorldState {
     world.players.push(player);
     spawnCellForPlayer(world, player, options.balance.growth.CELL_STARTING_MASS, streams[RANDOM_STREAM.spawnPlacement]);
   }
+  createGiantSeats(world, streams);
   createWildSeats(world, { streams, balance: options.balance });
   const context: StepContext = {
     balance: options.balance,

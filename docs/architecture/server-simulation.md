@@ -87,7 +87,23 @@ prediction reuses them unchanged.
   balance that breaks a giant rule (`giantBalanceProblems`, `shared/simulation/giant-balance.ts`: a build that is not
   a valid ladder ending in a form, a born range unordered or outside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`], a
   speed multiplier above 1), whichever domain the patch named, beside the wild builds' tier refusal (#671). The seats,
-  minds and steps of giants.md §3.5.15 land with its later slices; until then no world seats a giant.
+  minds of giants.md §3.5.15 land with ticket #827; the seats and the lifecycle are below.
+- **Giant seats** (ecology/giants.md §3.5.2–§3.5.10, ticket #826): one `GiantSeatRecord` per species in
+  `world.giantSeats` (architecture/entity-model.md §2), numbered `WILD_CELL_COUNT` + the species' place in
+  `GIANT_SPECIES_ORDER`. `wild/giant-seats.ts` seats them at world creation, after the players and before the wild
+  seats, for the species `GIANT_SPECIES_IN_DISH` names (empty in `DEFAULT_BALANCE`, so no live world seats one yet),
+  by `findSafeSpawnPoint` under `giantSpawnClearance` (1 500 wu from every player and every other giant, 450 from
+  every other cell), drawing the born mass, the first heading and the candidates from the `giants` stream.
+  `wild/seat-mind.ts` is what a wild and a giant seat share: the record at rest and the birth of the seat's cell.
+  Step 1 settles the giants after the wild seats (`wild/giant-settle.ts`: `settleWildMass` with the born mass for the
+  base, `GIANT_MASS_CEILING` for the ceiling and the decay × `GIANT_DECAY_MULTIPLIER`); the die-off never sees them,
+  since it sums `world.wildSeats` alone. `wild/giant-build.ts` is the one home of the species speed multiplier:
+  `applyGiantBuild` lays the fixed build (level = picks + 1), refolds and multiplies the folded `speedMultiplier`, and
+  every refresh of a giant goes through it (`refreshAnyCellFromItsTraits` for a balance patch of the trait tiers).
+  Step 9 respawns them after the wild seats by the wild count (`runSeatRespawns`, `wild/giant-respawn.ts`). The
+  payout pays a player `GIANT_DNA_BONUS` through `gainDna` and its multiplier instead of the DNA base and share. Until
+  ticket #827 a giant has no mind: its seat counts nothing down and it sits where it is placed, and step 4 feeds it
+  the motes it covers as any wild cell.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
@@ -99,11 +115,12 @@ way: `wild/` imports from `simulation/`, and `simulation/step.ts`, the composer,
 imports from `wild/` (lint-enforced, `eslint.config.js`; #509).
 
 - **The settle** (`wild/wild-settle.ts`) replaces the per-tick pin. The pure core is
-  `settleWildMass({ mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass }, balance) → { mass, grownMass,
+  `settleWildMass({ mass, fullMass, grownMass, decayPerSecond, baseMass, growthCeiling }, balance) → { mass, grownMass,
 fullMass }` (ecology W11) plus `wildSizeFactor(u, balance)`. Its caller supplies `decayPerSecond` from
   `simulation/metabolism.ts` (`decayPerSecond(metabolismInputOf(cell, world, balance), balance)`), so the settle never
-  carries a second decay formula, and supplies `baseMass` and `worldMass` from `worldReferenceAt`. Level, traits
-  and stage are set as the pin set them (`wild-build.ts`, unchanged).
+  carries a second decay formula, and supplies `baseMass` and `growthCeiling` (`wildGrowthCeiling`, 3 × `worldMass`)
+  from `worldReferenceAt`. Level, traits and stage are set as the pin set them (`wild-build.ts`, unchanged). The giant
+  settle (below) calls the same core.
 - **A loss never lifts a wild cell.** Step 5 and a sprint start floor a wild cell at `min(CELL_STARTING_MASS,
 its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 20 would otherwise be raised to
   20 by a drain or a sprint, and the settle would book the rise as permanent growth. The floor has one home,
@@ -116,8 +133,8 @@ its mass before the change)`, never at `CELL_STARTING_MASS`: a cell born below 2
   `wildCarryingCapacity`; the starver's settle then takes one tick of starvation from its growth and then its size
   factor (`starveSettled`), and a starver whose full size falls under `WILD_CELL_SIZE_FACTOR_MIN × worldMass` bursts
   through `dissolveCell` at the end of its settle, on the `spawner` stream like any detritus. Step 9 vacates the seat.
-- **Order inside step 1:** players' inputs, then the settle for every seated cell in seat order, then the due
-  seats' decisions. A sprint a decision starts is paid on that tick through `tryStartSprint`, the player's own
+- **Order inside step 1:** players' inputs, then the settle for every seated wild cell in seat order, then every
+  seated giant's (ecology/giants.md §3.5.15), then the due seats' decisions. A sprint a decision starts is paid on that tick through `tryStartSprint`, the player's own
   function, and `startWildSprint` takes as much of it as `seat.grownMass` holds off `seat.grownMass` and
   `seat.fullMass` (spent for good); the rest reaches the next settle as a wound and recovers (the lead's ruling on the #594 review).
 - **Perception is filtered by sight, linearly.** `createWildPerception` is built per decision around the

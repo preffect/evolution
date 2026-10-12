@@ -85,6 +85,15 @@ export const GIANT_SPECIES = {
   diatom: 'giant_diatom',
 } as const;
 export type GiantSpecies = ValueOf<typeof GIANT_SPECIES>;
+/**
+ * The fixed species order (docs/ecology/giants.md §3.5.9): giant seats are numbered `WILD_CELL_COUNT` + the index here,
+ * whatever order `GIANT_SPECIES_IN_DISH` lists them in.
+ */
+export const GIANT_SPECIES_ORDER: readonly GiantSpecies[] = [
+  GIANT_SPECIES.amoeba,
+  GIANT_SPECIES.paramecium,
+  GIANT_SPECIES.diatom,
+];
 
 /** What a giant species does (docs/ecology/giants.md §3.5.6): only the hunter eats cells. */
 export const GIANT_ROLE = { hunter: 'hunter', grazer: 'grazer', drifter: 'drifter' } as const;

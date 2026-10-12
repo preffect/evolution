@@ -30,6 +30,7 @@ import type {
   DnaFragmentRecord,
   EngulfReleaseRecord,
   FoodMoteRecord,
+  GiantSeatRecord,
   PlayerRecord,
   SpawnerState,
   SpitOutRefractoryRecord,
@@ -223,6 +224,23 @@ export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
   'huntRestUntilTick',
 ];
 
+export const GIANT_SEAT_HASHED_FIELDS: readonly HashedField<GiantSeatRecord>[] = [
+  'seatNumber',
+  'cellId',
+  'species',
+  'bornMass',
+  'grownMass',
+  'fullMass',
+  'respawnInTicks',
+  'headingX',
+  'headingY',
+  'decideInTicks',
+  'huntPreyId',
+  'huntStartTick',
+  'givenUpPreyId',
+  'huntRestUntilTick',
+];
+
 function hashRecords<Record>(
   hasher: StateHasher,
   records: readonly Record[],
@@ -249,6 +267,7 @@ export function computeStateHash(world: WorldState): StateHash {
   hashRecords(hasher, world.dnaFragments, DNA_FRAGMENT_HASHED_FIELDS);
   hashRecords(hasher, world.players, PLAYER_HASHED_FIELDS);
   hashRecords(hasher, world.wildSeats, WILD_SEAT_HASHED_FIELDS);
+  hashRecords(hasher, world.giantSeats, GIANT_SEAT_HASHED_FIELDS);
   hashRecords(hasher, world.gelPatches, GEL_PATCH_HASHED_FIELDS);
   hashFields(hasher, world.spawners.food, SPAWNER_HASHED_FIELDS);
   hashFields(hasher, world.spawners.dnaFragments, SPAWNER_HASHED_FIELDS);

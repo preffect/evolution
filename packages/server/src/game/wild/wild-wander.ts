@@ -13,7 +13,7 @@ import {
   type Vec2,
 } from '@evolution/shared';
 import { spawnReach } from '../simulation/spawn-placement.js';
-import type { WildSeatRecord } from '../world/entities.js';
+import type { SeatMindRecord } from '../world/entities.js';
 
 const UNIT_LENGTH = 1;
 const ORIGIN: Vec2 = { x: 0, y: 0 };
@@ -23,13 +23,13 @@ export function drawWildHeading(random: RandomSource): Vec2 {
   return pointOnCircle(UNIT_LENGTH, random.nextFloat() * RADIANS_PER_FULL_TURN);
 }
 
-export function setSeatHeading(seat: WildSeatRecord, heading: Vec2): void {
+export function setSeatHeading(seat: SeatMindRecord, heading: Vec2): void {
   seat.headingX = heading.x;
   seat.headingY = heading.y;
 }
 
 /** The wander target: `STEER_FULL_THROTTLE_RADII` own radii from the centre along the seat's heading. */
-export function pointAlongHeading(seat: WildSeatRecord, cell: Vec2 & { radius: number }, balance: BalanceConfig): Vec2 {
+export function pointAlongHeading(seat: SeatMindRecord, cell: Vec2 & { radius: number }, balance: BalanceConfig): Vec2 {
   const reach = balance.controls.STEER_FULL_THROTTLE_RADII * cell.radius;
   return { x: cell.x + seat.headingX * reach, y: cell.y + seat.headingY * reach };
 }
@@ -40,7 +40,7 @@ export function isInsideWanderDisc(point: Vec2, balance: BalanceConfig): boolean
 
 /** One wander decision: the turn roll, the heading it may draw, the redraws against the disc. */
 export function wanderTargetOf(
-  seat: WildSeatRecord,
+  seat: SeatMindRecord,
   cell: Vec2 & { radius: number },
   random: RandomSource,
   balance: BalanceConfig,

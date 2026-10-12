@@ -35,7 +35,7 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
 
 - Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`, `roundStartTick`,
   `roundPhase`, `roundTimeLeftMs`, `roundFirstEntityNumber`, then each array in order (`cells`,
-  `food`, `dnaFragments`, `players`, `wildSeats`, `gelPatches`), the two `spawners`, the `random`
+  `food`, `dnaFragments`, `players`, `wildSeats`, `giantSeats`, `gelPatches`), the two `spawners`, the `random`
   streams in `SERVER_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`; each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
   (so `0`, `false`, `""` and `null` differ); numbers hash by their IEEE-754 bits (one shared

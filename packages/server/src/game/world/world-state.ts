@@ -17,6 +17,7 @@ import type {
   CellRecord,
   DnaFragmentRecord,
   FoodMoteRecord,
+  GiantSeatRecord,
   PlayerRecord,
   SpawnerState,
   WildSeatRecord,
@@ -47,6 +48,12 @@ export interface WorldState {
   players: PlayerRecord[];
   /** Seat order (docs/ecology/wild-cells.md §3.3): `WILD_CELL_COUNT` seats from world creation, never fewer. */
   wildSeats: WildSeatRecord[];
+  /**
+   * Seat order (docs/ecology/giants.md §3.5.9): one seat per species of `GIANT_SPECIES_IN_DISH`, seated at world
+   * creation, plus any a fixture or `debug_spawn` seats. Apart from `wildSeats`, so the die-off's sum and
+   * `WILD_CELL_COUNT` stay the wild seats'.
+   */
+  giantSeats: GiantSeatRecord[];
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState };
   /** The server streams' state, walked in `SERVER_RANDOM_STREAM_LABELS` order (docs/determinism/random-streams.md §3, docs/determinism/ordering-and-state-hash.md §5). */

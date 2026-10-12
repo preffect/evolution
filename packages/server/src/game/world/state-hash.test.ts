@@ -1,9 +1,18 @@
 // docs/determinism/ordering-and-state-hash.md §5, docs/determinism/replay-tests-and-traps.md §7: equal worlds hash equal, any hashed field change moves the hash, NaN
 // throws, and every non-derived record field is listed.
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, FOOD_KIND, MASS_WINDOW_AMOUNT, StateHashError, createTestGameInput } from '@evolution/shared';
+import {
+  CELL_STAGE,
+  DEFAULT_BALANCE,
+  FOOD_KIND,
+  GIANT_SPECIES,
+  MASS_WINDOW_AMOUNT,
+  StateHashError,
+  createTestGameInput,
+} from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import { createTestWorld } from '../../testing/world-builders.js';
+import { createGiantSeatRecord } from '../wild/giant-seats.js';
 import { createWildSeatRecord } from '../wild/wild-seats.js';
 import { recordMetabolism, recordWindowAmount, sealMassWindow } from './mass-flow-ledger.js';
 import type { WorldState } from './world-state.js';
@@ -13,6 +22,7 @@ import {
   DNA_FRAGMENT_HASHED_FIELDS,
   FOOD_MOTE_HASHED_FIELDS,
   GEL_PATCH_HASHED_FIELDS,
+  GIANT_SEAT_HASHED_FIELDS,
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
   WILD_SEAT_HASHED_FIELDS,
@@ -71,6 +81,8 @@ describe('computeStateHash', () => {
     ['a spawner flag', (world) => (world.spawners.dnaFragments.isEnabled = true)],
     ['a random stream', (world) => (world.random.spawner = { ...world.random.spawner, position: 7 })],
     ['the entity counter', (world) => (world.nextEntityNumber += 1)],
+    ['a giant seat', (world) => world.giantSeats.push(createGiantSeatRecord(GIANT_SPECIES.diatom, DEFAULT_BALANCE))],
+    ['the giants stream', (world) => (world.random.giants = { ...world.random.giants, position: 7 })],
   ])('changes when %s changes', (_label, mutate) => {
     const base = computeStateHash(populatedWorld());
     const changed = populatedWorld();
@@ -107,6 +119,7 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
       'dnaFragments',
       'players',
       'wildSeats',
+      'giantSeats',
       'gelPatches',
       'spawners',
       'random',
@@ -141,6 +154,11 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
 
   it('wild seats: every field, the die-off flag included, so a seat field added later is hashed or fails here', () => {
     expect(keysOf(WILD_SEAT_HASHED_FIELDS)).toEqual(Object.keys(createWildSeatRecord(0)).sort());
+  });
+
+  it('giant seats: every field, so a seat field added later is hashed or fails here', () => {
+    const seat = createGiantSeatRecord(GIANT_SPECIES.amoeba, DEFAULT_BALANCE);
+    expect(keysOf(GIANT_SEAT_HASHED_FIELDS)).toEqual(Object.keys(seat).sort());
   });
 });
 

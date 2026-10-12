@@ -17,10 +17,11 @@ import {
 } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
+import { GIANT_SPAWN_KIND, spawnGiantForDebug } from './debug-giant-spawn.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
 import { refreshPlayerStage } from '../progression/ladder.js';
-import { refreshCellDerivedState, refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
+import { refreshCellDerivedState } from '../progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js';
 import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
@@ -28,6 +29,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
+import { refreshAnyCellFromItsTraits } from '../wild/giant-build.js';
 import { isPastTopTraitTier, topWildTier } from '../wild/wild-build.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import { forkServerStreams } from '../world/streams.js';
@@ -59,8 +61,14 @@ function spawnMoteForDebug(world: WorldState, request: SpawnRequest): unknown {
   return toFoodMoteView(mote, EXACT_SNAPSHOT_VALUES);
 }
 
-/** A mote (`food_mote`, params `kind` and `variant`) or a fragment (`dna_fragment`, param `tag`) at the point. */
+/**
+ * A mote (`food_mote`, params `kind` and `variant`), a fragment (`dna_fragment`, param `tag`) or a giant (`giant`,
+ * params `species` and `mass`, `debug-giant-spawn.ts`) at the point.
+ */
 export function spawnForDebug(world: WorldState, request: SpawnRequest): unknown {
+  if (request.kind === GIANT_SPAWN_KIND) {
+    return spawnGiantForDebug(world, request);
+  }
   if (request.kind === ENTITY_KIND.foodMote) {
     return spawnMoteForDebug(world, request);
   }
@@ -74,7 +82,9 @@ export function spawnForDebug(world: WorldState, request: SpawnRequest): unknown
       EXACT_SNAPSHOT_VALUES,
     );
   }
-  throw new DebugRequestError(`"${request.kind}" cannot be spawned: use food_mote or dna_fragment`);
+  throw new DebugRequestError(
+    `"${request.kind}" cannot be spawned: use ${ENTITY_KIND.foodMote}, ${ENTITY_KIND.dnaFragment} or ${GIANT_SPAWN_KIND}`,
+  );
 }
 
 /** DNA with the cell's gain multiplier (1 without a cell); every listed tag gets `dna` tag points. */
@@ -186,7 +196,7 @@ export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unkn
   refuseUnlivableBalance(patched);
   world.balance = patched;
   if (didChangeTraitTiers) {
-    for (const cell of world.cells) refreshCellDerivedStateFromTraits(cell, cell.traits, world.balance);
+    for (const cell of world.cells) refreshAnyCellFromItsTraits(cell, world.balance);
   }
   return world.balance;
 }

@@ -583,12 +583,14 @@ without its mind would sit still and swallow whatever touched it.
    and derived level, the speed multiplier's one home, die-off exclusion, the seat fields in the state
    hash, `RANDOM_STREAM.giants`, the payout (DNA bonus through the multiplier, the effect field), the
    `placeGiant` fixture, and `debug_spawn` for `giant` (debug-mcp.md §8). Rows G1 (on a balance whose
-   `GIANT_SPECIES_IN_DISH` is all three), G8, G9, G11, G12. Depends on 1.
+   `GIANT_SPECIES_IN_DISH` is all three), G8, G9, G11 (its tick-34 mass with slice 3's step 4), G12. A seated
+   giant has no mind yet: its seat's decision countdown is set at placement and counted from slice 3, and step 4
+   still feeds it the motes it covers. Depends on 1.
 3. **Server: giant minds**: the seat profile in the wild strategy (role decision orders, the hunt window
    as the hunter's target filter, the 8 s give-up, the drifter's flee then wander, the turn chances, the
    profile's stream and ceiling), and the grazer's diet (bacteria, the forward cone, appetite, step 4
-   eating and skipping). Rows G3, G4, G5, G6, G7, G10, G13, and G15 once ticket #819's kept grab is on
-   main. Depends on 2.
+   eating and skipping). Rows G3, G4, G5, G6, G7, G10, G13, G11's tick-34 mass, and G15 once ticket #819's kept
+   grab is on main. Depends on 2.
 4. **Client render** (graphics-designer): per-species palettes, a giant-size check of the amoeba,
    ciliate and diatom forms (the oral groove, the rings of pores and radial ribs where missing). Evidence
    on a private stack, with giants placed by `debug_spawn('giant')`. Depends on 1 and 2.

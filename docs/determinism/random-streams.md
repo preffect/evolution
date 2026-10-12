@@ -30,6 +30,7 @@ export const RANDOM_STREAM = {
   moteMotion: 'mote_motion', // bacteria random-walk headings; fragment drift direction at spawn
   wildCells: 'wild_cells', // wild cells: spread factors, wander headings, turn rolls (ecology/wild-cells.md §3.3)
   engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0, its only consumer (ecology/absorption.md §6.1)
+  giants: 'giants', // giant cells: born masses, placement candidates, wander headings, turn rolls (ecology/giants.md §3.5.9)
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
@@ -79,6 +80,11 @@ export const forkStreamStates: <Label extends string>(
 - **`moteMotion` is a separate stream** (ecology/food-and-spawn.md §1 lists it under the label `mote_motion`): the
   bacteria random walk draws every tick for every living bacterium, and tying it to `spawner`
   would make every spawn position depend on how many bacteria are alive.
+- **`giants` is a separate stream** (ecology/giants.md §3.5.9, ticket #826): a giant's born mass, its first
+  heading and its placement candidates are drawn from it, at world creation, at a respawn and at a
+  `debug_spawn('giant')` that names no mass, so a giant never shifts a mote, a wild cell's draw or a player's
+  spawn. Adding the stream moved every world's state hash once (the walk covers every stream), and no
+  other stream's draws.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the server
   streams from the round seed (`forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS)`)
   and stores their state in `world.random`; systems obtain a live

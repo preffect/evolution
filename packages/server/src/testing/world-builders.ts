@@ -2,7 +2,7 @@
 // player record with defaults, so a shape change is one edit. Builder defaults are the only
 // tolerated inline test numbers.
 
-import { DEFAULT_BALANCE, createTestSessionConfig, playerId } from '@evolution/shared';
+import { DEFAULT_BALANCE, createTestSessionConfig, playerId, type BalanceConfig } from '@evolution/shared';
 import { createPlayerRecord, type PlayerIdentity } from '../game/session/players.js';
 import { createWorld } from '../game/world/create-world.js';
 import type { PlayerRecord } from '../game/world/entities.js';
@@ -18,21 +18,23 @@ export interface TestWorldOptions {
   readonly players?: readonly PlayerIdentity[];
   /** Keep the seeded motes and spawners; off by default so arithmetic is exact. */
   readonly isFilled?: boolean;
-  /** Keep the seeded wild seats and their cells (docs/ecology/wild-cells.md §3.3); off by default so `world.cells` is the players'. */
+  /** Keep the seeded wild and giant seats and their cells (docs/ecology/wild-cells.md §3.3); off by default so `world.cells` is the players'. */
   readonly hasWildSeats?: boolean;
   readonly seed?: number;
+  /** The balance the world is built on (a fixture's, e.g. one whose `GIANT_SPECIES_IN_DISH` seats giants). */
+  readonly balance?: BalanceConfig;
 }
 
 /**
- * A seeded world with one player; the dish is emptied and the spawners are off unless `isFilled`, and the wild
- * seats are removed with their cells unless `hasWildSeats`.
+ * A seeded world with one player; the dish is emptied and the spawners are off unless `isFilled`, and the wild and
+ * giant seats are removed with their cells unless `hasWildSeats`.
  */
 export function createTestWorld(options: TestWorldOptions = {}): WorldState {
   const seed = options.seed ?? TEST_SEED;
   const world = createWorld({
     seed,
     config: createTestSessionConfig({ seed }),
-    balance: DEFAULT_BALANCE,
+    balance: options.balance ?? DEFAULT_BALANCE,
     players: options.players ?? [TEST_PLAYER],
   });
   if (!options.isFilled) {

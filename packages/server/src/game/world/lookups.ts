@@ -1,9 +1,9 @@
 // Record lookups by id over the world's arrays. Single lookups are linear scans: the arrays are small and
-// insertion-ordered by contract, so no index to keep in sync. A pass that looks up a cell per wild seat builds a
+// insertion-ordered by contract, so no index to keep in sync. A pass that looks up a cell per seat builds a
 // throwaway id index once instead (#509), so the world keeps no index either.
 
 import type { EntityId, PlayerId } from '@evolution/shared';
-import type { CellRecord, PlayerRecord, WildSeatRecord } from './entities.js';
+import type { CellRecord, GiantSeatRecord, PlayerRecord, SeatMindRecord, WildSeatRecord } from './entities.js';
 import { SimulationInvariantError } from './simulation-invariant-error.js';
 import type { WorldState } from './world-state.js';
 
@@ -38,7 +38,7 @@ export function findCell(world: WorldState, cellId: EntityId): CellRecord | unde
 }
 
 /** The seat's cell, or `undefined` while the seat is vacant. */
-export function cellOfSeat(world: WorldState, seat: WildSeatRecord): CellRecord | undefined {
+export function cellOfSeat(world: WorldState, seat: SeatMindRecord): CellRecord | undefined {
   return seat.cellId === null ? undefined : findCell(world, seat.cellId);
 }
 
@@ -47,23 +47,36 @@ export function indexCellsById(world: WorldState): ReadonlyMap<EntityId, CellRec
   return new Map(world.cells.map((cell) => [cell.id, cell]));
 }
 
-/** A seated wild seat and its cell. */
-export interface SeatedWildCell {
-  readonly seat: WildSeatRecord;
+/** A seated seat and its cell. */
+export interface SeatedCell<Seat extends SeatMindRecord> {
+  readonly seat: Seat;
   readonly cell: CellRecord;
 }
 
-/** The seated wild seats with their cells, in seat order; a vacant seat, or one whose cell is gone, is left out. */
-export function seatedWildCells(world: WorldState): SeatedWildCell[] {
+export type SeatedWildCell = SeatedCell<WildSeatRecord>;
+export type SeatedGiantCell = SeatedCell<GiantSeatRecord>;
+
+/** The seated seats of `seats` with their cells, in seat order; a vacant seat, or one whose cell is gone, is left out. */
+function seatedCellsOf<Seat extends SeatMindRecord>(world: WorldState, seats: readonly Seat[]): SeatedCell<Seat>[] {
   const cellsById = indexCellsById(world);
-  const seated: SeatedWildCell[] = [];
-  for (const seat of world.wildSeats) {
+  const seated: SeatedCell<Seat>[] = [];
+  for (const seat of seats) {
     const cell = seat.cellId === null ? undefined : cellsById.get(seat.cellId);
     if (cell !== undefined) {
       seated.push({ seat, cell });
     }
   }
   return seated;
+}
+
+/** The seated wild seats with their cells, in seat order. */
+export function seatedWildCells(world: WorldState): SeatedWildCell[] {
+  return seatedCellsOf(world, world.wildSeats);
+}
+
+/** The seated giant seats with their cells, in seat order. */
+export function seatedGiantCells(world: WorldState): SeatedGiantCell[] {
+  return seatedCellsOf(world, world.giantSeats);
 }
 
 /** Removes by identity, preserving order (docs/determinism/ordering-and-state-hash.md §4: never swap-remove). */

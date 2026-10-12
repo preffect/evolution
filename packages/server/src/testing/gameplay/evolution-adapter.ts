@@ -20,7 +20,7 @@ import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/s
 import { removeWildSeats } from '../../game/wild/wild-seats.js';
 import { cellOfSeat } from '../../game/world/lookups.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
-import type { WildSeatRecord } from '../../game/world/entities.js';
+import type { GiantSeatRecord, WildSeatRecord } from '../../game/world/entities.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { WorldState } from '../../game/world/world-state.js';
 import type { FixtureContext, ScenarioAdapter } from './adapter.js';
@@ -60,6 +60,8 @@ export interface EvolutionScenarioSnapshot extends GameSnapshot {
   readonly progressByPlayer: Readonly<Record<string, OwnProgressView>>;
   /** The wild seats in seat order: the world clock is never sent (docs/ecology/wild-cells.md §3.3), a W row reads it. */
   readonly wildSeats: readonly WildSeatView[];
+  /** The giant seats in seat order (docs/ecology/giants.md §3.5.9): a G row reads a giant's born mass and growth. */
+  readonly giantSeats: readonly Readonly<GiantSeatRecord>[];
 }
 
 function toWildSeatView(world: WorldState, seat: WildSeatRecord): WildSeatView {
@@ -172,6 +174,7 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     ),
   );
   const wildSeats = projectOnce(() => world.wildSeats.map((seat) => toWildSeatView(world, seat)));
+  const giantSeats = projectOnce(() => world.giantSeats.map((seat) => ({ ...seat })));
   // A scenario drains every tick, so its window (the effects and the sprint spend, #383) is the tick's.
   const effects = drainBroadcastWindow(world);
   const snapshot = {
@@ -188,12 +191,14 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
   }
   Object.defineProperty(snapshot, 'progressByPlayer', { enumerable: true, get: progressByPlayer });
   Object.defineProperty(snapshot, 'wildSeats', { enumerable: true, get: wildSeats });
+  Object.defineProperty(snapshot, 'giantSeats', { enumerable: true, get: giantSeats });
   return {
     snapshot,
     materialise: () => {
       projection();
       progressByPlayer();
       wildSeats();
+      giantSeats();
     },
   };
 }
