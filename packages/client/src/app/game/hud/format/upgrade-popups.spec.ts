@@ -9,14 +9,16 @@ import {
   type OwnProgressView,
   type OwnedTrait,
   type TraitId,
+  GIANT_SPECIES,
 } from '@evolution/shared';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
 import { formRealLifeLine } from './form-facts';
+import type { GiantSwallow } from './giant-popups';
+import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
 import { bindQuantities } from './trait-cards';
 import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
-  UPGRADE_POPUP_KIND,
   UPGRADE_POPUP_PLACEMENT,
   gainedTraits,
   upgradePopupPlacementFor,
@@ -33,6 +35,11 @@ const UPGRADE_TICKS = UPGRADE_POPUP_DURATION_SECONDS * TICK_HZ;
 const FORM_TICKS = FORM_POPUP_DURATION_SECONDS * TICK_HZ;
 const TRAITS = DEFAULT_BALANCE.traits;
 
+/** The own cell swallowed the giant amoeba on `tick`, as the bus reported it to `seatKey`. */
+function amoebaSwallowedOn(tick: number, seatKey: string = SEAT): GiantSwallow[] {
+  return [{ seatKey, tick, species: GIANT_SPECIES.amoeba, dnaGained: DEFAULT_BALANCE.giants.GIANT_DNA_BONUS }];
+}
+
 const FLAGELLUM: OwnedTrait = { traitId: 'simple_flagellum' as TraitId, tier: 1 };
 const FLAGELLUM_II: OwnedTrait = { traitId: 'simple_flagellum' as TraitId, tier: 2 };
 const CILIA: OwnedTrait = { traitId: 'cilia' as TraitId, tier: 1 };
@@ -44,7 +51,14 @@ function progress(ownedTraits: OwnedTrait[], overrides: Partial<OwnProgressView>
 }
 
 function sample(tick: number, ownedTraits: OwnedTrait[], overrides: Partial<UpgradePopupSample> = {}) {
-  return { seatKey: SEAT, tick, ownProgress: progress(ownedTraits), traits: TRAITS, ...overrides };
+  return {
+    seatKey: SEAT,
+    tick,
+    ownProgress: progress(ownedTraits),
+    traits: TRAITS,
+    giantSwallows: [],
+    ...overrides,
+  };
 }
 
 /** A seat seen once holding `ownedTraits`: every later gain is a change against it. */
@@ -156,6 +170,58 @@ describe('upgradePopupStepFor: the queue (docs/ui/overlays.md §3.8)', () => {
 
   it('keys every popup apart, so the component replays its animation for each', () => {
     const memory = upgradePopupStepFor(seenOnce(), sample(START_TICK + 1, [FLAGELLUM, CILIA]));
+    expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
+  });
+});
+
+describe('upgradePopupStepFor: the giant popup (docs/ecology/giants.md §3.5.8)', () => {
+  it('fires on the fold after the swallow, for a form popup’s life, but not on a seat’s first sample', () => {
+    const tick = START_TICK + 1;
+    const memory = upgradePopupStepFor(seenOnce(), sample(tick, [], { giantSwallows: amoebaSwallowedOn(tick) }));
+    expect(upgradePopupUpAt(memory, tick)).toMatchObject({
+      kind: UPGRADE_POPUP_KIND.giant,
+      giantSpecies: GIANT_SPECIES.amoeba,
+      traitId: null,
+      startTick: tick,
+      endTick: tick + FORM_TICKS,
+    });
+    const first = upgradePopupStepFor(
+      INITIAL_UPGRADE_POPUP_MEMORY,
+      sample(tick, [], { giantSwallows: amoebaSwallowedOn(tick) }),
+    );
+    expect(first.queue).toEqual([]);
+  });
+
+  it('fires a swallow that a later snapshot overtook before the fold, at the fold’s tick', () => {
+    const swallowTick = START_TICK + 1;
+    const foldTick = swallowTick + 1;
+    const memory = upgradePopupStepFor(
+      seenOnce(),
+      sample(foldTick, [], { giantSwallows: amoebaSwallowedOn(swallowTick) }),
+    );
+    expect(memory.queue.map((popup) => [popup.kind, popup.startTick])).toEqual([[UPGRADE_POPUP_KIND.giant, foldTick]]);
+  });
+
+  it('fires once: the same tick folded again, or a later one, fires nothing, and neither does another seat’s', () => {
+    const tick = START_TICK + 1;
+    const giantSwallows = amoebaSwallowedOn(tick);
+    const fired = upgradePopupStepFor(seenOnce(), sample(tick, [], { giantSwallows }));
+    expect(upgradePopupStepFor(fired, sample(tick, [], { giantSwallows })).queue).toHaveLength(1);
+    expect(upgradePopupStepFor(fired, sample(tick + 1, [], { giantSwallows })).queue).toHaveLength(1);
+    const elsewhere = sample(tick, [], { giantSwallows: amoebaSwallowedOn(tick, OTHER_SEAT) });
+    expect(upgradePopupStepFor(seenOnce(), elsewhere).queue).toEqual([]);
+  });
+
+  it('queues ahead of a trait gained in the same snapshot, each keyed apart', () => {
+    const tick = START_TICK + 1;
+    const memory = upgradePopupStepFor(
+      seenOnce(),
+      sample(tick, [FLAGELLUM], { giantSwallows: amoebaSwallowedOn(tick) }),
+    );
+    expect(memory.queue.map((popup) => [popup.kind, popup.startTick])).toEqual([
+      [UPGRADE_POPUP_KIND.giant, tick],
+      [UPGRADE_POPUP_KIND.upgrade, tick + FORM_TICKS],
+    ]);
     expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
   });
 });

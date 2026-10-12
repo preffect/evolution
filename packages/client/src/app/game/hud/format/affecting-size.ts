@@ -54,6 +54,10 @@ function ceiledToDecimal(value: number): number {
  * prey figure down so the row never names a prey that is in fact too heavy, and the threat figure — the mass a cell
  * needs for `canEngulf(it, ownCell)`, the own membrane bonus included — up so it never names a cell that cannot
  * actually eat us.
+ *
+ * The threat figure is a cell eater's (`isCellEaterSpecies`): a player, a wild cell or the giant amoeba. The paramecium
+ * and the diatom eat no cell at any mass, so the row never speaks of them, and their missing ring and threat label say
+ * so cell by cell (docs/ecology/giants.md §3.5.11).
  */
 export function sizeRowsFor(input: AffectingSizeInput): readonly UiFactRow[] {
   const { ownCell, balance } = input;

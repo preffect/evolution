@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_KIND,
   CELL_STAGE,
+  GIANT_SPECIES,
   PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestCellView,
@@ -52,6 +53,16 @@ describe('respawnLinesFor', () => {
       const wild = createTestCellView({ id: KILLER_CELL_ID, kind: CELL_KIND.wild, playerId: null, stage });
       expect(respawnLinesFor(input({ cells: [wild] })).killer).toBe('ENGULFED BY A WILD CELL');
     }
+  });
+
+  it('names a giant killer by its species, built from the name the threat label speaks', () => {
+    const amoeba = createTestCellView({
+      id: KILLER_CELL_ID,
+      kind: CELL_KIND.wild,
+      playerId: null,
+      giantSpecies: GIANT_SPECIES.amoeba,
+    });
+    expect(respawnLinesFor(input({ cells: [amoeba] })).killer).toBe('ENGULFED BY A GIANT AMOEBA');
   });
 
   it('cuts a long killer name the way the leaderboard does, so the title stays on one line', () => {
