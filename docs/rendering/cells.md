@@ -193,7 +193,9 @@ channels hold the relation ring (#538, §10): `relationRingPx` (the edible line'
 role). A starving wild cell's two fields take a **twelfth scalar texel** (#635), so the row is **18 texels** (288 B,
 ≈ 147 KB at capacity): `wither` (0 → 1 at the burst, `cells/starving-wither.ts`: every palette shade the shader reads
 through `shade()` is desaturated, sallowed toward `STARVING_SALLOW` and dimmed by it) and `wrinkleAmplitude` (§2.1's
-`wrinkle`); two channels are free. The per-cell deformation sources feed one record,
+`wrinkle`); its other two channels hold `formTier` (#193, the slipper's aspect and the spine count) and
+`giantSpeciesId` (#828: 0, or 1–3 in `GIANT_SPECIES_ORDER` for a giant, gating `cells/cell-shader-giants.ts`'s detail,
+visual-style/cells-and-organelles.md §4.1), so the row is full. The per-cell deformation sources feed one record,
 `cells/cell-deformation.ts` `CellDeformation { bumps, pulse, alpha }`, resolved by cell id from the frame's map
 (`REST_DEFORMATION` for every cell without an entry); the render state then appends the cell's contact dent
 (`cells/contact-dents.ts`, dropped while the cell is engulfing, σ 14° when taut) and the seal it owes a ghost.
@@ -201,9 +203,11 @@ through `shade()` is desaturated, sallowed toward `STARVING_SALLOW` and dimmed b
 `cells/cell-clips.ts` `clipDeformation` (tracks + the mote / prey angles → the §2.1 bumps) and starts clips from
 `cells/cell-effects.ts` `cellClipStarts`; the clip-driven halo scale is #207's. Global uniforms: `uTimeSeconds`,
 `uZoom`, `uPass`, the visual-style/principles-and-palette.md §2 band colours (`uWhite`, `uOutline`, `uChloroLight`, `uToxinGlow`,
-`uRibosome`, `uCytoskeleton`, `uCellWall`, `uCellWallLight`, `uCilia`, `uDanger`), the
-two-channel noise tile, the RGBA noise strip and the **palette texture** (8 palettes × 8 shades, the four
-body-ramp stops among them, baked by `render/palette.ts`, uploaded by `render-textures.ts`). The same
+`uRibosome`, `uCytoskeleton`, `uCellWall`, `uCellWallLight`, `uCilia`, `uDanger`, `uVacuole`, `uVacuoleRim`), the
+two-channel noise tile, the RGBA noise strip and the **palette texture** (11 rows × 8 shades: the 8 seat palettes, then
+the 3 giant species' in `GIANT_SPECIES_ORDER`, #828; the four body-ramp stops among the shades; baked by
+`render/palette.ts`, uploaded by `render-textures.ts`). A cell's row is `cellPaletteIndex(view)`: its species' for a
+giant, its seat's otherwise. The same
 geometry is drawn twice with `uPass` (A, B); instance order is radius ascending (`architecture/client.md §6`), so two
 draw calls cover every visible cell. An absorbed prey keeps drawing as a **ghost instance** built from its last
 view (visual-style/motion-and-legibility.md §5) until the `absorbed` clip ends (`cells/ghost-cells.ts` `GhostRegistry`, started by the

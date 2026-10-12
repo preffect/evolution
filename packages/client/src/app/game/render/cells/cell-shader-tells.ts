@@ -22,6 +22,7 @@ import {
   ECTOPLASM_DEPTH_RADII,
   FORM_ID,
   EDIBLE_RING_ALPHA,
+  GIANT_CILIA_WAVE_COUNT,
   GHOST_RIM_DASH_PX,
   OUTLINE_ALPHA,
   RELATION_RING_LINE_PITCH_PX,
@@ -69,11 +70,15 @@ vec4 cellWall(Instance inst, Frame frame, vec4 acc) {
   return over(acc, uOutline, band(frame.dr, inner + thickness, linePx, linePx) * ${glslFloat(OUTLINE_ALPHA)});
 }
 
-/** Leaning hairs rooted on the membrane, the lean modulated by a travelling wave; one flat band at mid LOD. */
+/**
+ * Leaning hairs rooted on the membrane, the lean modulated by a travelling wave; one flat band at mid LOD. A giant's
+ * fringe runs more, shorter waves round its long outline, so it ripples rather than sways.
+ */
 vec4 cilia(Instance inst, Frame frame, vec4 acc) {
   if (inst.ciliaCount <= 0.0 || frame.dr < 0.0 || frame.dr > ${glslFloat(CILIA_REACH)}) return acc;
   float fade = 1.0 - frame.dr / ${glslFloat(CILIA_REACH)};
-  float wave = ${glslFloat(CILIA_WAVE)} * sin(frame.theta * ${glslFloat(CILIA_WAVE_COUNT)} - TAU * inst.ciliaPhase);
+  float waves = inst.giantSpeciesId > HALF ? ${glslFloat(GIANT_CILIA_WAVE_COUNT)} : ${glslFloat(CILIA_WAVE_COUNT)};
+  float wave = ${glslFloat(CILIA_WAVE)} * sin(frame.theta * waves - TAU * inst.ciliaPhase);
   float thetaHair = frame.theta - frame.dr * tan(${glslFloat(CILIA_LEAN)} + wave);
   float s = spokeDistancePx(inst.ciliaCount, thetaHair, frame.len * uZoom);
   float halfWidth = ${glslFloat(CILIA_WIDTH_PX)} * HALF;

@@ -178,6 +178,10 @@ Nearest neighbour per palette (full 28-pair matrix, rims and contrast in
 | Magenta | 18 (Rose)    | 11 (Cyan)    | 9 (Violet)   |
 | Rose    | 18 (Coral)   | 18 (Coral)   | 19 (Coral)   |
 
+**Giant palettes** (#828). The three giant species wear their own rows after the eight seats: natural,
+low-saturation ramps no seat wears, each rim ≥ `GIANT_RIM_MIN_DELTA_E` 11 from every player rim, and no seat mark
+([`cells-and-organelles.md §4.1`](./cells-and-organelles.md#41-giant-cells-828) is their home).
+
 **Non-colour player tells.** Two marks, both geometry drawn at every LOD of 8 px and above (§6), so hue is
 never the only tell between players; the evidence render shows them at 52, 20 and 8 px:
 

@@ -5,7 +5,14 @@
 // filaments, the chloroplast tint and the form. Read once per cell per frame and shared by the
 // shape terms, the instance builder and the organelle layout.
 
-import { CELL_STAGE, tierEntryOf, type CellView, type TraitId, type TraitTier } from '@evolution/shared';
+import {
+  CELL_STAGE,
+  tierEntryOf,
+  type CellView,
+  type GiantSpecies,
+  type TraitId,
+  type TraitTier,
+} from '@evolution/shared';
 import {
   CELL_WALL_SCALE_BY_TIER,
   CHLOROPLAST,
@@ -14,6 +21,7 @@ import {
   FORM_WOBBLE_AMPLITUDE,
   FORM_WOBBLE_HZ,
   FORM_WOBBLE_MODE,
+  GIANT_CILIA_COUNT,
   HALO_KIND,
   PROTOCELL_WOBBLE_AMPLITUDE,
   PROTOCELL_WOBBLE_HZ,
@@ -49,6 +57,8 @@ export interface CellTraitSummary {
   readonly tintMix: number;
   readonly form: FormDefinition;
   readonly formTier: TraitTier;
+  /** The giant's species (docs/ecology/giants.md §3.5.11), null for every other cell: its palette and its giant-size detail. */
+  readonly giantSpecies: GiantSpecies | null;
   readonly tierOf: (traitId: TraitId) => TraitTier | 0;
 }
 
@@ -75,11 +85,25 @@ function tierTable(table: readonly number[], tier: TraitTier | 0): number {
   return tierEntryOf(table, tier) ?? 0;
 }
 
-/** One glow per body (visual-style/principles-and-palette.md §1, sheet 01): the chloroplast halo wins over the toxin one. */
-function haloKindFor(isProtocell: boolean, tierOf: TierOf): HaloKind {
+/**
+ * One glow per body (visual-style/principles-and-palette.md §1, sheet 01): the chloroplast halo wins over the toxin one.
+ * A giant glows in its own rim colour: its palette is the species, not a trait (the diatom's plastids are golden).
+ */
+function haloKindFor(isProtocell: boolean, isGiant: boolean, tierOf: TierOf): HaloKind {
   if (isProtocell) return HALO_KIND.protocell;
+  if (isGiant) return HALO_KIND.default;
   if (tierOf(CHLOROPLAST_TRAIT) > 0) return HALO_KIND.chloroplast;
   return tierOf(TOXIN_TRAIT) > 0 ? HALO_KIND.toxin : HALO_KIND.default;
+}
+
+/**
+ * The hairs round the membrane: the tier's count, or a giant's fine fringe of `GIANT_CILIA_COUNT` (the giant paramecium
+ * wears it in place of the tufts, visual-style/cells-and-organelles.md §4.1). A fixed count, so no hair ever jumps as
+ * the zoom eases.
+ */
+function ciliaCountFor(isGiant: boolean, tier: TraitTier | 0): number {
+  if (tier === 0) return 0;
+  return isGiant ? GIANT_CILIA_COUNT : tierTable(CILIA_COUNT_BY_TIER, tier);
 }
 
 /** Protocells wobble on mode 2; forms hold a mode-3 shape unless rigid; a diatom and the blob rest still. */
@@ -101,15 +125,16 @@ export function summariseCellTraits(view: CellView, previewTraitId: TraitId | nu
     isProtocell,
     hasNucleus: tierOf(NUCLEUS_TRAIT) > 0,
     isTaut: tierOf(TAUT_TRAIT) > 0,
-    haloKind: haloKindFor(isProtocell, tierOf),
+    haloKind: haloKindFor(isProtocell, view.giantSpecies !== null, tierOf),
     wobble: wobbleFor(isProtocell, form),
-    ciliaCount: tierTable(CILIA_COUNT_BY_TIER, tierOf(CILIA_TRAIT)),
+    ciliaCount: ciliaCountFor(view.giantSpecies !== null, tierOf(CILIA_TRAIT)),
     wallScale: tierTable(CELL_WALL_SCALE_BY_TIER, tierOf(WALL_TRAIT)),
     speckleDensity: tierTable(RIBOSOME_DENSITY_BY_TIER, tierOf(RIBOSOME_TRAIT)),
     filamentCount: tierTable(FILAMENT_COUNT_BY_TIER, tierOf(TAUT_TRAIT)),
     tintMix: tierOf(CHLOROPLAST_TRAIT) > 0 ? CHLOROPLAST.membraneTint : 0,
     form,
     formTier,
+    giantSpecies: view.giantSpecies,
     tierOf,
   };
 }
