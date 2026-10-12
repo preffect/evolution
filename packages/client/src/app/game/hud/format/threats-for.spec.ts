@@ -15,7 +15,7 @@ import {
 import { createTestCellView } from '../../../../testing/builders';
 import type { CameraExtent } from '../../render/camera';
 import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
-import { GIANT_DISPLAY_NAME_BY_SPECIES } from './giant-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES } from '../../giants/giant-facts';
 import { WILD_CELL_THREAT_NAME, cellDisplayName, threatsFor } from './threats-for';
 
 const ON_SCREEN: CameraExtent = { minX: -1000, minY: -1000, maxX: 1000, maxY: 1000 };

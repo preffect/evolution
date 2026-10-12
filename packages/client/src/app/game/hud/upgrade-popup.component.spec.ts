@@ -23,7 +23,7 @@ import { createTestCellAbsorbedEffect, createTestCellView } from '../../../testi
 import { paletteFor } from '../render/palette';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { formRealLifeLine } from './format/form-facts';
-import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './format/giant-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from '../giants/giant-facts';
 import { GIANT_POPUP_KICKER_TEXT } from './format/giant-popups';
 import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_PLACEMENT } from './format/upgrade-popups';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './upgrade-popup-constants';

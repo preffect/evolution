@@ -2,7 +2,16 @@
 // imports it as a type; the preview seam (#363) turns a spec into a scene. `render/` imports nothing from
 // `encyclopedia/`.
 
-import type { BacteriumVariant, CellKind, DnaTag, FoodKind, OwnedTrait, ValueOf, ZoneId } from '@evolution/shared';
+import type {
+  BacteriumVariant,
+  CellKind,
+  DnaTag,
+  FoodKind,
+  GiantSpecies,
+  OwnedTrait,
+  ValueOf,
+  ZoneId,
+} from '@evolution/shared';
 
 export const PREVIEW_SCENE = {
   /** One cell of a kind with owned traits, resting or swimming. */
@@ -40,6 +49,8 @@ export type PreviewSpec =
       readonly cellKind: CellKind;
       readonly traits: readonly OwnedTrait[];
       readonly motion: PreviewMotion;
+      /** A giant cell's species, which the renderer draws in its own palette (giants.md §3.5.11); absent on any other. */
+      readonly giantSpecies?: GiantSpecies;
     }
   | {
       readonly scene: typeof PREVIEW_SCENE.food;

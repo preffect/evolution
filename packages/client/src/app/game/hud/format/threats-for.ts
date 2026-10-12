@@ -13,7 +13,7 @@
 
 import { canEngulf, type BalanceConfig, type CellView, type EntityId, type PlayerRosterView } from '@evolution/shared';
 import { isDiscVisibleInExtent, type CameraExtent } from '../../render/camera';
-import { GIANT_DISPLAY_NAME_BY_SPECIES } from './giant-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES } from '../../giants/giant-facts';
 import { truncatePlayerName } from './player-name';
 
 /** A cell that can engulf the own cell, with the name the label speaks. */

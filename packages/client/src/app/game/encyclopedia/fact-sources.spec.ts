@@ -5,7 +5,7 @@
 // (× 2, or + 1 at 0; an array's `length` counts as a leaf, so a count over structure is pinned too).
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, ENGULF_PHASE, type BalanceConfig } from '@evolution/shared';
+import { DEFAULT_BALANCE, ENGULF_PHASE, GIANT_SPECIES, type BalanceConfig } from '@evolution/shared';
 import { readBalancePath } from './facts/balance-path';
 import {
   CATALOG_QUANTITY,
@@ -17,6 +17,7 @@ import { DERIVED_LINK, derivedLinkTargets, type DerivedLinkCall, type DerivedLin
 import {
   BALANCE_MASS,
   FACT_FORMULA,
+  GIANT_MASS,
   LEVEL_SELECTOR,
   ROUND_MOMENT,
   evaluateFormula,
@@ -29,12 +30,6 @@ import { ENCYCLOPEDIA_ENTRIES } from './registry';
 import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
 
 type Path = readonly string[];
-
-/**
- * Balance domains no fact reads yet, each until the ticket that writes its entries: the giant cells' constants land
- * before the giants do (docs/ecology/giants.md §3.5.17), and their encyclopedia entries are ticket #831.
- */
-const DOMAINS_WAITING_FOR_ENTRIES: readonly string[] = ['giants'];
 
 /** A proxy over `target` that records the path of every number it hands out, `length` included. */
 function recording<Value extends object>(target: Value, reads: Path[], path: Path = []): Value {
@@ -92,6 +87,9 @@ const FORMULA_CALLS: { readonly [Id in FactFormulaId]: readonly FactFormulaCall[
   [FACT_FORMULA.engulfPhaseSpan]: Object.values(ENGULF_PHASE).map((phase) =>
     callOf(FACT_FORMULA.engulfPhaseSpan, { phase }),
   ),
+  [FACT_FORMULA.giantSwallowMass]: Object.values(GIANT_SPECIES).flatMap((species) =>
+    Object.values(GIANT_MASS).map((mass) => callOf(FACT_FORMULA.giantSwallowMass, { species, mass })),
+  ),
 };
 
 const CATALOG_CALLS: { readonly [Id in CatalogQuantityId]: readonly CatalogQuantityCall[] } = {
@@ -130,6 +128,16 @@ const LINK_CALLS: { readonly [Id in DerivedLinkId]: readonly DerivedLinkCall[] }
   ),
 };
 
+// The row's value with `path` patched, or `null` where the patch leaves no balance (a giant's build doubled in length is
+// half holes): `debug_set_balance` refuses such a patch (`giantBalanceProblems`), so it moves nothing.
+function valueUnderPatch<Call>(evaluate: (balance: BalanceConfig, call: Call) => unknown, call: Call, path: Path) {
+  try {
+    return JSON.stringify(evaluate(patched(path), call));
+  } catch {
+    return null;
+  }
+}
+
 /** Every call reads a leaf, and for the row as a whole at least one leaf read moves some call's value. */
 function expectRowReadsTheBalance<Call>(
   calls: readonly Call[],
@@ -139,7 +147,10 @@ function expectRowReadsTheBalance<Call>(
   const isMovedByAPatch = calls.some((call) => {
     const { result, reads } = readsOf((balance) => evaluate(balance, call));
     expect(reads.length, JSON.stringify(call)).toBeGreaterThan(0);
-    return reads.some((path) => JSON.stringify(evaluate(patched(path), call)) !== JSON.stringify(result));
+    return reads.some((path) => {
+      const moved = valueUnderPatch(evaluate, call, path);
+      return moved !== null && moved !== JSON.stringify(result);
+    });
   });
   expect(isMovedByAPatch).toBe(true);
 }
@@ -281,18 +292,8 @@ describe('the fact sources', () => {
     return domains;
   }
 
-  it('reads every balance domain from some fact, but the domains still waiting for their entries', () => {
+  it('reads every balance domain from some fact', () => {
     const domains = domainsReadByFacts();
-    for (const domain of Object.keys(DEFAULT_BALANCE)) {
-      if (!DOMAINS_WAITING_FOR_ENTRIES.includes(domain)) expect(domains.has(domain), domain).toBe(true);
-    }
+    for (const domain of Object.keys(DEFAULT_BALANCE)) expect(domains.has(domain), domain).toBe(true);
   });
-
-  it.each(DOMAINS_WAITING_FOR_ENTRIES)(
-    'still reads nothing of the waiting %s domain, so the list cannot rot',
-    (domain) => {
-      expect(Object.keys(DEFAULT_BALANCE)).toContain(domain);
-      expect(domainsReadByFacts().has(domain)).toBe(false);
-    },
-  );
 });

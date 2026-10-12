@@ -1,10 +1,18 @@
 // The giant-cell rules a balance must keep (docs/ecology/giants.md §3.5.14): every build a valid ladder ending in a form,
 // every born range ordered and inside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`], every species speed multiplier at
 // most 1. One home for the checks the balance test pins on `DEFAULT_BALANCE` (acceptance G14) and the server's
-// `debug_set_balance` refuses a patch on, so the two cannot disagree. Pure: it reads only the balance it is given.
+// `debug_set_balance` refuses a patch on, so the two cannot disagree; and, since those checks are what make it safe, the
+// one reading of a build as owned traits, which the server seats a giant with and the encyclopedia quotes and previews.
+// Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
-import { GIANT_SPECIES_ORDER, type GiantSpecies, type TraitId } from '../types/game.js';
+import {
+  GIANT_SPECIES_ORDER,
+  type GiantSpecies,
+  type OwnedTrait,
+  type TraitId,
+  type TraitTier,
+} from '../types/game.js';
 import { TRAIT_CATEGORY } from '../types/traits.js';
 import { stageIndex, stageOf } from './stage-of.js';
 import { FIRST_TIER } from './trait-tiers.js';
@@ -74,4 +82,15 @@ export function giantBalanceProblems(balance: BalanceConfig): string[] {
       speedMultiplierProblem(species, balance),
     ].filter((problem): problem is string => problem !== null),
   );
+}
+
+/**
+ * The species' build from the live balance as owned traits. The balance types a tier as a number; every tier is one a
+ * trait has, since `debug_set_balance` refuses a patch that breaks a build (`giantBalanceProblems`).
+ */
+export function giantBuildOf(species: GiantSpecies, balance: BalanceConfig): OwnedTrait[] {
+  return balance.giants.GIANT_BUILDS_BY_SPECIES[species].map(({ traitId, tier }) => ({
+    traitId,
+    tier: tier as TraitTier,
+  }));
 }

@@ -404,7 +404,7 @@ Ordinary traits have no real-life line; a later ticket may add them if the human
 drawn as one (`.form`: the same size, overshoot, glow, ring and life): the kicker `GIANT ENGULFED`, the giant's name
 from `GIANT_DISPLAY_NAME_BY_SPECIES` as the title, one benefit line with the DNA the payout added
 (`predatorDnaGained` through `formatQuantity`: `+200 DNA` with no Nucleoid, `+210 DNA` with Nucleoid I), and the
-giant's real-life line from `GIANT_REAL_LIFE_LINES` (`hud/format/giant-facts.ts`, beside the forms'). It carries
+giant's real-life line from `GIANT_REAL_LIFE_LINES` (`giants/giant-facts.ts`, read by the encyclopedia too). It carries
 `data-giant-species` and no `data-trait-id`. A giant eaten by any other cell shows nothing.
 
 | Giant        | Real-life line                                                  |

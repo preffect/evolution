@@ -24,6 +24,13 @@ describe('glyphSubjectOf (docs/ui/encyclopedia.md §11.3)', () => {
     });
   });
 
+  it('sends a giant cell to its form’s trait glyph, since the giant is that form drawn large', () => {
+    expect(glyphSubjectOf('giant:giant_diatom' as EntryId)).toEqual({
+      kind: GLYPH_SUBJECT.trait,
+      traitId: 'diatom_shell',
+    });
+  });
+
   it('splits on the subject and not on the separator: a code id may hold one of its own', () => {
     expect(glyphSubjectOf('concept:world_standing' as EntryId).kind).toBe(GLYPH_SUBJECT.subject);
   });

@@ -1,0 +1,53 @@
+/* The real-life note (docs/ui/encyclopedia.md §11.4): a field note on the well, an accent rule down its left edge, its
+   header in the accent, the true line in white and the real size under it. It is the one block of the page about the
+   world outside the dish, so it is the one drawn apart from the page's own text, at the prose's measure. */
+
+:host {
+  display: block;
+  box-sizing: border-box;
+  max-width: calc(var(--encyclopedia-prose-max-width) * var(--ui-scale));
+  padding: calc(var(--ui-space-m) * var(--ui-scale));
+  border-left: calc(var(--encyclopedia-real-life-rule) * var(--ui-scale)) solid var(--ui-accent);
+  border-radius: 0 calc(var(--ui-radius-control) * var(--ui-scale)) calc(var(--ui-radius-control) * var(--ui-scale)) 0;
+  background-color: var(--ui-well);
+  font-family: var(--ui-font-sans);
+}
+
+/* The header reads as See also's does, in the accent. */
+.heading {
+  margin: 0 0 calc(var(--ui-space-s) * var(--ui-scale));
+  color: var(--ui-accent);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.line {
+  margin: 0;
+  color: var(--ui-white);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: var(--ui-body-line-height);
+  text-wrap: pretty;
+}
+
+/* `REAL SIZE` in the muted label style, then the size on the same baseline, wrapping under it on a narrow column. */
+.size {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 calc(var(--ui-space-s) * var(--ui-scale));
+  margin: calc(var(--ui-space-s) * var(--ui-scale)) 0 0;
+  color: var(--ui-text);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+  line-height: var(--ui-body-line-height);
+}
+
+.size-label {
+  color: var(--ui-text-muted);
+  font-size: calc(var(--ui-type-label) * var(--ui-scale));
+  font-weight: bold;
+  letter-spacing: var(--ui-label-tracking);
+  text-transform: uppercase;
+}

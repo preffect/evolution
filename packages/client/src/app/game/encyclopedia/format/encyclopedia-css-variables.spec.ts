@@ -21,6 +21,7 @@ import {
   ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX,
   ENCYCLOPEDIA_RAIL_ICON_PX,
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
+  ENCYCLOPEDIA_REAL_LIFE_RULE_PX,
   ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_FACT_LINES,
   ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT,
@@ -51,6 +52,7 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['--encyclopedia-lens-loading-min-alpha', String(ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA)],
   ['--encyclopedia-prose-max-width', `${ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX}px`],
   ['--encyclopedia-sticky-title-height', `${ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX}px`],
+  ['--encyclopedia-real-life-rule', `${ENCYCLOPEDIA_REAL_LIFE_RULE_PX}px`],
   ['--encyclopedia-row-glyph', `${UI_ROW_MEDALLION_PX}px`],
   ['--encyclopedia-tile-glyph', `${TRAIT_GLYPH_CARD_PX}px`],
 ];

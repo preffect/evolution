@@ -10,7 +10,7 @@ import {
 } from '@evolution/shared';
 import { createTestCellAbsorbedEffect, createTestEatEffect } from '../../../../testing/builders';
 import { UI_EFFECT } from '../../../ui-kit/ui-effect-mark.component';
-import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './giant-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from '../../giants/giant-facts';
 import { FORM_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
 import {
   GIANT_POPUP_KICKER_TEXT,

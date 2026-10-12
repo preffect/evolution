@@ -132,6 +132,9 @@ export const ENCYCLOPEDIA_CRUMB_SEPARATOR = '›';
 /** The sticky title bar of a scrolled entry: the breadcrumb over the title (§11.4, *Long entries scroll*). */
 export const ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX = 48;
 
+/** The accent rule down the left of the real-life note (§11.4): the one block on the page drawn as a field note. */
+export const ENCYCLOPEDIA_REAL_LIFE_RULE_PX = 3;
+
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 
@@ -177,6 +180,10 @@ export const ENCYCLOPEDIA_FACTS_TABLE_LABEL = 'Facts';
 
 /** The See also header, over the link chips (§11.4). */
 export const ENCYCLOPEDIA_SEE_ALSO_LABEL = 'See also';
+
+/** The real-life note's header, and the word before the real size inside it (§11.4). */
+export const ENCYCLOPEDIA_REAL_LIFE_LABEL = 'In real life';
+export const ENCYCLOPEDIA_REAL_SIZE_LABEL = 'Real size';
 
 /** `You own II`: the caption over the noun column of the Effects by tier table, before the owned tier's numeral. */
 export const ENCYCLOPEDIA_TIER_CAPTION_PREFIX = 'You own ';

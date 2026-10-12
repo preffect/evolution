@@ -12,6 +12,7 @@ import {
   SERVER_RANDOM_STREAM_LABELS,
   createSeededRandomFromState,
   distanceBetween,
+  giantBuildOf,
   type BalanceConfig,
   type GiantSpecies,
   type Vec2,
@@ -21,7 +22,7 @@ import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { drawSpawnCandidate, spawnReach, threatClearance } from '../simulation/spawn-placement.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
-import { giantBuildOf, giantLevelOf } from './giant-build.js';
+import { giantLevelOf } from './giant-build.js';
 import {
   createGiantSeats,
   giantBornMass,
