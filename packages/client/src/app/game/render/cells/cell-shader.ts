@@ -7,6 +7,7 @@ import { CELL_SHADER_BANDS } from './cell-shader-bands';
 import { CELL_SHADER_DIATOM } from './cell-shader-diatom';
 import { CELL_SHADER_EUGLENA } from './cell-shader-euglena';
 import { CELL_SHADER_FRINGE } from './cell-shader-fringe';
+import { CELL_SHADER_GIANTS } from './cell-shader-giants';
 import { CELL_SHADER_MEMBRANE } from './cell-shader-membrane';
 import { CELL_SHADER_PATTERNS } from './cell-shader-patterns';
 import { CELL_SHADER_RINGS } from './cell-shader-rings';
@@ -49,6 +50,7 @@ precision highp float;
 precision highp int;
 ${CELL_SHADER_PATTERNS}
 ${CELL_SHADER_DIATOM}
+${CELL_SHADER_GIANTS}
 ${CELL_SHADER_BANDS}
 ${CELL_SHADER_RINGS}
 ${CELL_SHADER_TELLS}

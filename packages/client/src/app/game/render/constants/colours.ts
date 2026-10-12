@@ -82,6 +82,8 @@ export const SILICA_BASE = '#a9dcef';
 export const SILICA_DARK = '#2f6f8c';
 export const DIATOM_PLASTID_LIGHT = '#d7a441';
 export const DIATOM_PLASTID_DARK = '#8a5e14';
+/** The plastids' body: golden brown, the colour docs/ecology/giants.md §3.5.11 gives the giant diatom's plastids. */
+export const DIATOM_PLASTID_BASE = LIPID_CENTRE;
 export const EYESPOT = '#ff4d3a';
 export const EYESPOT_RIM = '#ffb59e';
 export const SILHOUETTE = '#22c1d6';

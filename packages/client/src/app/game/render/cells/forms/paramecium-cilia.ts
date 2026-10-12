@@ -17,6 +17,8 @@ import {
   CILIA_TUFT_ROOT_WIDTH_RADII,
   CILIA_TUFT_SIDE_GAIN,
   CILIA_TUFT_SPEED_LEAN_DEG,
+  CILIA_TUFT_STRANDS,
+  CILIA_TUFT_STRAND_PITCH_PX,
   CILIA_TUFT_TIP_WIDTH_RADII,
   CILIA_TUFT_WAVES_PER_FLANK,
   FORM_ID,
@@ -144,6 +146,15 @@ export function isInsideTuft(point: FringePoint, tuft: CiliaTuft): boolean {
   const widening = tuftArcWidening(tuft, along);
   if (offset > tuft.lengthRadii) return Math.hypot(offset - tuft.lengthRadii, across / widening) <= TIP_CAP_RADII;
   return across <= ciliaTuftWidthRadii(offset / tuft.lengthRadii) * HALF * widening;
+}
+
+/**
+ * The strands in every tuft of a cell `radiusPx` px in radius: `CILIA_TUFT_STRANDS`, or one per
+ * `CILIA_TUFT_STRAND_PITCH_PX` of the root's width when that is more, so the brush keeps its grain at any size.
+ */
+export function tuftStrandCount(radiusPx: number): number {
+  const rootPx = CILIA_TUFT_ROOT_WIDTH_RADII * radiusPx;
+  return Math.max(CILIA_TUFT_STRANDS, Math.floor(rootPx / CILIA_TUFT_STRAND_PITCH_PX));
 }
 
 /**

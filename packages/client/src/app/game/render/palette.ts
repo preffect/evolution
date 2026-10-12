@@ -1,9 +1,23 @@
 // The eight player palettes and their derived shades (docs/visual-style/principles-and-palette.md §2; sheet 01's HSL rule),
-// packed into the 8 × 8 palette texture the cell shader reads (docs/rendering/cells.md §2.3).
+// then the three giant species' palettes (docs/ecology/giants.md §3.5.11), packed into the 11 × 8 palette texture the
+// cell shader reads (docs/rendering/cells.md §2.3): a cell's row is its seat's palette, or its species' for a giant.
 
-import { PLAYER_PALETTE_COUNT, wrapAvatarIndex } from '@evolution/shared';
+import {
+  GIANT_SPECIES_ORDER,
+  PLAYER_PALETTE_COUNT,
+  wrapAvatarIndex,
+  type CellView,
+  type GiantSpecies,
+} from '@evolution/shared';
 import { ALPHA, BLUE, CHANNEL_MAX, GREEN, RED, RGBA_CHANNELS, hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from './colour';
-import { CHLORO_BASE, PALETTE_SHADE_COUNT, PLAYER_PALETTE_TABLE, type PlayerPaletteRow } from './constants';
+import {
+  CHLORO_BASE,
+  GIANT_PALETTE_TABLE,
+  PALETTE_SHADE_COUNT,
+  PLAYER_PALETTE_TABLE,
+  type GiantPaletteRow,
+  type PlayerPaletteRow,
+} from './constants';
 
 /**
  * Sheet 01's rule, read back from its six drawn ramps: every derived shade keeps the hue and scales
@@ -24,11 +38,14 @@ const NEW_RIM_LIGHTNESS = 0.85;
 const NEW_NUCLEUS_SATURATION = 0.85;
 const NEW_NUCLEUS_LIGHTNESS = 0.7;
 
-export interface PlayerPalette extends PlayerPaletteRow {
+/** A palette texture row: a seat's or a giant species' shades. */
+export interface CellPalette extends PlayerPaletteRow {
   readonly edge: string;
   readonly cytoLight: string;
   readonly cytoDark: string;
   readonly nucleusDark: string;
+  /** What a chloroplast tints the membrane toward: `CHLORO_BASE` but on the giant diatom (its golden plastids). */
+  readonly chloroBase: string;
 }
 
 function scaledShade(hex: string, lightnessScale: number, saturationScale: number): string {
@@ -39,13 +56,24 @@ function scaledShade(hex: string, lightnessScale: number, saturationScale: numbe
 }
 
 /** Sheet 01's derivation of the four unlisted shades. */
-export function derivePalette(row: PlayerPaletteRow): PlayerPalette {
+export function derivePalette(row: PlayerPaletteRow): CellPalette {
   return {
     ...row,
     edge: scaledShade(row.base, EDGE_LIGHTNESS_SCALE, EDGE_SATURATION_SCALE),
     cytoLight: scaledShade(row.base, CYTO_LIGHT_LIGHTNESS_SCALE, CYTO_LIGHT_SATURATION_SCALE),
     cytoDark: scaledShade(row.base, CYTO_DARK_LIGHTNESS_SCALE, CYTO_DARK_SATURATION_SCALE),
     nucleusDark: scaledShade(row.nucleus, NUCLEUS_DARK_LIGHTNESS_SCALE, NUCLEUS_DARK_SATURATION_SCALE),
+    chloroBase: CHLORO_BASE,
+  };
+}
+
+/** A giant's authored ramp: its cytoplasm stops are the mockup's, the edge and nucleus dark follow sheet 01's rule. */
+export function deriveGiantPalette(row: GiantPaletteRow): CellPalette {
+  return {
+    ...derivePalette(row),
+    cytoLight: row.cytoLight,
+    cytoDark: row.cytoDark,
+    chloroBase: row.chloroBase,
   };
 }
 
@@ -58,14 +86,35 @@ export function newPaletteAccents(base: string): { rim: string; nucleus: string 
   };
 }
 
-export const PLAYER_PALETTES: readonly PlayerPalette[] = PLAYER_PALETTE_TABLE.map(derivePalette);
+export const PLAYER_PALETTES: readonly CellPalette[] = PLAYER_PALETTE_TABLE.map(derivePalette);
+/** The giants' palettes in `GIANT_SPECIES_ORDER`, the texture rows after the players'. */
+export const GIANT_PALETTES: readonly CellPalette[] = GIANT_SPECIES_ORDER.map((species) =>
+  deriveGiantPalette(GIANT_PALETTE_TABLE[species]),
+);
+/** Every row of the palette texture: the seats, then the giant species. */
+export const PALETTE_ROWS: readonly CellPalette[] = [...PLAYER_PALETTES, ...GIANT_PALETTES];
 
-export function paletteFor(avatarIndex: number): PlayerPalette {
+export function paletteFor(avatarIndex: number): CellPalette {
   return PLAYER_PALETTES[wrapAvatarIndex(avatarIndex)]!;
 }
 
+/** The palette texture row of `species`. */
+export function giantPaletteIndex(species: GiantSpecies): number {
+  return PLAYER_PALETTE_COUNT + GIANT_SPECIES_ORDER.indexOf(species);
+}
+
+/** The row a cell is drawn with: its species' for a giant (it has no seat), else its seat's. */
+export function cellPaletteIndex(view: Pick<CellView, 'avatarIndex' | 'giantSpecies'>): number {
+  return view.giantSpecies === null ? wrapAvatarIndex(view.avatarIndex) : giantPaletteIndex(view.giantSpecies);
+}
+
+/** The palette a cell's organelle sprites take (the nucleus tint): the row `cellPaletteIndex` names. */
+export function cellPaletteFor(view: Pick<CellView, 'avatarIndex' | 'giantSpecies'>): CellPalette {
+  return PALETTE_ROWS[cellPaletteIndex(view)]!;
+}
+
 /** The shades of one palette in `PALETTE_SHADE` column order. */
-export function paletteShades(palette: PlayerPalette): readonly string[] {
+export function paletteShades(palette: CellPalette): readonly string[] {
   return [
     palette.base,
     palette.rim,
@@ -74,14 +123,14 @@ export function paletteShades(palette: PlayerPalette): readonly string[] {
     palette.cytoLight,
     palette.cytoDark,
     palette.nucleusDark,
-    CHLORO_BASE,
+    palette.chloroBase,
   ];
 }
 
-/** RGBA bytes of the palette texture: one row per palette, one column per shade; the shader samples it. */
+/** RGBA bytes of the palette texture: one row per palette (`PALETTE_ROWS`), one column per shade; the shader samples it. */
 export function bakePaletteTextureBytes(): Uint8Array {
-  const bytes = new Uint8Array(PLAYER_PALETTE_COUNT * PALETTE_SHADE_COUNT * RGBA_CHANNELS);
-  PLAYER_PALETTES.forEach((palette, row) => {
+  const bytes = new Uint8Array(PALETTE_ROWS.length * PALETTE_SHADE_COUNT * RGBA_CHANNELS);
+  PALETTE_ROWS.forEach((palette, row) => {
     paletteShades(palette).forEach((hex, column) => {
       const [red, green, blue] = hexToRgb(hex);
       const offset = (row * PALETTE_SHADE_COUNT + column) * RGBA_CHANNELS;

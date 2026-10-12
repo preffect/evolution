@@ -54,5 +54,10 @@ export const CILIA_TUFT_WASH_EDGE_ALPHA = 0.12;
 export const CILIA_TUFT_STRAND_ALPHA = 0.75;
 export const CILIA_TUFT_STRANDS = 3;
 export const CILIA_TUFT_STRAND_WIDTH_PX = 1;
+/**
+ * At most this many px of a tuft's root width per strand (#828): a tuft past `CILIA_TUFT_STRANDS` × the pitch wide
+ * gains strands, so a giant's or a close-up's tuft stays a brush of hairs instead of a hollow tube with three lines.
+ */
+export const CILIA_TUFT_STRAND_PITCH_PX = 5;
 /** The tip fades to this share of its alpha over the tuft's outer part, so it reads as a brush, not a blade. */
 export const CILIA_TUFT_TIP_ALPHA_SHARE = 0.55;

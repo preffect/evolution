@@ -11,7 +11,11 @@ import {
   CHLORO_DARK,
   CHLORO_GRANULE,
   CHLORO_LIGHT,
+  DIATOM_PLASTID_BASE,
+  DIATOM_PLASTID_DARK,
+  DIATOM_PLASTID_LIGHT,
   FOOD_VACUOLE,
+  GIANT_DIATOM_PLASTID_RADIUS,
   LIPID_BASE,
   LIPID_DROPLET,
   LIPID_LIGHT,
@@ -113,14 +117,35 @@ function bakeMitochondrion(factory: BakeCanvasFactory, pxPerRadius: number): Bak
   return finishSprite(bean, pxPerRadius);
 }
 
+interface LensStyle {
+  readonly bodyRadii: number;
+  readonly light: string;
+  readonly base: string;
+  readonly dark: string;
+}
+
+const CHLOROPLAST_LENS: LensStyle = {
+  bodyRadii: CHLOROPLAST.radius,
+  light: CHLORO_LIGHT,
+  base: CHLORO_BASE,
+  dark: CHLORO_DARK,
+};
+/** The giant diatom's golden-brown plastid: the chloroplast's lens in sheet 04's plastid colours. */
+const DIATOM_PLASTID_LENS: LensStyle = {
+  bodyRadii: GIANT_DIATOM_PLASTID_RADIUS,
+  light: DIATOM_PLASTID_LIGHT,
+  base: DIATOM_PLASTID_BASE,
+  dark: DIATOM_PLASTID_DARK,
+};
+
 /** The lens: halo, base → dark ramp, six lit granules on the light side, rim, glint. */
-function bakeChloroplast(factory: BakeCanvasFactory, pxPerRadius: number): BakedSprite {
-  const lens = haloedBody(factory, CHLOROPLAST.radius * pxPerRadius, CHLORO_LIGHT);
+function bakeLens(factory: BakeCanvasFactory, pxPerRadius: number, style: LensStyle): BakedSprite {
+  const lens = haloedBody(factory, style.bodyRadii * pxPerRadius, style.light);
   const { context } = lens.canvas;
   const { disc } = lens;
   fillRadial(context, disc, [
-    { offset: 0, colour: CHLORO_BASE, alpha: 1 },
-    { offset: 1, colour: CHLORO_DARK, alpha: 1 },
+    { offset: 0, colour: style.base, alpha: 1 },
+    { offset: 1, colour: style.dark, alpha: 1 },
   ]);
   const arcStart = RADIANS_PER_FULL_TURN * CHLORO_GRANULE.arcStartTurns;
   for (let granule = 0; granule < CHLOROPLAST.granules; granule += 1) {
@@ -131,9 +156,9 @@ function bakeChloroplast(factory: BakeCanvasFactory, pxPerRadius: number): Baked
       y: disc.y + Math.sin(angle) * distance,
       radius: disc.radius * CHLORO_GRANULE.radiusShare,
     };
-    fillDisc(context, spot, { colour: CHLORO_LIGHT, alpha: 1 });
+    fillDisc(context, spot, { colour: style.light, alpha: 1 });
   }
-  strokeDisc(context, disc, { colour: CHLORO_LIGHT, alpha: 1, width: disc.radius * ORGANELLE_RIM_WIDTH_SHARE });
+  strokeDisc(context, disc, { colour: style.light, alpha: 1, width: disc.radius * ORGANELLE_RIM_WIDTH_SHARE });
   paintGlint(context, disc, { colour: WHITE, alpha: ORGANELLE_GLINT_ALPHA });
   return finishSprite(lens, pxPerRadius);
 }
@@ -196,7 +221,8 @@ export function bakeOrganelleAtlas(
     [ORGANELLE_KIND.nucleus]: bakeNucleusSprite(factory, pxPerRadius, random),
     [ORGANELLE_KIND.nucleoid]: bakeNucleoidSprite(factory, pxPerRadius, random),
     [ORGANELLE_KIND.mitochondrion]: bakeMitochondrion(factory, pxPerRadius),
-    [ORGANELLE_KIND.chloroplast]: bakeChloroplast(factory, pxPerRadius),
+    [ORGANELLE_KIND.chloroplast]: bakeLens(factory, pxPerRadius, CHLOROPLAST_LENS),
+    [ORGANELLE_KIND.diatomPlastid]: bakeLens(factory, pxPerRadius, DIATOM_PLASTID_LENS),
     [ORGANELLE_KIND.foodVacuole]: bakeBubble(factory, pxPerRadius, {
       bodyRadii: FOOD_VACUOLE.radius,
       base: VAC_BASE,

@@ -383,14 +383,18 @@ Each giant is drawn as its existing form at a large size, from its traits: the a
 (`amoeba_pseudopods`), the paramecium's ciliate body (`paramecium_cilia`, `cilia`) and the diatom's
 shell (`diatom_shell`). The renderer gets `CellView.giantSpecies` and uses it for:
 
-- **A palette per species, new art** (the mockup's): the amoeba violet (`#77729a` to `#25263d`, rim
-  `#cfc8ff`), the paramecium sea-green (`#5f9a86` to `#1a3330`, rim `#b8f6e0`), the diatom glass grey
-  (`#c9d4de` to `#3c4856`, rim `#e6ecf2`) with golden-brown chloroplasts (`#c88a2a`). Without it a giant
-  reads as a big wild cell. The graphics designer fixes the ramps against
-  visual-style/principles-and-palette.md and the threat and edible rings' contrast.
-- **New detail only where the form lacks it at giant size:** the paramecium's oral groove (the
-  mockup's curved line) and the diatom's concentric rings of pores and radial ribs. The graphics
-  designer checks each form at radius 120 to 155 wu first and adds only what is missing.
+- **A palette per species, new art** (the mockup's): the amoeba violet (`#77729a` to `#25263d`), the
+  paramecium sea-green (`#5f9a86` to `#1a3330`), the diatom glass grey (`#c9d4de` to `#3c4856`, rim
+  `#e6ecf2`) with golden-brown chloroplasts (`#c88a2a`), and no seat-mark beads. Without it a giant reads
+  as a big wild cell. Fixed against the palette rules by #828 (visual-style/cells-and-organelles.md
+  §4.1): the amoeba's and the paramecium's rims are desaturated to `#d4d2e5` and `#cfe9e0`, since the
+  mockup's `#cfc8ff` and `#b8f6e0` were the Violet and Mint player rims within ΔE 3, and a rim colours the
+  arms and the fringe.
+- **New detail only where the form lacks it at giant size** (#828 checked each form at radius 120 to 155
+  wu, visual-style/cells-and-organelles.md §4.1): the paramecium's oral groove (the mockup's curved line)
+  and its two star-shaped contractile vacuoles, the amoeba's contractile vacuole, the diatom's concentric
+  rings of pores (its radial ribs were already drawn) and its plastids drawn golden brown, and a
+  paramecium tuft's strands grown with its width, so a giant's fringe stays a brush of hairs.
 - **Names, one home.** `cellDisplayName` (`hud/format/threats-for.ts`) returns a giant's display name
   from `GIANT_DISPLAY_NAME_BY_SPECIES` (`Giant amoeba`, `Paramecium`, `Giant diatom`, beside
   `GIANT_REAL_LIFE_LINES`) where it returns `Wild cell` for a wild cell, so the threat label and the

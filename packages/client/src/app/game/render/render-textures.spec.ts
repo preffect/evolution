@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DNA_TAGS, PLAYER_PALETTE_COUNT } from '@evolution/shared';
+import { DNA_TAGS, GIANT_SPECIES_ORDER, PLAYER_PALETTE_COUNT } from '@evolution/shared';
 import { areBytesEqual } from '../../../testing/bytes';
 import { fakeContextOf } from '../../../testing/fake-bake-canvas';
 import {
@@ -80,7 +80,7 @@ describe('createRenderTextures', () => {
     expect(textures.paletteTexture.autoGenerateMipmaps).toBe(false);
     expect([textures.paletteTexture.width, textures.paletteTexture.height]).toEqual([
       PALETTE_SHADE_COUNT,
-      PLAYER_PALETTE_COUNT,
+      PLAYER_PALETTE_COUNT + GIANT_SPECIES_ORDER.length,
     ]);
     expect(textures.paletteTexture.style.scaleMode).toBe('nearest');
   });

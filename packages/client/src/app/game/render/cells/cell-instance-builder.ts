@@ -20,7 +20,10 @@ import {
   STARVING_FADE,
   STARVING_RIM_DIM,
   WARNING_RING_STROKE_PX,
+  GIANT_SPECIES_ID,
+  NO_GIANT_SPECIES_ID,
 } from '../constants';
+import { cellPaletteIndex } from '../palette';
 import { RELATION_RING, type RelationRing } from '../../hud/format/relations-for';
 import type { CellInstance } from './cell-instance';
 import type { CellLod } from './cell-lod';
@@ -188,6 +191,23 @@ function tellFields(
   };
 }
 
+/**
+ * Whose cell it is: the palette row, the seat mark and the giant's species. A giant has no seat, so it wears its
+ * species' palette and no beads (docs/ecology/giants.md §3.5.11); everyone else wears the seat's palette and beads.
+ */
+function identityFields(
+  view: CellView,
+  lod: CellLod,
+): Pick<CellInstance, 'paletteIndex' | 'beadCount' | 'giantSpeciesId'> {
+  const species = view.giantSpecies;
+  const beads = lod.hasTells && species === null ? (SEAT_MARK_BEADS[view.avatarIndex] ?? DEFAULT_BEADS) : 0;
+  return {
+    paletteIndex: cellPaletteIndex(view),
+    beadCount: beads,
+    giantSpeciesId: species === null ? NO_GIANT_SPECIES_ID : GIANT_SPECIES_ID[species],
+  };
+}
+
 /** The film over an engulfed prey or a ghost, the ghost's dash and the warning ring (`warningRingPxFor` gated it). */
 function filmFields(input: CellInstanceInput): Pick<CellInstance, 'passBAlpha' | 'rimDash' | 'warningRingPx'> {
   const isFilmed = input.view.engulfedByCellId !== null || input.rimDash > 0;
@@ -239,17 +259,16 @@ export function buildCellInstance(input: CellInstanceInput): CellInstance {
     ...selfRingFields(input),
     ...fadeFields(input),
     ...relation,
+    ...identityFields(view, lod),
     x: view.x,
     y: view.y,
     radius: view.radius,
     quadExtentRadii: quadExtentRadii(terms, lod, { warningRingPx: input.warningRingPx, ...relation }),
-    paletteIndex: view.avatarIndex,
     lodBlend: lod.interiorBlend,
     nucleusOffsetX: input.nucleusOffset.x,
     nucleusOffsetY: input.nucleusOffset.y,
     nucleusDiscRadii: traits.hasNucleus ? NUCLEUS_RADIUS : NO_NUCLEUS_DISC,
     haloKind: traits.haloKind,
-    beadCount: lod.hasTells ? (SEAT_MARK_BEADS[view.avatarIndex] ?? DEFAULT_BEADS) : 0,
     isOwn: input.isOwn && lod.hasTells,
     isFarDot: lod.isFarDot,
     isProtocell: traits.isProtocell,

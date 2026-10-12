@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE } from '@evolution/shared';
+import { CELL_STAGE, GIANT_SPECIES } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
 import { FORM_ID, FORM_WOBBLE_MODE, HALO_KIND, PROTOCELL_WOBBLE_AMPLITUDE, PROTOCELL_WOBBLE_MODE } from '../constants';
 import { summariseCellTraits } from './cell-traits';
@@ -72,6 +72,22 @@ describe('summariseCellTraits', () => {
       }),
     );
     expect(both.haloKind).toBe(HALO_KIND.chloroplast);
+  });
+
+  it('carries a giant’s species and gives it its own rim glow, never a trait halo (docs/ecology/giants.md §3.5.11)', () => {
+    const traits = [
+      { traitId: 'chloroplast', tier: 1 },
+      { traitId: 'diatom_shell', tier: 1 },
+    ] as const;
+    const giant = summariseCellTraits(
+      createTestCellView({ stage: CELL_STAGE.specialised, traits: [...traits], giantSpecies: GIANT_SPECIES.diatom }),
+    );
+    expect(giant.giantSpecies).toBe(GIANT_SPECIES.diatom);
+    expect(giant.haloKind).toBe(HALO_KIND.default);
+    expect(giant.tintMix).toBe(0.2);
+    const player = summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits: [...traits] }));
+    expect(player.giantSpecies).toBeNull();
+    expect(player.haloKind).toBe(HALO_KIND.chloroplast);
   });
 
   it('resolves the form from the form trait: mode-3 wobble on a slipper, none on the rigid diatom', () => {

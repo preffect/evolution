@@ -19,6 +19,9 @@ import {
   APPENDAGE_MIN_RETRACTED_PAST_RING_RADII,
   CILIA_TUFT_COUNT,
   CILIA_TUFT_REACH_RADII,
+  CILIA_TUFT_ROOT_WIDTH_RADII,
+  CILIA_TUFT_STRANDS,
+  CILIA_TUFT_STRAND_PITCH_PX,
   CILIA_TUFT_TIP_WIDTH_RADII,
   CILIA_TUFT_WAVES_PER_FLANK,
   ENGULF_WARNING_RING_RADII,
@@ -35,6 +38,7 @@ import {
   tuftArcWidening,
   tuftCentreTurn,
   tuftParameterOf,
+  tuftStrandCount,
   type CiliaTuft,
   type TuftMotion,
 } from './paramecium-cilia';
@@ -229,5 +233,28 @@ describe('ciliaTuftDrawnReachRadii', () => {
     );
     expect(ciliaTuftDrawnReachRadii(formFor('amoeba_pseudopods'))).toBe(0);
     expect(ciliaTuftDrawnReachRadii(formFor(null))).toBe(0);
+  });
+});
+
+describe('tuftStrandCount (#828)', () => {
+  /** The radius at which a root is exactly `CILIA_TUFT_STRANDS` pitches wide: below it the count is the floor. */
+  const floorRadiusPx = (CILIA_TUFT_STRANDS * CILIA_TUFT_STRAND_PITCH_PX) / CILIA_TUFT_ROOT_WIDTH_RADII;
+
+  it('keeps three strands while the root is under three pitches wide (a cell under 37.5 px in radius)', () => {
+    expect(floorRadiusPx).toBe(37.5);
+    expect(tuftStrandCount(24)).toBe(CILIA_TUFT_STRANDS);
+    expect(tuftStrandCount(floorRadiusPx - 1)).toBe(CILIA_TUFT_STRANDS);
+    expect(tuftStrandCount(floorRadiusPx + CILIA_TUFT_STRAND_PITCH_PX / CILIA_TUFT_ROOT_WIDTH_RADII)).toBe(
+      CILIA_TUFT_STRANDS + 1,
+    );
+  });
+
+  it('gives a giant’s tuft a strand per pitch of its root, so it stays a brush of hairs', () => {
+    const giantRadiusPx = 200;
+    expect(tuftStrandCount(giantRadiusPx)).toBe(
+      Math.floor((CILIA_TUFT_ROOT_WIDTH_RADII * giantRadiusPx) / CILIA_TUFT_STRAND_PITCH_PX),
+    );
+    expect(tuftStrandCount(giantRadiusPx)).toBe(16);
+    expect(tuftStrandCount(giantRadiusPx * 2)).toBeGreaterThan(tuftStrandCount(giantRadiusPx));
   });
 });
