@@ -10,6 +10,7 @@ import {
   ENGULF_HOLD,
   canContinueEngulf,
   canEngulf,
+  engulfStartMass,
   isCellEaterSpecies,
   resolveEngulfHold,
   type EngulfPredator,
@@ -58,6 +59,27 @@ describe('canEngulf (canStart)', () => {
     const lenient = structuredClone(balance);
     lenient.ENGULF_MASS_RATIO = 1;
     expect(canEngulf(predator(20), prey(20), lenient)).toBe(true);
+  });
+});
+
+describe('engulfStartMass', () => {
+  it('is the exact bound canEngulf starts at, the Cell Wall bonus included (E10, T3)', () => {
+    const plainBound = engulfStartMass(prey(PREY_MASS), balance);
+    const walledStart = engulfStartMass(prey(PREY_MASS, CELL_WALL_ONE_BONUS), balance);
+    expect(walledStart).toBe(walledBound(balance.ENGULF_MASS_RATIO));
+    for (const [bound, preyBonus] of [
+      [plainBound, 0],
+      [walledStart, CELL_WALL_ONE_BONUS],
+    ] as const) {
+      expect(canEngulf(predator(bound), prey(PREY_MASS, preyBonus), balance)).toBe(true);
+      expect(canEngulf(predator(bound - JUST_UNDER), prey(PREY_MASS, preyBonus), balance)).toBe(false);
+    }
+  });
+
+  it('reads the ratio from the balance it is given', () => {
+    const lenient = structuredClone(balance);
+    lenient.ENGULF_MASS_RATIO = 1;
+    expect(engulfStartMass(prey(PREY_MASS), lenient)).toBe(PREY_MASS);
   });
 });
 

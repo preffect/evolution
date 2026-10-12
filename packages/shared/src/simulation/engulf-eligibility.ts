@@ -20,9 +20,14 @@ export type EngulfPrey = Pick<CellView, 'mass' | 'membraneRatioBonus'>;
 /** The two ratios, taken from `balance.absorption`. */
 export type EngulfRatioBalance = Pick<BalanceConfig['absorption'], 'ENGULF_MASS_RATIO' | 'ENGULF_RELEASE_RATIO'>;
 
-function meetsRatio(predator: EngulfHoldPredator, prey: EngulfPrey, baseRatio: number): boolean {
+/** The least mass that meets `baseRatio` against `prey`: its mass × (`baseRatio` + its folded Cell Wall bonus). */
+function requiredPredatorMass(prey: EngulfPrey, baseRatio: number): number {
   const requiredRatio = baseRatio + prey.membraneRatioBonus;
-  return predator.mass >= prey.mass * requiredRatio;
+  return prey.mass * requiredRatio;
+}
+
+function meetsRatio(predator: EngulfHoldPredator, prey: EngulfPrey, baseRatio: number): boolean {
+  return predator.mass >= requiredPredatorMass(prey, baseRatio);
 }
 
 /**
@@ -39,6 +44,14 @@ export function isCellEaterSpecies(species: GiantSpecies | null): boolean {
  */
 export function canEngulf(predator: EngulfPredator, prey: EngulfPrey, balance: EngulfRatioBalance): boolean {
   return isCellEaterSpecies(predator.giantSpecies) && meetsRatio(predator, prey, balance.ENGULF_MASS_RATIO);
+}
+
+/**
+ * The least mass a cell that eats cells needs to start engulfing `prey`: `canEngulf`'s bound, as a figure. What the
+ * encyclopedia quotes as the mass that swallows a giant (docs/ui/encyclopedia.md §11.4), so the page and the rule are one.
+ */
+export function engulfStartMass(prey: EngulfPrey, balance: Pick<EngulfRatioBalance, 'ENGULF_MASS_RATIO'>): number {
+  return requiredPredatorMass(prey, balance.ENGULF_MASS_RATIO);
 }
 
 /** `canContinue`: an engulf in progress holds down to `ENGULF_RELEASE_RATIO + prey.membraneRatioBonus` (hysteresis). */

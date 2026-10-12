@@ -4,7 +4,7 @@
 // `applyGiantBuild` is the one home of that multiplier: every refresh of a giant's derived state goes through it, so a
 // refresh that skipped it cannot silently drop the multiplier (§3.5.15). Pure over the cell and the balance.
 
-import type { BalanceConfig, GiantSpecies, OwnedTrait, TraitTier } from '@evolution/shared';
+import { giantBuildOf, type BalanceConfig, type GiantSpecies, type OwnedTrait } from '@evolution/shared';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import type { CellRecord } from '../world/entities.js';
 
@@ -14,17 +14,6 @@ const PICKS_BELOW_LEVEL = 1;
 /** Picks + 1: every tier of every trait is one pick (Amoeba Pseudopods II is two). No constant names it. */
 export function giantLevelOf(build: readonly OwnedTrait[]): number {
   return build.reduce((picks, trait) => picks + trait.tier, 0) + PICKS_BELOW_LEVEL;
-}
-
-/**
- * The species' build from the live balance as owned traits. The balance types a tier as a number; every tier is one a
- * trait has, since `debug_set_balance` refuses a patch that breaks a build (`giantBalanceProblems`).
- */
-export function giantBuildOf(species: GiantSpecies, balance: BalanceConfig): OwnedTrait[] {
-  return balance.giants.GIANT_BUILDS_BY_SPECIES[species].map(({ traitId, tier }) => ({
-    traitId,
-    tier: tier as TraitTier,
-  }));
 }
 
 /** Level, traits, stage and modifiers from the species' build, then × the species' speed multiplier. */

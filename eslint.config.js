@@ -76,7 +76,10 @@ const ENCYCLOPEDIA_DEFAULT_BALANCE_FILES = [
   'packages/client/src/app/game/encyclopedia/encyclopedia-context.ts',
   'packages/client/src/app/game/encyclopedia/registry.ts',
 ];
-/** `UPPER_SNAKE_CASE` shared names that are no balance key: the id objects, and the clock's unit conversion. */
+/**
+ * `UPPER_SNAKE_CASE` shared names that are no balance key: the id objects, the clock's unit conversion, and the giants'
+ * roles, which are what a species is and never a balance leaf (docs/ecology/giants.md §3.5.14).
+ */
 export const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
   'CELL_STAGE',
   'ZONE_ID',
@@ -92,6 +95,9 @@ export const SHARED_NAMES_WITHOUT_A_BALANCE_KEY = [
   'ENGULF_PHASE',
   'TRAIT_CATEGORY',
   'TRAIT_RARITY',
+  'GIANT_SPECIES',
+  'GIANT_ROLE',
+  'GIANT_ROLE_BY_SPECIES',
   'SECONDS_PER_MINUTE',
   'FIRST_TIER',
   'FIRST_LEVEL',

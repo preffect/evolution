@@ -1,8 +1,10 @@
 // Which glyph an entry wears, pure (docs/ui/encyclopedia.md §11.3): a trait's is `<app-trait-glyph>` (#312), keyed by
-// the catalog trait id, and every other subject's is `<app-subject-glyph>` (#391), keyed by the entry id itself.
-// The split is the entry id's grammar (§12.2) and nothing else, so a row and a tile never disagree about it.
+// the catalog trait id; a giant cell's is its form's trait glyph, since the giant is that form drawn large (ticket
+// #831); and every other subject's is `<app-subject-glyph>` (#391), keyed by the entry id itself. The split is the
+// entry id's grammar (§12.2) and nothing else, so a row and a tile never disagree about it.
 
-import type { TraitId } from '@evolution/shared';
+import type { GiantSpecies, TraitId } from '@evolution/shared';
+import { giantFormTraitId } from '../../giants/giant-forms';
 import type { SubjectEntryId } from '../../render/svg-glyph';
 import { ENTRY_ID_SEPARATOR, ENTRY_SUBJECT, type EntryId, type EntryIdOf } from '../model/entry-id';
 
@@ -13,10 +15,15 @@ export type EncyclopediaGlyphSubject =
   | { readonly kind: typeof GLYPH_SUBJECT.subject; readonly entryId: SubjectEntryId };
 
 const TRAIT_ENTRY_ID_PREFIX = `${ENTRY_SUBJECT.trait}${ENTRY_ID_SEPARATOR}`;
+const GIANT_ENTRY_ID_PREFIX = `${ENTRY_SUBJECT.giant}${ENTRY_ID_SEPARATOR}`;
 
-/** Narrows on the id's own subject, so the other arm is `SubjectEntryId` — exactly what the subject glyph takes. */
+/** Narrows on the id's own subject, so the last arm is `SubjectEntryId` — exactly what the subject glyph takes. */
 function isTraitEntryId(entryId: EntryId): entryId is EntryIdOf<typeof ENTRY_SUBJECT.trait> {
   return entryId.startsWith(TRAIT_ENTRY_ID_PREFIX);
+}
+
+function isGiantEntryId(entryId: EntryId): entryId is EntryIdOf<typeof ENTRY_SUBJECT.giant> {
+  return entryId.startsWith(GIANT_ENTRY_ID_PREFIX);
 }
 
 /**
@@ -26,6 +33,10 @@ function isTraitEntryId(entryId: EntryId): entryId is EntryIdOf<typeof ENTRY_SUB
 export function glyphSubjectOf(entryId: EntryId): EncyclopediaGlyphSubject {
   if (isTraitEntryId(entryId)) {
     return { kind: GLYPH_SUBJECT.trait, traitId: entryId.slice(TRAIT_ENTRY_ID_PREFIX.length) as TraitId };
+  }
+  if (isGiantEntryId(entryId)) {
+    const species = entryId.slice(GIANT_ENTRY_ID_PREFIX.length) as GiantSpecies;
+    return { kind: GLYPH_SUBJECT.trait, traitId: giantFormTraitId(species) };
   }
   return { kind: GLYPH_SUBJECT.subject, entryId };
 }

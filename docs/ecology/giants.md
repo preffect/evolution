@@ -430,6 +430,15 @@ something new.
 | `giant_paramecium` | `Real paramecia sweep food into a groove that works as a mouth` | the oral groove and cytostome (Wikipedia "Paramecium")                                                         |
 | `giant_diatom`     | `Real diatoms make at least a fifth of Earth's oxygen`          | estimates of 20 % to 50 % of the oxygen produced each year (Wikipedia "Diatom")                                |
 
+**Real sizes** (`GIANT_REAL_SIZES`, the encyclopedia's real-life note, ui/encyclopedia.md §11.4), in words, since
+encyclopedia copy types no digit, each beside a thing the reader can picture:
+
+| Species            | Real size                                                                 | Checked against                                                                                       |
+| ------------------ | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `giant_amoeba`     | `About half a millimetre long, hundreds of times longer than a bacterium` | _Amoeba proteus_ about 0.2 to 0.75 mm; a bacterium 1 to 2 µm (Wikipedia "Amoeba proteus", "Bacteria") |
+| `giant_paramecium` | `About a quarter of a millimetre long, like a grain of fine sand`         | _Paramecium caudatum_ 0.17 to 0.33 mm; fine sand 0.125 to 0.25 mm (Wikipedia "Paramecium", "Sand")    |
+| `giant_diatom`     | `Up to half a millimetre across, as big as a grain of sand`               | _Coscinodiscus_ up to about 0.5 mm across; sand 0.0625 to 2 mm (Wikipedia "Coscinodiscus", "Sand")    |
+
 The mockup's diatom line ("a fifth of the oxygen you breathe") is reworded: the sources give a range
 for the oxygen the planet produces, not for what one person breathes. The amoeba's "big enough to see
 without a microscope" is dropped: the sources disagree on whether a typical one is.
@@ -481,8 +490,9 @@ species since the giants-on slice (§3.5.17).
 Reused unchanged: `WILD_CELL_SIGHT_VIEW_MULTIPLE`, `WILD_CELL_FLEE_RANGE_RADII`, both sprint radii,
 `WILD_CELL_HUNT_CHARGE_RADII`, `WILD_CELL_HUNT_REST_SECONDS`, `WILD_CELL_RECOVERY_SECONDS`,
 `WILD_CELL_DECISION_INTERVAL_SECONDS`, the controls' sprint, and the trait tier tables. The client's
-`GIANT_REAL_LIFE_LINES` and `GIANT_DISPLAY_NAME_BY_SPECIES` live beside `FORM_REAL_LIFE_LINES`
-(`hud/format/`), as the form lines do. The balance test (`constants/giants.test.ts`) pins: every build a valid
+`GIANT_REAL_LIFE_LINES`, `GIANT_DISPLAY_NAME_BY_SPECIES` and `GIANT_REAL_SIZES` live in the neutral
+`game/giants/giant-facts.ts`, since the HUD and the encyclopedia both read them and the encyclopedia never imports
+`hud/` (ticket #831). The balance test (`constants/giants.test.ts`) pins: every build a valid
 ladder ending in its form; every born range inside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`; `GIANT_MASS_CEILING ×
 (ENGULF_MASS_RATIO +` the build's `membraneRatioBonus) < CELL_MAX_MASS`; every species multiplier ≤ 1; and
 the hunter's `GIANT_BORN_MASS_MIN × GIANT_HUNT_MIN_PREY_MASS_FRACTION > ENTRY_MAX_MASS` (G14).

@@ -8,13 +8,17 @@ import {
   ENTITY_KIND,
   FIRST_TIER,
   FOOD_KIND,
+  GIANT_SPECIES,
   ZONE_ID,
+  giantBuildOf,
   tierOfRowIndex,
   type BalanceConfig,
+  type GiantSpecies,
   type OwnedTrait,
   type TraitId,
   type TraitTier,
 } from '@evolution/shared';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES, GIANT_REAL_SIZES } from '../giants/giant-facts';
 import { PREVIEW_MOTION, PREVIEW_SCENE, type PreviewSpec } from '../render/preview/preview-spec';
 import { ABILITY_ENTRY_CONTENT } from './content/ability-entries';
 import { ACTION_ENTRY_CONTENT } from './content/action-entries';
@@ -24,6 +28,7 @@ import { CONCEPT_ENTRY_CONTENT } from './content/concept-entries';
 import { DNA_TAG_ENTRY_CONTENT, dnaTagFacts } from './content/dna-tag-entries';
 import { DNA_FRAGMENT_ENTRY_CONTENT, fragmentTagSection } from './content/entity-entries';
 import { FOOD_ENTRY_CONTENT } from './content/food-entries';
+import { GIANT_ENTRY_CONTENT } from './content/giant-entries';
 import { HUD_ENTRY_CONTENT } from './content/hud-entries';
 import { STAGE_ENTRY_CONTENT, stageFacts } from './content/stage-entries';
 import { TRAIT_ENTRY_CONTENT, traitFacts } from './content/trait-entries';
@@ -120,6 +125,28 @@ function dnaTagEntries(balance: BalanceConfig): readonly EntryDefinition[] {
   }));
 }
 
+/** A giant's preview is the giant itself: a wild cell owning its species' build, in its species' palette. */
+function giantPreview(balance: BalanceConfig, species: GiantSpecies): PreviewSpec {
+  return {
+    scene: PREVIEW_SCENE.cell,
+    cellKind: CELL_KIND.wild,
+    traits: giantBuildOf(species, balance),
+    motion: PREVIEW_MOTION.swimming,
+    giantSpecies: species,
+  };
+}
+
+/** The giant cells, in species order: the name the HUD calls each, its build as the preview, its real-life note. */
+function giantEntries(balance: BalanceConfig): readonly EntryDefinition[] {
+  return Object.values(GIANT_SPECIES).map((species) => ({
+    id: entryIdOf(ENTRY_SUBJECT.giant, species),
+    title: GIANT_DISPLAY_NAME_BY_SPECIES[species],
+    ...GIANT_ENTRY_CONTENT[species],
+    preview: giantPreview(balance, species),
+    realLife: { line: GIANT_REAL_LIFE_LINES[species], size: GIANT_REAL_SIZES[species] },
+  }));
+}
+
 /** A subject whose content file writes each entry whole, walked in `codeIds` order. */
 function writtenEntries<Subject extends EntrySubject>(
   subject: Subject,
@@ -141,6 +168,7 @@ function dnaFragmentEntry(balance: BalanceConfig): EntryDefinition {
 export function buildEntryDefinitions(balance: BalanceConfig): readonly EntryDefinition[] {
   return [
     ...writtenEntries(ENTRY_SUBJECT.cellKind, Object.values(CELL_KIND), CELL_KIND_ENTRY_CONTENT),
+    ...giantEntries(balance),
     ...writtenEntries(ENTRY_SUBJECT.food, Object.values(FOOD_KIND), FOOD_ENTRY_CONTENT),
     ...writtenEntries(ENTRY_SUBJECT.bacterium, balance.ecology.BACTERIUM_VARIANTS, BACTERIUM_ENTRY_CONTENT),
     dnaFragmentEntry(balance),

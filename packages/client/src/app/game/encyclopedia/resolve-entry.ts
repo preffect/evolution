@@ -95,5 +95,6 @@ export function resolveEntryDefinition(
     sections: definition.sections.map((section) => resolveSection(section, context, scope)),
     seeAlso: seeAlsoOf(definition, context, lookup.titleOf),
     preview: definition.preview,
+    realLife: definition.realLife ?? null,
   };
 }

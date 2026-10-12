@@ -1,12 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, GIANT_SPECIES } from '@evolution/shared';
-import { formRealLifeLine, isFormTrait } from './form-facts';
-import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './giant-facts';
+import { formRealLifeLine, isFormTrait } from '../hud/format/form-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES, GIANT_REAL_SIZES } from './giant-facts';
 
 /** The terse rule the form lines keep (docs/ui/input-and-onboarding.md §5): one short line, no full stop. */
 const REAL_LIFE_LINE_MAX_CHARS = 64;
 const SPECIES = Object.values(GIANT_SPECIES);
+/** A real size is one line of the encyclopedia's real-life note, no longer than the coach pill allows a line. */
+const REAL_SIZE_MAX_CHARS = 72;
 
 describe('the giants’ names and real-life lines (docs/ecology/giants.md §3.5.11, §3.5.12)', () => {
   it('names each species with the spec’s display name, every one different', () => {
@@ -33,6 +35,16 @@ describe('the giants’ names and real-life lines (docs/ecology/giants.md §3.5.
       const formLine = form === undefined ? null : formRealLifeLine(form.traitId);
       expect(formLine).not.toBeNull();
       expect(GIANT_REAL_LIFE_LINES[species]).not.toBe(formLine);
+    }
+  });
+
+  it('gives each real size in words: short, without a digit, in millimetres', () => {
+    for (const species of SPECIES) {
+      const size = GIANT_REAL_SIZES[species];
+      expect(size.length).toBeLessThanOrEqual(REAL_SIZE_MAX_CHARS);
+      expect(size).not.toMatch(/\d/);
+      expect(size).toMatch(/millimetre/);
+      expect(size.endsWith('.')).toBe(false);
     }
   });
 });

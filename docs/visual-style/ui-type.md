@@ -127,6 +127,9 @@ medallion, use §7.1's layer stack, LODs, `still` and motions, and are drawn by 
 stylesheet: `<app-subject-glyph [entryId] lod="list" still />` is the sibling of `<app-trait-glyph>`, and neither
 owns the SVG (`glyphs/glyph-layers.component.ts` is it). What follows is only what is different.
 
+**The giant cells draw no subject glyph** (#831): a giant is its form drawn large, so its rows and tiles wear that form's
+trait glyph (`<app-trait-glyph>`, the trait from `giants/giant-forms.ts`), and the creature reads by its shape.
+
 **The two halves.** Things the dish already draws are **drawn as they look there** — the cell kinds, the food kinds,
 the three bacterium rods, the DNA fragment, the four zones — read off `render/` and `cells-and-organelles.md` §3–4,
 not invented. Topics have no dish form, so they are designed here: the stages, DNA tags, abilities, actions, world

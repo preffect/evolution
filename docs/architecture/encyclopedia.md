@@ -52,14 +52,14 @@ without a word fails `typecheck` (ui/encyclopedia.md §11.4).
 **Category by subject.** An entry's category is derived, never written in content: `CATEGORY_BY_SUBJECT` in
 `encyclopedia/model/categories.ts` is total over `ENTRY_SUBJECT`, and `CATEGORY_BY_ENTRY` holds the only exception.
 
-| Subject                                    | Category                                                                       |
-| ------------------------------------------ | ------------------------------------------------------------------------------ |
-| `concept`, `hud`                           | `basics` (except `concept:food` → `entities`, the one `CATEGORY_BY_ENTRY` row) |
-| `cell_kind`, `food`, `bacterium`, `entity` | `entities`                                                                     |
-| `stage`, `trait`, `dna_tag`                | `evolutions`                                                                   |
-| `ability`                                  | `abilities`                                                                    |
-| `action`                                   | `actions`                                                                      |
-| `zone`, `world`                            | `world`                                                                        |
+| Subject                                             | Category                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `concept`, `hud`                                    | `basics` (except `concept:food` → `entities`, the one `CATEGORY_BY_ENTRY` row) |
+| `cell_kind`, `giant`, `food`, `bacterium`, `entity` | `entities`                                                                     |
+| `stage`, `trait`, `dna_tag`                         | `evolutions`                                                                   |
+| `ability`                                           | `abilities`                                                                    |
+| `action`                                            | `actions`                                                                      |
+| `zone`, `world`                                     | `world`                                                                        |
 
 ```ts
 // encyclopedia/model/categories.ts
@@ -79,6 +79,7 @@ export const ENCYCLOPEDIA_CATEGORY_ORDER: readonly EncyclopediaCategory[];
 // encyclopedia/model/entry-id.ts
 export const ENTRY_SUBJECT = {
   cellKind: 'cell_kind', // CELL_KIND
+  giant: 'giant', // GIANT_SPECIES: the giant cells (ecology/giants.md §3.5, #831)
   food: 'food', // FOOD_KIND
   bacterium: 'bacterium', // BACTERIUM_VARIANT
   entity: 'entity', // ENTITY_KIND members with no subject of their own (dna_fragment), via ENTRY_BY_ENTITY_KIND
@@ -95,6 +96,7 @@ export const ENTRY_SUBJECT = {
 
 export type EntryId =
   | `cell_kind:${CellKind}`
+  | `giant:${GiantSpecies}`
   | `food:${FoodKind}`
   | `bacterium:${BacteriumVariant}`
   | `entity:${typeof ENTITY_KIND.dnaFragment}`
@@ -130,6 +132,14 @@ export interface EntryDefinition {
   /** Hand-picked links; the derived ones (a trait's requires, an ability's granting traits) are added at resolve time. */
   readonly seeAlso: readonly EntryId[];
   readonly preview: PreviewSpec | null; // render/preview/preview-spec.ts, §12.7
+  /** What the real organism does and how big it is, in words (ui/encyclopedia.md §11.4); only the giants carry one (#831). */
+  readonly realLife?: RealLifeNote;
+}
+
+/** One true line about the real organism and its real size, copy with no digit (§12.6 holds for both). */
+export interface RealLifeNote {
+  readonly line: string;
+  readonly size: string;
 }
 
 export interface SectionDefinition {
@@ -160,6 +170,7 @@ export interface ResolvedEntry {
   readonly sections: readonly ResolvedSection[];
   readonly seeAlso: readonly EntryLink[];
   readonly preview: PreviewSpec | null;
+  readonly realLife: RealLifeNote | null; // `null` on an entry with no real organism behind it
 }
 
 export type ProseSegment =
@@ -253,6 +264,7 @@ export type FactDefinition =
       readonly label: string;
       readonly unit: QuantityUnit;
       readonly presentation: QuantityPresentation;
+      readonly rounding?: QuantityRounding; // the unit's own when absent; `ceil` for a mass the player must reach
       readonly source: ValueFactSource;
     }
   | { readonly key: string; readonly label: string; readonly source: LinkFactSource };
@@ -272,6 +284,9 @@ export const FACT_FORMULA = {
   gelSpeedFactorAt: 'gel_speed_factor_at', // gelSpeedFactor(massOf(argument), balance.growth, the default gelSpeedFactorFloor)
   worldLevelAt: 'world_level_at', // worldWholeLevel(worldReference(secondsOf(argument), balance)): floored, as the game plays it
   worldMassAt: 'world_mass_at', // worldReference(secondsOf(argument), balance).worldMass
+  // engulfStartMass({ mass: giantMassOf(argument), membraneRatioBonus: foldModifiers(giantBuildOf(species), TRAIT_TIERS) }, balance.absorption):
+  // the mass that swallows a giant, its build's Cell Wall included (ecology/giants.md §3.5.4, #831)
+  giantSwallowMass: 'giant_swallow_mass',
   // … one row per shared function a page needs; a new row is reviewed here, never in content
 } as const;
 export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
@@ -284,6 +299,7 @@ export interface FactFormulaArguments {
   gel_speed_factor_at: { readonly mass: BalanceMassSelector };
   world_level_at: { readonly moment: RoundMoment }; // 'default_round_end' → balance.session.ROUND_DURATION_SECONDS
   world_mass_at: { readonly moment: RoundMoment };
+  giant_swallow_mass: { readonly species: GiantSpecies; readonly mass: GiantMass }; // 'smallest_born' → its born minimum, 'ceiling' → GIANT_MASS_CEILING
 }
 export type FactFormulaCall = {
   [Id in FactFormulaId]: { readonly id: Id; readonly argument: FactFormulaArguments[Id] };
@@ -498,6 +514,7 @@ export const QUANTITY_UNIT = {
   clock: 'clock', // seconds as `m:ss` (the round timer)
   massPerSecond: 'mass_per_second',
   share: 'share', // a 0..1 ratio, shown as a percent
+  shareOfItsMass: 'share_of_its_mass', // a 0..1 share of the subject's own mass: `25 % of its mass`
   sharePerSecond: 'share_per_second',
   multiplier: 'multiplier', // ×
   radii: 'radii',
@@ -519,8 +536,9 @@ export const QUANTITY_PRESENTATION = {
 } as const;
 export type QuantityPresentation = ValueOf<typeof QUANTITY_PRESENTATION>;
 
-/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent, the clock). */
-export const QUANTITY_ROUNDING = { nearest: 'nearest', floor: 'floor' } as const;
+/** `nearest` for display; `floor` where a reading must never claim more than is there (the DNA percent, the clock);
+ *  `ceil` where it must never claim less than is needed (the mass that swallows a giant), float noise dropped first. */
+export const QUANTITY_ROUNDING = { nearest: 'nearest', floor: 'floor', ceil: 'ceil' } as const;
 
 /** Per unit: prefix, suffix, singular suffix, scale (a share × `PERCENT`), decimals (trailing zeros dropped), rounding
  *  and form (a decimal figure, `m:ss`, or a tier numeral from `TIER_NUMERALS`). */
@@ -580,15 +598,15 @@ spec below, never on a player's screen.
 
 **Tests** (`encyclopedia/**/*.spec.ts`, unit tier, jsdom, no Pixi):
 
-| Spec                             | Pins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `registry-completeness.spec.ts`  | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT` and `HUD_TOPIC` value (the seven `HUD_ELEMENT_BY_TOPIC` anchors pairwise distinct, each `dom` key in `HUD_TEST_ID` and each `indicator` field in `OwnCellIndicators`); every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty |
-| `fact-sources.spec.ts`           | Every `balance` path resolves to a finite number in `DEFAULT_BALANCE`. Every `FACT_FORMULAS` and `CATALOG_QUANTITIES` row, run over a **recording proxy** of the balance with every argument its type allows, reads at least one leaf, and **at least one** of the number leaves it read changes its value when patched on a `structuredClone` (× 2, or + 1 for a leaf at 0), so clamps and branches do not false-fail. Every `DERIVED_LINK` row has one structure change (a row's stage, a gate list, a weight at zero, …) that must move its targets. Every `BalanceConfig` domain is read by at least one fact, counting `balance` paths and proxy reads together                                                                                                                                                                  |
-| `prose.spec.ts`                  | For every entry and section: no digit (`/\d/`), no tier numeral (`/\btier\s+[ivx]+\b/i`, and a bare `/\b[IVX]{2,}\b/`) and no count written as a word (`two` … `twelve`, `either`, `both`) in any template, title, heading or label; no entry or section fact key is a `CellModifiers` key (a tier token reads those); every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                 |
-| `resolve-entry.spec.ts`          | A patched balance (a `structuredClone`, as `applyBalancePatch` leaves it) changes the resolved text of the facts that read the leaf and of the trait tier lines; the generated tier headings follow the tier count; the derived links (requires, granting traits, gate traits) match the balance's catalog                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `encyclopedia-context.spec.ts`   | `factContextFor(null)` is `DEFAULT_BALANCE`; a room balance wins; the service's signal follows `GameStateService.balance`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `lint-guard.integration.spec.ts` | Integration tier (a child Node process lints fixture sources with the real `eslint.config.js`). The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; it rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access (in content too), a number literal, binary arithmetic (`**` included), an increment and a compound assignment under `encyclopedia/content/**`, and accepts `DEFAULT_BALANCE` in both allowed files and every allowlisted name under content, facts and quantities                                                                                                                                                                                                                                                                                     |
-| `quantities/*.spec.ts`           | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Spec                             | Pins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registry-completeness.spec.ts`  | The registry holds exactly: one `trait:` entry per catalog row with one tier section per tier of its row; one entry per `CELL_STAGE`, `DNA_TAG`, `CELL_KIND`, `FOOD_KIND`, `BACTERIUM_VARIANT`, `ZONE_ID`, `ABILITY`, `ACTION`, `WORLD_TOPIC`, `CONCEPT` and `HUD_TOPIC` value (the seven `HUD_ELEMENT_BY_TOPIC` anchors pairwise distinct, each `dom` key in `HUD_TEST_ID` and each `indicator` field in `OwnCellIndicators`); every `ENTRY_BY_EFFECT`, `ENTRY_BY_ENTITY_KIND`, `ENTRY_BY_WORLD_STANDING` and `ACTION_BY_INTENT` target (anchors included) exists; every `CellModifiers` key maps to one ability; every value outside the registry is in `RESERVED_FROM_ENCYCLOPEDIA`, and each of those is still reserved in code. Ids are unique; every entry's category is in `ENCYCLOPEDIA_CATEGORY_ORDER`; no category is empty                                     |
+| `fact-sources.spec.ts`           | Every `balance` path resolves to a finite number in `DEFAULT_BALANCE`. Every `FACT_FORMULAS` and `CATALOG_QUANTITIES` row, run over a **recording proxy** of the balance with every argument its type allows, reads at least one leaf, and **at least one** of the number leaves it read changes its value when patched on a `structuredClone` (× 2, or + 1 for a leaf at 0), so clamps and branches do not false-fail; a patch that leaves no balance to evaluate (a giant's build doubled in `length` is half holes, a tier doubled past its table) counts as moving nothing, since `debug_set_balance` refuses it (#831). Every `DERIVED_LINK` row has one structure change (a row's stage, a gate list, a weight at zero, …) that must move its targets. Every `BalanceConfig` domain is read by at least one fact, counting `balance` paths and proxy reads together |
+| `prose.spec.ts`                  | For every entry and section, its real-life note included: no digit (`/\d/`), no tier numeral (`/\btier\s+[ivx]+\b/i`, and a bare `/\b[IVX]{2,}\b/`) and no count written as a word (`two` … `twelve`, `either`, `both`) in any template, title, heading or label; no entry or section fact key is a `CellModifiers` key (a tier token reads those); every `{token}` names a fact of that entry or section; every `[[link]]` is a registry id or anchor; `resolveEntry` of every id succeeds over `DEFAULT_BALANCE`                                                                                                                                                                                                                                                                                                                                                        |
+| `resolve-entry.spec.ts`          | A patched balance (a `structuredClone`, as `applyBalancePatch` leaves it) changes the resolved text of the facts that read the leaf and of the trait tier lines; the generated tier headings follow the tier count; the derived links (requires, granting traits, gate traits) match the balance's catalog                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `encyclopedia-context.spec.ts`   | `factContextFor(null)` is `DEFAULT_BALANCE`; a room balance wins; the service's signal follows `GameStateService.balance`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `lint-guard.integration.spec.ts` | Integration tier (a child Node process lints fixture sources with the real `eslint.config.js`). The allowlist below shares no name with any key of any `DEFAULT_BALANCE` domain; it rejects a tunable import, an `import * as` of `@evolution/shared`, a `.tiers` member access (in content too), a number literal, binary arithmetic (`**` included), an increment and a compound assignment under `encyclopedia/content/**`, and accepts `DEFAULT_BALANCE` in both allowed files and every allowlisted name under content, facts and quantities                                                                                                                                                                                                                                                                                                                         |
+| `quantities/*.spec.ts`           | Every unit × presentation × rounding, the trimming and sign rules; the trait card, status mirror, round clock and leaderboard text unchanged by the move                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 **Lint guard.** `eslint.config.js` gains two blocks (the folders' own `*.spec.ts` and `*.integration.spec.ts` files are exempt: they read `DEFAULT_BALANCE` to pin the
 shipped text):
@@ -639,6 +657,7 @@ export type PreviewSpec =
       readonly cellKind: CellKind;
       readonly traits: readonly OwnedTrait[];
       readonly motion: PreviewMotion;
+      readonly giantSpecies?: GiantSpecies; // a giant's page: a wild cell owning its build, in its species' palette (#831)
     }
   | {
       readonly scene: typeof PREVIEW_SCENE.food;
@@ -913,14 +932,15 @@ join an entry id to its spec and the render seam. `render/` never imports from `
 packages/client/src/app/game/
   quantities/{quantity-unit,format-quantity,modifier-labels}.ts    units, suffixes, decimals, rounding; the one formatter; the modifier label table (§12.5)
   encyclopedia/model/{entry-id,entry,fact,prose}.ts      the closed types, ids, definitions, resolved shapes, token parser
-  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,entry-anchors,reserved}.ts   the registry's own closed sets and their anchors (§12.4)
+  encyclopedia/model/{categories,groups,abilities,actions,world-topics,concepts,hud-topics,entity-kinds,entry-anchors,reserved,giant-roles}.ts   the registry's own closed sets and their anchors (§12.4); giant-roles: a giant's role chip word (#831)
   encyclopedia/{build-entries,resolve-entry}.ts                    content + the balance's structure → definitions; one definition + context → ResolvedEntry (pure)
   encyclopedia/facts/{balance-path,formula-table,catalog-quantities,resolve-fact,resolve-prose,derived-links}.ts   typed paths, the closed formula and catalog tables, value + unit → text, template → segments, computed links
   encyclopedia/content/{trait,stage,dna-tag}-entries.ts            evolutions (trait tier sections and headings generated from balance.traits.TRAIT_TIERS)
   encyclopedia/content/{concept,hud}-entries.ts                   basics (and `concept:food`, in entities)
   encyclopedia/content/fact-builders.ts                            the balance, formula and link fact shapes the written entries repeat
   test-ids/hud-test-ids.ts                                          HUD_TEST_ID, moved out of hud/ (hud/, input/ and encyclopedia/ import it)
-  encyclopedia/content/{cell-kind,food,bacterium,entity}-entries.ts   entities
+  encyclopedia/content/{cell-kind,giant,food,bacterium,entity}-entries.ts   entities; a giant's title, preview and real-life note are the builder's, from game/giants/ and its build (#831)
+  giants/{giant-facts,giant-forms}.ts                               the giants' names, real-life lines and real sizes, and the form each is drawn as: neutral, since hud/ and encyclopedia/ both read them
   encyclopedia/content/{zone,world}-entries.ts                     world
   encyclopedia/content/{ability,action}-entries.ts                 abilities and actions
   encyclopedia/content/action-facts.ts                             the sprint and engulf facts an ability page and an action page both quote

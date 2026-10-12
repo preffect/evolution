@@ -43,7 +43,10 @@ function resolveFact(definition: FactDefinition, context: FactContext, titleOf: 
   }
   const value = valueOfSource(definition.source, context.balance);
   if (value === null) return [];
-  const text = formatQuantity(value, definition.unit, { presentation: definition.presentation });
+  const text = formatQuantity(value, definition.unit, {
+    presentation: definition.presentation,
+    rounding: definition.rounding,
+  });
   return [{ key: definition.key, label: definition.label, text, link: null }];
 }
 

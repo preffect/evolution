@@ -9,7 +9,7 @@ import { EFFECT_KIND, secondsToTicks, type GameEffect, type GiantSpecies } from 
 import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { UI_EFFECT } from '../../../ui-kit/ui-effect-mark.component';
-import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './giant-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from '../../giants/giant-facts';
 import { FORM_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
 import { UPGRADE_POPUP_KIND, type UpgradePopupContent } from './upgrade-popup-kinds';
 

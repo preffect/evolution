@@ -7,6 +7,7 @@ import {
   DEFAULT_BALANCE,
   GIANT_SPECIES,
   GIANT_SPECIES_ORDER,
+  giantBuildOf,
   speedCapFor,
   type GiantSpecies,
 } from '@evolution/shared';
@@ -14,7 +15,7 @@ import { seatTestGiantCell, seatTestWildCell } from '../../testing/wild-builders
 import { createTestWorld } from '../../testing/world-builders.js';
 import { refreshCellDerivedStateFromTraits } from '../progression/modifiers.js';
 import type { CellRecord } from '../world/entities.js';
-import { applyGiantBuild, giantBuildOf, giantLevelOf, refreshAnyCellFromItsTraits } from './giant-build.js';
+import { applyGiantBuild, giantLevelOf, refreshAnyCellFromItsTraits } from './giant-build.js';
 
 const { giants } = DEFAULT_BALANCE;
 const SPEED_DIGITS = 3;

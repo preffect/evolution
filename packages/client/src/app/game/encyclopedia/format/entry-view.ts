@@ -3,7 +3,15 @@
 // (architecture/encyclopedia.md §12.2) — so nothing here calls `formatQuantity` except on the one figure the page
 // owns itself, the tier numeral, which §11.4 names as a `formatQuantity` call.
 
-import type { OwnedTrait, TraitRarity, TraitTier } from '@evolution/shared';
+import {
+  GIANT_ROLE,
+  GIANT_ROLE_BY_SPECIES,
+  type GiantRole,
+  type GiantSpecies,
+  type OwnedTrait,
+  type TraitRarity,
+  type TraitTier,
+} from '@evolution/shared';
 import { UI_CHIP_TONE, type UiChipTone } from '../../../ui-kit/ui-chip.component';
 import type { UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import type { ModifierEffect } from '../../quantities/modifier-labels';
@@ -22,6 +30,7 @@ import {
 import type { PreviewActionScene, PreviewScene, PreviewSpec } from '../../render/preview/preview-spec';
 import type { EntryLink, ProseSegment, ResolvedFact, ResolvedSection, ResolvedSubject } from '../model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, entryIdOf, type EntryId } from '../model/entry-id';
+import { GIANT_ROLE_LABEL } from '../model/giant-roles';
 import { PROSE_TOKEN } from '../model/prose';
 
 /** The registry's title of an entry, passed in so this file stays pure (`facts/resolve-fact.ts`'s `TitleOf`). */
@@ -32,6 +41,13 @@ const CHIP_TONE_BY_RARITY: Readonly<Record<TraitRarity, UiChipTone>> = {
   common: UI_CHIP_TONE.muted,
   uncommon: UI_CHIP_TONE.strong,
   rare: UI_CHIP_TONE.dna,
+};
+
+/** A giant's role chip (§11.4): the hunter, the one that eats you, in the danger tone; the other two neutral. */
+const CHIP_TONE_BY_GIANT_ROLE: Readonly<Record<GiantRole, UiChipTone>> = {
+  [GIANT_ROLE.hunter]: UI_CHIP_TONE.danger,
+  [GIANT_ROLE.grazer]: UI_CHIP_TONE.neutral,
+  [GIANT_ROLE.drifter]: UI_CHIP_TONE.neutral,
 };
 
 /** A title-column chip (§11.4): sized to its text, wrapping within the column. */
@@ -55,6 +71,11 @@ export function ownedTierOf(ownedTraits: readonly OwnedTrait[], subject: Resolve
   return ownedTraits.find((owned) => owned.traitId === subject.traitId)?.tier ?? null;
 }
 
+/** A chip with no dot: every chip but a DNA tag's. */
+function plainChip(key: string, text: string, tone: UiChipTone = UI_CHIP_TONE.neutral): EncyclopediaChip {
+  return { key, text, tone, dotColour: null };
+}
+
 function traitChips(
   subject: Extract<ResolvedSubject, { kind: typeof ENTRY_SUBJECT.trait }>,
   titleOf: TitleOf,
@@ -66,41 +87,34 @@ function traitChips(
     dotColour: DNA_TAG_COLOR[tag],
   }));
   return [
-    { key: subject.rarity, text: subject.rarity, tone: CHIP_TONE_BY_RARITY[subject.rarity], dotColour: null },
+    plainChip(subject.rarity, subject.rarity, CHIP_TONE_BY_RARITY[subject.rarity]),
     ...tags,
-    {
-      key: subject.stage,
-      text: titleOf(entryIdOf(ENTRY_SUBJECT.stage, subject.stage)),
-      tone: UI_CHIP_TONE.neutral,
-      dotColour: null,
-    },
+    plainChip(subject.stage, titleOf(entryIdOf(ENTRY_SUBJECT.stage, subject.stage))),
   ];
+}
+
+/** The kind chip every subject but a trait wears, and a giant's role beside it. */
+function subjectChips(subject: Exclude<ResolvedSubject, { kind: typeof ENTRY_SUBJECT.trait }>): EncyclopediaChip[] {
+  const kindChip = plainChip(subject.kind, ENTRY_SUBJECT_LABEL[subject.kind]);
+  if (subject.kind !== ENTRY_SUBJECT.giant) return [kindChip];
+  const role = GIANT_ROLE_BY_SPECIES[subject.codeId as GiantSpecies];
+  return [kindChip, plainChip(role, GIANT_ROLE_LABEL[role], CHIP_TONE_BY_GIANT_ROLE[role])];
 }
 
 /**
  * The chips under the title (§11.4): a trait's rarity, its DNA tags and its stage, then `OWNED · II` in level gold
  * while a round has it. Every other subject wears the one kind chip, which is what keeps its page from opening on a
- * title with nothing under it.
+ * title with nothing under it, and a giant its role beside it (`Hunter`, `Grazer`, `Drifter`).
  */
 export function entryChips(
   subject: ResolvedSubject,
   ownedTier: TraitTier | null,
   titleOf: TitleOf,
 ): readonly EncyclopediaChip[] {
-  const chips =
-    subject.kind === ENTRY_SUBJECT.trait
-      ? traitChips(subject, titleOf)
-      : [
-          {
-            key: subject.kind,
-            text: ENTRY_SUBJECT_LABEL[subject.kind],
-            tone: UI_CHIP_TONE.neutral,
-            dotColour: null,
-          },
-        ];
+  const chips = subject.kind === ENTRY_SUBJECT.trait ? traitChips(subject, titleOf) : subjectChips(subject);
   if (ownedTier === null) return chips;
   const text = `${ENCYCLOPEDIA_OWNED_CHIP_LABEL}${ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR}${tierNumeral(ownedTier)}`;
-  return [...chips, { key: ENCYCLOPEDIA_OWNED_CHIP_LABEL, text, tone: UI_CHIP_TONE.gold, dotColour: null }];
+  return [...chips, plainChip(ENCYCLOPEDIA_OWNED_CHIP_LABEL, text, UI_CHIP_TONE.gold)];
 }
 
 /** A facts row with the links its value is made of; the kit draws them through `ng-template[uiFactValue]`. */

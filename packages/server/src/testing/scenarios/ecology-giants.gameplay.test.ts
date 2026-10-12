@@ -16,9 +16,9 @@ import {
   GIANT_SPECIES,
   TICK_HZ,
   distanceBetween,
+  giantBuildOf,
   type Vec2,
 } from '@evolution/shared';
-import { giantBuildOf } from '../../game/wild/giant-build.js';
 import {
   cellOf,
   detritusMass,
