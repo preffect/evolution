@@ -30,7 +30,9 @@ import type {
   DnaFragmentRecord,
   EngulfReleaseRecord,
   FoodMoteRecord,
+  GiantSeatRecord,
   PlayerRecord,
+  SeatMindRecord,
   SpawnerState,
   SpitOutRefractoryRecord,
   TraitOffer,
@@ -206,13 +208,12 @@ export const GEL_PATCH_HASHED_FIELDS: readonly HashedField<GelPatchView>[] = ['x
 
 export const SPAWNER_HASHED_FIELDS: readonly HashedField<SpawnerState>[] = ['accumulator', 'spawnedCount', 'isEnabled'];
 
-export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
+/** What every seat with a mind keeps (`SeatMindRecord`): the head of the wild and the giant seats' lists. */
+const SEAT_MIND_HASHED_FIELDS = [
   'seatNumber',
   'cellId',
-  'sizeFactor',
   'grownMass',
   'fullMass',
-  'isStarving',
   'respawnInTicks',
   'headingX',
   'headingY',
@@ -221,6 +222,18 @@ export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
   'huntStartTick',
   'givenUpPreyId',
   'huntRestUntilTick',
+] as const satisfies readonly HashedField<SeatMindRecord>[];
+
+export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
+  ...SEAT_MIND_HASHED_FIELDS,
+  'sizeFactor',
+  'isStarving',
+];
+
+export const GIANT_SEAT_HASHED_FIELDS: readonly HashedField<GiantSeatRecord>[] = [
+  ...SEAT_MIND_HASHED_FIELDS,
+  'species',
+  'bornMass',
 ];
 
 function hashRecords<Record>(
@@ -239,6 +252,7 @@ export const WORLD_SCALAR_HASHED_FIELDS: readonly HashedField<WorldState>[] = [
   'roundPhase',
   'roundTimeLeftMs',
   'roundFirstEntityNumber',
+  'firstGiantSeatNumber',
 ];
 
 export function computeStateHash(world: WorldState): StateHash {
@@ -249,6 +263,7 @@ export function computeStateHash(world: WorldState): StateHash {
   hashRecords(hasher, world.dnaFragments, DNA_FRAGMENT_HASHED_FIELDS);
   hashRecords(hasher, world.players, PLAYER_HASHED_FIELDS);
   hashRecords(hasher, world.wildSeats, WILD_SEAT_HASHED_FIELDS);
+  hashRecords(hasher, world.giantSeats, GIANT_SEAT_HASHED_FIELDS);
   hashRecords(hasher, world.gelPatches, GEL_PATCH_HASHED_FIELDS);
   hashFields(hasher, world.spawners.food, SPAWNER_HASHED_FIELDS);
   hashFields(hasher, world.spawners.dnaFragments, SPAWNER_HASHED_FIELDS);

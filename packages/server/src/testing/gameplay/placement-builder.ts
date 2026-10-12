@@ -9,6 +9,7 @@ import { ANCHOR_KIND, type PlacementAnchor } from './placement.js';
 import {
   placeCell,
   placeFragment,
+  placeGiant,
   placeMote,
   placeWildCell,
   PLACED_KIND,
@@ -16,6 +17,7 @@ import {
   type PlacedFixture,
   type PlaceCellOptions,
   type PlaceFragmentOptions,
+  type PlaceGiantOptions,
   type PlaceMoteOptions,
   type PlaceWildCellOptions,
 } from './fixtures.js';
@@ -55,6 +57,13 @@ export class FixtureScheduler<Fixture, Builder> {
   /** Wild seat `seat`'s cell at `at` or east of the first placed (player) cell (docs/ecology/acceptance.md §8.1). */
   placeWildCell(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceWildCellOptions): Builder {
     const fixture = placeWildCell(options, this.firstPlacedCell());
+    this.requireAnchorPlayer(fixture.at);
+    return this.place(fixture);
+  }
+
+  /** The species' giant at `at` or east of the first placed (player) cell (docs/ecology/acceptance.md §8.2). */
+  placeGiant(this: FixtureScheduler<PlacedFixture | Fixture, Builder>, options: PlaceGiantOptions): Builder {
+    const fixture = placeGiant(options, this.firstPlacedCell());
     this.requireAnchorPlayer(fixture.at);
     return this.place(fixture);
   }

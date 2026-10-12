@@ -4,15 +4,13 @@
 // `debug_set_balance` refuses a patch on, so the two cannot disagree. Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
-import { GIANT_SPECIES, type GiantSpecies, type TraitId } from '../types/game.js';
+import { GIANT_SPECIES_ORDER, type GiantSpecies, type TraitId } from '../types/game.js';
 import { TRAIT_CATEGORY } from '../types/traits.js';
 import { stageIndex, stageOf } from './stage-of.js';
 import { FIRST_TIER } from './trait-tiers.js';
 
 type GiantBuildEntry = BalanceConfig['giants']['GIANT_BUILDS_BY_SPECIES'][GiantSpecies][number];
 
-/** The species the giant records are keyed by, in declaration order. */
-const EVERY_GIANT_SPECIES: readonly GiantSpecies[] = Object.values(GIANT_SPECIES);
 /** A species speed multiplier above this would break `interestMaxCellSpeedFor`'s bound (giants.md §3.5.14). */
 const MAX_GIANT_SPEED_MULTIPLIER = 1;
 
@@ -69,7 +67,7 @@ function speedMultiplierProblem(species: GiantSpecies, balance: BalanceConfig): 
 
 /** Every giant rule `balance` breaks, one message each, by species; empty for a balance the giants can live on. */
 export function giantBalanceProblems(balance: BalanceConfig): string[] {
-  return EVERY_GIANT_SPECIES.flatMap((species) =>
+  return GIANT_SPECIES_ORDER.flatMap((species) =>
     [
       buildProblem(species, balance),
       bornRangeProblem(species, balance),

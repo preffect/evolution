@@ -229,27 +229,40 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 - **Wild cells are cells, not players** (ecology/wild-cells.md §3.3): ordinary `CellRecord`s in `world.cells` with
   `kind: 'wild'`, `playerId: null` and `organismId` equal to their own id (so wild engulfs wild by the ordinary
   rule), carrying the player's sprint counters (`sprintRemainingTicks`, `sprintCooldownRemainingTicks`), each owned
-  by a `WildSeatRecord` in `world.wildSeats`:
+  by a `WildSeatRecord` in `world.wildSeats`. A giant (ecology/giants.md §3.5) is such a wild cell with its
+  `giantSpecies` set, owned by a `GiantSeatRecord` in `world.giantSeats`. Both seats extend one base, what every
+  seat's mind reads (ticket #826):
 
   ```ts
-  export interface WildSeatRecord {
-    seatNumber: number;
+  export interface SeatMindRecord {
+    seatNumber: number; // a wild seat 0..WILD_CELL_COUNT − 1; a giant WILD_CELL_COUNT + its place in GIANT_SPECIES_ORDER
     cellId: EntityId | null; // null while vacant (respawn countdown)
-    sizeFactor: number; // log-uniform on [WILD_CELL_SIZE_FACTOR_MIN, _MAX], drawn at each (re)spawn; base size = worldMass × sizeFactor
-    grownMass: number; // permanent growth above the base size; only the player's decay and a sprint's cost remove it (ecology/wild-cells.md §3.3.1)
+    grownMass: number; // permanent growth above the base size; only the player's decay (× GIANT_DECAY_MULTIPLIER for a giant) and a sprint's cost remove it (ecology/wild-cells.md §3.3.1)
     fullMass: number; // last settle's full size: min(base + grownMass, max(base, growth ceiling)); cell.mass − fullMass is the wound
-    isStarving: boolean; // the die-off's starver, committed until its cell dies (ecology/wild-cells.md §3.3.6); the cell's `isStarving` mirrors it
     respawnInTicks: number;
     headingX: number;
     headingY: number;
     decideInTicks: number;
+    huntPreyId: EntityId | null; // the four hunt fields of ticket #738 (wild/wild-hunt-give-up.ts)
+    huntStartTick: number;
+    givenUpPreyId: EntityId | null;
+    huntRestUntilTick: number;
+  }
+  export interface WildSeatRecord extends SeatMindRecord {
+    sizeFactor: number; // log-uniform on [WILD_CELL_SIZE_FACTOR_MIN, _MAX], drawn at each (re)spawn; base size = worldMass × sizeFactor
+    isStarving: boolean; // the die-off's starver, committed until its cell dies (ecology/wild-cells.md §3.3.6); the cell's `isStarving` mirrors it
+  }
+  export interface GiantSeatRecord extends SeatMindRecord {
+    species: GiantSpecies; // one seat per species
+    bornMass: number; // the base size: uniform on the species' range, drawn at each (re)spawn; never decays, never moves with the world
   }
   ```
 
-  The seat record is the whole of a wild cell's memory: the wound is not stored, it is `cell.mass − fullMass`, and
-  every field above is hashed (`WILD_SEAT_HASHED_FIELDS`). The world clock is never sent: the snapshot carries
-  `roundStartTick` and both sides compute `worldReference(worldElapsedSeconds(tick, roundStartTick,
-roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
+  The seat record is the whole of a seated cell's memory: the wound is not stored, it is `cell.mass − fullMass`, and
+  every field above is hashed (`WILD_SEAT_HASHED_FIELDS`, `GIANT_SEAT_HASHED_FIELDS`). The giant seats live apart
+  from the wild seats so the die-off's sum and `WILD_CELL_COUNT` stay the wild seats' (ecology/giants.md §3.5.10).
+  The world clock is never sent: the snapshot carries `roundStartTick` and both sides compute
+  `worldReference(worldElapsedSeconds(tick, roundStartTick, roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
 
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
@@ -280,6 +293,8 @@ export interface WorldState {
   dnaFragments: DnaFragmentRecord[];
   players: PlayerRecord[]; // join order
   wildSeats: WildSeatRecord[]; // seat order (ecology/wild-cells.md §3.3)
+  giantSeats: GiantSeatRecord[]; // seat order: one per species GIANT_SPECIES_IN_DISH names at creation, or a fixture or debug_spawn seats (ecology/giants.md §3.5.9)
+  firstGiantSeatNumber: number; // WILD_CELL_COUNT at creation: giant seats are numbered from it, whatever a patch does later (ecology/giants.md §3.5.9)
   leaderboard: LeaderboardRow[];
   spawners: { food: SpawnerState; dnaFragments: SpawnerState }; // fractional accumulators (ecology/food-and-spawn.md §3)
   random: Record<ServerRandomStreamLabel, RandomState>; // the server streams' serialisable state, walked in SERVER_RANDOM_STREAM_LABELS order (determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5)

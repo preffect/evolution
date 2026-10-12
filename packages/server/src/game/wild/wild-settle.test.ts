@@ -14,6 +14,7 @@ import { createWildSeatRecord, placeWildCell } from './wild-seats.js';
 import {
   settleWildCells,
   settleWildMass,
+  wildGrowthCeiling,
   wildRecoveryFactorPerTick,
   wildSizeFactor,
   type WildSettleInput,
@@ -35,7 +36,8 @@ const EIGHTEEN_SECONDS_TICKS = 1080;
 type SettleRow = readonly [number, number, number, number, number, number];
 
 function settle([mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass]: SettleRow) {
-  const input: WildSettleInput = { mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass };
+  const growthCeiling = wildGrowthCeiling(worldMass, DEFAULT_BALANCE);
+  const input: WildSettleInput = { mass, fullMass, grownMass, decayPerSecond, baseMass, growthCeiling };
   return settleWildMass(input, DEFAULT_BALANCE);
 }
 

@@ -15,6 +15,9 @@ export const DEFAULT_DECAY_MULTIPLIER = 1;
 /** traits/model.md §2: every trait has tiers I, II and III; a fixture-granted trait is tier I unless the row says. */
 export const FIRST_TRAIT_TIER = 1;
 export const LAST_TRAIT_TIER = 3;
+/** A placed giant with no growth asked for, and the heading it keeps unless the row names one (giants.md §3.5.15). */
+const NO_GROWTH = 0;
+const EAST: Vec2 = { x: 1, y: 0 };
 
 export function isClearOfGelPatches(point: Vec2, patchCentres: readonly Vec2[], clearanceWu: number): boolean {
   return patchCentres.every((centre) => Math.hypot(centre.x - point.x, centre.y - point.y) >= clearanceWu);
@@ -37,7 +40,13 @@ export function createDecayedHelper(constants: DecayConstants) {
   };
 }
 
-export const PLACED_KIND = { cell: 'cell', wildCell: 'wild_cell', mote: 'mote', fragment: 'fragment' } as const;
+export const PLACED_KIND = {
+  cell: 'cell',
+  wildCell: 'wild_cell',
+  giant: 'giant',
+  mote: 'mote',
+  fragment: 'fragment',
+} as const;
 
 /** A fixture-granted trait at a tier (traits/model.md §2): bypasses the ladder and the draft. */
 export interface PlacedTrait {
@@ -71,6 +80,20 @@ export interface PlacedWildCell {
   readonly at: PlacementAnchor;
 }
 
+/**
+ * The species' giant placed (or replaced) at `at` (docs/ecology/acceptance.md §8.2, docs/ecology/giants.md §3.5.15): its
+ * seat's cell at `bornMass + grownMass` with that growth, no target, velocity or sprint counters (as a respawn), and
+ * the seat's heading set to `heading`.
+ */
+export interface PlacedGiant {
+  readonly kind: typeof PLACED_KIND.giant;
+  readonly species: string;
+  readonly bornMass: number;
+  readonly grownMass: number;
+  readonly heading: Vec2;
+  readonly at: PlacementAnchor;
+}
+
 export interface PlacedMote {
   readonly kind: typeof PLACED_KIND.mote;
   readonly moteKind: string;
@@ -84,7 +107,7 @@ export interface PlacedFragment {
   readonly at: PlacementAnchor;
 }
 
-export type PlacedFixture = PlacedCell | PlacedWildCell | PlacedMote | PlacedFragment;
+export type PlacedFixture = PlacedCell | PlacedWildCell | PlacedGiant | PlacedMote | PlacedFragment;
 
 /** Where to put a fixture: an anchor (or a bare point), or east of the first placed cell by a distance. */
 export interface Placement {
@@ -108,6 +131,16 @@ export interface PlaceCellOptions extends Placement {
 export interface PlaceWildCellOptions extends Placement {
   readonly seat: number;
   readonly sizeFactor: number;
+}
+
+/** "Amoeba (born 1000) 10 wu east" (G9): `placeGiant({ species: 'giant_amoeba', bornMass: 1000, eastOfFirstCellWu: 10 })`. */
+export interface PlaceGiantOptions extends Placement {
+  readonly species: string;
+  readonly bornMass: number;
+  /** Growth above the born mass; 0 when left out. */
+  readonly grownMass?: number;
+  /** The seat's unit heading; east when left out. */
+  readonly heading?: Vec2;
 }
 
 export interface PlaceMoteOptions extends Placement {
@@ -181,6 +214,23 @@ export function placeWildCell(options: PlaceWildCellOptions, firstCell: PlacedCe
     seat: options.seat,
     sizeFactor: options.sizeFactor,
     at: resolvePlacement(options, firstCell, `wild seat ${options.seat}'s cell`),
+  };
+}
+
+export function placeGiant(options: PlaceGiantOptions, firstCell: PlacedCell | undefined): PlacedGiant {
+  const grownMass = options.grownMass ?? NO_GROWTH;
+  if (!(options.bornMass > 0) || !(grownMass >= 0)) {
+    throw new ScenarioSetupError(
+      `a giant's born mass is positive and its growth not negative, got ${options.bornMass} and ${grownMass}`,
+    );
+  }
+  return {
+    kind: PLACED_KIND.giant,
+    species: options.species,
+    bornMass: options.bornMass,
+    grownMass,
+    heading: options.heading ?? EAST,
+    at: resolvePlacement(options, firstCell, `the ${options.species}`),
   };
 }
 

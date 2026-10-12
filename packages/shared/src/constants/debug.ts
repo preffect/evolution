@@ -14,3 +14,9 @@ export const DEBUG_STEP_MAX_SECONDS = 10;
  * CLI names one (docs/testing/bots-and-design-tables.md §8.3). Bot `index` forks `bot_<index>` from it.
  */
 export const DEFAULT_BOT_SEED = 1;
+
+/**
+ * The `debug_spawn` kind that seats a giant (docs/architecture/debug-mcp.md §8), beside the entity kinds the tool
+ * spawns: here so the server and the client's e2e driver name it from one home.
+ */
+export const GIANT_SPAWN_KIND = 'giant';

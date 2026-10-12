@@ -61,9 +61,9 @@ it('E9: A absorbs B on tick 30', async () => {
   (E13–E16, P2, P6, P7, P11: "one bacterium inside the cell per tick for 10 ticks" is ten
   `.atTick(t).placeMote(...)` calls). Scheduled fixtures are recorded in the replay as
   `patches`. Placing anything means the adapter disables the initial fill and both spawners for
-  that run, vacates the wild seats (a seeded wanderer would otherwise walk into a placed cell and its
-  separation push or engulf would break the row's arithmetic; a placed row seats only the wild cells
-  it places, so `.placeWildCell` seats its record on demand), and fails the scenario when a seeded gel
+  that run, vacates the wild and giant seats (a seeded wanderer would otherwise walk into a placed cell and its
+  separation push or engulf would break the row's arithmetic; a placed row seats only the wild cells and giants
+  it places, so `.placeWildCell` and `.placeGiant` seat their records on demand), and fails the scenario when a seeded gel
   patch lies within `GEL_PATCH_CLEARANCE_WU` of the broth point (`isClearOfGelPatches`; pick another
   seed, never tolerate it).
   **`.placeWildCell({ seat, sizeFactor, at | eastOfFirstCellWu })`** (ecology/acceptance.md §8.1: the W rows
@@ -73,7 +73,12 @@ it('E9: A absorbs B on tick 30', async () => {
   until its next decision tick; the seat keeps its heading, a cell it already had is withdrawn without
   detritus (`withdrawCell`, its engulfs aborted), and the new one is seated through the simulation's own
   `seatWildCell`, at its base size with no growth and settled from its first tick (ecology/wild-cells.md §3.3.1). It schedules with `.atTick(T)` like any placement
-  (W6: placed after tick 21 599, seat 0 decides on 21 600). An adapter may add fixtures of its own beside the placed
+  (W6: placed after tick 21 599, seat 0 decides on 21 600).
+  **`.placeGiant({ species, bornMass, grownMass = 0, at | eastOfFirstCellWu, heading = east })`** (ecology/acceptance.md
+  §8.2, ecology/giants.md §3.5.15; #826) places or replaces that species' giant in its own seat (24, 25 or 26, by
+  `GIANT_SPECIES_ORDER`) at `bornMass + grownMass` with that growth, at rest with no target or sprint counters as a
+  respawn leaves it, and sets the seat's heading; a cell the seat had is withdrawn without detritus, and the new one is
+  seated through the simulation's own `seatGiantCell`, with its species, build and level. An adapter may add fixtures of its own beside the placed
   records (`.place(fixture)` / `.atTick(T).place(fixture)`): the Evolution adapter's
   `resetSpawnerAccumulators` and `clearFood` are the E14 / W3 / W9 window fixtures, and `withoutGelPatches`
   removes every gel patch (#402): placed with `.place(withoutGelPatches)` before the cells, it clears the broth
@@ -91,7 +96,8 @@ it('E9: A absorbs B on tick 30', async () => {
   seat record with its cell's latched target (`WildSeatView`; the world clock never rides the wire, and
   W6 and W7 read where a decision sent a seat). `evolution-views.ts`
   holds the selectors a row reads through (`cellOf`, `progressOf`, `massOf`, `speedOf`,
-  `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`, and for the seats `wildSeatOf`,
+  `foodCount`, `fragmentCount`, `effectsOfKind`, `distanceBetweenCells`, for the giants `giantSeatOf` and
+  `giantCellOf` over the snapshot's `giantSeats` (every giant seat record, seat order), and for the seats `wildSeatOf`,
   `wildCellOf`, `wildCellsOf`).
 - **Inputs.** "At tick T" means submitted between tick T − 1 and tick T, so step T applies it
   (inputs apply at tick boundaries; tick 0 is the initial state, so inputs start at tick 1).

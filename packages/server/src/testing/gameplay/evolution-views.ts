@@ -9,10 +9,11 @@ import {
   type CellView,
   type EffectKind,
   type GameEffect,
+  type GiantSpecies,
   type MassFlowView,
   type OwnProgressView,
 } from '@evolution/shared';
-import type { EvolutionScenarioSnapshot, WildSeatView } from './evolution-adapter.js';
+import type { EvolutionScenarioSnapshot, GiantSeatView, WildSeatView } from './evolution-adapter.js';
 import type { ScenarioView } from './expectations.js';
 
 export type EvolutionView = ScenarioView<EvolutionScenarioSnapshot>;
@@ -29,8 +30,23 @@ export function wildSeatOf(view: EvolutionView, seatNumber: number): WildSeatVie
 
 /** The seat's cell; `undefined` while the seat is vacant (absorbed, counting down to its respawn). */
 export function wildCellOf(view: EvolutionView, seatNumber: number): CellView | undefined {
-  const cellId = wildSeatOf(view, seatNumber)?.cellId;
+  return seatedCellOf(view, wildSeatOf(view, seatNumber));
+}
+
+/** A seat's cell in the snapshot; `undefined` for no seat or a vacant one. */
+function seatedCellOf(view: EvolutionView, seat: { readonly cellId: string | null } | undefined): CellView | undefined {
+  const cellId = seat?.cellId;
   return cellId === null || cellId === undefined ? undefined : view.snapshot.cells.find((cell) => cell.id === cellId);
+}
+
+/** The species' giant seat (docs/ecology/acceptance.md §8.2); `undefined` for a species the world seats none of. */
+export function giantSeatOf(view: EvolutionView, species: GiantSpecies): GiantSeatView | undefined {
+  return view.snapshot.giantSeats.find((seat) => seat.species === species);
+}
+
+/** The species' giant cell; `undefined` while its seat is vacant (absorbed, counting down to its respawn). */
+export function giantCellOf(view: EvolutionView, species: GiantSpecies): CellView | undefined {
+  return seatedCellOf(view, giantSeatOf(view, species));
 }
 
 export function wildCellsOf(view: EvolutionView): CellView[] {
