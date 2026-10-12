@@ -16,7 +16,7 @@ import { runGiantRespawns } from '../wild/giant-respawn.js';
 import { settleGiantCells } from '../wild/giant-settle.js';
 import { settleWildCells } from '../wild/wild-settle.js';
 import { runWildRespawns } from '../wild/wild-respawn.js';
-import { decideWildTargets } from '../wild/wild-strategy.js';
+import { decideSeatTargets } from '../wild/wild-strategy.js';
 import type { InputRejectionCounters, StepContext, WorldState } from '../world/world-state.js';
 import { eat } from './eating.js';
 import { runEngulfs } from './engulf.js';
@@ -34,7 +34,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
     applyInputs(world, context); // input is ignored through `results` (docs/game-design/session.md §5.4)
     settleWildCells(world, context); // and the wild cells freeze with everything else (docs/ecology/wild-cells.md §3.3.1)
     settleGiantCells(world, context); // after the wild seats, in seat order (docs/ecology/giants.md §3.5.15)
-    decideWildTargets(world, context); // the due seats, wild then giant, latch a target, as a player's input does
+    decideSeatTargets(world, context); // the due seats, wild then giant, latch a target, as a player's input does
   }
   const outcome = advanceRound(world, context);
   if (outcome === ROUND_STEP_OUTCOME.rematched) {

@@ -14,6 +14,7 @@ import {
   type GiantSpecies,
 } from '@evolution/shared';
 import type { CellRecord } from '../world/entities.js';
+import { giantSeatOfCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 
 export interface CellDiet {
@@ -65,12 +66,13 @@ export function mealKindsAt(diet: CellDiet, grownMass: number): readonly FoodKin
 
 /**
  * The mote kinds a non-player cell eats this tick (step 4): a wild cell's always, a giant's from its seat's growth.
- * The test is made once per cell before its meal, so one tick's meal may overshoot the appetite by a few motes.
+ * The test is made once per cell before its meal, so a hungry cell eats the tick's whole meal: on a death pile that
+ * can carry its growth tens of motes past the appetite (docs/ecology/giants.md §3.5.7).
  */
 export function mealKindsOf(world: WorldState, cell: CellRecord, balance: BalanceConfig): readonly FoodKind[] {
   if (cell.giantSpecies === null) {
     return WILD_CELL_DIET.foodKinds;
   }
-  const seat = world.giantSeats.find((candidate) => candidate.cellId === cell.id);
+  const seat = giantSeatOfCell(world, cell.id);
   return seat === undefined ? NO_FOOD : mealKindsAt(giantDiet(cell.giantSpecies, balance), seat.grownMass);
 }

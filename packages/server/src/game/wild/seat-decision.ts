@@ -32,11 +32,11 @@ import {
   type WildSight,
 } from './wild-perception.js';
 import { grazeCandidatesOf } from './seat-graze.js';
-import { isPlayerPreyAt, SEAT_RULE, type SeatProfile, type SeatRule } from './seat-profile.js';
+import { isPlayerPreyAt, SEAT_RULE, type SeatMindProfile, type SeatRule } from './seat-profile.js';
 import { wanderTargetOf } from './wild-wander.js';
 
 /** What this tick's decisions read and draw from: the world mid-step and its stage. */
-export interface WildDecisionContext {
+export interface SeatDecisionContext {
   readonly world: WorldState;
   readonly step: StepContext;
   /** The world reference's stage for this tick: players are a seat's prey from its profile's stage. */
@@ -44,7 +44,7 @@ export interface WildDecisionContext {
 }
 
 /** One decision's outcome: the target to latch, whether the rule asked for a sprint, and the prey a hunt chases. */
-export interface WildCommand {
+export interface SeatCommand {
   readonly target: Vec2;
   readonly isSprinting: boolean;
   /** The hunted cell, which `aimWildHunt` re-aims at every tick until the next decision; `null` for any other rule. */
@@ -55,12 +55,12 @@ export interface WildCommand {
 interface SeatDecision {
   readonly seat: SeatMindRecord;
   readonly cell: CellRecord;
-  readonly profile: SeatProfile;
-  readonly decision: WildDecisionContext;
+  readonly profile: SeatMindProfile;
+  readonly decision: SeatDecisionContext;
   readonly script: ScriptContext<WorldState, EntityId>;
 }
 
-function wildCommandOf(command: PlayerCommand | null): WildCommand | null {
+function seatCommandOf(command: PlayerCommand | null): SeatCommand | null {
   return command === null || command.targetX === undefined || command.targetY === undefined
     ? null
     : {
@@ -70,7 +70,12 @@ function wildCommandOf(command: PlayerCommand | null): WildCommand | null {
       };
 }
 
-function scriptContextFor(seat: SeatMindRecord, cell: CellRecord, profile: SeatProfile, decision: WildDecisionContext) {
+function scriptContextFor(
+  seat: SeatMindRecord,
+  cell: CellRecord,
+  profile: SeatMindProfile,
+  decision: SeatDecisionContext,
+) {
   const { world, step } = decision;
   const context: ScriptContext<WorldState, EntityId> = {
     tick: world.tick - 1,
@@ -86,7 +91,7 @@ function scriptContextFor(seat: SeatMindRecord, cell: CellRecord, profile: SeatP
 }
 
 /** The engulf-escape rule: a cell being engulfed, not yet sealed, runs from its predator and sprints. */
-function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCommand | null {
+function escapeCommand(cell: CellRecord, decision: SeatDecisionContext): SeatCommand | null {
   const predator = isCarried(cell) ? undefined : engulfingPredatorOf(decision.world, cell);
   if (predator === undefined) {
     return null;
@@ -99,7 +104,7 @@ function escapeCommand(cell: CellRecord, decision: WildDecisionContext): WildCom
 type SprintTest = (self: CellRecord, other: CellRecord, world: WorldState, balance: BalanceConfig) => boolean;
 
 /** A rule's sprint test over the sight's own records (`wild-hunt-sprint.ts`). */
-function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: SprintTest) {
+function sprintTestOver(sight: WildSight, decision: SeatDecisionContext, test: SprintTest) {
   const recordOf = new Map<string, CellRecord>(sight.cells.map((cell) => [cell.id, cell]));
   return (self: BotCellView, other: BotCellView): boolean => {
     const deciding = recordOf.get(self.id);
@@ -112,7 +117,7 @@ function sprintTestOver(sight: WildSight, decision: WildDecisionContext, test: S
   };
 }
 
-function fleeCommand(sight: WildSight, everything: WildPerception, seatDecision: SeatDecision): WildCommand | null {
+function fleeCommand(sight: WildSight, everything: WildPerception, seatDecision: SeatDecision): SeatCommand | null {
   const { decision, script } = seatDecision;
   const { wildCells, controls } = decision.step.balance;
   const fleeOptions = {
@@ -121,11 +126,11 @@ function fleeCommand(sight: WildSight, everything: WildPerception, seatDecision:
     sprintWithinRadii: wildCells.WILD_CELL_SPRINT_FLEE_RADII,
     isSprintWorthwhile: sprintTestOver(sight, decision, isFleeSprintWorthwhile),
   };
-  return wildCommandOf(createFleeStrategy(everything, fleeOptions)().decide(script));
+  return seatCommandOf(createFleeStrategy(everything, fleeOptions)().decide(script));
 }
 
 /** The hunt: never the seat's `givenUpPreyId`, nor at all while it rests; only prey its profile's filter lets in. */
-function huntCommand(sight: WildSight, seatDecision: SeatDecision): WildCommand | null {
+function huntCommand(sight: WildSight, seatDecision: SeatDecision): SeatCommand | null {
   const { seat, cell, profile, decision, script } = seatDecision;
   if (isHuntResting(seat, decision.world.tick)) {
     return null;
@@ -145,25 +150,25 @@ function huntCommand(sight: WildSight, seatDecision: SeatDecision): WildCommand 
     minPreyMassFraction: profile.hunt.minPreyMassFraction,
   };
   const prey = withoutGivenUpPrey(createWildHuntPerception(sight, balance, cell, filter), seat.givenUpPreyId);
-  const command = wildCommandOf(createHunterStrategy(prey, huntOptions)().decide(script));
+  const command = seatCommandOf(createHunterStrategy(prey, huntOptions)().decide(script));
   return command === null ? null : { ...command, huntPreyId };
 }
 
 /** The graze over the motes in sight (only those its diet eats now), ahead of it first when its diet has a cone. */
-function grazeCommand(sight: WildSight, everything: WildPerception, seatDecision: SeatDecision): WildCommand | null {
+function grazeCommand(sight: WildSight, everything: WildPerception, seatDecision: SeatDecision): SeatCommand | null {
   const { seat, cell, profile, script } = seatDecision;
   const candidates = grazeCandidatesOf(sight.motes, cell, seat, profile.diet);
   const grazing: WildPerception = { ...everything, motesOf: () => candidates };
-  return wildCommandOf(createGrazerStrategy(grazing)().decide(script));
+  return seatCommandOf(createGrazerStrategy(grazing)().decide(script));
 }
 
 /** The profile's rules in order over what the cell sees; `null` when none applies. */
-function sightedCommand(seatDecision: SeatDecision): WildCommand | null {
+function sightedCommand(seatDecision: SeatDecision): SeatCommand | null {
   const { seat, cell, profile, decision } = seatDecision;
   const { balance } = decision.step;
   const sight = wildSightOf(decision.world, cell, balance, mealKindsAt(profile.diet, seat.grownMass));
   const everything = createWildPerception(sight, balance);
-  const commandOf: Readonly<Record<SeatRule, () => WildCommand | null>> = {
+  const commandOf: Readonly<Record<SeatRule, () => SeatCommand | null>> = {
     [SEAT_RULE.flee]: () => fleeCommand(sight, everything, seatDecision),
     [SEAT_RULE.hunt]: () => huntCommand(sight, seatDecision),
     [SEAT_RULE.graze]: () => grazeCommand(sight, everything, seatDecision),
@@ -181,9 +186,9 @@ function sightedCommand(seatDecision: SeatDecision): WildCommand | null {
 export function decideSeatCommand(
   seat: SeatMindRecord,
   cell: CellRecord,
-  profile: SeatProfile,
-  decision: WildDecisionContext,
-): WildCommand {
+  profile: SeatMindProfile,
+  decision: SeatDecisionContext,
+): SeatCommand {
   const escape = escapeCommand(cell, decision);
   if (escape !== null) {
     return escape;

@@ -22,8 +22,8 @@ import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, SeatMindRecord } from '../world/entities.js';
 import { seatedGiantCells, seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
-import { decideSeatCommand, type WildDecisionContext } from './seat-decision.js';
-import { giantSeatProfile, wildSeatProfile, type SeatProfile } from './seat-profile.js';
+import { decideSeatCommand, type SeatDecisionContext } from './seat-decision.js';
+import { giantSeatProfile, wildSeatProfile, type SeatMindProfile } from './seat-profile.js';
 import { aimWildHunt } from './wild-hunt-aim.js';
 import { giveUpStaleHunt, latchHunt } from './wild-hunt-give-up.js';
 
@@ -60,7 +60,7 @@ export function startWildSprint(seat: SeatMindRecord, cell: CellRecord, balance:
 }
 
 /** Counts the seat down; on zero it decides by its profile, latches the target, may sprint, and restarts the countdown. */
-function advanceSeat(seat: SeatMindRecord, cell: CellRecord, profile: SeatProfile, decision: WildDecisionContext) {
+function advanceSeat(seat: SeatMindRecord, cell: CellRecord, profile: SeatMindProfile, decision: SeatDecisionContext) {
   seat.decideInTicks -= 1;
   if (seat.decideInTicks > 0) {
     return;
@@ -80,8 +80,8 @@ function advanceSeat(seat: SeatMindRecord, cell: CellRecord, profile: SeatProfil
  * Step 1 for the seats, after the settles: every seated cell counted down, the due ones decided and every hunt
  * re-aimed, the wild seats then the giant seats, in seat order.
  */
-export function decideWildTargets(world: WorldState, step: StepContext): void {
-  const decision: WildDecisionContext = { world, step, worldStage: worldReferenceAt(world, world.tick).worldStage };
+export function decideSeatTargets(world: WorldState, step: StepContext): void {
+  const decision: SeatDecisionContext = { world, step, worldStage: worldReferenceAt(world, world.tick).worldStage };
   const wildProfile = wildSeatProfile(step.balance);
   for (const { seat, cell } of seatedWildCells(world)) {
     advanceSeat(seat, cell, wildProfile, decision);

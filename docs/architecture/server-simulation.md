@@ -105,10 +105,10 @@ prediction reuses them unchanged.
   payout pays a player `GIANT_DNA_BONUS` through `gainDna` and its multiplier instead of the DNA base and share.
 - **Giant minds and diet** (ecology/giants.md §3.5.5–§3.5.7, §3.5.15, ticket #827): every seat reads a profile
   (`wild/seat-profile.ts`) instead of the wild constants: the rules after the engulf escape (wild flee, hunt, graze;
-  hunter flee, hunt; grazer flee, graze; drifter flee), the diet, the hunt window (`huntMinPreyMassFraction`, 0 for a
+  hunter flee, hunt; grazer flee, graze; drifter flee), the diet, the hunt window (`hunt.minPreyMassFraction`, 0 for a
   wild seat, a filter of the hunt's candidates only, so a giant still swallows a smaller cell on contact), the give-up
   and rest, the stage players become prey from (a giant: tick 0), the turn chance, the random stream (`wildCells` or
-  `giants`), the growth ceiling and the respawn (it absorbed #826's per-kind respawn policy). `decideWildTargets`
+  `giants`), the growth ceiling and the respawn (it absorbed #826's per-kind respawn policy). `decideSeatTargets`
   runs the wild seats then the giant seats in one pass; `wild/seat-decision.ts` is one decision by a profile and
   `wild/seat-graze.ts` the grazer's forward cone. The diet is `simulation/cell-diet.ts` (`simulation/` cannot import
   `wild/`): step 4 feeds a wild cell algae and detritus, the grazer algae, detritus and bacteria while its seat's

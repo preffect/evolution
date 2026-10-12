@@ -7,12 +7,12 @@ import { JUST_PAST_WU, LUNCH_MASS, THREAT_MASS, arena, targetOf } from '../../te
 import { seatTestWildCell } from '../../testing/wild-builders.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
 import { huntTargetThisTick } from './wild-hunt-aim.js';
-import { decideWildTargets } from './wild-strategy.js';
+import { decideSeatTargets } from './wild-strategy.js';
 
 const { wildCells, growth } = DEFAULT_BALANCE;
 const INTERVAL_TICKS = secondsToTicks(wildCells.WILD_CELL_DECISION_INTERVAL_SECONDS);
 
-describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
+describe('decideSeatTargets: the hunt aim, every tick (ticket #738)', () => {
   const lunchRadius = radiusForMass(LUNCH_MASS, growth);
   /** How far off a hunter's centre a lunch's centre is covered: the engulf-contact reach. */
   const reachOf = (hunterRadius: number) =>
@@ -45,31 +45,31 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
 
   it('charges a prey it touches but does not cover: WILD_CELL_HUNT_CHARGE_RADII own radii past its centre', () => {
     const { world, context, wild, lunch } = hunting(touchingNotCovered);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(world.wildSeats[0]!.huntPreyId).toBe(lunch.id);
     expect(targetOf(wild)).toEqual(chargeTarget(wild, lunch));
   });
 
   it('holds over a prey its membrane covers, and aims at the centre of one just out of contact', () => {
     const covered = hunting(reachOf);
-    decideWildTargets(covered.world, covered.context);
+    decideSeatTargets(covered.world, covered.context);
     expect(targetOf(covered.wild)).toEqual(holdTarget(covered));
     expect(targetOf(covered.wild)).not.toEqual({ x: covered.lunch.x, y: 0 });
     const apart = hunting((radius) => radius + lunchRadius + JUST_PAST_WU);
-    decideWildTargets(apart.world, apart.context);
+    decideSeatTargets(apart.world, apart.context);
     expect(targetOf(apart.wild)).toEqual({ x: apart.lunch.x, y: 0 });
   });
 
   it('holds over its prey while engulfing it, or anything else, instead of charging', () => {
     const onIt = hunting(touchingNotCovered);
     beginEngulf({ predator: onIt.wild, prey: onIt.lunch });
-    decideWildTargets(onIt.world, onIt.context);
+    decideSeatTargets(onIt.world, onIt.context);
     expect(targetOf(onIt.wild)).toEqual(holdTarget(onIt));
     expect(targetOf(onIt.wild)).not.toEqual(chargeTarget(onIt.wild, onIt.lunch));
     expect(targetOf(onIt.wild)).not.toEqual({ x: onIt.lunch.x, y: 0 });
     const onOther = hunting(touchingNotCovered);
     beginEngulf({ predator: onOther.wild, prey: onOther.player });
-    decideWildTargets(onOther.world, onOther.context);
+    decideSeatTargets(onOther.world, onOther.context);
     expect(targetOf(onOther.wild)).toEqual(holdTarget(onOther));
     expect(targetOf(onOther.wild)).not.toEqual(chargeTarget(onOther.wild, onOther.lunch));
     expect(targetOf(onOther.wild)).not.toEqual({ x: onOther.lunch.x, y: 0 });
@@ -79,10 +79,10 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
     const setup = hunting(touchingNotCovered);
     const { world, context, wild, lunch } = setup;
     holdLunch(world);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual(chargeTarget(wild, lunch));
     beginEngulf({ predator: wild, prey: lunch });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(world.wildSeats[0]!.decideInTicks).toBe(INTERVAL_TICKS - 1);
     expect(targetOf(wild)).toEqual(holdTarget(setup));
     expect(targetOf(wild)).not.toEqual({ x: lunch.x, y: 0 });
@@ -91,24 +91,24 @@ describe('decideWildTargets: the hunt aim, every tick (ticket #738)', () => {
   it('follows the prey between decisions, and charges once it comes into contact', () => {
     const { world, context, wild, lunch } = hunting((radius) => radius * 5);
     holdLunch(world);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: 0 });
     lunch.y = wild.radius;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: lunch.y });
     lunch.x = touchingNotCovered(wild.radius);
     lunch.y = 0;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual(chargeTarget(wild, lunch));
   });
 
   it('keeps its last target when the prey leaves the world, and ends the hunt', () => {
     const { world, context, wild, lunch } = hunting((radius) => radius * 5);
     holdLunch(world);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     world.cells = world.cells.filter((cell) => cell.id !== lunch.id);
     world.wildSeats[1]!.cellId = null;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: 0 });
     expect(world.wildSeats[0]!.huntPreyId).toBeNull();
   });

@@ -1,7 +1,7 @@
 // docs/ecology/giants.md §3.5.5–§3.5.7: a giant seat decides by its species' profile. Each role takes only its own
 // rules (the hunter never grazes, the grazer and the drifter never hunt), the hunter's window gates the chase, a giant
 // hunts a player from tick 0, a giant being engulfed escapes and sprints, and its draws come from the `giants` stream
-// alone. The giant seats count down and decide in the same pass as the wild seats (`decideWildTargets`).
+// alone. The giant seats count down and decide in the same pass as the wild seats (`decideSeatTargets`).
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
@@ -20,7 +20,7 @@ import { setCellMass } from '../simulation/cell-mass.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { StepContext } from '../world/world-state.js';
-import { decideWildTargets } from './wild-strategy.js';
+import { decideSeatTargets } from './wild-strategy.js';
 import { pointAlongHeading } from './wild-wander.js';
 
 const { controls, giants, wildCells } = DEFAULT_BALANCE;
@@ -56,10 +56,10 @@ function streamPositions(context: StepContext): Record<string, number> {
   );
 }
 
-describe('decideWildTargets: the giant hunter (docs/ecology/giants.md §3.5.6)', () => {
+describe('decideSeatTargets: the giant hunter (docs/ecology/giants.md §3.5.6)', () => {
   it('hunts a player in its window at protocell, the stage no wild seat hunts players at', () => {
     const { world, context, player, seat, cell } = giantWithPlayer(GIANT_SPECIES.amoeba, IN_WINDOW_MASS);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(seat.huntPreyId).toBe(player.id);
     expect(targetOf(cell)).toEqual({ x: player.x, y: player.y });
   });
@@ -67,31 +67,31 @@ describe('decideWildTargets: the giant hunter (docs/ecology/giants.md §3.5.6)',
   it('wanders past a player under its window, and never grazes the mote beside it', () => {
     const { world, context, seat, cell } = giantWithPlayer(GIANT_SPECIES.amoeba, UNDER_WINDOW_MASS);
     spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: GIANT_AT.x, y: MOTE_EAST_WU } });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(seat.huntPreyId).toBeNull();
     expect(targetOf(cell)).toEqual(pointAlongHeading(seat, cell, DEFAULT_BALANCE));
   });
 
   it('gives up a hunt after GIANT_HUNT_GIVE_UP_SECONDS, not the wild 5 s', () => {
     const { world, context, player, seat } = giantWithPlayer(GIANT_SPECIES.amoeba, IN_WINDOW_MASS);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     const huntStartTick = world.tick;
     world.tick = huntStartTick + secondsToTicks(wildCells.WILD_CELL_HUNT_GIVE_UP_SECONDS);
     seat.decideInTicks = 1;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(seat.huntPreyId).toBe(player.id);
     world.tick = huntStartTick + secondsToTicks(giants.GIANT_HUNT_GIVE_UP_SECONDS);
     seat.decideInTicks = 1;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(seat.givenUpPreyId).toBe(player.id);
   });
 });
 
-describe('decideWildTargets: the grazer and the drifter never hunt', () => {
+describe('decideSeatTargets: the grazer and the drifter never hunt', () => {
   for (const species of [GIANT_SPECIES.paramecium, GIANT_SPECIES.diatom]) {
     it(`${species} leaves a player it could not swallow anyway alone, and wanders`, () => {
       const { world, context, seat, cell } = giantWithPlayer(species, IN_WINDOW_MASS);
-      decideWildTargets(world, context);
+      decideSeatTargets(world, context);
       expect(seat.huntPreyId).toBeNull();
       expect(targetOf(cell)).toEqual(pointAlongHeading(seat, cell, DEFAULT_BALANCE));
     });
@@ -101,36 +101,36 @@ describe('decideWildTargets: the grazer and the drifter never hunt', () => {
     const grazer = giantWithPlayer(GIANT_SPECIES.paramecium, IN_WINDOW_MASS, -PREY_EAST_WU * 2);
     const moteAt = { x: GIANT_AT.x + MOTE_EAST_WU, y: GIANT_AT.y };
     spawnFoodMote(grazer.world, { kind: FOOD_KIND.bacterium, variant: BACTERIUM_VARIANT.plain, at: moteAt });
-    decideWildTargets(grazer.world, grazer.context);
+    decideSeatTargets(grazer.world, grazer.context);
     expect(targetOf(grazer.cell)).toEqual(moteAt);
     const drifter = giantWithPlayer(GIANT_SPECIES.diatom, IN_WINDOW_MASS, -PREY_EAST_WU * 2);
     spawnFoodMote(drifter.world, { kind: FOOD_KIND.algae, variant: null, at: moteAt });
-    decideWildTargets(drifter.world, drifter.context);
+    decideSeatTargets(drifter.world, drifter.context);
     expect(targetOf(drifter.cell)).toEqual(pointAlongHeading(drifter.seat, drifter.cell, DEFAULT_BALANCE));
   });
 });
 
-describe('decideWildTargets: a giant flees and escapes', () => {
+describe('decideSeatTargets: a giant flees and escapes', () => {
   it('the drifter flees a cell that can swallow it, 2 radii away from it', () => {
     const { world, context, cell } = giantWithPlayer(GIANT_SPECIES.diatom, THREAT_MASS);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(cell)).toEqual({ x: GIANT_AT.x - controls.STEER_FULL_THROTTLE_RADII * cell.radius, y: 0 });
   });
 
   it('a giant being engulfed runs from its predator and sprints', () => {
     const { world, context, player, cell } = giantWithPlayer(GIANT_SPECIES.diatom, THREAT_MASS, COVERING_EAST_WU);
     beginEngulf({ predator: player, prey: cell });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(cell.sprintRemainingTicks).toBeGreaterThan(0);
     expect(cell.targetX).toBeLessThan(GIANT_AT.x);
   });
 });
 
-describe('decideWildTargets: a giant draws from the giants stream alone', () => {
+describe('decideSeatTargets: a giant draws from the giants stream alone', () => {
   it("a giant's wander draws its turn roll from giants, and no other stream moves", () => {
     const { world, context } = giantWithPlayer(GIANT_SPECIES.paramecium, IN_WINDOW_MASS);
     const before = streamPositions(context);
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     const after = streamPositions(context);
     expect(after[RANDOM_STREAM.giants]).toBeGreaterThan(before[RANDOM_STREAM.giants]!);
     expect({ ...after, [RANDOM_STREAM.giants]: before[RANDOM_STREAM.giants] }).toEqual(before);

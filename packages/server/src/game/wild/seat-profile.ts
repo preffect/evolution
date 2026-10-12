@@ -43,16 +43,19 @@ export interface SeatHuntRules {
   readonly playersFromStage: CellStage | null;
 }
 
-export interface SeatProfile<Seat extends SeatMindRecord = SeatMindRecord> {
+/** What a seat's decision reads (`seat-decision.ts`, `wild-strategy.ts`), the same shape for every kind of seat. */
+export interface SeatMindProfile {
   readonly rules: readonly SeatRule[];
   readonly diet: CellDiet;
   readonly hunt: SeatHuntRules;
   readonly turnChance: number;
   readonly randomStream: ServerRandomStreamLabel;
+}
+
+export interface SeatProfile<Seat extends SeatMindRecord> extends SeatMindProfile {
   readonly growthCeiling: (worldMass: number) => number;
   readonly respawnSeconds: number;
-  /** A method, so a wild or a giant profile serves where any seat's is read (`SeatProfile`). */
-  forgetOnVacate(seat: Seat): void;
+  readonly forgetOnVacate: (seat: Seat) => void;
 }
 
 const WILD_RULES: readonly SeatRule[] = [SEAT_RULE.flee, SEAT_RULE.hunt, SEAT_RULE.graze];

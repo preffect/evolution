@@ -20,13 +20,16 @@ export function giantDecayPerSecond(cell: CellRecord, world: WorldState, balance
   return decayPerSecond(metabolismInputOf(cell, world, balance), balance) * balance.giants.GIANT_DECAY_MULTIPLIER;
 }
 
+/** What every giant settle of one tick reads: the live balance and the tick's world mass, computed once. */
+interface GiantSettleContext {
+  readonly balance: BalanceConfig;
+  readonly worldMass: number;
+}
+
 /** Settles one giant: its mass on the new full size, the seat's growth and full size, and its build. */
-export function settleGiantCell(
-  world: WorldState,
-  seat: GiantSeatRecord,
-  cell: CellRecord,
-  balance: BalanceConfig,
-): void {
+function settleGiantCell(world: WorldState, seat: GiantSeatRecord, cell: CellRecord, context: GiantSettleContext) {
+  const { balance } = context;
+  const growthCeiling = giantSeatProfile(seat.species, balance).growthCeiling(context.worldMass);
   const settled = settleWildMass(
     {
       mass: cell.mass,
@@ -34,9 +37,7 @@ export function settleGiantCell(
       grownMass: seat.grownMass,
       decayPerSecond: giantDecayPerSecond(cell, world, balance),
       baseMass: seat.bornMass,
-      growthCeiling: giantSeatProfile(seat.species, balance).growthCeiling(
-        worldReferenceAt(world, world.tick).worldMass,
-      ),
+      growthCeiling,
     },
     balance,
   );
@@ -48,7 +49,8 @@ export function settleGiantCell(
 
 /** Step 1 for the giant seats, after the wild settle: every seated giant settled, in seat order. */
 export function settleGiantCells(world: WorldState, context: StepContext): void {
+  const settleContext = { balance: context.balance, worldMass: worldReferenceAt(world, world.tick).worldMass };
   for (const { seat, cell } of seatedGiantCells(world)) {
-    settleGiantCell(world, seat, cell, context.balance);
+    settleGiantCell(world, seat, cell, settleContext);
   }
 }

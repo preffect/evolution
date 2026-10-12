@@ -224,7 +224,7 @@ isGiantHuntTarget(seat, prey) = canEngulf(giant, prey) ∧ prey.mass ≥ GIANT_H
 unchanged for them. It reads only `giantSpecies`, which the view carries for the renderer anyway
 (§3.5.15), and `GIANT_ROLE_BY_SPECIES`, a fixed constant rather than a balance leaf (a role is what a
 species is, and no patch changes it), so the predicate gains no balance input and no mirrored view field.
-`canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`huntMinPreyMassFraction`:
+`canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`hunt.minPreyMassFraction`:
 0.25 for the hunter, 0 for a wild seat, §3.5.15), read only by the hunt's candidate filter at a decision.
 
 What follows:
@@ -290,9 +290,11 @@ rule with three changes:
 - **Only while hungry.** It targets and eats food (step 4, by §1's eating rule, every mote whose centre
   lies within its radius) only while its `grownMass` is below `GIANT_GRAZER_APPETITE_MASS` (100). A
   sated paramecium passes over food: step 4 skips it, and its decision skips the graze and wanders
-  (G5's and G6's sated variants). The eating test is made once per tick before step 4, so one tick's meal
-  may overshoot by a few motes. The test reads the growth after the tick's settle, which has taken the tick's decay:
-  a grazer at exactly 100 is hungry again one tick later, so its steady state eats what its growth burns. Why 100: it bounds the first feed to about 50 to 70 motes, after which
+  (G5's and G6's sated variants). The eating test is made once per tick before step 4, so the last hungry
+  tick's meal is eaten whole, however far it carries the growth past the appetite: a mote or two in open water,
+  but tens of motes on a death pile (seen live in ticket #827's review: a paramecium sweeping a removed cell's detritus stopped
+  at a growth of about 147, 47 over its appetite, the last tick's meal alone about 25). The test reads the growth after the tick's settle, which has taken the tick's decay:
+  a grazer at exactly 100 is hungry again one tick later, so its steady state eats what its growth burns. Why 100: it bounds the first feed to about 50 to 70 motes (more on a death pile), after which
   it eats only what its growth burns (0.50 mass/s, §3.5.3), so over a default round it eats about 400
   mass in all, about 5 % of what the dish spawns for one player.
 
@@ -532,7 +534,7 @@ fixture balance sets the species list, read at world creation (§3.5.9), and the
   profile instead of the wild constants: the growth ceiling (3 × `worldMass`, or `GIANT_MASS_CEILING`), the decision
   rules (the role's order: hunter flee, hunt, wander; grazer flee, graze, wander; drifter flee, wander), the diet
   (`simulation/cell-diet.ts`, which step 4 reads too), the give-up and rest seconds, the hunt window's
-  `huntMinPreyMassFraction` (0 for a wild seat), the stage players become prey from (a giant's: tick 0), the turn
+  `hunt.minPreyMassFraction` (0 for a wild seat), the stage players become prey from (a giant's: tick 0), the turn
   chance, the random stream (`wildCells`, or `giants`), and the respawn's countdown and what a vacated seat forgets
   (ticket #826's per-kind respawn policy, folded in). The base size (`sizeFactor` × `worldMass`, or the born mass) and
   the ladder (the world's, or the fixed build through `applyGiantBuild`) stay with each kind's settle
