@@ -14,8 +14,11 @@ import {
   DIATOM_PLASTID_BASE,
   DIATOM_PLASTID_DARK,
   DIATOM_PLASTID_LIGHT,
+  DIGESTIVE_VACUOLE_BASE,
+  FOOD_MOTE,
   FOOD_VACUOLE,
   GIANT_DIATOM_PLASTID_RADIUS,
+  GIANT_DIGESTIVE_VACUOLE,
   LIPID_BASE,
   LIPID_DROPLET,
   LIPID_LIGHT,
@@ -187,6 +190,33 @@ function bakeBubble(factory: BakeCanvasFactory, pxPerRadius: number, style: Bubb
   return finishSprite(bubble, pxPerRadius);
 }
 
+/** The giant amoeba's digestive vacuole: a dark pool, its half-digested motes, a faint green rim, a dim glint. */
+function bakeDigestiveVacuole(factory: BakeCanvasFactory, pxPerRadius: number): BakedSprite {
+  const style = GIANT_DIGESTIVE_VACUOLE;
+  const pool = haloedBody(factory, style.radius * pxPerRadius, FOOD_MOTE);
+  const { context } = pool.canvas;
+  const { disc } = pool;
+  fillRadial(context, disc, [
+    { offset: 0, colour: DIGESTIVE_VACUOLE_BASE, alpha: style.fillAlpha.inner },
+    { offset: 1, colour: DIGESTIVE_VACUOLE_BASE, alpha: style.fillAlpha.outer },
+  ]);
+  for (const mote of style.motes) {
+    const speck = {
+      x: disc.x + mote.x * disc.radius,
+      y: disc.y + mote.y * disc.radius,
+      radius: mote.radius * disc.radius,
+    };
+    fillDisc(context, speck, { colour: FOOD_MOTE, alpha: style.moteAlpha });
+  }
+  strokeDisc(context, disc, {
+    colour: FOOD_MOTE,
+    alpha: style.rimAlpha,
+    width: disc.radius * ORGANELLE_RIM_WIDTH_SHARE,
+  });
+  paintGlint(context, disc, { colour: WHITE, alpha: style.glintAlpha });
+  return finishSprite(pool, pxPerRadius);
+}
+
 interface DropletStyle {
   readonly bodyRadii: number;
   readonly light: string;
@@ -229,6 +259,7 @@ export function bakeOrganelleAtlas(
       rim: VAC_RIM,
       glow: VAC_BASE,
     }),
+    [ORGANELLE_KIND.digestiveVacuole]: bakeDigestiveVacuole(factory, pxPerRadius),
     [ORGANELLE_KIND.toxinVacuole]: bakeBubble(factory, pxPerRadius, {
       bodyRadii: TOXIN_VACUOLE.radius,
       base: TOXIN_BASE,

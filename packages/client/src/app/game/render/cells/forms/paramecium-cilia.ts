@@ -7,7 +7,7 @@
 // with speed. Cosmetic: no reach, no collision, no mass. This file is the TypeScript reference;
 // `cell-shader-fringe.ts` paints the same tufts term for term.
 
-import { RADIANS_PER_FULL_TURN } from '@evolution/shared';
+import { RADIANS_PER_FULL_TURN, type GiantSpecies } from '@evolution/shared';
 import {
   CILIA_TUFT_BEAT_SWING_DEG,
   CILIA_TUFT_COUNT,
@@ -17,8 +17,6 @@ import {
   CILIA_TUFT_ROOT_WIDTH_RADII,
   CILIA_TUFT_SIDE_GAIN,
   CILIA_TUFT_SPEED_LEAN_DEG,
-  CILIA_TUFT_STRANDS,
-  CILIA_TUFT_STRAND_PITCH_PX,
   CILIA_TUFT_TIP_WIDTH_RADII,
   CILIA_TUFT_WAVES_PER_FLANK,
   FORM_ID,
@@ -148,26 +146,31 @@ export function isInsideTuft(point: FringePoint, tuft: CiliaTuft): boolean {
   return across <= ciliaTuftWidthRadii(offset / tuft.lengthRadii) * HALF * widening;
 }
 
-/**
- * The strands in every tuft of a cell `radiusPx` px in radius: `CILIA_TUFT_STRANDS`, or one per
- * `CILIA_TUFT_STRAND_PITCH_PX` of the root's width when that is more, so the brush keeps its grain at any size.
- */
-export function tuftStrandCount(radiusPx: number): number {
-  const rootPx = CILIA_TUFT_ROOT_WIDTH_RADII * radiusPx;
-  return Math.max(CILIA_TUFT_STRANDS, Math.floor(rootPx / CILIA_TUFT_STRAND_PITCH_PX));
+/** Whose tufts: the form, and the giant's species (`null` for every other cell). */
+export interface TuftOwner {
+  readonly form: FormDefinition;
+  readonly giantSpecies: GiantSpecies | null;
 }
 
 /**
- * A reach with the form's tufts counted: `reachRadii` (the halo, the hairs), or the tufts' round tips past the widest
+ * Whether the cell wears the tufts: every slipper but a giant's, which wears the fine fringe of its `cilia` hairs
+ * instead, as the real one does (visual-style/cells-and-organelles.md §4.1; the tufts are a player's silhouette, #745).
+ */
+export function hasCiliaTufts(owner: TuftOwner): boolean {
+  return owner.form.id === FORM_ID.slipper && owner.giantSpecies === null;
+}
+
+/**
+ * A reach with the cell's tufts counted: `reachRadii` (the halo, the hairs), or the tufts' round tips past the widest
  * membrane `membraneRadii` if they reach further. What the quad (`shape-terms.ts`) and the lens (`cell-draw-extent.ts`)
  * add for the paramecium (§5.1 rule 5).
  */
-export function reachWithCiliaTufts(form: FormDefinition, reachRadii: number, membraneRadii: number): number {
-  const tufts = ciliaTuftDrawnReachRadii(form);
+export function reachWithCiliaTufts(owner: TuftOwner, reachRadii: number, membraneRadii: number): number {
+  const tufts = ciliaTuftDrawnReachRadii(owner);
   return tufts > 0 ? Math.max(reachRadii, membraneRadii + tufts) : reachRadii;
 }
 
-/** How far past the widest membrane a form's tufts draw, radii: the full reach and the tip's cap; 0 without tufts. */
-export function ciliaTuftDrawnReachRadii(form: FormDefinition): number {
-  return form.id === FORM_ID.slipper ? CILIA_TUFT_REACH_RADII + TIP_CAP_RADII : 0;
+/** How far past the widest membrane a cell's tufts draw, radii: the full reach and the tip's cap; 0 without tufts. */
+export function ciliaTuftDrawnReachRadii(owner: TuftOwner): number {
+  return hasCiliaTufts(owner) ? CILIA_TUFT_REACH_RADII + TIP_CAP_RADII : 0;
 }

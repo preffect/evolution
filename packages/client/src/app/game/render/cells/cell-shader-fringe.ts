@@ -15,7 +15,6 @@ import {
   CILIA_TUFT_SIDE_GAIN,
   CILIA_TUFT_SPEED_LEAN_DEG,
   CILIA_TUFT_STRAND_ALPHA,
-  CILIA_TUFT_STRAND_PITCH_PX,
   CILIA_TUFT_STRAND_WIDTH_PX,
   CILIA_TUFT_STRANDS,
   CILIA_TUFT_TIP_ALPHA_SHARE,
@@ -67,22 +66,21 @@ vec3 tuftCoverage(vec3 tuft, vec3 place, float feather) {
   return vec3(1.0 - smoothstep(halfWidth - feather, halfWidth + feather, abs(across)), across / halfWidth, offset / tuft.y);
 }
 
-/** The strands in each tuft (paramecium-cilia.ts tuftStrandCount): more once the root is wider than the pitch allows. */
-float tuftStrandCount(Frame frame) {
-  return max(${glslFloat(CILIA_TUFT_STRANDS)}, floor(${glslFloat(CILIA_TUFT_ROOT_WIDTH_RADII)} * frame.rPx / ${glslFloat(CILIA_TUFT_STRAND_PITCH_PX)}));
-}
-
-/** The strands inside a tuft: 'strands' px-wide lines along it, at 'share' across its half-width. */
-float tuftStrands(float share, float halfWidthRadii, float pxRadii, float strands) {
+/** The strands inside a tuft: 'CILIA_TUFT_STRANDS' px-wide lines along it, at 'share' across its half-width. */
+float tuftStrands(float share, float halfWidthRadii, float pxRadii) {
+  float strands = ${glslFloat(CILIA_TUFT_STRANDS)};
   float perRadius = strands / (2.0 * max(halfWidthRadii, pxRadii));
   float line = abs(fract((share + 1.0) * strands * HALF) - HALF);
   float halfLine = ${glslFloat(CILIA_TUFT_STRAND_WIDTH_PX)} * HALF * pxRadii * perRadius;
   return 1.0 - smoothstep(halfLine - pxRadii * perRadius, halfLine + pxRadii * perRadius, line);
 }
 
-/** The slipper's tufts outside its membrane: the tufts round the nearest slot, the deepest one painted. */
+/**
+ * The slipper's tufts outside its membrane: the tufts round the nearest slot, the deepest one painted. None on a giant
+ * (paramecium-cilia.ts hasCiliaTufts): it wears the fine fringe of its 'cilia' hairs.
+ */
 vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {
-  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || frame.rho < 1.0) return acc;
+  if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || inst.giantSpeciesId > HALF || frame.rho < 1.0) return acc;
   float membrane = frame.len / frame.rho / inst.r;
   vec3 place = vec3(wrapAngle(frame.theta - inst.heading), frame.len / inst.r, membrane);
   if (place.y - membrane > ${glslFloat(CILIA_TUFT_REACH_RADII + TIP_CAP)}) return acc;
@@ -97,7 +95,7 @@ vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {
   float halfWidth = mix(${glslFloat(CILIA_TUFT_ROOT_WIDTH_RADII)}, ${glslFloat(CILIA_TUFT_TIP_WIDTH_RADII)}, best.z) * HALF;
   float core = 1.0 - min(abs(best.y), 1.0);
   float wash = mix(${glslFloat(CILIA_TUFT_WASH_EDGE_ALPHA)}, ${glslFloat(CILIA_TUFT_WASH_CORE_ALPHA)}, core);
-  float strands = tuftStrands(best.y, halfWidth, pxRadii, tuftStrandCount(frame)) * inst.lodBlend;
+  float strands = tuftStrands(best.y, halfWidth, pxRadii) * inst.lodBlend;
   float alpha = mix(wash, ${glslFloat(CILIA_TUFT_STRAND_ALPHA)}, strands);
   float tip = mix(1.0, ${glslFloat(CILIA_TUFT_TIP_ALPHA_SHARE)}, smoothstep(HALF, 1.0, best.z));
   return over(acc, rimColour(inst), best.x * alpha * tip);

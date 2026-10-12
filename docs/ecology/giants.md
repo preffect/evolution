@@ -391,10 +391,14 @@ shell (`diatom_shell`). The renderer gets `CellView.giantSpecies` and uses it fo
   mockup's `#cfc8ff` and `#b8f6e0` were the Violet and Mint player rims within ΔE 3, and a rim colours the
   arms and the fringe.
 - **New detail only where the form lacks it at giant size** (#828 checked each form at radius 120 to 155
-  wu, visual-style/cells-and-organelles.md §4.1): the paramecium's oral groove (the mockup's curved line)
-  and its two star-shaped contractile vacuoles, the amoeba's contractile vacuole, the diatom's concentric
-  rings of pores (its radial ribs were already drawn) and its plastids drawn golden brown, and a
-  paramecium tuft's strands grown with its width, so a giant's fringe stays a brush of hairs.
+  wu, visual-style/cells-and-organelles.md §4.1): the paramecium's oral groove (the mockup's curved line),
+  its two star-shaped contractile vacuoles and its fringe of fine cilia hairs in place of a player's tufts,
+  the amoeba's contractile vacuole and two digestive vacuoles, the diatom's concentric rings of pores (its
+  radial ribs were already drawn) and its plastids drawn golden brown.
+- **The diatom keeps its trait tells.** Its 8 spines and its cyan cell-wall band are not in the mockup's
+  plain disc, but they are what a player diatom shows for the same two rules: the spines spit a predator
+  out, and the wall means a predator needs 1.40 × its mass (the armour paragraph above). A giant drawn
+  without them would hide the rule that makes it the hardest of the three to swallow.
 - **Names, one home.** `cellDisplayName` (`hud/format/threats-for.ts`) returns a giant's display name
   from `GIANT_DISPLAY_NAME_BY_SPECIES` (`Giant amoeba`, `Paramecium`, `Giant diatom`, beside
   `GIANT_REAL_LIFE_LINES`) where it returns `Wild cell` for a wild cell, so the threat label and the

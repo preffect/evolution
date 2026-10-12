@@ -21,6 +21,7 @@ import {
   FORM_WOBBLE_AMPLITUDE,
   FORM_WOBBLE_HZ,
   FORM_WOBBLE_MODE,
+  GIANT_CILIA_COUNT,
   HALO_KIND,
   PROTOCELL_WOBBLE_AMPLITUDE,
   PROTOCELL_WOBBLE_HZ,
@@ -95,6 +96,16 @@ function haloKindFor(isProtocell: boolean, isGiant: boolean, tierOf: TierOf): Ha
   return tierOf(TOXIN_TRAIT) > 0 ? HALO_KIND.toxin : HALO_KIND.default;
 }
 
+/**
+ * The hairs round the membrane: the tier's count, or a giant's fine fringe of `GIANT_CILIA_COUNT` (the giant paramecium
+ * wears it in place of the tufts, visual-style/cells-and-organelles.md §4.1). A fixed count, so no hair ever jumps as
+ * the zoom eases.
+ */
+function ciliaCountFor(isGiant: boolean, tier: TraitTier | 0): number {
+  if (tier === 0) return 0;
+  return isGiant ? GIANT_CILIA_COUNT : tierTable(CILIA_COUNT_BY_TIER, tier);
+}
+
 /** Protocells wobble on mode 2; forms hold a mode-3 shape unless rigid; a diatom and the blob rest still. */
 function wobbleFor(isProtocell: boolean, form: FormDefinition): WobbleSpec {
   if (isProtocell) return PROTOCELL_WOBBLE;
@@ -116,7 +127,7 @@ export function summariseCellTraits(view: CellView, previewTraitId: TraitId | nu
     isTaut: tierOf(TAUT_TRAIT) > 0,
     haloKind: haloKindFor(isProtocell, view.giantSpecies !== null, tierOf),
     wobble: wobbleFor(isProtocell, form),
-    ciliaCount: tierTable(CILIA_COUNT_BY_TIER, tierOf(CILIA_TRAIT)),
+    ciliaCount: ciliaCountFor(view.giantSpecies !== null, tierOf(CILIA_TRAIT)),
     wallScale: tierTable(CELL_WALL_SCALE_BY_TIER, tierOf(WALL_TRAIT)),
     speckleDensity: tierTable(RIBOSOME_DENSITY_BY_TIER, tierOf(RIBOSOME_TRAIT)),
     filamentCount: tierTable(FILAMENT_COUNT_BY_TIER, tierOf(TAUT_TRAIT)),

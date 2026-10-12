@@ -2,7 +2,13 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, GIANT_SPECIES, type GiantSpecies, type OwnedTrait } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { GIANT_DIATOM_PLASTID_COUNT, LIPID_DROPLET, ORGANELLE_KIND, PROTOCELL_GRANULE_COUNT } from '../constants';
+import {
+  GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT,
+  GIANT_DIATOM_PLASTID_COUNT,
+  LIPID_DROPLET,
+  ORGANELLE_KIND,
+  PROTOCELL_GRANULE_COUNT,
+} from '../constants';
 import { summariseCellTraits } from './cell-traits';
 import { NUCLEUS_KINDS, ORGANELLE_KIND_ORDER, organelleCounts } from './organelle-kinds';
 
@@ -47,6 +53,25 @@ describe('organelleCounts', () => {
     expect(counts[ORGANELLE_KIND.chloroplast]).toBe(1);
     expect(counts[ORGANELLE_KIND.foodVacuole]).toBe(3);
     expect(counts[ORGANELLE_KIND.toxinVacuole]).toBe(1);
+  });
+
+  describe('the giant amoeba’s digestive vacuoles (docs/ecology/giants.md §3.5.11)', () => {
+    const amoebaBuild: OwnedTrait[] = [
+      { traitId: 'nuclear_envelope', tier: 1 },
+      { traitId: 'amoeba_pseudopods', tier: 2 },
+    ];
+    const digestiveFor = (giantSpecies: GiantSpecies | null) =>
+      organelleCounts(
+        summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits: amoebaBuild, giantSpecies })),
+      )[ORGANELLE_KIND.digestiveVacuole];
+
+    it('shows the mockup’s two pools of prey in the giant amoeba, and none in a player amoeba or another giant', () => {
+      expect(GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT).toBe(2);
+      expect(digestiveFor(GIANT_SPECIES.amoeba)).toBe(GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT);
+      expect(digestiveFor(null)).toBe(0);
+      expect(digestiveFor(GIANT_SPECIES.paramecium)).toBe(0);
+      expect(digestiveFor(GIANT_SPECIES.diatom)).toBe(0);
+    });
   });
 
   describe('the giant diatom’s golden-brown plastids (docs/ecology/giants.md §3.5.11)', () => {

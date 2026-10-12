@@ -72,11 +72,41 @@ export const GIANT_DIATOM_PLASTID_COUNT = 5;
 /** Smaller than a chloroplast (0.17 r): discs scattered through the valve, the mockup's four to six. */
 export const GIANT_DIATOM_PLASTID_RADIUS = 0.1;
 
+// ---- the amoeba's food vacuoles: the mockup's two dark pools of swallowed prey, green-rimmed by what it ate ----
+export const GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT = 2;
+/**
+ * A pool in `DIGESTIVE_VACUOLE_BASE` (dense at the centre, thinning to the rim) ringed faintly in `FOOD_MOTE`, with a
+ * few half-digested motes inside: the mockup's 0.09–0.17 r circles (0.6 × its nucleus) with their 35 % green stroke.
+ */
+export const GIANT_DIGESTIVE_VACUOLE = {
+  radius: 0.14,
+  fillAlpha: { inner: 0.9, outer: 0.7 },
+  rimAlpha: 0.4,
+  /** The motes inside, as (x, y, radius) shares of the vacuole's radius from its centre. */
+  motes: [
+    { x: -0.3, y: 0.2, radius: 0.18 },
+    { x: 0.25, y: 0.3, radius: 0.13 },
+    { x: 0.1, y: -0.3, radius: 0.15 },
+  ],
+  moteAlpha: 0.45,
+  glintAlpha: 0.3,
+} as const;
+
 // ---- the diatom's rings of pores (Coscinodiscus' areolae), between the valve's ribs ----
 /** A pore every this many radii round each of the valve's pore rows, so the rows read as rings of dots. */
 export const GIANT_DIATOM_RING_PORE_SPACING_RADII = 0.055;
 export const GIANT_DIATOM_RING_PORE_RADIUS_RADII = 0.014;
 export const GIANT_DIATOM_RING_PORE_ALPHA = 0.42;
+
+// ---- the paramecium's fringe: the mockup's fine fuzzy outline, in place of a player's 16 tufts ----
+/**
+ * A giant's `cilia` hairs (cell-shader-tells.ts `cilia`, 12 % r leaning, on the travelling wave): about one every 5 px
+ * of outline at the giant's 110–200 px on screen, where a tier's 24 read as spokes. Fixed, never a px pitch, so no
+ * hair jumps while the zoom eases.
+ */
+export const GIANT_CILIA_COUNT = 180;
+/** The travelling waves round a giant's fringe (a player's `CILIA_WAVE_COUNT` 3): short metachronal ripples. */
+export const GIANT_CILIA_WAVE_COUNT = 8;
 
 // ---- the paramecium's oral groove: from the outline's notch back to the mouth at mid-body (the mockup's curve) ----
 /** Where the groove leaves the notch (membrane radii, along the notch's own direction) and where the mouth sits. */

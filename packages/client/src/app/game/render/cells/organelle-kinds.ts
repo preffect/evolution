@@ -6,6 +6,7 @@ import { GIANT_SPECIES, tierEntryOf } from '@evolution/shared';
 import {
   CHLOROPLASTS_BY_TIER,
   FOOD_VACUOLES_BY_TIER,
+  GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT,
   GIANT_DIATOM_PLASTID_COUNT,
   LIPID_DROPLET,
   MITOCHONDRIA_BY_TIER,
@@ -28,6 +29,7 @@ export const ORGANELLE_KIND_ORDER: readonly OrganelleKind[] = [
   ORGANELLE_KIND.diatomPlastid,
   ORGANELLE_KIND.mitochondrion,
   ORGANELLE_KIND.foodVacuole,
+  ORGANELLE_KIND.digestiveVacuole,
   ORGANELLE_KIND.lipid,
   ORGANELLE_KIND.protocellGranule,
 ];
@@ -46,6 +48,9 @@ function photosynthesisCounts(traits: CellTraitSummary): readonly [number, numbe
   return [0, GIANT_DIATOM_PLASTID_COUNT];
 }
 
+/** Only the giant amoeba shows its prey being digested (docs/ecology/giants.md §3.5.11, the mockup's two pools). */
+const NO_DIGESTIVE_VACUOLES = 0;
+
 /** How many of each kind the cell shows: granules for a protocell, the nucleoid until the envelope, then the nucleus. */
 export function organelleCounts(traits: CellTraitSummary): Readonly<Record<OrganelleKind, number>> {
   const hasNucleoid = !traits.isProtocell && !traits.hasNucleus;
@@ -57,6 +62,8 @@ export function organelleCounts(traits: CellTraitSummary): Readonly<Record<Organ
     [ORGANELLE_KIND.chloroplast]: chloroplasts,
     [ORGANELLE_KIND.diatomPlastid]: plastids,
     [ORGANELLE_KIND.foodVacuole]: byTier(FOOD_VACUOLES_BY_TIER, traits.tierOf('food_vacuole')),
+    [ORGANELLE_KIND.digestiveVacuole]:
+      traits.giantSpecies === GIANT_SPECIES.amoeba ? GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT : NO_DIGESTIVE_VACUOLES,
     [ORGANELLE_KIND.toxinVacuole]: byTier(TOXIN_VACUOLES_BY_TIER, traits.tierOf('toxin_vacuole')),
     [ORGANELLE_KIND.lipid]: traits.isProtocell ? 0 : LIPID_DROPLET.count,
     [ORGANELLE_KIND.protocellGranule]: traits.isProtocell ? PROTOCELL_GRANULE_COUNT : 0,

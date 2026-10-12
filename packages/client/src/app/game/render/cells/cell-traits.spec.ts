@@ -2,7 +2,15 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, GIANT_SPECIES } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { FORM_ID, FORM_WOBBLE_MODE, HALO_KIND, PROTOCELL_WOBBLE_AMPLITUDE, PROTOCELL_WOBBLE_MODE } from '../constants';
+import {
+  CILIA_COUNT_BY_TIER,
+  FORM_ID,
+  FORM_WOBBLE_MODE,
+  GIANT_CILIA_COUNT,
+  HALO_KIND,
+  PROTOCELL_WOBBLE_AMPLITUDE,
+  PROTOCELL_WOBBLE_MODE,
+} from '../constants';
 import { summariseCellTraits } from './cell-traits';
 import { BLOB_FORM } from './forms/form-profiles';
 
@@ -88,6 +96,23 @@ describe('summariseCellTraits', () => {
     const player = summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits: [...traits] }));
     expect(player.giantSpecies).toBeNull();
     expect(player.haloKind).toBe(HALO_KIND.chloroplast);
+  });
+
+  it('gives a giant’s cilia the fine fringe of GIANT_CILIA_COUNT hairs, a player’s the tier’s count (#828)', () => {
+    const traits = [
+      { traitId: 'cilia', tier: 1 },
+      { traitId: 'paramecium_cilia', tier: 1 },
+    ] as const;
+    const summaryOf = (giantSpecies: typeof GIANT_SPECIES.paramecium | null) =>
+      summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits: [...traits], giantSpecies }));
+    expect(summaryOf(GIANT_SPECIES.paramecium).ciliaCount).toBe(GIANT_CILIA_COUNT);
+    expect(GIANT_CILIA_COUNT).toBeGreaterThanOrEqual(150);
+    expect(GIANT_CILIA_COUNT).toBeLessThanOrEqual(200);
+    expect(summaryOf(null).ciliaCount).toBe(CILIA_COUNT_BY_TIER[0]);
+    const bare = summariseCellTraits(
+      createTestCellView({ stage: CELL_STAGE.specialised, traits: [], giantSpecies: GIANT_SPECIES.amoeba }),
+    );
+    expect(bare.ciliaCount).toBe(0);
   });
 
   it('resolves the form from the form trait: mode-3 wobble on a slipper, none on the rigid diatom', () => {

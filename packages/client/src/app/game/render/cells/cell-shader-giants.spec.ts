@@ -7,12 +7,16 @@ import { describe, expect, it } from 'vitest';
 import { GIANT_SPECIES } from '@evolution/shared';
 import { glslFunction } from '../../../../testing/cell-glsl';
 import {
-  CILIA_TUFT_STRAND_PITCH_PX,
+  CILIA_WAVE_COUNT,
+  FORM_ID,
+  GIANT_CILIA_WAVE_COUNT,
   GIANT_AMOEBA_VACUOLE,
   GIANT_DIATOM_RING_PORE_SPACING_RADII,
   GIANT_PARAMECIUM_VACUOLES,
   GIANT_SPECIES_ID,
   GIANT_VACUOLE_CYCLE_SECONDS,
+  GIANT_VACUOLE_EMPTY_SCALE,
+  GIANT_VACUOLE_FILL_SHARE,
 } from '../constants';
 import { HALF } from '../geometry';
 import { glslFloat } from './cell-shader-source';
@@ -66,10 +70,17 @@ describe('the giants’ detail in the cell shader', () => {
     );
   });
 
-  it('pumps the vacuoles on the room clock, each at its own cell’s seed, sited through the deformed outline', () => {
-    expect(glslFunction('float vacuoleScale(float phase) {')).toContain(
-      `fract(uTimeSeconds / ${glslFloat(GIANT_VACUOLE_CYCLE_SECONDS)} + phase)`,
-    );
+  it('swells a vacuole slowly and empties it at once, the fill share first (giant-detail.ts vacuoleScale)', () => {
+    const scale = glslFunction('float vacuoleScale(float phase) {');
+    expect(scale).toContain(`float cycle = fract(uTimeSeconds / ${glslFloat(GIANT_VACUOLE_CYCLE_SECONDS)} + phase);`);
+    expect(scale).toContain(`float fill = ${glslFloat(GIANT_VACUOLE_FILL_SHARE)};`);
+    expect(scale).toContain('float share = cycle < fill ? cycle / fill : 1.0 - (cycle - fill) / (1.0 - fill);');
+    const empty = glslFloat(GIANT_VACUOLE_EMPTY_SCALE);
+    expect(scale).toContain(`return ${empty} + (1.0 - ${empty}) * share;`);
+    expect(GIANT_VACUOLE_FILL_SHARE).toBeGreaterThan(HALF);
+  });
+
+  it('pumps the vacuoles each at its own cell’s seed, sited through the deformed outline', () => {
     const vacuole = glslFunction('vec4 contractileVacuole(');
     expect(vacuole).toContain('vacuoleScale(pump.z + inst.speckleSeed)');
     expect(vacuole).toContain(`if (isGiant(inst, ${glslFloat(GIANT_SPECIES_ID[GIANT_SPECIES.paramecium])})) {`);
@@ -84,12 +95,16 @@ describe('the giants’ detail in the cell shader', () => {
     );
   });
 
-  it('gives a tuft a strand per pitch of its root once it is wider than three (paramecium-cilia.ts tuftStrandCount)', () => {
-    expect(glslFunction('float tuftStrandCount(Frame frame) {')).toContain(
-      `/ ${glslFloat(CILIA_TUFT_STRAND_PITCH_PX)}`,
-    );
+  it('paints no tufts on a giant, whose fringe is its cilia hairs at the giant’s count (paramecium-cilia.ts hasCiliaTufts)', () => {
     expect(glslFunction('vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {')).toContain(
-      'tuftStrands(best.y, halfWidth, pxRadii, tuftStrandCount(frame))',
+      `if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || inst.giantSpeciesId > HALF || frame.rho < 1.0) return acc;`,
     );
+    const hairs = glslFunction('vec4 cilia(Instance inst, Frame frame, vec4 acc) {');
+    expect(hairs).toContain('if (inst.ciliaCount <= 0.0 ||');
+    expect(hairs).toContain('spokeDistancePx(inst.ciliaCount, thetaHair, frame.len * uZoom)');
+    expect(hairs).toContain(
+      `float waves = inst.giantSpeciesId > HALF ? ${glslFloat(GIANT_CILIA_WAVE_COUNT)} : ${glslFloat(CILIA_WAVE_COUNT)};`,
+    );
+    expect(hairs).toContain('sin(frame.theta * waves - TAU * inst.ciliaPhase)');
   });
 });
