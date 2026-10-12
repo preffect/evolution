@@ -6,7 +6,7 @@
 import { Container, type Sprite } from 'pixi.js';
 import { hexToNumber } from '../colour';
 import { WHITE, type OrganelleKind } from '../constants';
-import type { PlayerPalette } from '../palette';
+import type { CellPalette } from '../palette';
 import type { OrganelleSpriteTexture } from '../render-textures';
 import { SpritePool } from '../sprite-pool';
 import type { CellInstance } from './cell-instance';
@@ -20,7 +20,7 @@ export interface OrganelleDraw {
   readonly instance: CellInstance;
   readonly lod: CellLod;
   readonly organelles: readonly OrganellePlacement[];
-  readonly palette: PlayerPalette;
+  readonly palette: CellPalette;
   readonly isSprinting: boolean;
   /** A ghost's draw: the body is dissolving, so the sprites' own idle motion is frozen too (#243). */
   readonly isAtRest: boolean;
@@ -40,7 +40,7 @@ export class OrganelleSprites {
    * The nucleus and nucleoid bakes are white and take the palette's rim here (the nucleus disc itself is the shader's
    * ramp, #231); the rest are baked in colour. A starving cell's sprites sallow with its body (`witheredTint`, #635).
    */
-  private tintFor(kind: OrganelleKind, palette: PlayerPalette, wither: number): number {
+  private tintFor(kind: OrganelleKind, palette: CellPalette, wither: number): number {
     const isNucleus = NUCLEUS_KINDS.has(kind);
     if (wither > NOT_WITHERED) return hexToNumber(witheredTint(isNucleus ? palette.rim : WHITE, wither));
     return isNucleus ? hexToNumber(palette.rim) : UNTINTED;

@@ -2,13 +2,17 @@
 // docs/rendering/files-and-tests.md §9: the HSL derivations of sheet 01 and the separability numbers of visual-style/principles-and-palette.md §2.
 
 import { describe, expect, it } from 'vitest';
-import { DNA_TAGS, PLAYER_PALETTE_COUNT, SEAT_MARK_BEADS } from '@evolution/shared';
+import { DNA_TAGS, GIANT_SPECIES, GIANT_SPECIES_ORDER, PLAYER_PALETTE_COUNT, SEAT_MARK_BEADS } from '@evolution/shared';
 import { DEUTAN_MATRIX, PROTAN_MATRIX, contrastRatio, hexDeltaE } from '../../../testing/colour-difference';
 import { hexToRgb } from './colour';
 import {
   BASE_MIN_CONTRAST,
   BG_FIELD,
+  CHLORO_BASE,
+  DIATOM_PLASTID_BASE,
   DNA_TAG_COLOR,
+  GIANT_PALETTE_TABLE,
+  GIANT_RIM_MIN_DELTA_E,
   NEW_PALETTE_INDEX,
   NEW_PALETTE_MIN_DELTA_E,
   PALETTE_PAIR_MIN_DELTA_E,
@@ -18,7 +22,17 @@ import {
   RIM_MIN_CONTRAST,
   TAG_PAIR_MIN_DELTA_E,
 } from './constants';
-import { PLAYER_PALETTES, bakePaletteTextureBytes, newPaletteAccents, paletteFor, paletteShades } from './palette';
+import {
+  GIANT_PALETTES,
+  PALETTE_ROWS,
+  PLAYER_PALETTES,
+  bakePaletteTextureBytes,
+  cellPaletteFor,
+  cellPaletteIndex,
+  newPaletteAccents,
+  paletteFor,
+  paletteShades,
+} from './palette';
 
 /** Sheet 01's derived shades (edge, cyto light, cyto dark, nucleus dark) for the six drawn palettes. */
 const SHEET_01_DERIVED: [string, [string, string, string, string]][] = [
@@ -85,9 +99,10 @@ describe('player palettes', () => {
     expect(paletteFor(-1).name).toBe('Rose');
   });
 
-  it('bakes an 8 × 8 RGBA texture in shade order with the chloroplast base last', () => {
+  it('bakes an 11 × 8 RGBA texture, the seats then the giants, in shade order with the chloroplast base last', () => {
     const bytes = bakePaletteTextureBytes();
-    expect(bytes).toHaveLength(PLAYER_PALETTE_COUNT * PALETTE_SHADE_COUNT * 4);
+    expect(PALETTE_ROWS).toHaveLength(PLAYER_PALETTE_COUNT + GIANT_SPECIES_ORDER.length);
+    expect(bytes).toHaveLength((PLAYER_PALETTE_COUNT + GIANT_SPECIES_ORDER.length) * PALETTE_SHADE_COUNT * 4);
     const shades = paletteShades(PLAYER_PALETTES[0]!);
     expect(shades[PALETTE_SHADE.base]).toBe(PLAYER_PALETTE_TABLE[0]!.base);
     const [red, green, blue] = hexToRgb(PLAYER_PALETTE_TABLE[1]!.rim);
@@ -98,6 +113,52 @@ describe('player palettes', () => {
       Math.round(blue * 255),
       255,
     ]);
+  });
+});
+
+describe('giant palettes (docs/ecology/giants.md §3.5.11)', () => {
+  const playerView = { avatarIndex: 3, giantSpecies: null };
+
+  it('gives each species a row after the seats, in the fixed species order', () => {
+    expect(GIANT_PALETTES.map((palette) => palette.name)).toEqual(['Giant amoeba', 'Paramecium', 'Giant diatom']);
+    GIANT_SPECIES_ORDER.forEach((species, index) => {
+      const view = { avatarIndex: 0, giantSpecies: species };
+      expect(cellPaletteIndex(view)).toBe(PLAYER_PALETTE_COUNT + index);
+      expect(cellPaletteFor(view)).toBe(PALETTE_ROWS[PLAYER_PALETTE_COUNT + index]);
+    });
+    expect(cellPaletteIndex(playerView)).toBe(3);
+    expect(cellPaletteFor(playerView)).toBe(paletteFor(3));
+  });
+
+  it.each(GIANT_SPECIES_ORDER)('keeps the %s ramp as authored, the edge and nucleus dark derived', (species) => {
+    const row = GIANT_PALETTE_TABLE[species];
+    const palette = cellPaletteFor({ avatarIndex: 0, giantSpecies: species });
+    expect(palette).toMatchObject({ base: row.base, rim: row.rim, nucleus: row.nucleus });
+    expect(palette).toMatchObject({ cytoLight: row.cytoLight, cytoDark: row.cytoDark, chloroBase: row.chloroBase });
+    expect(palette.edge).not.toBe(row.base);
+    expect(palette.nucleusDark).not.toBe(row.nucleus);
+  });
+
+  it('tints only the giant diatom’s chloroplast membrane golden brown; the seats keep CHLORO_BASE', () => {
+    const diatom = cellPaletteFor({ avatarIndex: 0, giantSpecies: GIANT_SPECIES.diatom });
+    expect(paletteShades(diatom)[PALETTE_SHADE.chloroBase]).toBe(DIATOM_PLASTID_BASE);
+    for (const palette of [...PLAYER_PALETTES, ...GIANT_PALETTES.filter((row) => row !== diatom)]) {
+      expect(paletteShades(palette)[PALETTE_SHADE.chloroBase]).toBe(CHLORO_BASE);
+    }
+  });
+
+  it('holds every giant rim ≥ GIANT_RIM_MIN_DELTA_E from every player rim, so no giant wears a seat’s colour', () => {
+    for (const giant of GIANT_PALETTES) {
+      const nearest = Math.min(...PLAYER_PALETTES.map((player) => hexDeltaE(giant.rim, player.rim)));
+      expect(nearest, giant.name).toBeGreaterThanOrEqual(GIANT_RIM_MIN_DELTA_E);
+    }
+  });
+
+  it('holds every giant rim ≥ 4.5:1 and base ≥ 4.0:1 against the field', () => {
+    for (const giant of GIANT_PALETTES) {
+      expect(contrastRatio(giant.rim, BG_FIELD), giant.name).toBeGreaterThanOrEqual(RIM_MIN_CONTRAST);
+      expect(contrastRatio(giant.base, BG_FIELD), giant.name).toBeGreaterThanOrEqual(BASE_MIN_CONTRAST);
+    }
   });
 });
 

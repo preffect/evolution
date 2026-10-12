@@ -199,6 +199,7 @@ vec4 bodyPass(Instance inst, Frame frame) {
   acc = ribosomeSpeckle(inst, frame, inside, acc);
   acc = cytoskeletonFilaments(inst, frame, acc);
   acc = diatomValve(inst, frame, inside, acc);
+  acc = giantDetail(inst, frame, acc);
   return nucleusRamp(inst, frame, acc);
 }
 `;

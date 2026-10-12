@@ -5,14 +5,16 @@
 
 import { spineDrawnReachRadii } from './diatom-spines';
 import { flagellumDrawnReachRadii } from './euglena-flagellum';
-import type { FormDefinition } from './form-profiles';
-import { reachWithCiliaTufts } from './paramecium-cilia';
+import { reachWithCiliaTufts, type TuftOwner } from './paramecium-cilia';
 
-/** `reachRadii` (the halo, the hairs), or the furthest a form's appendage draws off a membrane `membraneRadii` out. */
-export function reachWithFormAppendages(form: FormDefinition, reachRadii: number, membraneRadii: number): number {
+/**
+ * `reachRadii` (the halo, the hairs), or the furthest a form's appendage draws off a membrane `membraneRadii` out. The
+ * owner is the cell's form and its giant species: a giant paramecium wears no tufts.
+ */
+export function reachWithFormAppendages(owner: TuftOwner, reachRadii: number, membraneRadii: number): number {
   return Math.max(
-    reachWithCiliaTufts(form, reachRadii, membraneRadii),
-    flagellumDrawnReachRadii(form, membraneRadii),
-    spineDrawnReachRadii(form, membraneRadii),
+    reachWithCiliaTufts(owner, reachRadii, membraneRadii),
+    flagellumDrawnReachRadii(owner.form, membraneRadii),
+    spineDrawnReachRadii(owner.form, membraneRadii),
   );
 }

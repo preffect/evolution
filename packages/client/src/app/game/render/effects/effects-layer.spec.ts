@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MOTION_CLIPS, entityId, type CellView } from '@evolution/shared';
+import { GIANT_SPECIES, MOTION_CLIPS, entityId, type CellView } from '@evolution/shared';
 import {
   createTestCellAbsorbedEffect,
   createTestCellView,
@@ -9,7 +9,13 @@ import {
 } from '../../../../testing/builders';
 import { createTestRenderTextures } from '../../../../testing/fake-pixi-app';
 import { hexToNumber } from '../colour';
-import { EFFECT_FALLBACK_RADIUS_WU, LEVEL_UP_RAYS, LEVEL_UP_RIPPLES, LIGHT_ACCENT } from '../constants';
+import {
+  EFFECT_FALLBACK_RADIUS_WU,
+  GIANT_PALETTE_TABLE,
+  LEVEL_UP_RAYS,
+  LEVEL_UP_RIPPLES,
+  LIGHT_ACCENT,
+} from '../constants';
 import { paletteFor } from '../palette';
 import { EffectsLayer, type EffectsLayerFrame } from './effects-layer';
 
@@ -67,6 +73,22 @@ describe('EffectsLayer', () => {
     // The predator left the frame: the streams keep flowing to where it was.
     subject.update(frame([], 550));
     expect(subject.sprites[1]!.y).toBeGreaterThan(0);
+    subject.destroy();
+  });
+
+  it('draws a giant’s eat halo in its species’ rim, never the Cyan of the seat 0 its view holds (#828)', () => {
+    const subject = new EffectsLayer(textures);
+    const giant = createTestCellView({
+      id: entityId('giant'),
+      radius: 130,
+      avatarIndex: 0,
+      giantSpecies: GIANT_SPECIES.paramecium,
+    });
+    subject.start([createTestEatEffect({ cellId: giant.id })], lookup([giant]), 1000);
+    expect(subject.update(frame([giant], 1160)).sprites).toBe(2);
+    const paramecium = hexToNumber(GIANT_PALETTE_TABLE[GIANT_SPECIES.paramecium].rim);
+    expect(paramecium).not.toBe(hexToNumber(paletteFor(0).rim));
+    expect(subject.sprites.slice(0, 2).map((sprite) => sprite.tint)).toEqual([paramecium, paramecium]);
     subject.destroy();
   });
 

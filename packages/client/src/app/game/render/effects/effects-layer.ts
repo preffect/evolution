@@ -19,7 +19,7 @@ import { Container, type Sprite } from 'pixi.js';
 import { sampleClipTracks } from '../cells/cell-clips';
 import { CLIP_BY_EFFECT, type LastViewOf } from '../cells/cell-effects';
 import { EFFECT_FALLBACK_RADIUS_WU, LIGHT_ACCENT } from '../constants';
-import { paletteFor } from '../palette';
+import { cellPaletteFor } from '../palette';
 import type { RenderTextures } from '../render-textures';
 import { SpritePool, placeSprite } from '../sprite-pool';
 import { effectPlacements, type EffectSource, type EffectSpritePlacement } from './effect-sprites';
@@ -54,13 +54,16 @@ function clipFor(effect: GameEffect): MotionClipId | undefined {
   return effect.kind === EFFECT_KIND.cellAbsorbed ? MOTION_CLIP.absorbed : CLIP_BY_EFFECT[effect.kind];
 }
 
-/** The view's centre, radius and rim colour; the effect's own position and a neutral colour when the cell was never drawn. */
+/**
+ * The view's centre, radius and rim colour (a giant's species', never the seat-0 Cyan its `avatarIndex` holds); the
+ * effect's own position and a neutral colour when the cell was never drawn.
+ */
 function sourceFor(effect: GameEffect & { x: number; y: number }, view: CellView | undefined): EffectSource {
   return {
     x: view?.x ?? effect.x,
     y: view?.y ?? effect.y,
     radius: view?.radius ?? EFFECT_FALLBACK_RADIUS_WU,
-    colour: view === undefined ? LIGHT_ACCENT : paletteFor(view.avatarIndex).rim,
+    colour: view === undefined ? LIGHT_ACCENT : cellPaletteFor(view).rim,
     target: null,
   };
 }

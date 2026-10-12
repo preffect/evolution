@@ -1,8 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE } from '@evolution/shared';
+import { CELL_STAGE, GIANT_SPECIES, type GiantSpecies, type OwnedTrait } from '@evolution/shared';
 import { createTestCellView } from '../../../../testing/builders';
-import { LIPID_DROPLET, ORGANELLE_KIND, PROTOCELL_GRANULE_COUNT } from '../constants';
+import {
+  GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT,
+  GIANT_DIATOM_PLASTID_COUNT,
+  LIPID_DROPLET,
+  ORGANELLE_KIND,
+  PROTOCELL_GRANULE_COUNT,
+} from '../constants';
 import { summariseCellTraits } from './cell-traits';
 import { NUCLEUS_KINDS, ORGANELLE_KIND_ORDER, organelleCounts } from './organelle-kinds';
 
@@ -47,6 +53,59 @@ describe('organelleCounts', () => {
     expect(counts[ORGANELLE_KIND.chloroplast]).toBe(1);
     expect(counts[ORGANELLE_KIND.foodVacuole]).toBe(3);
     expect(counts[ORGANELLE_KIND.toxinVacuole]).toBe(1);
+  });
+
+  describe('the giant amoeba’s digestive vacuoles (docs/ecology/giants.md §3.5.11)', () => {
+    const amoebaBuild: OwnedTrait[] = [
+      { traitId: 'nuclear_envelope', tier: 1 },
+      { traitId: 'amoeba_pseudopods', tier: 2 },
+    ];
+    const digestiveFor = (giantSpecies: GiantSpecies | null) =>
+      organelleCounts(
+        summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits: amoebaBuild, giantSpecies })),
+      )[ORGANELLE_KIND.digestiveVacuole];
+
+    it('shows the mockup’s two pools of prey in the giant amoeba, and none in a player amoeba or another giant', () => {
+      expect(GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT).toBe(2);
+      expect(digestiveFor(GIANT_SPECIES.amoeba)).toBe(GIANT_AMOEBA_DIGESTIVE_VACUOLE_COUNT);
+      expect(digestiveFor(null)).toBe(0);
+      expect(digestiveFor(GIANT_SPECIES.paramecium)).toBe(0);
+      expect(digestiveFor(GIANT_SPECIES.diatom)).toBe(0);
+    });
+  });
+
+  describe('the giant diatom’s golden-brown plastids (docs/ecology/giants.md §3.5.11)', () => {
+    const diatomBuild: OwnedTrait[] = [
+      { traitId: 'nuclear_envelope', tier: 1 },
+      { traitId: 'chloroplast', tier: 1 },
+      { traitId: 'diatom_shell', tier: 1 },
+    ];
+    const countsFor = (giantSpecies: GiantSpecies | null, traits: OwnedTrait[] = diatomBuild) =>
+      organelleCounts(summariseCellTraits(createTestCellView({ stage: CELL_STAGE.specialised, traits, giantSpecies })));
+
+    it('shows the giant diatom’s chloroplasts as its plastids, a fixed handful at tier I', () => {
+      const giant = countsFor(GIANT_SPECIES.diatom);
+      expect(giant[ORGANELLE_KIND.chloroplast]).toBe(0);
+      expect(giant[ORGANELLE_KIND.diatomPlastid]).toBe(GIANT_DIATOM_PLASTID_COUNT);
+    });
+
+    it('keeps a player diatom’s chloroplast green, and gives no other giant plastids', () => {
+      const player = countsFor(null);
+      expect(player[ORGANELLE_KIND.chloroplast]).toBe(1);
+      expect(player[ORGANELLE_KIND.diatomPlastid]).toBe(0);
+      const amoeba = countsFor(GIANT_SPECIES.amoeba, [
+        ...diatomBuild.slice(0, 2),
+        { traitId: 'amoeba_pseudopods', tier: 2 },
+      ]);
+      expect(amoeba[ORGANELLE_KIND.chloroplast]).toBe(1);
+      expect(amoeba[ORGANELLE_KIND.diatomPlastid]).toBe(0);
+    });
+
+    it('shows no plastids on a giant diatom without the chloroplast', () => {
+      const giant = countsFor(GIANT_SPECIES.diatom, [{ traitId: 'diatom_shell', tier: 1 }]);
+      expect(giant[ORGANELLE_KIND.diatomPlastid]).toBe(0);
+      expect(giant[ORGANELLE_KIND.chloroplast]).toBe(0);
+    });
   });
 
   it('lays the nucleus kinds out first and covers every kind once', () => {

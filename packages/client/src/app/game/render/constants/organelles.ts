@@ -9,7 +9,11 @@ export const ORGANELLE_KIND = {
   nucleoid: 'nucleoid',
   mitochondrion: 'mitochondrion',
   chloroplast: 'chloroplast',
+  /** The giant diatom's golden-brown plastids, in place of its chloroplasts (docs/ecology/giants.md §3.5.11). */
+  diatomPlastid: 'diatom_plastid',
   foodVacuole: 'food_vacuole',
+  /** The giant amoeba's food vacuoles: swallowed prey being digested (docs/ecology/giants.md §3.5.11). */
+  digestiveVacuole: 'digestive_vacuole',
   toxinVacuole: 'toxin_vacuole',
   lipid: 'lipid',
   protocellGranule: 'protocell_granule',

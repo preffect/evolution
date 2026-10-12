@@ -11,6 +11,7 @@ export * from './constants/cell-shape';
 export * from './constants/paramecium';
 export * from './constants/euglena';
 export * from './constants/diatom';
+export * from './constants/giants';
 export * from './constants/starving-cell';
 export * from './constants/organelles';
 export * from './constants/vent';
