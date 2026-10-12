@@ -98,8 +98,10 @@ without copy fails the gate instead of rendering `undefined`.
 
 The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text
 block at top-centre from y 96, 480 wide: `ENGULFED BY AMOEBOID` (`title` role, danger, one line; name from
-`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters, `ENGULFED BY A WILD CELL` for a wild killer
-(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters; for a wild killer
+(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature) `A` and
+the name `cellDisplayName` gives it, upper-cased: `ENGULFED BY A WILD CELL`, or `ENGULFED BY A GIANT AMOEBA` for a giant
+(ecology/giants.md §3.5.11); `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, never below 1, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
 muted; `Level 1 kept` without traits). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
 spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
@@ -301,7 +303,7 @@ roundClock, tick, roundStartTick, roundDurationSeconds, masses, foodGainPerSecon
 | `HERE`   | `Warm vent · decay ×1.5 · orange rods` (the whole zone pill in `body`); `Open broth` has no row                                                                                                                                                 | `ZONE_CUE` dot                        | `ownCellIndicators.zone`, `hud/format/zone-pill.ts`                                                                                                                                                                                                                                                                                                                                                                                                             | `affecting-zone`                  |
 |          | `Bloom · 1:48 · food ×1.5 · DNA drops ×2` (in `body`, for the same reason), only in bloom                                                                                                                                                       | `LEVEL_GOLD` dot                      | `roundClockStateFor`, `FOOD_BLOOM_SPAWN_MULTIPLIER`, `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`                                                                                                                                                                                                                                                                                                                                                                      | `affecting-bloom`                 |
 | `SIZE`   | `You eat · ≤ 249.6`                                                                                                                                                                                                                             | `GAIN` ring                           | `ownCell.mass` / `ENGULF_MASS_RATIO` **floored** to one decimal, never rounded (at mass 312.1 rounding would show 249.7, which needs 312.125), with `≤` because `canEngulf` admits equality: the largest plain cell the own cell can take (a Cell Wall prey needs more; the ring on it says so)                                                                                                                                                                 | `affecting-prey-below`            |
-|          | `Eats you · ≥ 390`                                                                                                                                                                                                                              | `DANGER` ring                         | `ownCell.mass` × (`ENGULF_MASS_RATIO` + `ownCell.membraneRatioBonus`), the mass a cell needs for `canEngulf(it, ownCell)`                                                                                                                                                                                                                                                                                                                                       | `affecting-threat-above`          |
+|          | `Eats you · ≥ 390`                                                                                                                                                                                                                              | `DANGER` ring                         | `ownCell.mass` × (`ENGULF_MASS_RATIO` + `ownCell.membraneRatioBonus`), the mass a cell eater (a player, a wild cell or the giant amoeba: the paramecium and the diatom eat no cell, ecology/giants.md §3.5.11) needs for `canEngulf(it, ownCell)`                                                                                                                                                                                                               | `affecting-threat-above`          |
 | `TRAITS` | `Mitochondrion I · −15 % mass decay`, one row per owned trait, catalog order                                                                                                                                                                    | the trait glyph (#312) in `TRAIT_CUE` | `ownCell.traits`, the catalog, the first line of `describeTierModifiers` (§3.2)                                                                                                                                                                                                                                                                                                                                                                                 | `affecting-trait-<traitId>`       |
 |          | `World · ahead` / `level` / `behind`                                                                                                                                                                                                            | ring in the text colour               | `standingAgainstWorld(level, mass, worldReference(worldElapsedSeconds(…)), balance)` (shared `simulation/world-clock.ts`; `with` reads `level`)                                                                                                                                                                                                                                                                                                                 | `affecting-world`                 |
 
@@ -376,10 +378,11 @@ The human's request (2026-09-29): a pick should teach what it just did. Every tr
 tier up, raises a popup above the cell with the trait's name and tier and its effects; gaining a form is the bigger
 moment and gets a bigger popup with one real-life line.
 
-| Popup     | Test id         | Fires when                                                                        | Life                                                   |
-| --------- | --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `upgrade` | `upgrade-popup` | a trait not held before, or a higher tier of one held, including a form's tier up | `UPGRADE_POPUP_DURATION_SECONDS` (2.5 s) of room ticks |
-| `form`    | `form-popup`    | a form (the specialised rung's gates, `STAGE_GATE_TRAITS`) not held before        | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
+| Popup     | Test id         | Fires when                                                                           | Life                                                   |
+| --------- | --------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `upgrade` | `upgrade-popup` | a trait not held before, or a higher tier of one held, including a form's tier up    | `UPGRADE_POPUP_DURATION_SECONDS` (2.5 s) of room ticks |
+| `form`    | `form-popup`    | a form (the specialised rung's gates, `STAGE_GATE_TRAITS`) not held before           | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
+| `giant`   | `giant-popup`   | a `cell_absorbed` whose predator is the own cell and whose `preyGiantSpecies` is set | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
 
 Both carry `data-trait-id`. **Text.** The title is the catalog's name and the tier numeral (`Paramecium Cilia II`),
 under it the tier row's effect lines, each after its `ui-effect-mark` (▲ gain, ▼ drawback): the picker card's own
@@ -396,6 +399,19 @@ always agree. A form popup adds its one real-life line, in the coach pill's styl
 | Stentor Trumpet   | `Real stentors can regrow a whole cell from a small piece` |
 
 Ordinary traits have no real-life line; a later ticket may add them if the human wants them.
+
+**The giant popup** (ecology/giants.md §3.5.8, ticket #829) is the form popup's moment for swallowing a giant, and is
+drawn as one (`.form`: the same size, overshoot, glow, ring and life): the kicker `GIANT ENGULFED`, the giant's name
+from `GIANT_DISPLAY_NAME_BY_SPECIES` as the title, one benefit line with the DNA the payout added
+(`predatorDnaGained` through `formatQuantity`: `+200 DNA` with no Nucleoid, `+210 DNA` with Nucleoid I), and the
+giant's real-life line from `GIANT_REAL_LIFE_LINES` (`hud/format/giant-facts.ts`, beside the forms'). It carries
+`data-giant-species` and no `data-trait-id`. A giant eaten by any other cell shows nothing.
+
+| Giant        | Real-life line                                                  |
+| ------------ | --------------------------------------------------------------- |
+| Giant amoeba | `Real giant amoebae can grow almost a millimetre across`        |
+| Paramecium   | `Real paramecia sweep food into a groove that works as a mouth` |
+| Giant diatom | `Real diatoms make at least a fifth of Earth’s oxygen`          |
 
 **Place.** Centred horizontally, its bottom edge `--hud-picker-band-offset` above the viewport centre: the mirror of
 the picker band's top edge below it (§3.2), so it clears the exclusion box and the cap orbit exactly as the band does
@@ -431,6 +447,8 @@ once. The life is counted in room ticks, like a toast's, and the CSS fade is tim
 **Trigger.** A change between two snapshots of the same seat, like the toasts (§3.6): the first snapshot of a seat
 only remembers, so a late joiner's traits and a reconnect fire nothing; a rematch empties the traits, which gains
 nothing; the clock going back or a new seat starts the memory over. A snapshot before the live balance only
-remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). The step is pure
+remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). The giant popup is an event, not a change:
+it fires from the effects of a snapshot of a tick the seat has not seen (`hud/format/giant-popups.ts`), so a
+recomputation never fires it twice, and it queues ahead of a trait popup fired by the same snapshot. The step is pure
 (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
 binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.

@@ -9,9 +9,9 @@ import {
   INITIAL_UPGRADE_POPUP_MEMORY,
   upgradePopupStepFor,
   upgradePopupUpAt,
-  type UpgradePopup,
   type UpgradePopupMemory,
 } from './format/upgrade-popups';
+import type { UpgradePopup } from './format/upgrade-popup-kinds';
 import { GameStateService } from '../state/game-state.service';
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +29,8 @@ export class UpgradePopupService {
         tick: snapshot.tick,
         ownProgress: this.gameState.ownProgress(),
         traits: this.gameState.balance()?.traits ?? null,
+        ownCellId: this.gameState.ownCell()?.id ?? null,
+        effects: snapshot.effects,
       });
     },
   });

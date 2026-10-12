@@ -9,14 +9,17 @@ import {
   type OwnProgressView,
   type OwnedTrait,
   type TraitId,
+  GIANT_SPECIES,
+  entityId,
 } from '@evolution/shared';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
+import { createTestCellAbsorbedEffect } from '../../../../testing/builders';
 import { formRealLifeLine } from './form-facts';
+import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
 import { bindQuantities } from './trait-cards';
 import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
-  UPGRADE_POPUP_KIND,
   UPGRADE_POPUP_PLACEMENT,
   gainedTraits,
   upgradePopupPlacementFor,
@@ -32,6 +35,11 @@ const START_TICK = 600;
 const UPGRADE_TICKS = UPGRADE_POPUP_DURATION_SECONDS * TICK_HZ;
 const FORM_TICKS = FORM_POPUP_DURATION_SECONDS * TICK_HZ;
 const TRAITS = DEFAULT_BALANCE.traits;
+const OWN_CELL_ID = entityId('c-own');
+/** The own cell swallowed the giant amoeba in this broadcast window. */
+const AMOEBA_SWALLOWED = [
+  createTestCellAbsorbedEffect({ predatorCellId: OWN_CELL_ID, playerId: null, preyGiantSpecies: GIANT_SPECIES.amoeba }),
+];
 
 const FLAGELLUM: OwnedTrait = { traitId: 'simple_flagellum' as TraitId, tier: 1 };
 const FLAGELLUM_II: OwnedTrait = { traitId: 'simple_flagellum' as TraitId, tier: 2 };
@@ -44,7 +52,15 @@ function progress(ownedTraits: OwnedTrait[], overrides: Partial<OwnProgressView>
 }
 
 function sample(tick: number, ownedTraits: OwnedTrait[], overrides: Partial<UpgradePopupSample> = {}) {
-  return { seatKey: SEAT, tick, ownProgress: progress(ownedTraits), traits: TRAITS, ...overrides };
+  return {
+    seatKey: SEAT,
+    tick,
+    ownProgress: progress(ownedTraits),
+    traits: TRAITS,
+    ownCellId: OWN_CELL_ID,
+    effects: [],
+    ...overrides,
+  };
 }
 
 /** A seat seen once holding `ownedTraits`: every later gain is a change against it. */
@@ -156,6 +172,40 @@ describe('upgradePopupStepFor: the queue (docs/ui/overlays.md §3.8)', () => {
 
   it('keys every popup apart, so the component replays its animation for each', () => {
     const memory = upgradePopupStepFor(seenOnce(), sample(START_TICK + 1, [FLAGELLUM, CILIA]));
+    expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
+  });
+});
+
+describe('upgradePopupStepFor: the giant popup (docs/ecology/giants.md §3.5.8)', () => {
+  it('fires on the snapshot that carries the swallow, for a form popup’s life, even on a seat’s first snapshot', () => {
+    const tick = START_TICK + 1;
+    const memory = upgradePopupStepFor(seenOnce(), sample(tick, [], { effects: AMOEBA_SWALLOWED }));
+    expect(upgradePopupUpAt(memory, tick)).toMatchObject({
+      kind: UPGRADE_POPUP_KIND.giant,
+      giantSpecies: GIANT_SPECIES.amoeba,
+      traitId: null,
+      startTick: tick,
+      endTick: tick + FORM_TICKS,
+    });
+    const first = upgradePopupStepFor(INITIAL_UPGRADE_POPUP_MEMORY, sample(tick, [], { effects: AMOEBA_SWALLOWED }));
+    expect(first.queue).toHaveLength(1);
+  });
+
+  it('fires once: the same tick folded again fires nothing, and neither does a player with no cell', () => {
+    const tick = START_TICK + 1;
+    const fired = upgradePopupStepFor(seenOnce(), sample(tick, [], { effects: AMOEBA_SWALLOWED }));
+    expect(upgradePopupStepFor(fired, sample(tick, [], { effects: AMOEBA_SWALLOWED })).queue).toHaveLength(1);
+    const spectating = sample(tick, [], { effects: AMOEBA_SWALLOWED, ownCellId: null });
+    expect(upgradePopupStepFor(seenOnce(), spectating).queue).toEqual([]);
+  });
+
+  it('queues ahead of a trait gained in the same snapshot, each keyed apart', () => {
+    const tick = START_TICK + 1;
+    const memory = upgradePopupStepFor(seenOnce(), sample(tick, [FLAGELLUM], { effects: AMOEBA_SWALLOWED }));
+    expect(memory.queue.map((popup) => [popup.kind, popup.startTick])).toEqual([
+      [UPGRADE_POPUP_KIND.giant, tick],
+      [UPGRADE_POPUP_KIND.upgrade, tick + FORM_TICKS],
+    ]);
     expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
   });
 });

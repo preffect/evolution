@@ -7,6 +7,8 @@ import {
   TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
+  GIANT_SPECIES,
+  entityId,
   gameId,
   playerId,
   type OwnedTrait,
@@ -14,9 +16,12 @@ import {
   type TraitId,
 } from '@evolution/shared';
 import { MultiplayerService } from '../../services/multiplayer.service';
+import { createTestCellAbsorbedEffect, createTestCellView } from '../../../testing/builders';
 import { paletteFor } from '../render/palette';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { formRealLifeLine } from './format/form-facts';
+import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from './format/giant-facts';
+import { GIANT_POPUP_KICKER_TEXT } from './format/giant-popups';
 import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_PLACEMENT } from './format/upgrade-popups';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './upgrade-popup-constants';
 import { UpgradePopupComponent } from './upgrade-popup.component';
@@ -29,6 +34,8 @@ const FORM_TICKS = FORM_POPUP_DURATION_SECONDS * TICK_HZ;
 const FLAGELLUM: OwnedTrait = { traitId: 'simple_flagellum' as TraitId, tier: 1 };
 const CILIA: OwnedTrait = { traitId: 'cilia' as TraitId, tier: 1 };
 const PARAMECIUM: OwnedTrait = { traitId: 'paramecium_cilia' as TraitId, tier: 1 };
+const OWN_CELL_ID = entityId('c-own');
+const GIANT_DNA = DEFAULT_BALANCE.giants.GIANT_DNA_BONUS;
 
 describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
   let fixture: ComponentFixture<UpgradePopupComponent>;
@@ -47,6 +54,25 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     });
     multiplayer.snapshot.set(createTestSnapshot({ tick, ownProgress }));
     fixture.detectChanges();
+  }
+
+  /** A snapshot in which the own cell has just swallowed the giant diatom. */
+  function receiveDiatomSwallowed(tick: number): void {
+    const ownProgress = createTestPlayerProgressView({ playerId: OWN_PLAYER_ID, stage: CELL_STAGE.eukaryote });
+    const cells = [createTestCellView({ id: OWN_CELL_ID, playerId: OWN_PLAYER_ID })];
+    const swallow = createTestCellAbsorbedEffect({
+      tick,
+      playerId: null,
+      predatorCellId: OWN_CELL_ID,
+      predatorDnaGained: GIANT_DNA,
+      preyGiantSpecies: GIANT_SPECIES.diatom,
+    });
+    multiplayer.snapshot.set(createTestSnapshot({ tick, ownProgress, cells, effects: [swallow] }));
+    fixture.detectChanges();
+  }
+
+  function textOf(element: HTMLElement | null, selector: string): string | undefined {
+    return element?.querySelector(selector)?.textContent?.trim();
   }
 
   function host(): HTMLElement {
@@ -132,5 +158,24 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.belowDeathText);
     receive(START_TICK + 2, [PARAMECIUM]);
     expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+  });
+
+  it('shows the giant popup as large as a form’s: the giant’s name, the DNA it paid and its real-life line', () => {
+    const swallowTick = START_TICK + 1;
+    receiveDiatomSwallowed(swallowTick);
+    const shown = popup(HUD_TEST_ID.giantPopup);
+    expect(shown).not.toBeNull();
+    expect(shown?.getAttribute('data-giant-species')).toBe(GIANT_SPECIES.diatom);
+    expect(shown?.hasAttribute('data-trait-id')).toBe(false);
+    expect(shown?.classList.contains('form')).toBe(true);
+    expect(textOf(shown, '.kicker')).toBe(GIANT_POPUP_KICKER_TEXT);
+    expect(textOf(shown, '.title')).toBe(GIANT_DISPLAY_NAME_BY_SPECIES[GIANT_SPECIES.diatom]);
+    expect(textOf(shown, '.effect')).toBe(`+${GIANT_DNA} DNA`);
+    expect(textOf(shown, '.real-life')).toBe(GIANT_REAL_LIFE_LINES[GIANT_SPECIES.diatom]);
+
+    receive(swallowTick + FORM_TICKS - 1, []);
+    expect(popup(HUD_TEST_ID.giantPopup)).not.toBeNull();
+    receive(swallowTick + FORM_TICKS, []);
+    expect(popup(HUD_TEST_ID.giantPopup)).toBeNull();
   });
 });

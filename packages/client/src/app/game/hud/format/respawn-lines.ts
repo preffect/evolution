@@ -13,10 +13,11 @@ import { formatQuantity } from '../../quantities/format-quantity';
 import { QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import { joinFacts } from './fact-line';
 import { truncatePlayerName } from './player-name';
+import { cellDisplayName } from './threats-for';
 
 const ENGULFED = 'ENGULFED';
-/** A wild cell has no name, and its stage names a step on the ladder, not a creature. */
-const WILD_KILLER = 'A WILD CELL';
+/** Before a wild killer's name: `A WILD CELL`, `A GIANT AMOEBA`. A player's name stands alone. */
+const WILD_KILLER_ARTICLE = 'A';
 const NO_TRAITS = 0;
 const ONE_TRAIT = 1;
 /** The countdown's floor while spectating: the last tick sends 0, one tick before the new cell. */
@@ -33,7 +34,10 @@ export interface RespawnInput {
 }
 
 export interface RespawnLines {
-  /** `ENGULFED BY AMOEBOID` (the name cut as everywhere else), `ENGULFED BY A WILD CELL`, or `ENGULFED` once it has gone. */
+  /**
+   * `ENGULFED BY AMOEBOID` (the name cut as everywhere else), `ENGULFED BY A WILD CELL`, `ENGULFED BY A GIANT AMOEBA`,
+   * or `ENGULFED` once it has gone.
+   */
   readonly killer: string;
   /** `Respawning in 3`: whole seconds, rounded up and never below 1, so it never reads 0 while the player waits. */
   readonly countdown: string;
@@ -52,7 +56,9 @@ function killerName(
 ): string | null {
   const killer = spectatingCellId === null ? undefined : cells.find((cell) => cell.id === spectatingCellId);
   if (killer === undefined) return null;
-  if (killer.kind === CELL_KIND.wild) return WILD_KILLER;
+  // A wild cell's stage names a step on the ladder, not a creature, so it is named as `cellDisplayName` names it on
+  // screen: `Wild cell`, or a giant's species (docs/ecology/giants.md §3.5.11).
+  if (killer.kind === CELL_KIND.wild) return `${WILD_KILLER_ARTICLE} ${cellDisplayName(killer, players)}`.toUpperCase();
   const name = killer.playerId === null ? undefined : players[killer.playerId]?.playerName;
   return name === undefined ? null : truncatePlayerName(name).toUpperCase();
 }
