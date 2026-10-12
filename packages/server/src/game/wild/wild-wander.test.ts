@@ -11,14 +11,13 @@ import {
   wanderTargetOf,
 } from './wild-wander.js';
 
-const { controls, ecology } = DEFAULT_BALANCE;
+const { controls } = DEFAULT_BALANCE;
 const SEED = 7;
 const CELL = { x: 500, y: -200, radius: 20 };
 const EAST = { x: 1, y: 0 };
 
-function balanceWith(turnChance: number, maxAttempts = ecology.SPAWN_POINT_MAX_ATTEMPTS): BalanceConfig {
+function balanceWith(maxAttempts: number): BalanceConfig {
   const balance = structuredClone(DEFAULT_BALANCE);
-  balance.wildCells.WILD_CELL_TURN_CHANCE = turnChance;
   balance.ecology.SPAWN_POINT_MAX_ATTEMPTS = maxAttempts;
   return balance;
 }
@@ -53,7 +52,7 @@ describe('wanderTargetOf', () => {
   it('keeps the heading when the turn roll fails (chance 0) and spends exactly the roll', () => {
     const seat = seatHeading();
     const random = createSeededRandom(SEED);
-    const target = wanderTargetOf(seat, CELL, random, balanceWith(0));
+    const target = wanderTargetOf(seat, CELL, { random, turnChance: 0 }, DEFAULT_BALANCE);
     expect(target).toEqual(pointAlongHeading(seatHeading(), CELL, DEFAULT_BALANCE));
     expect({ x: seat.headingX, y: seat.headingY }).toEqual(EAST);
     expect(random.getState().position).toBe(1);
@@ -62,7 +61,7 @@ describe('wanderTargetOf', () => {
   it('draws a new heading when the turn roll succeeds (chance 1): the roll and the angle, two draws', () => {
     const seat = seatHeading();
     const random = createSeededRandom(SEED);
-    const target = wanderTargetOf(seat, CELL, random, balanceWith(1));
+    const target = wanderTargetOf(seat, CELL, { random, turnChance: 1 }, DEFAULT_BALANCE);
     expect({ x: seat.headingX, y: seat.headingY }).not.toEqual(EAST);
     expect(Math.hypot(seat.headingX, seat.headingY)).toBeCloseTo(1, 10);
     expect(target).toEqual(pointAlongHeading(seat, CELL, DEFAULT_BALANCE));
@@ -72,8 +71,8 @@ describe('wanderTargetOf', () => {
   it('is the same decision from the same stream state', () => {
     const first = seatHeading();
     const second = seatHeading();
-    expect(wanderTargetOf(first, CELL, createSeededRandom(SEED), balanceWith(0.5))).toEqual(
-      wanderTargetOf(second, CELL, createSeededRandom(SEED), balanceWith(0.5)),
+    expect(wanderTargetOf(first, CELL, { random: createSeededRandom(SEED), turnChance: 0.5 }, DEFAULT_BALANCE)).toEqual(
+      wanderTargetOf(second, CELL, { random: createSeededRandom(SEED), turnChance: 0.5 }, DEFAULT_BALANCE),
     );
     expect([first.headingX, first.headingY]).toEqual([second.headingX, second.headingY]);
   });
@@ -81,7 +80,12 @@ describe('wanderTargetOf', () => {
   it('redraws a heading whose target leaves the placement disc until one stays inside', () => {
     const atTheEdge = { x: spawnReach(DEFAULT_BALANCE), y: 0, radius: 20 };
     const seat = seatHeading(EAST);
-    const target = wanderTargetOf(seat, atTheEdge, createSeededRandom(SEED), balanceWith(0));
+    const target = wanderTargetOf(
+      seat,
+      atTheEdge,
+      { random: createSeededRandom(SEED), turnChance: 0 },
+      DEFAULT_BALANCE,
+    );
     expect(isInsideWanderDisc(target, DEFAULT_BALANCE)).toBe(true);
     expect({ x: seat.headingX, y: seat.headingY }).not.toEqual(EAST);
     expect(target).toEqual(pointAlongHeading(seat, atTheEdge, DEFAULT_BALANCE));
@@ -90,7 +94,9 @@ describe('wanderTargetOf', () => {
   it('aims at the origin once the redraws are spent', () => {
     const atTheEdge = { x: spawnReach(DEFAULT_BALANCE), y: 0, radius: 20 };
     const seat = seatHeading(EAST);
-    expect(wanderTargetOf(seat, atTheEdge, createSeededRandom(SEED), balanceWith(0, 0))).toEqual({ x: 0, y: 0 });
+    expect(
+      wanderTargetOf(seat, atTheEdge, { random: createSeededRandom(SEED), turnChance: 0 }, balanceWith(0)),
+    ).toEqual({ x: 0, y: 0 });
     expect({ x: seat.headingX, y: seat.headingY }).toEqual(EAST);
   });
 });

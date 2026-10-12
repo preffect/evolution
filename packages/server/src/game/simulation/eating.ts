@@ -2,9 +2,10 @@
 // cell's radius. Cells eat in array order, hits in id order (the spatial hash), and a mote eaten
 // by an earlier cell is gone for the later ones. Mass arrives through `gainMass` (digestion
 // bonus, cap overflow to DNA); DNA and tag points through the progression counters. The `eat` effect carries the mass and DNA
-// the meal added, measured around the gains (#383). A wild cell eats algae and detritus only, for mass alone (no DNA,
-// no tags, no counters): bacteria and fragments are the players' (docs/ecology/wild-cells.md §3.3.3), and the meal
-// becomes its growth at the next settle.
+// the meal added, measured around the gains (#383). A non-player cell eats the motes its diet names (`cell-diet.ts`:
+// a wild cell algae and detritus, the grazing giant bacteria too while it is hungry, the hunting and drifting giants
+// nothing), for mass alone (no DNA, no tags, no counters): fragments are the players' (docs/ecology/wild-cells.md
+// §3.3.3, docs/ecology/giants.md §3.5.7), and the meal becomes its growth at the next settle.
 
 import { EFFECT_KIND, ENTITY_KIND, FOOD_KIND, SPATIAL_HASH_CELL_SIZE_WU, type EntityId } from '@evolution/shared';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
@@ -20,6 +21,7 @@ import { requirePlayer } from '../world/lookups.js';
 import { SpatialHash, type Positioned } from '../world/spatial-hash.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { gainMass, measureGain, type MeasuredGain } from './cell-mass.js';
+import { mealKindsOf } from './cell-diet.js';
 
 interface Diner {
   readonly cell: PlayerCellRecord;
@@ -82,11 +84,6 @@ export function eatDnaFragment(
   pushEatEffect(world, context, diner, { entity: fragment, kind: ENTITY_KIND.dnaFragment, gain });
 }
 
-/** A wild cell eats algae and detritus; bacteria stay where they are for a player. */
-export function isWildFood(mote: FoodMoteRecord): boolean {
-  return mote.kind !== FOOD_KIND.bacterium;
-}
-
 /** A wild cell's meal: the mote's mass with its digestion bonus, clamped to the cap, and nothing else. */
 export function eatFoodMoteAsWild(
   cell: CellRecord,
@@ -124,7 +121,8 @@ export function eat(world: WorldState, context: StepContext): void {
   const eaten = new Set<EntityId>();
   for (const cell of world.cells) {
     if (!isPlayerCell(cell)) {
-      for (const mote of takeWithin(foodHash, cell, eaten, isWildFood)) {
+      const mealKinds = mealKindsOf(world, cell, context.balance);
+      for (const mote of takeWithin(foodHash, cell, eaten, (candidate) => mealKinds.includes(candidate.kind))) {
         eatFoodMoteAsWild(cell, mote, world, context);
       }
       continue;

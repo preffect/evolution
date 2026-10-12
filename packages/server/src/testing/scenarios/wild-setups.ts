@@ -8,7 +8,6 @@ import {
   DEFAULT_BALANCE,
   EFFECT_KIND,
   FOOD_KIND,
-  RADIANS_PER_FULL_TURN,
   RANDOM_STREAM,
   TICK_HZ,
   createSeededRandomFromState,
@@ -32,7 +31,7 @@ import {
   type EvolutionView,
 } from '../gameplay/evolution-views.js';
 import { player, type PlayerScript } from '../gameplay/index.js';
-import { holdPopulationsAtZero, type EvolutionScenarioBuilder } from './shared-setups.js';
+import { angleBetweenDegrees, holdPopulationsAtZero, type EvolutionScenarioBuilder } from './shared-setups.js';
 
 const { wildCells, growth, worldClock } = DEFAULT_BALANCE;
 
@@ -51,7 +50,6 @@ export const LIGHTEST_SEAT_MASS = growth.CELL_STARTING_MASS * wildCells.WILD_CEL
 export const HEAVIEST_SEAT_MASS = growth.CELL_STARTING_MASS * wildCells.WILD_CELL_SIZE_FACTOR_MAX;
 /** "Points at A within 5°" (W6, W7). */
 export const HEADING_TOLERANCE_DEGREES = 5;
-const DEGREES_PER_FULL_TURN = 360;
 
 /** `worldMass(t / TICK_HZ)` = 20 + t / 60 for the tick in progress (docs/ecology/acceptance.md §8.1). */
 export function worldMassAtTick(tick: number): number {
@@ -86,10 +84,7 @@ export function headingErrorOfSeat(view: EvolutionView, target: Vec2 | undefined
   if (wild === undefined || target === undefined) {
     return undefined;
   }
-  const heading = Math.atan2(wild.velocityY, wild.velocityX);
-  const bearing = Math.atan2(target.y - wild.y, target.x - wild.x);
-  const turns = Math.abs(heading - bearing) / RADIANS_PER_FULL_TURN;
-  return Math.min(turns, 1 - turns) * DEGREES_PER_FULL_TURN;
+  return angleBetweenDegrees({ x: wild.velocityX, y: wild.velocityY }, { x: target.x - wild.x, y: target.y - wild.y });
 }
 
 /** Due east, the W7 flee direction. */

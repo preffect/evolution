@@ -11,13 +11,14 @@ against it):
 
 ```text
  stepWorld(world, context): void          context = { balance, streams, effects }
-   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild settle and the due wild seats' decisions (§3.4)
-                   (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint)
+   1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild and giant settles and the due seats' decisions (§3.4)
+                   (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint, wild seats then giant seats)
    2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation, held to a minimum centre
                    distance, which reads the start-of-tick centres so a pair that crossed this tick is pushed back to its own sides,
                    and stops each push at the wall, the other cell taking what the wall kept (ecology/mass-and-movement.md §5.3, #710)
-   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only;
+   4 eating        motes and fragments within the radius, variant counters, cap overflow → DNA; a wild cell eats algae and detritus only,
+                   a giant by its diet (`cell-diet.ts`: the grazer bacteria too while hungry, the hunter and the drifter nothing);
                    every gain (here, 5 and 6) pushes a cell grown against the wall inward (ecology/mass-and-movement.md §5.4)
    5 metabolism    decay, toxin and spike drains, photosynthesis (one formula, ecology/mass-and-movement.md §4.1); a wild cell,
                    free or engulfing, takes every drain and gain but no base decay (the settle takes decay from its growth)
@@ -87,7 +88,7 @@ prediction reuses them unchanged.
   balance that breaks a giant rule (`giantBalanceProblems`, `shared/simulation/giant-balance.ts`: a build that is not
   a valid ladder ending in a form, a born range unordered or outside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`], a
   speed multiplier above 1), whichever domain the patch named, beside the wild builds' tier refusal (#671). The seats,
-  minds of giants.md §3.5.15 land with ticket #827; the seats and the lifecycle are below.
+  the lifecycle and the minds are below.
 - **Giant seats** (ecology/giants.md §3.5.2–§3.5.10, ticket #826): one `GiantSeatRecord` per species in
   `world.giantSeats` (architecture/entity-model.md §2), numbered `WILD_CELL_COUNT` + the species' place in
   `GIANT_SPECIES_ORDER`. `wild/giant-seats.ts` seats them at world creation, after the players and before the wild
@@ -101,9 +102,18 @@ prediction reuses them unchanged.
   `applyGiantBuild` lays the fixed build (level = picks + 1), refolds and multiplies the folded `speedMultiplier`, and
   every refresh of a giant goes through it (`refreshAnyCellFromItsTraits` for a balance patch of the trait tiers).
   Step 9 respawns them after the wild seats by the wild count (`runSeatRespawns`, `wild/giant-respawn.ts`). The
-  payout pays a player `GIANT_DNA_BONUS` through `gainDna` and its multiplier instead of the DNA base and share. Until
-  ticket #827 a giant has no mind: its seat counts nothing down and it sits where it is placed, and step 4 feeds it
-  the motes it covers as any wild cell.
+  payout pays a player `GIANT_DNA_BONUS` through `gainDna` and its multiplier instead of the DNA base and share.
+- **Giant minds and diet** (ecology/giants.md §3.5.5–§3.5.7, §3.5.15, ticket #827): every seat reads a profile
+  (`wild/seat-profile.ts`) instead of the wild constants: the rules after the engulf escape (wild flee, hunt, graze;
+  hunter flee, hunt; grazer flee, graze; drifter flee), the diet, the hunt window (`hunt.minPreyMassFraction`, 0 for a
+  wild seat, a filter of the hunt's candidates only, so a giant still swallows a smaller cell on contact), the give-up
+  and rest, the stage players become prey from (a giant: tick 0), the turn chance, the random stream (`wildCells` or
+  `giants`), the growth ceiling and the respawn (it absorbed #826's per-kind respawn policy). `decideSeatTargets`
+  runs the wild seats then the giant seats in one pass; `wild/seat-decision.ts` is one decision by a profile and
+  `wild/seat-graze.ts` the grazer's forward cone. The diet is `simulation/cell-diet.ts` (`simulation/` cannot import
+  `wild/`): step 4 feeds a wild cell algae and detritus, the grazer algae, detritus and bacteria while its seat's
+  growth is under `GIANT_GRAZER_APPETITE_MASS` (tested once per cell before its meal), and the hunter and the drifter
+  nothing; the seat's sight sees only the motes its diet eats now.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
@@ -118,7 +128,7 @@ imports from `wild/` (lint-enforced, `eslint.config.js`; #509).
   `settleWildMass({ mass, fullMass, grownMass, decayPerSecond, baseMass, growthCeiling }, balance) → { mass, grownMass,
 fullMass }` (ecology W11) plus `wildSizeFactor(u, balance)`. Its caller supplies `decayPerSecond` from
   `simulation/metabolism.ts` (`decayPerSecond(metabolismInputOf(cell, world, balance), balance)`), so the settle never
-  carries a second decay formula, and supplies `baseMass` and `growthCeiling` (`wildGrowthCeiling`, 3 × `worldMass`)
+  carries a second decay formula, and supplies `baseMass` and `growthCeiling` (the seat profile's, 3 × `worldMass`)
   from `worldReferenceAt`. Level, traits and stage are set as the pin set them (`wild-build.ts`, unchanged). The giant
   settle (below) calls the same core.
 - **A loss never lifts a wild cell.** Step 5 and a sprint start floor a wild cell at `min(CELL_STARTING_MASS,
