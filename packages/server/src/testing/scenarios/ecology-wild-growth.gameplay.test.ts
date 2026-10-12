@@ -54,15 +54,17 @@ const W5_SEAL_TICK = 23;
 const W5_PAYOUT_TICK = 45;
 const W5_RESPAWN_TICK = 226;
 /**
- * "Seat 0's mass = 41.50 + 0.8 × 20 = 57.50"; after tick 46 "`grownMass` = 15.99875 and its mass = 57.532 + 2 = 59.532
- * (± 0.001)": on seed 48 one of B's two detritus motes lands inside seat 0, which eats it at step 4 of tick 46.
+ * "Seat 0's mass = 41.50 + 0.8 × 20 = 57.50"; after tick 46 "`grownMass` = 15.99875 and its mass = 57.532 + 4 = 61.532
+ * (± 0.001)": on seed 48 both of B's two detritus motes land inside seat 0, which eats them at step 4 of tick 46. Since
+ * ticket #830 the seeded giants (vacated by the placement) moved the initial fill, so the spawner stream scatters B's
+ * detritus elsewhere: before it one mote landed inside, 57.532 + 2 = 59.532, and 2 mass stayed in the dish.
  */
 const W5_SEAT_MASS_AT_PAYOUT = 57.5;
 const W5_GROWN_AFTER_PAYOUT = 15.99875;
 const W5_FULL_MASS_AFTER_PAYOUT = 57.532;
-const W5_SEAT_MASS_AFTER_PAYOUT = 59.532;
+const W5_SEAT_MASS_AFTER_PAYOUT = 61.532;
 const W5_DETRITUS_AT_PAYOUT = 4;
-const W5_DETRITUS_AFTER_MEAL = 2;
+const W5_DETRITUS_AFTER_MEAL = 0;
 const W5_TOLERANCE = 0.001;
 /** W8: the algae and the fragment 5 wu either side of seat 0's centre; "21.0167 (± 0.001)" after tick 1, "0.99705" and "21.99705 (± 0.0001)" after 60. */
 const W8_SIDE_OFFSET_WU = 5;
@@ -143,10 +145,10 @@ describe('ecology/acceptance.md §8.1: what happens to a wild cell sticks', () =
       .expect('detritus 2 motes = 4 mass on tick 45', detritusInDish)
       .atTick(W5_PAYOUT_TICK)
       .toBe(W5_DETRITUS_AT_PAYOUT)
-      .expect('seat 0 eats the detritus mote inside it on tick 46', detritusInDish)
+      .expect('seat 0 eats the detritus motes inside it on tick 46', detritusInDish)
       .atTick(W5_PAYOUT_TICK + ONE_TICK)
       .toBe(W5_DETRITUS_AFTER_MEAL)
-      .expect("seat 0's mass = 2 × (20 + 46/60) + 15.99875 + 2 after tick 46", massOfSeat)
+      .expect("seat 0's mass = 2 × (20 + 46/60) + 15.99875 + 4 after tick 46", massOfSeat)
       .atTick(W5_PAYOUT_TICK + ONE_TICK)
       .toBeCloseTo(W5_SEAT_MASS_AFTER_PAYOUT, W5_TOLERANCE)
       .expect('B alive on tick 226', (view) => progressOf(view, 0)?.lifeState)

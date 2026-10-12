@@ -6,7 +6,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   BACTERIUM_VARIANT,
-  CELL_KIND,
   DEFAULT_BALANCE,
   DNA_TAG,
   EFFECT_KIND,
@@ -17,6 +16,7 @@ import {
   type EntityId,
   type GameEffect,
 } from '@evolution/shared';
+import { wildSeatCellsOf } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { resultsDurationTicks, roundDurationTicks, worldReferenceAt } from '../simulation/round-clock.js';
@@ -55,8 +55,9 @@ function step(world: WorldState, ticks = 1): void {
   }
 }
 
+/** The wild seats' cells: the giants' seats settle by their own rule (docs/ecology/giants.md §3.5.3). */
 function wildCellsOf(world: WorldState): CellRecord[] {
-  return world.cells.filter((cell) => cell.kind === CELL_KIND.wild);
+  return wildSeatCellsOf(world.cells);
 }
 
 /**

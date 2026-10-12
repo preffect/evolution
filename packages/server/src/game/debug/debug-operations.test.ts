@@ -11,6 +11,7 @@ import {
   type PlayerProgressView,
 } from '@evolution/shared';
 import { DebugRequestError } from './debug-request-error.js';
+import { wildSeatCellsOf } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { forkServerStreams } from '../world/streams.js';
 import {
@@ -182,7 +183,7 @@ describe('setBalanceForDebug, a trait tier patch (#715)', () => {
 
   it('refolds a wild cell from the build it carries', () => {
     const world = createTestWorld({ hasWildSeats: true });
-    const wildCell = world.cells.find((cell) => cell.playerId === null)!;
+    const wildCell = wildSeatCellsOf(world.cells)[0]!;
     wildCell.traits = [{ traitId: CILIA, tier: FIRST_TIER }];
     setBalanceForDebug(world, CILIA_SPEED_PATCH);
     expect(wildCell.modifiers.speedMultiplier).toBe(PATCHED_SPEED);

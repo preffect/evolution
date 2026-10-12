@@ -6,6 +6,7 @@ import { CELL_KIND, CELL_STATE, DEFAULT_BALANCE, secondsToTicks } from '@evoluti
 import { setCellMass } from '../../game/simulation/cell-mass.js';
 import { beginEngulf } from '../../game/simulation/engulf-state.js';
 import { decisionIntervalTicks } from '../../game/wild/wild-strategy.js';
+import { wildSeatCellsOf } from '../wild-builders.js';
 import { createTestWorld } from '../world-builders.js';
 import { ScenarioSetupError } from './errors.js';
 import { applyPlacedWildCell } from './evolution-wild-fixtures.js';
@@ -49,9 +50,7 @@ describe('applyPlacedWildCell', () => {
     expect(cell.mass).toBe(growth.CELL_STARTING_MASS * SIZE_FACTOR);
     expect(cell.kind).toBe(CELL_KIND.wild);
     expect(cell.organismId).toBe(cell.id);
-    expect(world.cells.filter((candidate) => candidate.kind === CELL_KIND.wild)).toHaveLength(
-      wildCells.WILD_CELL_COUNT,
-    );
+    expect(wildSeatCellsOf(world.cells)).toHaveLength(wildCells.WILD_CELL_COUNT);
   });
 
   it('withdraws the cell the seat had without detritus, aborting the engulf it was in', () => {

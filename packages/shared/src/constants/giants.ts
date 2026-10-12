@@ -6,10 +6,14 @@
 import { GIANT_ROLE, GIANT_SPECIES, type GiantRole, type GiantSpecies, type OwnedTrait } from '../types/game.js';
 
 /**
- * The species seated at world creation, one seat each (giants.md §3.5.9). Empty until the giants-on slice (giants.md
- * §3.5.17), so the human's game holds no giant before its mind, art and names land; a test balance sets it.
+ * The species seated at world creation, one seat each (giants.md §3.5.9; decisions 2A and 3A). A test balance that is
+ * about something else empties it.
  */
-export const GIANT_SPECIES_IN_DISH: readonly GiantSpecies[] = [];
+export const GIANT_SPECIES_IN_DISH: readonly GiantSpecies[] = [
+  GIANT_SPECIES.amoeba,
+  GIANT_SPECIES.paramecium,
+  GIANT_SPECIES.diatom,
+];
 /** The role of each species (giants.md §3.5.6): the hunter alone eats cells. Not a balance leaf. */
 export const GIANT_ROLE_BY_SPECIES: Readonly<Record<GiantSpecies, GiantRole>> = {
   [GIANT_SPECIES.amoeba]: GIANT_ROLE.hunter,
