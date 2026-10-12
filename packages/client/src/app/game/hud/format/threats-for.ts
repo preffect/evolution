@@ -13,12 +13,13 @@
 
 import { canEngulf, type BalanceConfig, type CellView, type EntityId, type PlayerRosterView } from '@evolution/shared';
 import { isDiscVisibleInExtent, type CameraExtent } from '../../render/camera';
+import { GIANT_DISPLAY_NAME_BY_SPECIES } from './giant-facts';
 import { truncatePlayerName } from './player-name';
 
 /** A cell that can engulf the own cell, with the name the label speaks. */
 export interface Threat {
   readonly cellId: EntityId;
-  /** The player's name, or the wild cell's stand-in; uppercased by the `label` role, not here. */
+  /** The player's name, the giant's, or the wild cell's stand-in; uppercased by the `label` role, not here. */
   readonly name: string;
   /** World-space distance from the own cell, squared: the sort key, never shown. */
   readonly distanceSquared: number;
@@ -48,11 +49,13 @@ export function distanceSquaredBetween(cell: CellView, other: CellView): number 
 }
 
 /**
- * What a cell is called on screen: its player's name, or the wild cell's stand-in. The hold-Tab panel names the
- * cell draining us and the prey we are swallowing (docs/ui/overlays.md §3.7) the same way, so the fallback for a
- * nameless cell has one home, and so does the length a name may run on screen (`truncatePlayerName`).
+ * What a cell is called on screen: its player's name, a giant's species name (docs/ecology/giants.md §3.5.11), or the
+ * wild cell's stand-in. The hold-Tab panel names the cell draining us and the prey we are swallowing
+ * (docs/ui/overlays.md §3.7), and the death overlay its killer (§3.3), the same way, so the name of a cell with no
+ * player has one home, and so does the length a name may run on screen (`truncatePlayerName`).
  */
 export function cellDisplayName(cell: CellView, players: Readonly<Record<string, PlayerRosterView>>): string {
+  if (cell.giantSpecies !== null) return GIANT_DISPLAY_NAME_BY_SPECIES[cell.giantSpecies];
   if (cell.playerId === null) return WILD_CELL_THREAT_NAME;
   // Cut like the leaderboard's, the id fallback included: a raw player id has no length cap at all (#454).
   return truncatePlayerName(players[cell.playerId]?.playerName ?? cell.playerId);
