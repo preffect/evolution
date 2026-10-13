@@ -23,10 +23,11 @@ import {
   ENCYCLOPEDIA_RAIL_WIDTH_PX,
   ENCYCLOPEDIA_REAL_LIFE_RULE_PX,
   ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX,
+  ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT,
   ENCYCLOPEDIA_TILE_FACT_LINES,
-  ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT,
   ENCYCLOPEDIA_TILE_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
+  ENCYCLOPEDIA_TILE_TITLE_LINES,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
 } from '../encyclopedia-constants';
 import { encyclopediaStyleVariables } from './encyclopedia-css-variables';
@@ -42,8 +43,9 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['--encyclopedia-tile-width', `${ENCYCLOPEDIA_TILE_WIDTH_PX}px`],
   ['--encyclopedia-tile-height', `${ENCYCLOPEDIA_TILE_HEIGHT_PX}px`],
   ['--encyclopedia-tile-well-height', `${ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX}px`],
+  ['--encyclopedia-tile-title-lines', String(ENCYCLOPEDIA_TILE_TITLE_LINES)],
   ['--encyclopedia-tile-fact-lines', String(ENCYCLOPEDIA_TILE_FACT_LINES)],
-  ['--encyclopedia-tile-fact-line-height', String(ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT)],
+  ['--encyclopedia-tile-caption-line-height', String(ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT)],
   ['--encyclopedia-content-max-width', `${ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX}px`],
   ['--encyclopedia-lens-diameter', `${ENCYCLOPEDIA_LENS_DIAMETER_PX}px`],
   ['--encyclopedia-lens-gap', `${ENCYCLOPEDIA_LENS_GAP_PX}px`],
