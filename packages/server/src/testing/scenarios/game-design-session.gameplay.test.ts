@@ -51,10 +51,12 @@ const RESPAWN_TICKS = session.RESPAWN_SPECTATE_SECONDS * TICK_HZ;
 const G10_LEAVE_TICK = 2400;
 const G14_JOIN_TICK = 18_000;
 /**
- * G14: since ticket #830 (the giants move every wild centre, so the joiner's spawn draws land elsewhere) the joiner is
- * born on a food mote of mass 1 and eats it on its first tick: 159.995 + 1. Before it, no mote: 159.995.
+ * G14: since ticket #819 (the carried prey's settle moves the wild engulfs before 5:00, so the joiner's spawn draws land
+ * elsewhere; the seal alone kept the mote) the joiner is born on no food mote: 159.995. From ticket #830 (the giants
+ * move every wild centre) to #819 it was born on a mote of mass 1 and ate it on its first tick: 159.995 + 1. Before
+ * #830, no mote: 159.995.
  */
-const G14_MASS_EATEN_ON_JOIN = 1;
+const G14_MASS_EATEN_ON_JOIN = 0;
 
 /**
  * G10: the detritus mass lying within the scatter reach of the removed cell (`DETRITUS_SCATTER_RADIUS_FACTOR` of its

@@ -16,6 +16,7 @@
     "bench:broadcast": "tsx bench/viewer-broadcast.ts",
     "bench:predation": "tsx bench/predation.ts",
     "bench:engulf-pass": "tsx bench/engulf-pass.ts",
+    "bench:engulf-rim-chase": "tsx bench/engulf-rim-chase.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {

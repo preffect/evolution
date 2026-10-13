@@ -131,14 +131,15 @@ No constant names a giant's level, so it cannot drift from the build. Its stage 
 | `giant_paramecium` | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cilia` I, `paramecium_cilia` I              | Cilia I × Paramecium Cilia I = 1.21 speed, with the struggle and grip resistance of a ciliate, so a held paramecium slips a weak grip.                                       |
 | `giant_diatom`     | `nucleoid` I, `chloroplast` I, `nuclear_envelope` I, `cell_wall` I, `diatom_shell` I                | The armour, below. Its Chloroplast photosynthesises in the shallows (0.3 mass/s), less than its growth burns (0.44 mass/s at 1 000), so it never grows: light pays its keep. |
 
-**The amoeba's grip, under ticket #819's kept grab.** A started grab (before the seal) holds while any
-of the prey is under the amoeba (centres within `R + r`), except while the prey's sprint runs, when the
-start's bound applies (centres within `R − 0.5 r`, absorption.md §6.1). Pseudopods II's grip (0.2) holds a
+**The amoeba's grip, under ticket #819's kept grab.** A started grab holds, and seals, while any of the
+prey is under the amoeba (centres within `R + r`), except while the prey's sprint runs, when the start's
+bound applies to both (centres within `R − 0.5 r`, absorption.md §6.1). Pseudopods II's grip (0.2) holds a
 plain prey at 0.85 − 0.2 = 0.65 of its speed in cover and 0.6 in wrap. So:
 
 - **Swimming does not get you out.** A cruising prey is held at 0.65 × 220 = 143 wu/s, under the amoeba's
   154, and to break the kept grab it would have to open the 1.5 r between the two bounds (104 wu for a
-  300-mass prey) against a faster cell. A grabbed cell that only swims is swallowed.
+  300-mass prey) against a faster cell. A grabbed cell that only swims is sealed where it is held, and
+  swallowed (G15's no-sprint variant).
 - **A sprint at once gets you out.** Sprinting, it is held at 0.65 × 396 = 257 wu/s, 103 wu/s faster than the
   amoeba, and the start's bound applies. A prey grabbed near the amoeba's rim leaves that bound within its
   0.5 s sprint, and its progress, which climbs only 1/72 a tick in cover while it struggles (a prey of

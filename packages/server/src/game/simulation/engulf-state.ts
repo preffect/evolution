@@ -8,6 +8,8 @@ import {
   CELL_STATE,
   EFFECT_KIND,
   ENGULF_RELEASE_REASON,
+  TICK_INTERVAL_S,
+  type BalanceConfig,
   type CellState,
   type EngulfReleaseReason,
 } from '@evolution/shared';
@@ -95,6 +97,30 @@ export function sealEngulf(pairing: EngulfPairing): void {
   prey.carriedOffsetY = prey.y - predator.y;
   prey.velocityX = 0;
   prey.velocityY = 0;
+}
+
+/**
+ * The carried prey settles inside (docs/ecology/absorption.md §6.1, #819 review): the kept grab may seal a prey at the
+ * predator's rim, so each movement step draws the carried offset toward the predator's centre by
+ * `ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND` prey radii a second, never past the start's bound
+ * (`predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`); an offset already inside it is left alone.
+ */
+export function settleCarriedOffset(pairing: EngulfPairing, absorption: BalanceConfig['absorption']): void {
+  const { predator, prey } = pairing;
+  if (prey.carriedOffsetX === null || prey.carriedOffsetY === null) {
+    return;
+  }
+  const distance = Math.hypot(prey.carriedOffsetX, prey.carriedOffsetY);
+  // Floored at the centre: a predator smaller than half its prey (a debug mass cut mid-carry, released by the ratio
+  // check a tick later) would otherwise get a negative bound and flip the prey through its centre.
+  const settledDistance = Math.max(0, predator.radius - prey.radius * absorption.ENGULF_COVERAGE_FRACTION);
+  if (distance <= settledDistance) {
+    return;
+  }
+  const settleStep = prey.radius * absorption.ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND * TICK_INTERVAL_S;
+  const scale = Math.max(settledDistance, distance - settleStep) / distance;
+  prey.carriedOffsetX *= scale;
+  prey.carriedOffsetY *= scale;
 }
 
 /**

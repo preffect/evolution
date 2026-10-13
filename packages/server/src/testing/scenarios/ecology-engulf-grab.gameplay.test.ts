@@ -8,6 +8,7 @@ import {
   CELL_STATE,
   DEFAULT_BALANCE,
   ENGULF_RELEASE_REASON,
+  ENGULF_SEAL_PROGRESS,
   ENGULF_WRAP_START_PROGRESS,
   PLAYER_LIFE_STATE,
   radiusForMass,
@@ -52,9 +53,12 @@ const E18_PAYOUT_TICK = 84;
 /** E18b: the sprint breaks contact in cover on tick 10; the drain releases B on tick 12. */
 const E18B_CONTACT_BREAK_TICK = 10;
 const E18B_RELEASE_TICK = 12;
-/** E18c: Cilia Fringe III breaks contact in cover on tick 14; the drain releases B on tick 17. */
-const E18C_CONTACT_BREAK_TICK = 14;
-const E18C_RELEASE_TICK = 17;
+/**
+ * E18c: Cilia Fringe III slips clear of A, out of the kept grab (#819), in the wrap on tick 52; the drain releases B on
+ * tick 64. Before #819 it broke the half-covered bound in cover on tick 14 and was released on tick 17.
+ */
+const E18C_CONTACT_BREAK_TICK = 52;
+const E18C_RELEASE_TICK = 64;
 const TOP_TIER = 3;
 
 /** The unit tangent of the rim at `point`, counter-clockwise. */
@@ -95,31 +99,56 @@ function rimChase(name: string, preyTraits: readonly { traitId: string; tier: nu
     .from(1, player(0).does(leadingThePrey));
 }
 
-/** How far B's centre sits past the contact bound (positive: out of contact). */
-function pastContactBound(view: EvolutionView): number | undefined {
-  const predator = cellOf(view, 0);
-  const prey = cellOf(view, 1);
-  const distance = distanceBetweenCells(view, 0, 1);
-  if (predator === undefined || prey === undefined || distance === undefined) return undefined;
-  return distance - (predator.radius - prey.radius * absorption.ENGULF_COVERAGE_FRACTION);
+/** How far B's centre sits past `predator.radius − prey.radius × coverageFraction` (positive: out of contact). */
+const pastBoundAt =
+  (coverageFraction: number) =>
+  (view: EvolutionView): number | undefined => {
+    const predator = cellOf(view, 0);
+    const prey = cellOf(view, 1);
+    const distance = distanceBetweenCells(view, 0, 1);
+    if (predator === undefined || prey === undefined || distance === undefined) return undefined;
+    return distance - (predator.radius - prey.radius * coverageFraction);
+  };
+
+/**
+ * The contact a held prey breaks to start draining: a sprinting prey the half-covered bound, any other the kept grab's
+ * (#819), with the progress band it breaks it in.
+ */
+interface ContactBreak {
+  readonly bound: (view: EvolutionView) => number | undefined;
+  readonly band: readonly [number, number];
 }
 
-/** Out of contact on `breakTick` yet still held and still in cover, released `escaped` on `releaseTick`, never caught. */
-function expectDrainedEscape(builder: ReturnType<typeof rimChase>, breakTick: number, releaseTick: number) {
+const SPRINT_BREAK: ContactBreak = {
+  bound: pastBoundAt(absorption.ENGULF_COVERAGE_FRACTION),
+  band: [0, ENGULF_WRAP_START_PROGRESS],
+};
+const KEPT_GRAB_BREAK: ContactBreak = {
+  bound: pastBoundAt(absorption.ENGULF_HOLD_COVERAGE_FRACTION),
+  band: [ENGULF_WRAP_START_PROGRESS, ENGULF_SEAL_PROGRESS],
+};
+
+/** Out of contact on `breakTick` yet still held, in its band, released `escaped` on `releaseTick`, never caught. */
+function expectDrainedEscape(
+  builder: ReturnType<typeof rimChase>,
+  { bound, band }: ContactBreak,
+  breakTick: number,
+  releaseTick: number,
+) {
   return builder
     .advance(ROW_TICKS)
-    .expect('in contact the tick before', pastContactBound)
+    .expect('in contact the tick before', bound)
     .atTick(breakTick - 1)
     .toBeLessThan(0)
-    .expect(`contact broken on tick ${breakTick}`, pastContactBound)
+    .expect(`contact broken on tick ${breakTick}`, bound)
     .atTick(breakTick)
     .toBeGreaterThan(0)
     .expect('still held on that tick: a slip drains, it does not cancel', statesOfPrey)
     .atTick(breakTick)
     .toEqual([CELL_STATE.beingEngulfed])
-    .expect('still in the cover band', progressOfPrey)
+    .expect('still in its progress band', progressOfPrey)
     .atTick(breakTick)
-    .toBeBetween(0, ENGULF_WRAP_START_PROGRESS)
+    .toBeBetween(...band)
     .expect('not yet released the tick before', releaseReasons)
     .atTick(releaseTick - 1)
     .toEqual([])
@@ -156,11 +185,11 @@ describe('ecology/acceptance.md §8: the grab, chasing along the rim (#634)', ()
     const sprinting = rimChase('E18b')
       .atTick(1, player(1).does(combineScripts([alongTheRim, sprint()])))
       .from(2, player(1).does(alongTheRim));
-    await expectDrainedEscape(sprinting, E18B_CONTACT_BREAK_TICK, E18B_RELEASE_TICK);
+    await expectDrainedEscape(sprinting, SPRINT_BREAK, E18B_CONTACT_BREAK_TICK, E18B_RELEASE_TICK);
   });
 
   it('E18c: a Cilia Fringe III prey slips the grab and escapes without sprinting', async () => {
     const ciliated = rimChase('E18c', [{ traitId: 'cilia', tier: TOP_TIER }]).from(1, player(1).does(alongTheRim));
-    await expectDrainedEscape(ciliated, E18C_CONTACT_BREAK_TICK, E18C_RELEASE_TICK);
+    await expectDrainedEscape(ciliated, KEPT_GRAB_BREAK, E18C_CONTACT_BREAK_TICK, E18C_RELEASE_TICK);
   });
 });

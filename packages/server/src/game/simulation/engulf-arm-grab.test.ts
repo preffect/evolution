@@ -43,7 +43,10 @@ const HALF_WAY_OUT_THE_ARM = 0.5;
 const PAST_THE_ARM_WU = 0.01;
 /** A balance path, named through a constant because a patch is keyed by constant names. */
 const PULL_LEAF = 'ENGULF_ARM_PULL_RADII_PER_SECOND';
-/** An amoeba large enough that 1.5 of its radii a second outruns a free prey: R = 4 √1000 ≈ 126 wu. */
+/**
+ * An amoeba large enough that 1.5 of its radii a second outruns a free prey: R = 4 √1000 ≈ 126 wu. Half way out its arm
+ * also lies past the kept grab (#819), which reaches the E9 pair's whole arm.
+ */
 const LARGE_PREDATOR_MASS = 1000;
 /** Cooldown windows the alternating prey is watched for. */
 const WINDOWS = 4;
@@ -70,6 +73,12 @@ function armPair(options: { predatorMass?: number; hasArms?: boolean; share?: nu
   placeOutTheArm(fixture, options.share ?? HALF_WAY_OUT_THE_ARM, options.extraWu);
   return fixture;
 }
+
+/**
+ * A prey half way out the arm and past the kept grab (#819), so only the arm can hold it: the E9 pair's kept grab
+ * reaches past the arm's tip and holds the prey by the body however it steers.
+ */
+const armOnlyPair = (): EngulfFixture => armPair({ predatorMass: LARGE_PREDATOR_MASS });
 
 /** The pull patched to nothing, as `debug_set_balance` patches it, so only the body can end an arm hold. */
 function withoutPull(fixture: EngulfFixture): void {
@@ -166,21 +175,22 @@ describe('the arm draws the prey in (#735)', () => {
 });
 
 describe('only the body seals (#735)', () => {
-  it('holds the progress under the seal while the arm alone holds the prey, and seals once the body covers it', () => {
-    const fixture = armPair();
+  it('holds the progress under the seal while the arm alone holds the prey, and seals once the body holds it', () => {
+    const fixture = armOnlyPair();
     withoutPull(fixture);
     stepEngulf(fixture, LONG_HOLD_TICKS);
     expect(fixture.predator.engulfingCellId).toBe(fixture.prey.id);
     expect(fixture.prey.engulfProgress).toBeLessThan(ENGULF_SEAL_PROGRESS);
     expect(fixture.prey.carriedOffsetX).toBeNull();
-    placeOutTheArm(fixture, 0, -PAST_THE_ARM_WU);
+    // Just inside the kept grab (#819), which holds and seals a prey that is not sprinting.
+    fixture.prey.x = fixture.predator.x + fixture.predator.radius + fixture.prey.radius - PAST_THE_ARM_WU;
     stepEngulf(fixture);
     expect(fixture.prey.carriedOffsetX).not.toBeNull();
     expect(fixture.prey.engulfProgress).toBeGreaterThan(ENGULF_SEAL_PROGRESS);
   });
 
   it("lets a prey that steers away drain out on the arm, never held in a stalemate at arm's length", () => {
-    const fixture = armPair();
+    const fixture = armOnlyPair();
     withoutPull(fixture);
     stepEngulf(fixture, LONG_HOLD_TICKS);
     const atTheLip = fixture.prey.engulfProgress;
@@ -216,7 +226,7 @@ describe('the arm re-grab cooldown (#735)', () => {
   }
 
   it('grabs a prey that alternates steering away and sideways at most once per cooldown window', () => {
-    const fixture = armPair();
+    const fixture = armOnlyPair();
     withoutPull(fixture);
     const grabbed = grabTicks(fixture, WINDOWS * cooldownTicks, (step) =>
       step % 2 === 0 ? steersSideways : steersAway,
@@ -228,7 +238,7 @@ describe('the arm re-grab cooldown (#735)', () => {
   });
 
   it('still lets the body catch the prey during the cooldown', () => {
-    const fixture = armPair();
+    const fixture = armOnlyPair();
     withoutPull(fixture);
     grabTicks(fixture, 2, (step) => (step === 0 ? steersSideways : steersAway));
     expect(fixture.predator.engulfingCellId).toBeNull();

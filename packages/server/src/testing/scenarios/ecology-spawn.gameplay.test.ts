@@ -17,11 +17,12 @@ const SOLO_FRAGMENT_CAP = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_C
 /** E2 and E14 count over 610 ticks so that no count lands on the final tick. */
 const COUNT_WINDOW_TICKS = 610;
 /**
- * E14 on the pinned seed: since ticket #830 (the three giants are seated before the wild seats, which moves every wild
- * centre) a wild cell eats the idle player on tick 29 122, its whole 182-tick spectate inside the window (the death
- * before it, on tick 28 383, ends its spectate before the window opens): food 106.75 − 182 / 60 × 1 × 1.5 = 102.2 →
- * "between 102 and 106", fragments 8.13 − 182 / 60 × 0.1 × 2 = 7.53 → 7; one death counted in the window. From ticket
- * #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in 5 s and then rests 15 s) to #830
+ * E14 on the pinned seed: since ticket #819 (the kept grab's seal and the carried prey's settle; the band did not move)
+ * a wild cell eats the idle player on tick 28 856, its whole 182-tick spectate inside the window: food
+ * 106.75 − 182 / 60 × 1 × 1.5 = 102.2 → "between 102 and 106", fragments 8.13 − 182 / 60 × 0.1 × 2 = 7.53 → 7; one
+ * death counted in the window. From ticket #830 (the three giants are seated before the wild seats, which moves every
+ * wild centre) to #819 the same counts, the death on tick 29 122 (the one before it, on tick 28 383, ended its
+ * spectate before the window opened). From ticket #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in 5 s and then rests 15 s) to #830
  * wild cells ate the idle player on tick 28 771, the last 152 ticks of whose spectate
  * (28 801–28 952) fall inside the window, and on tick 29 158, its whole 182-tick spectate inside; each takes the
  * per-player rates off the budget: food 106.75 − (152 + 182) / 60 × 1 × 1.5 = 98.4 → 98–102, fragments

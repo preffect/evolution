@@ -10,6 +10,23 @@ export const ENGULF_PROGRESS_EPSILON = 1e-6;
 /** Contact: centre distance ≤ predator.radius − prey.radius × this. */
 export const ENGULF_COVERAGE_FRACTION = 0.5;
 /**
+ * The kept grab (#819): once an engulf has started, the body holds the prey, and may seal it, while the centre
+ * distance ≤ predator.radius − prey.radius × this. −1 is the cells touching, so the grab holds while any of the prey is
+ * still under the predator. While the prey's sprint runs, the start's `ENGULF_COVERAGE_FRACTION` holds and seals it
+ * instead; starting an engulf always needs it. Typed `number` because tsc's declaration emit garbles a negative literal type
+ * spread into `DEFAULT_BALANCE` (it printed balance.ts's own text in place of `-1`).
+ */
+export const ENGULF_HOLD_COVERAGE_FRACTION: number = -1;
+/**
+ * The carried prey settles inside (#819 review): the kept grab may seal a prey at the predator's rim, so from the seal
+ * on each movement step draws its carried offset toward the predator's centre at this many prey radii a second, until
+ * the centre is no farther out than the start's bound, `predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`. The
+ * farthest seal, the cells touching, is 1.5 prey radii out, so it settles in 1/6 s (10 ticks); its centre is inside the
+ * membrane after 7 ticks, before the fastest absorb pays out (Food Vacuole III: `ENGULF_ABSORB_SECONDS ×
+ * ENGULF_MIN_DURATION_FACTOR × 0.51`, about 0.153 s or 9 ticks, a tick sooner when the seal overshoots).
+ */
+export const ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND = 9;
+/**
  * Phase durations at exactly the required ratio (s): cover → wrap → absorb (ecology/absorption.md §6.3). The engulf's
  * tunables: its base duration and progress bands are derived from them (`absorption-derived.ts`, #367).
  */

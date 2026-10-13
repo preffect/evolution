@@ -27,6 +27,7 @@ import {
   E9_SEAL_TICK,
   E10_OVER_RATIO_MASS,
   E10_UNDER_RATIO_MASS,
+  E16B_EJECT_DISTANCE_WU,
   E16_HELD_MASS,
   E16_RELEASED_MASS,
   E16_START_MASS,
@@ -282,9 +283,11 @@ describe('ecology/acceptance.md §8: the engulf lifecycle on placed cells (#258;
       .expect('released on tick 40 with reason ratio', releaseReasons)
       .atTick(40)
       .toEqual([ENGULF_RELEASE_REASON.ratio])
-      .expect('ejected at the carried offset, still overlapping', (view) => distanceBetweenCells(view, 0, 1))
+      .expect('ejected at the carried offset, settled inside A at 21.5, still overlapping', (view) =>
+        distanceBetweenCells(view, 0, 1),
+      )
       .atTick(40)
-      .toBeCloseTo(CENTRE_DISTANCE_WU, OFFSET_TOLERANCE_WU)
+      .toBeCloseTo(E16B_EJECT_DISTANCE_WU, OFFSET_TOLERANCE_WU)
       .expect('separation pushes the pair apart from tick 41', (view) => distanceBetweenCells(view, 0, 1))
       .atEnd()
       .toBeGreaterThan(CENTRE_DISTANCE_WU)

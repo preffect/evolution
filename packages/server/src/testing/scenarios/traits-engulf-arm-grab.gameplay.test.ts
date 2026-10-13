@@ -1,7 +1,9 @@
 // docs/traits/constants-and-acceptance.md §6, T23: the amoeba's arm grab (docs/ecology/absorption.md §6.1, #735). An
 // Amoeba Pseudopods predator starts an engulf on a prey its arm reaches but its body does not, draws it in at
-// `ENGULF_ARM_PULL_RADII_PER_SECOND`, holds the progress at the lip of the seal until the body covers the prey, then
-// absorbs it. The same placement with a plain predator, and the amoeba one wu past its arm's reach, never start.
+// `ENGULF_ARM_PULL_RADII_PER_SECOND`, and seals and absorbs it: on E9's pair the kept grab (#819) reaches past the arm's
+// tip, so the body holds the prey, and seals it, before the pull brings it under. The arm alone holding a prey at the
+// lip is `engulf-arm-grab.test.ts`, on a predator whose arm reaches past its kept grab. The same placement with a plain
+// predator, and the amoeba one wu past its arm's reach, never start.
 
 import { describe, it } from 'vitest';
 import { ENGULF_RELEASE_REASON, ENGULF_SEAL_PROGRESS, PLAYER_LIFE_STATE } from '@evolution/shared';
@@ -30,13 +32,17 @@ const PAST_ARM_REACH_PLACEMENT_WU = 56;
 /** The arm draws B in 1.5 × 40 / 60 = 1 wu a tick (a hair less as A decays). */
 const PULLED_DISTANCE_AT_TICK_10_WU = 45;
 const DISTANCE_TOLERANCE_WU = 0.05;
-/** Amoeba I wraps at 1/(36 × 0.85) a tick: 1/6 + 10 of those on tick 16, and the next would pass the seal. */
-const LIP_PROGRESS = 1 / 6 + 10 / (36 * 0.85);
-const LIP_FIRST_TICK = 16;
-const LIP_LAST_TICK = 23;
-/** B reaches body contact on tick 24, which seals it; the absorb runs 18 more ticks at 1/36 from 0.526. */
-const SEAL_TICK = 24;
-const PAYOUT_TICK = 44;
+/** Amoeba I wraps at 1/(36 × 0.85) a tick: 1/6 + 10 of those on tick 16, and the next passes the seal. */
+const BEFORE_SEAL_PROGRESS = 1 / 6 + 10 / (36 * 0.85);
+const BEFORE_SEAL_TICK = 16;
+/**
+ * The kept grab (#819, R + r = 57.89 wu) holds B wherever the arm reaches, so B is sealed on tick 17, 38 wu from A and
+ * still past the body's 31.06 wu; the absorb runs 18 more ticks at 1/36 from 0.526. Before #819's seal it waited at the
+ * lip until body contact on tick 24 and was absorbed on tick 44.
+ */
+const SEAL_TICK = 17;
+const PAYOUT_TICK = 35;
+const BODY_CONTACT_WU = 31.06;
 
 /** T23 (c): B half-way out E9's arm (past the body's 31.06 wu), idle until it sprints away on tick 10: out on tick 14. */
 const HALF_WAY_OUT_THE_ARM_WU = 45;
@@ -76,7 +82,7 @@ function expectSprintEscape(
 const distanceOfPair = (view: EvolutionView): number | undefined => distanceBetweenCells(view, 0, 1);
 
 describe('traits/constants-and-acceptance.md §6: the amoeba arm grab (#735)', () => {
-  it('T23 (a): Amoeba I starts on a prey only its arm reaches, draws it in, seals on body contact and absorbs it', async () => {
+  it('T23 (a): Amoeba I starts on a prey only its arm reaches, draws it in, seals it under the kept grab and absorbs it', async () => {
     await engulfPairOf('T23 (a) arm grab', AMOEBA_I, {}, ARM_REACH_PLACEMENT_WU)
       .advance(PAYOUT_TICK)
       .expect('engulf started on tick 1', progressOfPrey)
@@ -85,15 +91,15 @@ describe('traits/constants-and-acceptance.md §6: the amoeba arm grab (#735)', (
       .expect('drawn in 1 wu a tick', distanceOfPair)
       .atTick(10)
       .toBeCloseTo(PULLED_DISTANCE_AT_TICK_10_WU, DISTANCE_TOLERANCE_WU)
-      .expect('held at the lip while only the arm holds it', progressOfPrey)
-      .atTick(LIP_FIRST_TICK)
-      .toBeCloseTo(LIP_PROGRESS, PROGRESS_TOLERANCE)
-      .expect('still at the lip the tick before body contact', progressOfPrey)
-      .atTick(LIP_LAST_TICK)
-      .toBeCloseTo(LIP_PROGRESS, PROGRESS_TOLERANCE)
+      .expect('one wrap tick short of the seal', progressOfPrey)
+      .atTick(BEFORE_SEAL_TICK)
+      .toBeCloseTo(BEFORE_SEAL_PROGRESS, PROGRESS_TOLERANCE)
       .expect(`sealed on tick ${SEAL_TICK}`, progressOfPrey)
       .atTick(SEAL_TICK)
       .toBeGreaterThan(ENGULF_SEAL_PROGRESS - absorption.ENGULF_PROGRESS_EPSILON)
+      .expect("sealed while still past the body's contact", distanceOfPair)
+      .atTick(SEAL_TICK)
+      .toBeGreaterThan(BODY_CONTACT_WU)
       .expect('never released', releaseReasons)
       .atTick(PAYOUT_TICK - 1)
       .toEqual([])
