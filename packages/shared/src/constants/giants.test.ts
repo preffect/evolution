@@ -26,6 +26,8 @@ const FORM_BY_SPECIES: Readonly<Record<GiantSpecies, TraitId>> = {
 
 const NUCLEOID: TraitId = 'nucleoid';
 const CYTOSKELETON: TraitId = 'cytoskeleton';
+const CILIA: TraitId = 'cilia';
+const PARAMECIUM_CILIA: TraitId = 'paramecium_cilia';
 
 /** A writable copy of the defaults for one broken rule. */
 function patchedBalance(patch: (balance: BalanceConfig) => void): BalanceConfig {
@@ -105,6 +107,11 @@ describe('giantBalanceProblems: each rule goes red on a balance that breaks it',
     ],
     ['a tier past the top', (balance: BalanceConfig) => (balance.traits.TRAIT_TIER_COUNT = 1), /tier 2 is outside/],
     ['no form at the end', rebuildAmoeba((build) => build.slice(0, -1)), /does not end in a form/],
+    [
+      'two traits of one exclusion group',
+      rebuildAmoeba((build) => [...build, { traitId: CILIA, tier: 1 }, { traitId: PARAMECIUM_CILIA, tier: 1 }]),
+      /paramecium_cilia shares exclusion group body_plan with amoeba_pseudopods/,
+    ],
     [
       'a gap in the build, reported rather than thrown',
       rebuildAmoeba((build) => Object.assign([...build], { length: build.length + 1 })),

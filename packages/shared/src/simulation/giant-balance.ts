@@ -1,20 +1,15 @@
-// The giant-cell rules a balance must keep (docs/ecology/giants.md §3.5.14): every build a valid ladder ending in a form,
-// every born range ordered and inside [`CELL_STARTING_MASS`, `GIANT_MASS_CEILING`], every species speed multiplier at
-// most 1. One home for the checks the balance test pins on `DEFAULT_BALANCE` (acceptance G14) and the server's
-// `debug_set_balance` refuses a patch on, so the two cannot disagree; and, since those checks are what make it safe, the
-// one reading of a build as owned traits, which the server seats a giant with and the encyclopedia quotes and previews.
+// The giant-cell rules a balance must keep (docs/ecology/giants.md §3.5.14): every build a valid ladder (`ladderProblem`,
+// the wild builds' rule too) ending in a form at real tiers, every born range ordered and inside [`CELL_STARTING_MASS`,
+// `GIANT_MASS_CEILING`], every species speed multiplier at most 1. One home for the checks the balance test pins on
+// `DEFAULT_BALANCE` (acceptance G14) and the server's `debug_set_balance` refuses a patch on, so the two cannot disagree;
+// and, since those checks are what make it safe, the one reading of a build as owned traits, which the server seats a
+// giant with and the encyclopedia quotes and previews.
 // Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
-import {
-  GIANT_SPECIES_ORDER,
-  type GiantSpecies,
-  type OwnedTrait,
-  type TraitId,
-  type TraitTier,
-} from '../types/game.js';
+import { GIANT_SPECIES_ORDER, type GiantSpecies, type OwnedTrait, type TraitTier } from '../types/game.js';
 import { TRAIT_CATEGORY } from '../types/traits.js';
-import { stageIndex, stageOf } from './stage-of.js';
+import { ladderProblem } from './ladder-check.js';
 import { FIRST_TIER } from './trait-tiers.js';
 
 type GiantBuildEntry = BalanceConfig['giants']['GIANT_BUILDS_BY_SPECIES'][GiantSpecies][number];
@@ -22,34 +17,21 @@ type GiantBuildEntry = BalanceConfig['giants']['GIANT_BUILDS_BY_SPECIES'][GiantS
 /** A species speed multiplier above this would break `interestMaxCellSpeedFor`'s bound (giants.md §3.5.14). */
 const MAX_GIANT_SPEED_MULTIPLIER = 1;
 
-/** Why one entry of a build cannot be owned after the entries before it; null when it can. */
-function buildEntryProblem(entry: GiantBuildEntry, before: readonly TraitId[], balance: BalanceConfig): string | null {
-  const trait = balance.traits.TRAIT_CATALOG.find((row) => row.id === entry.traitId);
-  if (trait === undefined) return `${entry.traitId} is not in the trait catalog`;
-  if (before.includes(entry.traitId)) return `${entry.traitId} is listed twice`;
-  if (entry.tier < FIRST_TIER || entry.tier > balance.traits.TRAIT_TIER_COUNT) {
-    return `${entry.traitId} tier ${entry.tier} is outside ${FIRST_TIER}..${balance.traits.TRAIT_TIER_COUNT}`;
-  }
-  if (stageIndex(trait.stage) > stageIndex(stageOf(before, balance.ladder))) {
-    return `${entry.traitId} needs stage ${trait.stage} before it`;
-  }
-  const missing = trait.requires.filter((requiredId) => !before.includes(requiredId));
-  return missing.length === 0 ? null : `${entry.traitId} requires ${missing.join(', ')} before it`;
+/** Why an entry of the build has a tier no trait has; null when every tier is in `FIRST_TIER..TRAIT_TIER_COUNT`. */
+function buildTierProblem(build: readonly GiantBuildEntry[], balance: BalanceConfig): string | null {
+  const topTier = balance.traits.TRAIT_TIER_COUNT;
+  const entry = build.find(({ tier }) => tier < FIRST_TIER || tier > topTier);
+  return entry === undefined ? null : `${entry.traitId} tier ${entry.tier} is outside ${FIRST_TIER}..${topTier}`;
 }
 
-/** Why the species' build is not a valid ladder ending in a form (a gap in it included); null when it is. */
+/** Why the species' build is not a valid ladder (`ladderProblem`) ending in a form, at real tiers; null when it is. */
 function buildProblem(species: GiantSpecies, balance: BalanceConfig): string | null {
   const build = balance.giants.GIANT_BUILDS_BY_SPECIES[species];
-  for (let index = 0; index < build.length; index += 1) {
-    const entry = build[index];
-    if (entry === undefined) return `${species} build: entry ${index} is missing`;
-    const problem = buildEntryProblem(
-      entry,
-      build.slice(0, index).map(({ traitId }) => traitId),
-      balance,
-    );
-    if (problem !== null) return `${species} build: ${problem}`;
-  }
+  const gap = [...build.keys()].find((index) => build[index] === undefined);
+  if (gap !== undefined) return `${species} build: entry ${gap} is missing`;
+  const traitIds = build.map(({ traitId }) => traitId);
+  const problem = ladderProblem(traitIds, balance) ?? buildTierProblem(build, balance);
+  if (problem !== null) return `${species} build: ${problem}`;
   const last = build[build.length - 1];
   const lastTrait = balance.traits.TRAIT_CATALOG.find((row) => row.id === last?.traitId);
   return lastTrait?.category === TRAIT_CATEGORY.form ? null : `${species} build does not end in a form`;
