@@ -14,11 +14,14 @@ import {
   createSeededRandomFromState,
   distanceBetween,
   giantBuildOf,
-  type BalanceConfig,
-  type GiantSpecies,
   type Vec2,
 } from '@evolution/shared';
-import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
+import {
+  NO_GIANTS_BALANCE,
+  balanceSeatingGiants,
+  createTestStepContext,
+  createTestWorld,
+} from '../../testing/world-builders.js';
 import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { drawSpawnCandidate, spawnReach, threatClearance } from '../simulation/spawn-placement.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
@@ -39,12 +42,7 @@ const { giants, wildCells, world: worldBalance } = DEFAULT_BALANCE;
 /** A placement draws the born mass and the heading before its candidates. */
 const LIFE_DRAWS = 2;
 
-const SPECIES_IN_DISH_LEAF = 'GIANT_SPECIES_IN_DISH';
 const WILD_COUNT_LEAF = 'WILD_CELL_COUNT';
-
-function balanceSeating(species: readonly GiantSpecies[]): BalanceConfig {
-  return { ...DEFAULT_BALANCE, giants: { ...giants, [SPECIES_IN_DISH_LEAF]: species } };
-}
 
 /** Between the player rule's 600 wu and the giant rule's 1 500 wu. */
 const NEIGHBOUR_DISTANCE_WU = 1000;
@@ -189,14 +187,14 @@ describe('placeGiantCell', () => {
 
 describe('createGiantSeats', () => {
   it('seats no giant on a balance whose list is empty', () => {
-    const world = createTestWorld({ balance: balanceSeating([]), hasWildSeats: true });
+    const world = createTestWorld({ balance: NO_GIANTS_BALANCE, hasWildSeats: true });
     expect(world.giantSeats).toEqual([]);
     expect(world.cells.filter((cell) => cell.giantSpecies !== null)).toEqual([]);
   });
 
   it('seats one giant a species in seat order, whatever order and repeats the list has', () => {
-    const world = createTestWorld({ balance: balanceSeating([]) });
-    world.balance = balanceSeating([GIANT_SPECIES.diatom, GIANT_SPECIES.amoeba, GIANT_SPECIES.diatom]);
+    const world = createTestWorld({ balance: NO_GIANTS_BALANCE });
+    world.balance = balanceSeatingGiants([GIANT_SPECIES.diatom, GIANT_SPECIES.amoeba, GIANT_SPECIES.diatom]);
     createGiantSeats(world, createTestStepContext(world).streams);
     expect(world.giantSeats.map((seat) => [seat.species, seat.seatNumber])).toEqual([
       [GIANT_SPECIES.amoeba, 24],

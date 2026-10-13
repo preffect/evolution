@@ -12,7 +12,7 @@ import {
 } from '@evolution/shared';
 import { DebugRequestError } from './debug-request-error.js';
 import { wildSeatCellsOf } from '../../testing/wild-builders.js';
-import { createTestWorld } from '../../testing/world-builders.js';
+import { GIANT_SPECIES_IN_DISH_LEAF, createTestWorld } from '../../testing/world-builders.js';
 import { forkServerStreams } from '../world/streams.js';
 import {
   DEBUG_PATCH_KIND,
@@ -36,7 +36,6 @@ const BORN_MIN_LEAF = 'GIANT_BORN_MASS_MIN_BY_SPECIES';
 const CEILING_LEAF = 'GIANT_MASS_CEILING';
 const STARTING_MASS_LEAF = 'CELL_STARTING_MASS';
 const SPEED_MULTIPLIER_LEAF = 'GIANT_SPEED_MULTIPLIER_BY_SPECIES';
-const SPECIES_IN_DISH_LEAF = 'GIANT_SPECIES_IN_DISH';
 const NOBODY = playerId('nobody');
 const TIER_TABLES_LEAF = 'TRAIT_TIERS';
 const CILIA = 'cilia';
@@ -266,7 +265,7 @@ describe('setBalanceForDebug, the giant rules (docs/ecology/giants.md §3.5.14)'
     const world = createTestWorld();
     setBalanceForDebug(world, { giants: { [BORN_MIN_LEAF]: { [amoeba]: bornMax[amoeba] } } });
     expect(world.balance.giants.GIANT_BORN_MASS_MIN_BY_SPECIES[amoeba]).toBe(bornMax[amoeba]);
-    expectRefused({ giants: { [SPECIES_IN_DISH_LEAF]: { 0: 1 } } }, /not a number leaf/);
+    expectRefused({ giants: { [GIANT_SPECIES_IN_DISH_LEAF]: { 0: 1 } } }, /not a number leaf/);
   });
 });
 

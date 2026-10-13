@@ -1,13 +1,22 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { TRAIT_CATALOG } from '@evolution/shared';
+import { GIANT_SPECIES_ORDER, TRAIT_CATALOG, type GiantSpecies } from '@evolution/shared';
 import { SUBJECT_GLYPHS } from '../../glyphs/subject-glyphs';
 import { TRAIT_GLYPHS } from '../../glyphs/trait-glyphs';
 import type { EntryId } from '../model/entry-id';
 import { ENCYCLOPEDIA_ENTRIES } from '../registry';
-import { GLYPH_SUBJECT, glyphSubjectOf } from './glyph-subject';
+import { GLYPH_SUBJECT, glyphSubjectOf, type EncyclopediaGlyphSubject } from './glyph-subject';
 
 const TRAIT_IDS: ReadonlySet<string> = new Set(TRAIT_CATALOG.map((trait) => trait.id));
+const GIANT_SPECIES_IDS: ReadonlySet<GiantSpecies> = new Set(GIANT_SPECIES_ORDER);
+
+function glyphExists(subject: EncyclopediaGlyphSubject): boolean {
+  if (subject.kind === GLYPH_SUBJECT.trait) {
+    return TRAIT_IDS.has(subject.traitId) && TRAIT_GLYPHS[subject.traitId] !== undefined;
+  }
+  if (subject.kind === GLYPH_SUBJECT.giant) return GIANT_SPECIES_IDS.has(subject.species);
+  return SUBJECT_GLYPHS[subject.entryId] !== undefined;
+}
 
 describe('glyphSubjectOf (docs/ui/encyclopedia.md §11.3)', () => {
   it('sends a trait entry to the trait glyph, keyed by the catalog id its own id ends in', () => {
@@ -24,10 +33,10 @@ describe('glyphSubjectOf (docs/ui/encyclopedia.md §11.3)', () => {
     });
   });
 
-  it('sends a giant cell to its form’s trait glyph, since the giant is that form drawn large', () => {
+  it('sends a giant cell to the giant glyph, keyed by its species: its form drawn in its own palette', () => {
     expect(glyphSubjectOf('giant:giant_diatom' as EntryId)).toEqual({
-      kind: GLYPH_SUBJECT.trait,
-      traitId: 'diatom_shell',
+      kind: GLYPH_SUBJECT.giant,
+      species: 'giant_diatom',
     });
   });
 
@@ -40,12 +49,7 @@ describe('glyphSubjectOf (docs/ui/encyclopedia.md §11.3)', () => {
    * registry: every entry the panel can draw resolves to a glyph that actually exists.
    */
   it('picks a glyph that exists for every entry in the registry', () => {
-    const missing = ENCYCLOPEDIA_ENTRIES.filter((entry) => {
-      const subject = glyphSubjectOf(entry.id);
-      return subject.kind === GLYPH_SUBJECT.trait
-        ? !TRAIT_IDS.has(subject.traitId) || TRAIT_GLYPHS[subject.traitId] === undefined
-        : SUBJECT_GLYPHS[subject.entryId] === undefined;
-    });
+    const missing = ENCYCLOPEDIA_ENTRIES.filter((entry) => !glyphExists(glyphSubjectOf(entry.id)));
     expect(missing.map((entry) => entry.id)).toEqual([]);
     expect(ENCYCLOPEDIA_ENTRIES.length).toBeGreaterThan(0);
   });

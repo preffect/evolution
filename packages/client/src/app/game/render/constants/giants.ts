@@ -4,7 +4,17 @@
 // own distance in that direction, so they ride the outline's deformation the way the organelle slots do.
 
 import { GIANT_SPECIES, GIANT_SPECIES_ORDER, type GiantSpecies } from '@evolution/shared';
-import { CHLORO_BASE, DIATOM_PLASTID_BASE } from './colours';
+import {
+  CHLORO_BASE,
+  CILIA,
+  DIATOM_PLASTID_BASE,
+  ENVELOPE,
+  SILICA_BASE,
+  SILICA_DARK,
+  SILICA_LIGHT,
+  VAC_BASE,
+  VAC_RIM,
+} from './colours';
 
 /** The instance's `giantSpeciesId` (cell-instance.ts): 0 for every other cell, else 1 + the species' fixed order. */
 export const NO_GIANT_SPECIES_ID = 0;
@@ -65,6 +75,29 @@ export const GIANT_PALETTE_TABLE: Readonly<Record<GiantSpecies, GiantPaletteRow>
 };
 /** A giant's rim against every player rim, CIEDE2000: the player rims' own nearest pair (Coral–Rose) is 11. */
 export const GIANT_RIM_MIN_DELTA_E = 11;
+
+/** The shades of a giant's palette its encyclopedia medallion may paint with. */
+export type GiantGlyphShade = keyof Pick<GiantPaletteRow, 'base' | 'rim' | 'nucleus' | 'cytoDark'>;
+
+/**
+ * A giant's medallion is its form's trait glyph in the giant's own palette (docs/ui/encyclopedia.md §11.3): each colour
+ * the three form glyphs paint their body, fringe and nucleus in becomes the palette shade that plays the same part, so
+ * the list matches the preview. The body's light, base and dark pool take the rim, base and dark cytoplasm; the
+ * nucleus its nucleus. Every other colour (the outline, the glint, the amoeba's mitochondrion, the diatom's plastids
+ * and pore beads) is no part of the species' colouring and stays. The table matches on the colour's value, so every
+ * layer of a form glyph drawn in a listed colour is swapped, not only the body: `SILICA_DARK` also recolours the
+ * amoeba's nucleus outline and the paramecium's oral groove, and a layer added later in one of these colours will be
+ * swapped too.
+ */
+export const GIANT_GLYPH_SHADE_BY_COLOUR: Readonly<Record<string, GiantGlyphShade>> = {
+  [VAC_RIM]: 'rim',
+  [VAC_BASE]: 'base',
+  [SILICA_LIGHT]: 'rim',
+  [SILICA_BASE]: 'base',
+  [SILICA_DARK]: 'cytoDark',
+  [CILIA]: 'rim',
+  [ENVELOPE]: 'nucleus',
+};
 
 // ---- the diatom's golden-brown plastids (real diatoms' fucoxanthin), in place of the green chloroplasts ----
 /** The giant diatom shows this many plastids whatever its `chloroplast` tier: one bean is lost in a shell 150 wu across. */

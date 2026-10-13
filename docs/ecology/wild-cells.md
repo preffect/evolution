@@ -133,7 +133,10 @@ A player that eats it gets the world's DNA share, no more. Eating a cell that ow
 gives a wild cell nothing, because it has no counters.
 
 `WILD_CELL_BUILDS` (`constants/wild-cells.ts`): three lists, each a valid ladder (every entry's
-`stage` and `requires` are met by the entries before it; the catalog test T10 pattern pins it):
+`stage` and `requires` are met by the entries before it, and no entry before it shares its exclusion group, so a build
+owns at most one body plan and one membrane). The rule has one home, `ladderProblem`
+(`shared/simulation/ladder-check.ts`), which the wild builds' test and the giants' `giantBalanceProblems` (giants.md
+§3.5.14) both call:
 
 | Build (seat mod 3) | Picks in order                                                                                                        |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------- |

@@ -1,15 +1,14 @@
-// docs/ecology/wild-cells.md §3.3: every wild build is a valid ladder (the T10 pattern: each entry's stage
-// and `requires` are met by the entries before it), all three climb the stages in step with
-// build 0 (which defines `worldStage`), and the seat and behaviour knobs hold their bounds.
+// docs/ecology/wild-cells.md §3.3: every wild build is a valid ladder (`ladderProblem`, the giants' rule too: each
+// entry's stage, `requires` and exclusion group are met by the entries before it), all three climb the stages in step
+// with build 0 (which defines `worldStage`), and the seat and behaviour knobs hold their bounds.
 
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, type CellStage, type TraitId } from '../types/game.js';
-import type { TraitDefinition } from '../types/traits.js';
+import { CELL_STAGE, type CellStage } from '../types/game.js';
 import { ENGULF_MASS_RATIO } from './absorption.js';
 import { DEFAULT_BALANCE } from './balance.js';
 import { STAGE_ORDER } from './ladder.js';
-import { TRAIT_CATALOG } from './traits.js';
-import { stageIndex, stageOf } from '../simulation/stage-of.js';
+import { ladderProblem } from '../simulation/ladder-check.js';
+import { stageOf } from '../simulation/stage-of.js';
 import {
   WILD_CELL_BUILDS,
   WILD_CELL_COUNT,
@@ -32,9 +31,6 @@ const STAGE_AFTER_PICKS: readonly CellStage[] = [
   CELL_STAGE.specialised,
 ];
 
-const catalog: readonly TraitDefinition[] = TRAIT_CATALOG;
-const traitById = (id: TraitId): TraitDefinition => catalog.find((trait) => trait.id === id)!;
-
 describe('WILD_CELL_BUILDS', () => {
   it('holds three builds of the same length', () => {
     expect(WILD_CELL_BUILDS).toHaveLength(BUILD_COUNT);
@@ -44,13 +40,7 @@ describe('WILD_CELL_BUILDS', () => {
   it.each(WILD_CELL_BUILDS.map((build, seat) => [seat, build] as const))(
     'build %i is a valid ladder: every pick is reachable from the picks before it',
     (_seat, build) => {
-      expect(new Set(build).size).toBe(build.length);
-      build.forEach((traitId, index) => {
-        const owned = build.slice(0, index);
-        const trait = traitById(traitId);
-        expect(stageIndex(trait.stage)).toBeLessThanOrEqual(stageIndex(stageOf(owned, DEFAULT_BALANCE.ladder)));
-        for (const requiredId of trait.requires) expect(owned).toContain(requiredId);
-      });
+      expect(ladderProblem(build, DEFAULT_BALANCE)).toBeNull();
     },
   );
 
