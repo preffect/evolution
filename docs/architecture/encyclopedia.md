@@ -941,6 +941,7 @@ packages/client/src/app/game/
   test-ids/hud-test-ids.ts                                          HUD_TEST_ID, moved out of hud/ (hud/, input/ and encyclopedia/ import it)
   encyclopedia/content/{cell-kind,giant,food,bacterium,entity}-entries.ts   entities; a giant's title, preview and real-life note are the builder's, from game/giants/ and its build (#831)
   giants/{giant-facts,giant-forms}.ts                               the giants' names, real-life lines and real sizes, and the form each is drawn as: neutral, since hud/ and encyclopedia/ both read them
+  giants/giant-glyph{,.component}.ts                                a giant's medallion: its form's trait glyph in its species palette (#846)
   encyclopedia/content/{zone,world}-entries.ts                     world
   encyclopedia/content/{ability,action}-entries.ts                 abilities and actions
   encyclopedia/content/action-facts.ts                             the sprint and engulf facts an ability page and an action page both quote

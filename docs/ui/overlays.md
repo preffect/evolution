@@ -453,5 +453,7 @@ event, which the newest snapshot alone would lose then, so the service takes the
 (architecture/client.md §6), which hears every snapshot in order, and keeps it until folded
 (`hud/format/giant-popups.ts`). A fold fires each swallow of the seat after the last folded tick, so a recomputation
 never fires it twice and the first snapshot of a seat only remembers; it queues ahead of a trait popup fired by the
-same fold. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
+same fold. After each fold the service drops the kept swallows of another seat or after the folded tick, and all of
+them when there is no snapshot: only a fold that starts the memory over leaves any to drop, and those would fire
+again when the clock came back to them. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
 binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.
