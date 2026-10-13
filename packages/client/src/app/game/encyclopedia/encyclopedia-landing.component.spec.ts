@@ -95,11 +95,14 @@ describe('EncyclopediaLandingComponent (docs/ui/encyclopedia.md §11.3)', () => 
     expect(styleRuleValue(document, ['.tile', '::after'], 'position')).toBe('absolute');
   });
 
-  /** #462: the fact wraps to its line budget rather than cutting its value mid-word; the title stays on one line. */
-  it('wraps the fact to the tile’s line budget and keeps the title on one line', () => {
-    expect(styleRuleValue(document, ['.fact'], 'line-height')).toBe('var(--encyclopedia-tile-fact-line-height)');
-    expect(styleRuleValue(document, ['.fact'], 'white-space')).toBeNull();
-    expect(styleRuleValue(document, ['.title'], 'white-space')).toBe('nowrap');
+  /** #462 and #847: the fact and the title each wrap to their own line budget rather than cutting mid-word. */
+  it('wraps the title and the fact to their own line budgets', () => {
+    for (const part of ['.title', '.fact']) {
+      expect(styleRuleValue(document, [part], 'line-height')).toBe('var(--encyclopedia-tile-caption-line-height)');
+      expect(styleRuleValue(document, [part], 'white-space')).toBeNull();
+    }
+    expect(styleRuleValue(document, ['.title'], '-webkit-line-clamp')).toBe('var(--encyclopedia-tile-title-lines)');
+    expect(styleRuleValue(document, ['.fact'], '-webkit-line-clamp')).toBe('var(--encyclopedia-tile-fact-lines)');
   });
 
   it('is keyboard-reachable: every tile is a real button in the Tab order', () => {
