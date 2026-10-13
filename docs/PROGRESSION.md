@@ -73,6 +73,12 @@ On each level-up the server builds a draft of `TRAIT_DRAFT_SIZE` = 3 cards from 
      owned, and, if it has `unlockedBy`, `bacteriaEatenByVariant[variant]` ≥ `count`;
    - no _other_ owned trait shares its `exclusionGroup` (an upgrade of the owned member is fine).
      The ladder only filters candidates; tag weighting below works unchanged on top of it.
+
+   For a new trait the stage, `requires` and exclusion-group checks are the shared per-pick rule,
+   `traitPickProblem` (`shared/simulation/ladder-check.ts`), the one the wild and giant builds keep
+   ([`ecology/wild-cells.md §3.3`](./ecology/wild-cells.md)); the draft adds `unlockedBy`, and keeps
+   its own tier cap and upgrade checks, since that rule picks each trait once.
+
 2. **Weights.**
 
 ```

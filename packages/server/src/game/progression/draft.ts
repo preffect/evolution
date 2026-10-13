@@ -1,18 +1,21 @@
-// The draft (docs/PROGRESSION.md §3): candidates filtered by the ladder, weights biased by the
-// DNA tags eaten, the rung card reserved for the next stage's gate, then weighted sampling
+// The draft (docs/PROGRESSION.md §3): candidates filtered by the ladder (a new trait by the shared per-pick rule,
+// `traitPickProblem`, the wild and giant builds' rule too), weights biased by the DNA tags eaten, the rung card reserved for the next stage's gate, then weighted sampling
 // without replacement from the `traitDraft` stream. Pure: the source and the tables are passed in.
 
 import {
   STAGE_GATE_TRAITS,
   hasReachedStage,
   nextStage,
+  traitPickProblem,
   type BacteriumVariant,
   type BalanceConfig,
   type CellStage,
   type DnaTag,
+  type LadderCheckBalance,
   type OwnedTrait,
   type RandomSource,
   type TraitDefinition,
+  type TraitId,
   type TraitTier,
 } from '@evolution/shared';
 import { pickWeighted } from '../simulation/pick-weighted.js';
@@ -50,6 +53,9 @@ interface CandidateContext extends CandidateInput {
   readonly topTier: number;
   /** The stage the owned traits reach, computed once per draft. */
   readonly stage: CellStage;
+  /** The owned ids a new trait is picked after, and the balance its per-pick rule reads. */
+  readonly ownedTraitIds: readonly TraitId[];
+  readonly balance: LadderCheckBalance;
 }
 
 /** The exclusion group of an owned trait, looked up in the catalog it came from. */
@@ -62,6 +68,7 @@ function isUnlocked(trait: TraitDefinition, context: CandidateContext): boolean 
   return unlock === undefined || context.bacteriaEatenByVariant[unlock.bacteriumVariant] >= unlock.count;
 }
 
+/** No owned trait but `trait` itself shares its exclusion group: an upgrade of the owned member is fine. */
 function isGroupFree(trait: TraitDefinition, context: CandidateContext): boolean {
   const group = trait.exclusionGroup;
   if (group === undefined) {
@@ -70,8 +77,14 @@ function isGroupFree(trait: TraitDefinition, context: CandidateContext): boolean
   return !context.ownedTraits.some((other) => other.traitId !== trait.id && groupOf(other, context.catalog) === group);
 }
 
-function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, context: CandidateContext): boolean {
-  if (owned !== undefined && owned.tier >= context.topTier) {
+/** A new trait: the shared per-pick rule (stage, requires, exclusion group) and the draft's own unlock. */
+function isNewTraitCandidate(trait: TraitDefinition, context: CandidateContext): boolean {
+  return isUnlocked(trait, context) && traitPickProblem(trait, context.ownedTraitIds, context.balance) === null;
+}
+
+/** An upgrade, which the per-pick rule (each trait picked once) does not cover: below the top tier, ladder still met. */
+function isUpgradeCandidate(trait: TraitDefinition, owned: OwnedTrait, context: CandidateContext): boolean {
+  if (owned.tier >= context.topTier) {
     return false;
   }
   return (
@@ -82,6 +95,10 @@ function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, cont
   );
 }
 
+function isCandidate(trait: TraitDefinition, owned: OwnedTrait | undefined, context: CandidateContext): boolean {
+  return owned === undefined ? isNewTraitCandidate(trait, context) : isUpgradeCandidate(trait, owned, context);
+}
+
 /** Every trait the player could be offered right now, in catalog order. */
 export function listDraftCandidates(input: CandidateInput, balance: BalanceConfig): DraftCandidate[] {
   return listCandidatesAtStage(input, stageOfOwned(input.ownedTraits, balance), balance);
@@ -90,7 +107,14 @@ export function listDraftCandidates(input: CandidateInput, balance: BalanceConfi
 /** The candidates once the stage is known: `buildDraft` computes it once for the list and the rung card. */
 function listCandidatesAtStage(input: CandidateInput, stage: CellStage, balance: BalanceConfig): DraftCandidate[] {
   const catalog: readonly TraitDefinition[] = balance.traits.TRAIT_CATALOG;
-  const context: CandidateContext = { ...input, catalog, topTier: balance.traits.TRAIT_TIER_COUNT, stage };
+  const context: CandidateContext = {
+    ...input,
+    catalog,
+    topTier: balance.traits.TRAIT_TIER_COUNT,
+    stage,
+    ownedTraitIds: input.ownedTraits.map((owned) => owned.traitId),
+    balance,
+  };
   const candidates: DraftCandidate[] = [];
   catalog.forEach((trait, catalogIndex) => {
     const owned = input.ownedTraits.find((entry) => entry.traitId === trait.id);

@@ -1,10 +1,11 @@
 // `ladderProblem` (docs/ecology/wild-cells.md §3.3, docs/ecology/giants.md §3.5.14): the one valid-ladder rule the wild
 // builds and the giant builds keep. Each rule goes red on a build that breaks it, and only on that build.
+// `traitPickProblem` is its per-pick part, which the server's draft asks of each new trait (docs/PROGRESSION.md §3).
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import type { TraitId } from '../types/game.js';
-import { ladderProblem } from './ladder-check.js';
+import { ladderProblem, traitPickProblem } from './ladder-check.js';
 
 /** The amoeba's climb (wild build 0's first five picks): a valid ladder ending in a body plan. */
 const AMOEBA_CLIMB: readonly TraitId[] = [
@@ -14,6 +15,29 @@ const AMOEBA_CLIMB: readonly TraitId[] = [
   'cytoskeleton',
   'amoeba_pseudopods',
 ];
+
+function catalogTrait(traitId: TraitId) {
+  const trait = DEFAULT_BALANCE.traits.TRAIT_CATALOG.find((row) => row.id === traitId);
+  if (trait === undefined) throw new Error(`${traitId} is not in the default catalog`);
+  return trait;
+}
+
+describe('traitPickProblem', () => {
+  it('accepts a trait whose stage, requirements and group the owned ids leave open', () => {
+    expect(traitPickProblem(catalogTrait('amoeba_pseudopods'), AMOEBA_CLIMB.slice(0, -1), DEFAULT_BALANCE)).toBeNull();
+  });
+
+  it.each([
+    ['an owned trait', 'nucleoid', ['nucleoid'], /nucleoid is listed twice/],
+    ['a trait above the reached stage', 'nuclear_envelope', ['nucleoid'], /nuclear_envelope needs stage/],
+    ['a missing requirement', 'amoeba_pseudopods', AMOEBA_CLIMB.slice(0, 3), /requires cytoskeleton/],
+    ['a taken group', 'paramecium_cilia', [...AMOEBA_CLIMB, 'cilia'], /shares exclusion group body_plan/],
+  ])('refuses %s', (_rule, traitId, owned, message) => {
+    expect(traitPickProblem(catalogTrait(traitId as TraitId), owned as readonly TraitId[], DEFAULT_BALANCE)).toMatch(
+      message,
+    );
+  });
+});
 
 describe('ladderProblem', () => {
   it('accepts a valid ladder and the empty build', () => {
