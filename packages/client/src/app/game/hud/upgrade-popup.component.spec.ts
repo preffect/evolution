@@ -230,7 +230,7 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     fixture.detectChanges();
     expect(popup(HUD_TEST_ID.giantPopup)).not.toBeNull();
 
-    // A new room under the same seat: its clock starts behind the swallow, and the memory starts over.
+    // The same room's clock goes back behind the swallow, and the memory starts over.
     receive(START_TICK - 1, []);
     expect(host().querySelector('.popup')).toBeNull();
     receive(swallowTick, []);

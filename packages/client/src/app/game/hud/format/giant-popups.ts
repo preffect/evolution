@@ -53,7 +53,9 @@ export interface GiantSwallowFold {
 /**
  * `kept` once the popup memory folded `fold`: a swallow of another seat, or after the fold's tick (the clock went
  * back), leaves, since the memory starts over then and would fire it a second time when the clock came back to it.
- * Nothing stays without a snapshot. The same array when nothing leaves, so the signal holding it does not change.
+ * Nothing stays without a snapshot. The same array when nothing leaves, so the signal holding it does not change:
+ * the service's effect reads the memory and writes the kept swallows the memory reads, so a new array every call
+ * would wake the effect again and loop for ever.
  */
 export function giantSwallowsKeptAt(kept: readonly GiantSwallow[], fold: GiantSwallowFold): readonly GiantSwallow[] {
   const { seatKey, tick } = fold;

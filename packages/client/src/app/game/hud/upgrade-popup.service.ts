@@ -54,7 +54,9 @@ export class UpgradePopupService {
     // The memory steps only when read; this read steps it once per change detection, so no snapshot's gain is missed
     // while no popup is up to be read. A fold that started the memory over (a new seat, the clock gone back) lets go of
     // the swallows it can no longer fire once, or a swallow after the rewound tick would fire again when the clock
-    // came back to it (#842).
+    // came back to it (#842). Safe because the memory is only read inside change detection, where this effect runs
+    // before the popup's template; a read outside it could see the swallows before the prune. `giantSwallowsKeptAt`
+    // returns the same array when nothing leaves, or this write would wake the effect again for ever.
     effect(() => {
       const memory = this.memory();
       this.giantSwallows.update((kept) => giantSwallowsKeptAt(kept, memory));
