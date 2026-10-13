@@ -27,11 +27,16 @@
 }
 
 /* The two columns, `ENCYCLOPEDIA_LENS_GAP_PX` apart; `align-items: flex-start` keeps the lens at the top of the
-   column rather than stretched down the length of a long title column. */
+   column rather than stretched down the length of a long title column. They wrap (#854): where the content column
+   cannot give the title column `ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX` beside the lens, the title column drops under
+   the lens control, `UI_SPACE_L_PX` below it, and runs the content column's full width. Squeezed beside the lens at
+   800 × 600 it was 78 px, and the facts ran out through the panel's edge. */
 .top {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: calc(var(--encyclopedia-lens-gap) * var(--ui-scale));
+  column-gap: calc(var(--encyclopedia-lens-gap) * var(--ui-scale));
+  row-gap: calc(var(--ui-space-l) * var(--ui-scale));
 }
 
 /* The lens column: the lens at its full diameter with its control centred under it. The width is stated here rather
@@ -42,8 +47,9 @@
   width: calc(var(--encyclopedia-lens-diameter) * var(--ui-scale));
 }
 
+/* The floor is the flex basis, so it is what decides the wrap; the column then grows into whatever its line leaves. */
 .title-column {
-  flex: 1 1 auto;
+  flex: 1 1 calc(var(--encyclopedia-title-column-min-width) * var(--ui-scale));
   min-width: 0;
 }
 

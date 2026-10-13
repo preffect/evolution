@@ -34,6 +34,7 @@ import {
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_TITLE_LINES,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
+  ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX,
 } from '../encyclopedia-constants';
 
 /** Every `--encyclopedia-…` token the panel's stylesheets may read, by name, at scale 1. */
@@ -52,10 +53,12 @@ export function encyclopediaStyleVariables(): StyleVariables {
     '--encyclopedia-tile-title-lines': String(ENCYCLOPEDIA_TILE_TITLE_LINES),
     '--encyclopedia-tile-fact-lines': String(ENCYCLOPEDIA_TILE_FACT_LINES),
     '--encyclopedia-tile-caption-line-height': String(ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT),
-    // The entry page (docs/ui/encyclopedia.md §11.4): the two lengths the page is laid out with.
+    // The entry page (docs/ui/encyclopedia.md §11.4): the lengths the page is laid out with, and the title column's
+    // floor beside the lens, under which it wraps below the lens (#854).
     '--encyclopedia-content-max-width': pixels(ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX),
     '--encyclopedia-lens-diameter': pixels(ENCYCLOPEDIA_LENS_DIAMETER_PX),
     '--encyclopedia-lens-gap': pixels(ENCYCLOPEDIA_LENS_GAP_PX),
+    '--encyclopedia-title-column-min-width': pixels(ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX),
     // The lens's own numbers (#466). The rim, the inner ring and the vignette are **not** here any more: they moved
     // from the reserved box's CSS into the lens's SVG overlay, which takes its geometry and its opacities straight
     // from the constants (`format/lens-overlay.ts`) and only its colours from a `--ui-…` role. What is left is what
