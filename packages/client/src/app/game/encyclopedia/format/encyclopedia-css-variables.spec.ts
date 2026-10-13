@@ -29,6 +29,7 @@ import {
   ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX,
   ENCYCLOPEDIA_TILE_TITLE_LINES,
   ENCYCLOPEDIA_TILE_WIDTH_PX,
+  ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX,
 } from '../encyclopedia-constants';
 import { encyclopediaStyleVariables } from './encyclopedia-css-variables';
 
@@ -49,6 +50,7 @@ const EXPECTED: readonly (readonly [string, string])[] = [
   ['--encyclopedia-content-max-width', `${ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX}px`],
   ['--encyclopedia-lens-diameter', `${ENCYCLOPEDIA_LENS_DIAMETER_PX}px`],
   ['--encyclopedia-lens-gap', `${ENCYCLOPEDIA_LENS_GAP_PX}px`],
+  ['--encyclopedia-title-column-min-width', `${ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX}px`],
   ['--encyclopedia-lens-text-width-fraction', String(ENCYCLOPEDIA_LENS_TEXT_WIDTH_FRACTION)],
   ['--encyclopedia-lens-loading-pulse', `${ENCYCLOPEDIA_LENS_LOADING_PULSE_MS}ms`],
   ['--encyclopedia-lens-loading-min-alpha', String(ENCYCLOPEDIA_LENS_LOADING_PULSE_MIN_ALPHA)],
