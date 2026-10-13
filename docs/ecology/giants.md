@@ -118,12 +118,12 @@ and the decay taken from the growth multiplied by `GIANT_DECAY_MULTIPLIER`. Its 
 
 #### 3.5.4 Build, level and armour
 
-A giant's traits are its species' fixed build (`GIANT_BUILDS_BY_SPECIES`), each a valid ladder ending
-in its form, owned at the tiers below for its whole life. Its level is derived from the build, as a
-wild cell's is (`wild-build.ts`: a cell at level L owns L − 1 picks, and each tier is a pick): picks + 1,
-so the amoeba is level 7 (Amoeba Pseudopods II is two picks) and the paramecium and the diatom level 6.
-No constant names a giant's level, so it cannot drift from the build. Its stage is `stageOf(traits)` =
-`specialised`. The renderer draws its form from these traits like anyone's (§3.5.11).
+A giant's traits are its species' fixed build (`GIANT_BUILDS_BY_SPECIES`), each a valid ladder (the wild
+builds' rule, exclusion groups included: wild-cells.md §3.3) ending in its form, owned at the tiers below for its
+whole life. Its level is derived from the build, as a wild cell's is (`wild-build.ts`: a cell at level L owns L − 1
+picks, and each tier is a pick): picks + 1, so the amoeba is level 7 (Amoeba Pseudopods II is two picks) and the
+paramecium and the diatom level 6. No constant names a giant's level, so it cannot drift from the build. Its stage is
+`stageOf(traits)` = `specialised`. The renderer draws its form from these traits like anyone's (§3.5.11).
 
 | Species            | Build (tier)                                                                                        | What the tiers do for it                                                                                                                                                     |
 | ------------------ | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -504,11 +504,13 @@ amoeba's Pseudopods II, `growth.CELL_STARTING_MASS` over a born minimum): a buil
 in a form, a born minimum above its maximum, a born range outside `[CELL_STARTING_MASS, GIANT_MASS_CEILING]`, and a
 speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, which G14 checks only on
 `DEFAULT_BALANCE`). The rules have one home, `giantBalanceProblems` (`shared/simulation/giant-balance.ts`), which the
-balance test and the refusal both call. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
+balance test and the refusal both call; its valid-ladder part is `ladderProblem` (`shared/simulation/ladder-check.ts`),
+the wild builds' rule too, so a build owning two traits of one exclusion group (two body plans, two membranes) breaks
+it as well. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
 structure a patch cannot name (`debug_set_balance` writes number leaves only, as for `WILD_CELL_BUILDS`): a test or
 fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice set it in
 `DEFAULT_BALANCE`; a seeded-world unit test about something else runs on `NO_GIANTS_BALANCE`
-(`server/src/testing/world-builders.ts`), which empties it.
+(`server/src/testing/world-builders.ts`), which empties it (`balanceSeatingGiants([])`, the one builder of a seating).
 
 #### 3.5.15 Contract (what the build changes; the architect folds it into `architecture/entity-model.md` §2, `architecture/server-simulation.md` §3, `architecture/constants-files-tests.md` §10 and `architecture/wire-contract.md` §4.1)
 
