@@ -2,14 +2,27 @@
    `hud-constants.ts` (`format/hud-css-variables.ts`); the type and colour roles are the kit's. */
 
 :host {
+  /* The popup's edge nearest the cell, which it grows from, and the way it moves off as it fades: up while above. */
+  --popup-cell-edge: 100%;
+  --popup-away: -1;
+
   position: absolute;
   left: 0;
   right: 0;
-  /* Hangs above the centre by the picker band's offset below it: clear of the exclusion box and the cap orbit. */
-  bottom: calc(50% + var(--hud-picker-band-offset));
+  /* `upgradePopupSlotFor` (overlays.md §3.8): clear of the exclusion box, the cap orbit and a full rate-tag column. */
+  bottom: calc(50% + var(--popup-offset));
   display: flex;
   justify-content: center;
   pointer-events: none;
+}
+
+/* No room above the cues: under the zone pill instead, grown from its top edge and sinking as it fades. */
+:host([data-placement='below-cell']) {
+  --popup-cell-edge: 0%;
+  --popup-away: 1;
+
+  top: calc(50% + var(--popup-offset));
+  bottom: auto;
 }
 
 /* Dead or spectating (overlays.md §3.3): the box does not apply, and the death text must stay readable above it. */
@@ -35,7 +48,7 @@
   line-height: var(--ui-body-line-height);
   color: var(--ui-text);
   text-align: center;
-  transform-origin: 50% 100%;
+  transform-origin: 50% var(--popup-cell-edge);
   animation:
     upgrade-popup-in var(--hud-upgrade-popup-in) ease-out both,
     popup-rise-out var(--hud-upgrade-popup-out) ease-in
@@ -66,13 +79,13 @@
 
   position: relative;
   max-width: calc(var(--hud-form-popup-max-width) * var(--ui-scale));
-  /* The resting glow's reach is kept clear on both sides: off the exclusion box, and off the death text. */
+  /* The resting glow's reach is kept clear on both sides: off the cell's cues, and off the death text. */
   margin-block: calc(var(--hud-form-popup-glow) * var(--ui-scale));
   padding: calc(var(--ui-space-m) * var(--ui-scale)) calc(var(--ui-space-l) * var(--ui-scale));
   border: calc(var(--hud-form-popup-rim) * var(--ui-scale)) solid var(--popup-seat-colour);
   box-shadow: var(--form-glow-rest);
-  /* Grown about its bottom edge, like the upgrade popup, so the overshoot never reaches down toward the cell. */
-  transform-origin: 50% 100%;
+  /* Grown about its edge nearest the cell, like the upgrade popup, so the overshoot never reaches toward the cell. */
+  transform-origin: 50% var(--popup-cell-edge);
   animation:
     form-popup-grow var(--hud-form-popup-in) ease-out both,
     form-popup-settle var(--hud-form-popup-settle) ease-in-out var(--hud-form-popup-in) forwards,
@@ -185,7 +198,7 @@
 @keyframes popup-rise-out {
   to {
     opacity: 0;
-    transform: translateY(calc(-1 * var(--hud-upgrade-popup-rise) * var(--ui-scale)));
+    transform: translateY(calc(var(--popup-away) * var(--hud-upgrade-popup-rise) * var(--ui-scale)));
   }
 }
 

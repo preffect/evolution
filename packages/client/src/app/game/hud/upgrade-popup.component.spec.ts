@@ -1,5 +1,5 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
@@ -7,6 +7,8 @@ import {
   TICK_HZ,
   createTestPlayerProgressView,
   createTestSnapshot,
+  createTestTraitOfferView,
+  radiusForMass,
   GIANT_SPECIES,
   entityId,
   gameId,
@@ -25,7 +27,8 @@ import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
 import { formRealLifeLine } from './format/form-facts';
 import { GIANT_DISPLAY_NAME_BY_SPECIES, GIANT_REAL_LIFE_LINES } from '../giants/giant-facts';
 import { GIANT_POPUP_KICKER_TEXT } from './format/giant-popups';
-import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_PLACEMENT } from './format/upgrade-popups';
+import { FORM_POPUP_KICKER_TEXT } from './format/upgrade-popups';
+import { UPGRADE_POPUP_PLACEMENT, upgradePopupSlotFor, type UpgradePopupRoom } from './format/upgrade-popup-slot';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './upgrade-popup-constants';
 import { UpgradePopupComponent } from './upgrade-popup.component';
 
@@ -39,6 +42,10 @@ const CILIA: OwnedTrait = { traitId: 'cilia' as TraitId, tier: 1 };
 const PARAMECIUM: OwnedTrait = { traitId: 'paramecium_cilia' as TraitId, tier: 1 };
 const OWN_CELL_ID = entityId('c-own');
 const GIANT_DNA = DEFAULT_BALANCE.giants.GIANT_DNA_BONUS;
+/** Ticket #840's frame: a mass-1250 own cell at 1024 × 640 under a form-sized popup, as the host measures it. */
+const SMALL_VIEWPORT = { width: 1024, height: 640 };
+const BIG_CELL_RADIUS_WU = radiusForMass(1250, DEFAULT_BALANCE.growth);
+const FORM_HOST_HEIGHT_PX = 176;
 
 describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
   let fixture: ComponentFixture<UpgradePopupComponent>;
@@ -222,5 +229,44 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(host().querySelector('.popup')).toBeNull();
     receive(refreshTick + FORM_TICKS + 1, []);
     expect(host().querySelector('.popup')).toBeNull();
+  });
+
+  describe('its slot (ticket #840)', () => {
+    /** A fresh popup whose host lays out `FORM_HOST_HEIGHT_PX` tall in the small viewport, over the big own cell. */
+    function placedOverBigCell(isPickerOpen: boolean): UpgradePopupRoom {
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, SMALL_VIEWPORT.width, FORM_HOST_HEIGHT_PX),
+      );
+      fixture = TestBed.createComponent(UpgradePopupComponent);
+      fixture.componentRef.setInput('viewport', SMALL_VIEWPORT);
+      const ownProgress = createTestPlayerProgressView({
+        playerId: OWN_PLAYER_ID,
+        offer: isPickerOpen ? createTestTraitOfferView() : null,
+      });
+      const cells = [createTestCellView({ id: OWN_CELL_ID, playerId: OWN_PLAYER_ID, radius: BIG_CELL_RADIUS_WU })];
+      deliver(createTestSnapshot({ tick: START_TICK + 1, ownProgress, cells }));
+      fixture.detectChanges();
+      vi.restoreAllMocks();
+      return {
+        lifeState: PLAYER_LIFE_STATE.alive,
+        viewport: SMALL_VIEWPORT,
+        ownCellRadiusWu: BIG_CELL_RADIUS_WU,
+        popupHeightPx: FORM_HOST_HEIGHT_PX,
+        isPickerOpen,
+      };
+    }
+
+    it('drops below the cell when the HUD’s box, the cell and the host’s height leave no room above its cues', () => {
+      const slot = upgradePopupSlotFor(placedOverBigCell(false));
+      expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.belowCell);
+      expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.belowCell);
+      expect(host().style.getPropertyValue('--popup-offset')).toBe(`${slot.offsetPx}px`);
+    });
+
+    it('stays above while the picker’s band is below the cell', () => {
+      const slot = upgradePopupSlotFor(placedOverBigCell(true));
+      expect(host().getAttribute('data-placement')).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+      expect(host().style.getPropertyValue('--popup-offset')).toBe(`${slot.offsetPx}px`);
+    });
   });
 });

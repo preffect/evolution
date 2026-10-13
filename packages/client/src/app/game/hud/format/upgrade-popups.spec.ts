@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,
   DEFAULT_BALANCE,
-  PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestPlayerProgressView,
   type OwnProgressView,
@@ -19,9 +18,7 @@ import { bindQuantities } from './trait-cards';
 import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
-  UPGRADE_POPUP_PLACEMENT,
   gainedTraits,
-  upgradePopupPlacementFor,
   upgradePopupStepFor,
   upgradePopupUpAt,
   type UpgradePopupMemory,
@@ -223,13 +220,5 @@ describe('upgradePopupStepFor: the giant popup (docs/ecology/giants.md §3.5.8)'
       [UPGRADE_POPUP_KIND.upgrade, tick + FORM_TICKS],
     ]);
     expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
-  });
-});
-
-describe('upgradePopupPlacementFor (docs/ui/overlays.md §3.8)', () => {
-  it('hangs above the cell while alive, and under the death text while dead or spectating', () => {
-    expect(upgradePopupPlacementFor(PLAYER_LIFE_STATE.alive)).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
-    expect(upgradePopupPlacementFor(null)).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
-    expect(upgradePopupPlacementFor(PLAYER_LIFE_STATE.spectating)).toBe(UPGRADE_POPUP_PLACEMENT.belowDeathText);
   });
 });

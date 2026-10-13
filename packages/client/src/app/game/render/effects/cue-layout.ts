@@ -59,10 +59,15 @@ function chipClearOfLabels(chip: UprightBox, labelBoxes: readonly UprightBox[]):
   );
 }
 
+/** The zone pill's bottom edge, px below the centre: the lowest cue under the cell, which the upgrade popup clears. */
+export function zonePillBottomPx(rPx: number): number {
+  return ladderOrbitExtentPx(rPx) + CUE_GAP_PX + LABEL_PILL_HEIGHT_PX;
+}
+
 /** The zone pill's top edge sits `CUE_GAP_PX` below the orbit extent; it is a label pill (§6), not a cue pill. */
 function zonePillBox(rPx: number, widthPx: number): UprightBox {
   const halfHeight = LABEL_PILL_HEIGHT_PX * HALF;
-  return { x: 0, y: ladderOrbitExtentPx(rPx) + CUE_GAP_PX + halfHeight, halfWidth: widthPx * HALF, halfHeight };
+  return { x: 0, y: zonePillBottomPx(rPx) - halfHeight, halfWidth: widthPx * HALF, halfHeight };
 }
 
 export function cueLayout(input: CueLayoutInput): CueLayout {

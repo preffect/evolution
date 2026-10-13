@@ -13,10 +13,14 @@ import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
 /** The shipped balance's cap: a room patched with `debug_set_balance` moves its true cap orbit, not this band. */
 const CAP_RADIUS_WU = radiusForMass(DEFAULT_BALANCE.growth.CELL_MAX_MASS, DEFAULT_BALANCE.growth);
 
+/** A cell's on-screen radius, `r_px`, when the Z1 camera has settled on it (it eases there over a zoom's seconds). */
+export function onScreenRadiusPx(radiusWu: number, viewport: ViewportPx): number {
+  return radiusWu * zoomFor({ x: 0, y: 0, viewHalfHeightWu: viewHalfHeightFor(radiusWu) }, viewport);
+}
+
 /** ui/hud.md §3.1.3's orbit extent (backing edge) for the own cell at `CELL_MAX_MASS`, under the Z1 camera, on this viewport. */
 export function capOrbitExtentPx(viewport: ViewportPx): number {
-  const zoom = zoomFor({ x: 0, y: 0, viewHalfHeightWu: viewHalfHeightFor(CAP_RADIUS_WU) }, viewport);
-  return ladderOrbitExtentPx(CAP_RADIUS_WU * zoom);
+  return ladderOrbitExtentPx(onScreenRadiusPx(CAP_RADIUS_WU, viewport));
 }
 
 /** The picker's title row top, below the viewport centre: `max((box + gap) × scale, cap orbit extent + clearance)`. */
