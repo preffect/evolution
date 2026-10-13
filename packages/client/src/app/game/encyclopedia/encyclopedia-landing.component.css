@@ -67,7 +67,7 @@
 }
 
 /* The state tint, over the well as well as the caption band: the well is opaque to anything painted under it, so a
-   background on the tile alone would light 36 of a tile's 132 px. The kit's own rows solve it the same way. */
+   background on the tile alone would light only the caption band below it. The kit's own rows solve it the same way. */
 .tile::after {
   content: '';
   position: absolute;

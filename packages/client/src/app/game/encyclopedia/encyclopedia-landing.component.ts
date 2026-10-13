@@ -3,8 +3,8 @@
 // which layout B shares (decision #368).
 //
 // A tile is a link to its entry: a button, named for a screen reader by the entry's full title, because the title on
-// its face is cut with an ellipsis when it does not fit its two lines. Build 1 draws a glyph medallion in the well; the still frame
-// of the real render is #378.
+// its face is cut with an ellipsis when it does not fit its `ENCYCLOPEDIA_TILE_TITLE_LINES`. Build 1 draws a glyph
+// medallion in the well; the still frame of the real render is #378.
 
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { UiScrollAreaComponent } from '../../ui-kit/ui-scroll-area.component';

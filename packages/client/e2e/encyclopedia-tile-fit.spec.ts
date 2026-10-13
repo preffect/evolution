@@ -1,7 +1,7 @@
-// Every landing tile reads in full (docs/ui/encyclopedia.md §11.3, #847), which only a real layout with the real font
-// can answer: at each size §11.3 names, on every category's landing, no tile title is cut — not across its width, not
-// past its line budget — no fact is cut past its own, and the caption stays inside its tile. The lobby's panel, so no
-// room is needed. Run with `pnpm --filter @evolution/client smoke`; not part of `./validate.sh all`.
+// Every landing tile reads in full (docs/ui/encyclopedia.md §11.3, #847), which only a real layout with the real
+// font can answer: at each size §11.3 names, on every category's landing, no tile title is cut — not across its
+// width, not past its line budget — no fact is cut past its own, and the caption stays inside its tile. The lobby's
+// panel, so no room is needed. Run with `pnpm --filter @evolution/client smoke`; not part of `./validate.sh all`.
 
 import { expect, test, type Page } from '@playwright/test';
 import { ENCYCLOPEDIA_CATEGORY_ORDER, type EncyclopediaCategory } from '../src/app/game/encyclopedia/model/categories';
