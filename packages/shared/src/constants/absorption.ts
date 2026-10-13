@@ -21,8 +21,9 @@ export const ENGULF_HOLD_COVERAGE_FRACTION: number = -1;
  * The carried prey settles inside (#819 review): the kept grab may seal a prey at the predator's rim, so from the seal
  * on each movement step draws its carried offset toward the predator's centre at this many prey radii a second, until
  * the centre is no farther out than the start's bound, `predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`. The
- * farthest seal, the cells touching, is 1.5 prey radii out, so it settles in 1/6 s (10 ticks), inside the shortest
- * absorb (`ENGULF_ABSORB_SECONDS × ENGULF_MIN_DURATION_FACTOR`, 0.3 s).
+ * farthest seal, the cells touching, is 1.5 prey radii out, so it settles in 1/6 s (10 ticks); its centre is inside the
+ * membrane after 7 ticks, before the fastest absorb pays out (Food Vacuole III: `ENGULF_ABSORB_SECONDS ×
+ * ENGULF_MIN_DURATION_FACTOR × 0.51`, about 0.153 s or 9 ticks, a tick sooner when the seal overshoots).
  */
 export const ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND = 9;
 /**

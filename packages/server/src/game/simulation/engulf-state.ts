@@ -111,7 +111,9 @@ export function settleCarriedOffset(pairing: EngulfPairing, absorption: BalanceC
     return;
   }
   const distance = Math.hypot(prey.carriedOffsetX, prey.carriedOffsetY);
-  const settledDistance = predator.radius - prey.radius * absorption.ENGULF_COVERAGE_FRACTION;
+  // Floored at the centre: a predator smaller than half its prey (a debug mass cut mid-carry, released by the ratio
+  // check a tick later) would otherwise get a negative bound and flip the prey through its centre.
+  const settledDistance = Math.max(0, predator.radius - prey.radius * absorption.ENGULF_COVERAGE_FRACTION);
   if (distance <= settledDistance) {
     return;
   }

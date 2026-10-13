@@ -255,8 +255,10 @@ by the same rule (`isEngulfHoldContact` in `simulation/contact.ts`).
   straight toward the predator's centre by `ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND` **9** prey radii a second, never
   past `predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`, the start's bound; an offset already inside it is
   left alone (`settleCarriedOffset` in `simulation/engulf-state.ts`). The farthest seal, the cells touching, is 1.5
-  prey radii out, so it is inside in 1/6 s (10 ticks), within the shortest absorb (`ENGULF_ABSORB_SECONDS ×
-ENGULF_MIN_DURATION_FACTOR`, 0.3 s). It is an ease, not a snap, and it moves only the carried prey: progress, the
+  prey radii out, so it reaches the bound in 1/6 s (10 ticks); its centre is inside the membrane after 7 ticks, before
+  the fastest absorb pays out (Food Vacuole III: `ENGULF_ABSORB_SECONDS × ENGULF_MIN_DURATION_FACTOR × 0.51`, about
+  0.153 s or 9 ticks, one sooner when the seal overshoots). With Food Vacuole III the payout can come a tick or two
+  before the bound, with the prey already inside. It is an ease, not a snap, and it moves only the carried prey: progress, the
   seal and the hold are unchanged. A prey ejected after the seal reappears at the settled offset.
 
 What it moves (`packages/server/bench/engulf-pass.ts`, the early pairs 26/20, 40/30, 60/45 and 60/30, 12 passes each,

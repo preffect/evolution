@@ -5,7 +5,7 @@
 // sealed by hand and moved by `moveCells` alone.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, ENGULF_SEAL_PROGRESS, TICK_HZ, TICK_INTERVAL_S } from '@evolution/shared';
+import { DEFAULT_BALANCE, ENGULF_SEAL_PROGRESS, TICK_HZ, TICK_INTERVAL_S, TRAIT_TIERS } from '@evolution/shared';
 import { ENGULF_CENTRE_DISTANCE_WU, createEngulfFixture, type EngulfFixture } from '../../testing/engulf-builders.js';
 import { createTestStepContext } from '../../testing/world-builders.js';
 import { beginEngulf, sealEngulf } from './engulf-state.js';
@@ -20,6 +20,21 @@ const DISTANCE_TOLERANCE_WU = 1e-9;
 const WATCHED_TICKS = 30;
 /** The farthest seal, 1.5 prey radii past the start bound at 9 prey radii a second, settles in 1/6 s. */
 const FARTHEST_SETTLE_TICKS = 10;
+/** A seal overshoots `ENGULF_SEAL_PROGRESS` by up to one tick's progress, so its payout can come a tick early. */
+const SEAL_OVERSHOOT_TICKS = 1;
+/** The neutral duration multiplier: a trait that does not touch the absorb leaves it as it is. */
+const UNCHANGED_DURATION_MULTIPLIER = 1;
+
+/** The fastest predator absorb any build reaches: each trait's strongest tier, multiplied as the modifiers fold. */
+const fastestPredatorAbsorbMultiplier = Object.values(TRAIT_TIERS).reduce(
+  (product, tiers) =>
+    product *
+    Math.min(
+      UNCHANGED_DURATION_MULTIPLIER,
+      ...tiers.map((tier) => tier.absorbDurationMultiplierAsPredator ?? UNCHANGED_DURATION_MULTIPLIER),
+    ),
+  UNCHANGED_DURATION_MULTIPLIER,
+);
 
 /** The start's bound: how far out a carried prey's centre may sit once settled (wu). */
 const settledDistanceOf = ({ predator, prey }: EngulfFixture): number =>
@@ -109,11 +124,36 @@ describe('a prey sealed at the rim is drawn inside (#819 review)', () => {
     }
   });
 
-  it('settles the farthest seal inside the shortest absorb phase', () => {
+  it('settles the farthest seal in FARTHEST_SETTLE_TICKS', () => {
     const farthestExcessPreyRadii = absorption.ENGULF_COVERAGE_FRACTION - absorption.ENGULF_HOLD_COVERAGE_FRACTION;
     const settleSeconds = farthestExcessPreyRadii / absorption.ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND;
-    const shortestAbsorbSeconds = absorption.ENGULF_ABSORB_SECONDS * absorption.ENGULF_MIN_DURATION_FACTOR;
-    expect(settleSeconds).toBeLessThanOrEqual(shortestAbsorbSeconds);
     expect(Math.ceil(settleSeconds * TICK_HZ)).toBe(FARTHEST_SETTLE_TICKS);
+  });
+
+  it('draws the farthest seal’s centre inside the membrane before the fastest absorb (Food Vacuole III) can pay out', () => {
+    const outsideMembranePreyRadii = -absorption.ENGULF_HOLD_COVERAGE_FRACTION;
+    const insideTicks = Math.ceil(
+      (outsideMembranePreyRadii / absorption.ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND) * TICK_HZ,
+    );
+    const fastestAbsorbSeconds =
+      absorption.ENGULF_ABSORB_SECONDS * absorption.ENGULF_MIN_DURATION_FACTOR * fastestPredatorAbsorbMultiplier;
+    const earliestPayoutTicks = Math.floor(fastestAbsorbSeconds * TICK_HZ) - SEAL_OVERSHOOT_TICKS;
+    expect(fastestPredatorAbsorbMultiplier).toBeLessThan(UNCHANGED_DURATION_MULTIPLIER);
+    expect(insideTicks).toBeLessThanOrEqual(earliestPayoutTicks);
+    const fixture = sealedTouching();
+    expect(carriedDistances(fixture, insideTicks).at(-1)).toBeLessThanOrEqual(fixture.predator.radius);
+  });
+
+  it('never draws the prey through the centre when the predator is smaller than half its prey', () => {
+    const fixture = sealedTouching();
+    const { predator, prey } = fixture;
+    predator.radius = prey.radius * absorption.ENGULF_COVERAGE_FRACTION * absorption.ENGULF_COVERAGE_FRACTION;
+    const distances = carriedDistances(fixture, WATCHED_TICKS);
+    for (const distance of distances) {
+      expect(distance).toBeGreaterThanOrEqual(0);
+    }
+    expect(distances.at(-1)).toBe(0);
+    expect(prey.carriedOffsetX).toBe(0);
+    expect(prey.carriedOffsetY).toBe(0);
   });
 });
