@@ -413,21 +413,39 @@ giant's real-life line from `GIANT_REAL_LIFE_LINES` (`giants/giant-facts.ts`, re
 | Paramecium   | `Real paramecia sweep food into a groove that works as a mouth` |
 | Giant diatom | `Real diatoms make at least a fifth of Earth’s oxygen`          |
 
-**Place.** Centred horizontally, its bottom edge `--hud-picker-band-offset` above the viewport centre: the mirror of
-the picker band's top edge below it (§3.2), so it clears the exclusion box and the cap orbit exactly as the band does
-(layout.md §1); a form popup also keeps its resting glow's reach (`FORM_POPUP_GLOW_PX`) clear of it. It paints over
+**Place.** Centred horizontally, in the slot `upgradePopupSlotFor` answers (`hud/format/upgrade-popup-slot.ts`,
+ticket #840), bound as `data-placement` and `--popup-offset` on the host. The host is the popup and, on a form or giant
+popup, its resting glow's reach (`FORM_POPUP_GLOW_PX`) on both sides; its height is measured, not assumed. Alive, the
+host never comes nearer the centre than `--hud-picker-band-offset`, the mirror of the picker band's top edge (§3.2),
+so it clears the exclusion box and the cap orbit exactly as the band does (layout.md §1), and it keeps `CUE_GAP_PX`
+off the own cell's cues (hud.md §3.1.5) at the cell's on-screen size under the settled Z1 camera:
+
+1. **Above the cell** (`above-cell`), its bottom edge `max(band offset, rateTagColumnTopPx(r_px, RATE_TAG_ROWS_MAX) +
+CUE_GAP_PX)` above the centre, wherever the whole host then fits under the top edge. The full rate-tag column is
+   reserved whether or not its tags are up, so a tag that comes up mid-popup never meets it and the popup never moves.
+2. **Below the cell** (`below-cell`) where it does not fit above: its top edge `max(band offset,
+zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, grown from its top edge and sinking
+   rather than rising as it fades. Never while the picker is open: the band is there.
+3. **Pinned** where neither fits (the picker open over a big cell): above, as high as the top edge allows and never
+   nearer than the band offset. Only here may it meet the top of a full rate-tag column, which the picker's dim greys.
+
+At 1024 × 640 a form popup's host is about 176 px (138 px and two 19.2 px glow margins), and a full column over even
+a starting cell tops out 151 px above the centre, so form and giant popups hang below the cell there; an upgrade popup
+up to 123 px tall at scale 1 (it has no glow) fits above at every size. At 1280 × 800 a form popup still fits above a cell up to about mass 100, and at
+1920 × 1080 above one up to at least mass 1,250 (`qa/evidence/pr-<PR>/`). The cue column's own label pushes (a threat
+label above the chip lifts it) and the camera's zoom easing after a sudden growth are not reserved. It paints over
 the picker's dim. **While the player is dead or spectating** the box does not apply and the death text (§3.3) must
 stay readable, so the popups hang under it instead: their top edge at `RESPAWN_TEXT_TOP_PX + RESPAWN_TEXT_HEIGHT_PX +
-UPGRADE_POPUP_DEATH_TEXT_GAP_PX` (scaled), over the killer's side of the dish (`upgradePopupPlacementFor`,
+UPGRADE_POPUP_DEATH_TEXT_GAP_PX` (scaled), over the killer's side of the dish (`upgradePopupSlotFor`,
 `data-placement` on the host). An upgrade popup is at most `UPGRADE_POPUP_MAX_WIDTH_PX` (a card's width) wide: title
 in `cardName`, effect lines in `body`, one per row, on the callout backing. A form popup is at most
 `FORM_POPUP_MAX_WIDTH_PX` wide: a `NEW FORM` kicker in `label` capitals in the seat's rim colour
 (`paletteFor(avatarIndex).rim`), the name at `FORM_POPUP_TITLE_SCALE` × `headline` (a display size for this moment,
 not a new type role), the effect lines along one wrapping row, the real-life line under them in muted italic `body`,
 with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat colour. The tallest, Amoeba Pseudopods (the catalog's
-four effect lines on two rows), measures 174 px at 1280 × 800 (top at y 66) and 138 px at 1024 × 640 (top at y 54):
-above the notice stack's lowest edge but inside the HUD margin and clear of the leaderboard, so a notice row or a
-toast up at that moment paints over its top (both come later in the HUD). While dead it starts at y 216 and y 173,
+four effect lines on two rows), measures 174 px at 1280 × 800 and 138 px at 1024 × 640. Hung above a cell, a
+popup can reach above the notice stack's lowest edge, so a notice row or a toast up at that moment paints over its
+top (both come later in the HUD). While dead it starts at y 216 and y 173,
 under the death text's last line at y 173 and y 139 (`qa/evidence/pr-789/`).
 
 **Motion.** An upgrade popup pops in from `UPGRADE_POPUP_FROM_SCALE` over `UPGRADE_POPUP_IN_MS`, holds, and rises

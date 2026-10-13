@@ -30,12 +30,12 @@ const { CELL_STARTING_MASS, CELL_MAX_MASS } = DEFAULT_BALANCE.growth;
 const MASSES = [CELL_STARTING_MASS, 100, 300, 600, 1000, 1250, 2000, 3000, CELL_MAX_MASS];
 
 /**
- * The tallest popups at scale 1, measured on PR #789 and this ticket's PR: Amoeba Pseudopods' form popup (its four
- * effect lines on two rows), and an upgrade popup with three effect lines. A form popup's host adds its glow's margin
- * on both sides.
+ * The popups at scale 1: the tallest form popup, Amoeba Pseudopods' (its four effect lines on two rows, measured on PR
+ * #789), whose host adds its glow's margin on both sides; and an upgrade popup as tall as one fits above a full column
+ * at the cap at 1024 × 640 (overlays.md §3.8).
  */
 const TALLEST_FORM_POPUP_PX = 174;
-const TALL_UPGRADE_POPUP_PX = 100;
+const TALL_UPGRADE_POPUP_PX = 123;
 
 function formHostPx(width: number, height: number): number {
   return (TALLEST_FORM_POPUP_PX + 2 * FORM_POPUP_GLOW_PX) * uiScaleFor(width, height);
