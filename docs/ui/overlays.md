@@ -432,7 +432,7 @@ zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, gro
 At 1024 × 640 a form popup's host is about 176 px (138 px and two 19.2 px glow margins), and a full column over even
 a starting cell tops out 151 px above the centre, so form and giant popups hang below the cell there; an upgrade popup
 up to 123 px tall at scale 1 (it has no glow) fits above at every size. At 1280 × 800 a form popup still fits above a cell up to about mass 100, and at
-1920 × 1080 above one up to at least mass 1,250 (`qa/evidence/pr-<PR>/`). The cue column's own label pushes (a threat
+1920 × 1080 above one up to at least mass 1,250 (`qa/evidence/pr-852/`). The cue column's own label pushes (a threat
 label above the chip lifts it) and the camera's zoom easing after a sudden growth are not reserved. It paints over
 the picker's dim. **While the player is dead or spectating** the box does not apply and the death text (§3.3) must
 stay readable, so the popups hang under it instead: their top edge at `RESPAWN_TEXT_TOP_PX + RESPAWN_TEXT_HEIGHT_PX +
