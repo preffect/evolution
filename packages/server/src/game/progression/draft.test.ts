@@ -85,6 +85,16 @@ describe('listDraftCandidates', () => {
     expect(ids).toContain('euglena_eyespot');
     expect(ids.filter((id) => FORM_IDS.includes(id))).toEqual(['euglena_eyespot']);
   });
+
+  it('drops a second body plan whose requirement is owned once a first body plan is owned', () => {
+    const bothOpen = owned('nucleoid', 'chloroplast', 'nuclear_envelope', 'cilia');
+    const formsOf = (ownedTraits: OwnedTrait[]): TraitId[] =>
+      listDraftCandidates(input({ ownedTraits }), balance)
+        .map((candidate) => candidate.trait.id)
+        .filter((id) => FORM_IDS.includes(id));
+    expect(formsOf(bothOpen)).toEqual(['paramecium_cilia', 'euglena_eyespot']);
+    expect(formsOf([...bothOpen, ...owned('euglena_eyespot')])).toEqual(['euglena_eyespot']);
+  });
 });
 
 describe('computeDraftWeights (P4)', () => {
