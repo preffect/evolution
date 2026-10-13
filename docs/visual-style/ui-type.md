@@ -131,8 +131,10 @@ owns the SVG (`glyphs/glyph-layers.component.ts` is it). What follows is only wh
 trait glyph, and the creature reads by its shape. They wear it in the giant's own palette (#846): `<app-giant-glyph
 [species]>` (`giants/giant-glyph.ts`) swaps the form glyph's body, fringe and nucleus colours for the species' shades
 of `GIANT_PALETTE_TABLE` by `GIANT_GLYPH_SHADE_BY_COLOUR` (`render/constants/giants.ts`): the body's light, base and
-dark pool become the rim, base and dark cytoplasm, the nucleus the nucleus. The outline, the glint, the amoeba's
-mitochondrion and the diatom's plastids and pore beads keep theirs. So the row, the tile and the preview show one
+dark pool become the rim, base and dark cytoplasm, the nucleus the nucleus. The swap matches on the colour's value,
+so any layer in one of those colours changes too: the amoeba's nucleus outline and the paramecium's oral groove take
+the dark cytoplasm, and a layer added later in a listed colour is swapped with them. The outline, the glint, the
+amoeba's mitochondrion and the diatom's plastids and pore beads keep theirs. So the row, the tile and the preview show one
 violet-grey amoeba, one sea-green paramecium and one silver diatom.
 
 **The two halves.** Things the dish already draws are **drawn as they look there** — the cell kinds, the food kinds,

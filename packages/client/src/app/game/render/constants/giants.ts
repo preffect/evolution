@@ -84,7 +84,10 @@ export type GiantGlyphShade = keyof Pick<GiantPaletteRow, 'base' | 'rim' | 'nucl
  * the three form glyphs paint their body, fringe and nucleus in becomes the palette shade that plays the same part, so
  * the list matches the preview. The body's light, base and dark pool take the rim, base and dark cytoplasm; the
  * nucleus its nucleus. Every other colour (the outline, the glint, the amoeba's mitochondrion, the diatom's plastids
- * and pore beads) is no part of the species' colouring and stays.
+ * and pore beads) is no part of the species' colouring and stays. The table matches on the colour's value, so every
+ * layer of a form glyph drawn in a listed colour is swapped, not only the body: `SILICA_DARK` also recolours the
+ * amoeba's nucleus outline and the paramecium's oral groove, and a layer added later in one of these colours will be
+ * swapped too.
  */
 export const GIANT_GLYPH_SHADE_BY_COLOUR: Readonly<Record<string, GiantGlyphShade>> = {
   [VAC_RIM]: 'rim',

@@ -1,6 +1,7 @@
 // The glyph medallion a list row and a landing tile lead with (docs/ui/encyclopedia.md §11.3): a trait's glyph
 // (#312), a giant cell's (its form's glyph in its own palette, #846) or, for every other subject, that subject's
-// (#391). All three draw their own disc and rim, so none is wrapped in a `ui-medallion` — the kit's medallion is for a mark that has no disc of its own (§10.2).
+// (#391). All three draw their own disc and rim, so none is wrapped in a `ui-medallion` — the kit's medallion is for
+// a mark that has no disc of its own (§10.2).
 //
 // One component rather than the choice in three templates: the list, the landing and, later, the entry page all ask
 // the same question of an entry id, and `glyphSubjectOf` answers it once.

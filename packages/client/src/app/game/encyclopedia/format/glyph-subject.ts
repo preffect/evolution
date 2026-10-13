@@ -1,7 +1,8 @@
 // Which glyph an entry wears, pure (docs/ui/encyclopedia.md §11.3): a trait's is `<app-trait-glyph>` (#312), keyed by
 // the catalog trait id; a giant cell's is `<app-giant-glyph>`, its form's trait glyph in the giant's own palette,
-// since the giant is that form drawn large (tickets #831, #846); and every other subject's is `<app-subject-glyph>` (#391), keyed by the entry id itself. The split is the
-// entry id's grammar (§12.2) and nothing else, so a row and a tile never disagree about it.
+// since the giant is that form drawn large (tickets #831, #846); and every other subject's is `<app-subject-glyph>`
+// (#391), keyed by the entry id itself. The split is the entry id's grammar (§12.2) and nothing else, so a row and a
+// tile never disagree about it.
 
 import type { GiantSpecies, TraitId } from '@evolution/shared';
 import type { SubjectEntryId } from '../../render/svg-glyph';
