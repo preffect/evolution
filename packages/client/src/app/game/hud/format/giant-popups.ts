@@ -3,7 +3,8 @@
 // `cell_absorbed` effect whose predator is the own cell and whose prey had a species; a giant eaten by anything else
 // shows nothing. The swallow is an event, so it is taken from the `GameEventBus`, which hears every snapshot in arrival
 // order, and not from the newest snapshot, which two broadcasts landing before one refresh fold into one. Pure:
-// `UpgradePopupService` keeps the swallows not yet past; `upgrade-popups.ts` queues their popups with the trait ones.
+// `UpgradePopupService` keeps the swallows not yet past, and drops them when its memory starts over; `upgrade-popups.ts`
+// queues their popups with the trait ones.
 
 import { EFFECT_KIND, secondsToTicks, type GameEffect, type GiantSpecies } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
@@ -43,13 +44,27 @@ export function giantSwallowOf(effect: GameEffect, isOwnPredator: boolean, seatK
   return { seatKey, tick: effect.tick, species, dnaGained: effect.predatorDnaGained };
 }
 
+/** Where the popup memory stands: the seat and tick it last folded, both `null` while it holds no snapshot. */
+export interface GiantSwallowFold {
+  readonly seatKey: string | null;
+  readonly tick: number | null;
+}
+
+/**
+ * `kept` once the popup memory folded `fold`: a swallow of another seat, or after the fold's tick (the clock went
+ * back), leaves, since the memory starts over then and would fire it a second time when the clock came back to it.
+ * Nothing stays without a snapshot. The same array when nothing leaves, so the signal holding it does not change.
+ */
+export function giantSwallowsKeptAt(kept: readonly GiantSwallow[], fold: GiantSwallowFold): readonly GiantSwallow[] {
+  const { seatKey, tick } = fold;
+  const stillKept = kept.filter((swallow) => tick !== null && swallow.seatKey === seatKey && swallow.tick <= tick);
+  return stillKept.length === kept.length ? kept : stillKept;
+}
+
 /** `kept` with `swallow` added: a swallow of another seat, after it (the clock went back) or past its wait leaves. */
 export function withGiantSwallow(kept: readonly GiantSwallow[], swallow: GiantSwallow): GiantSwallow[] {
-  const waiting = kept.filter(
-    (earlier) =>
-      earlier.seatKey === swallow.seatKey &&
-      earlier.tick <= swallow.tick &&
-      swallow.tick - earlier.tick < GIANT_SWALLOW_KEPT_TICKS,
+  const waiting = giantSwallowsKeptAt(kept, swallow).filter(
+    (earlier) => swallow.tick - earlier.tick < GIANT_SWALLOW_KEPT_TICKS,
   );
   return [...waiting, swallow];
 }

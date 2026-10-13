@@ -451,7 +451,8 @@ remembers. A form popup replaces the `stage` toast of the specialised rung (§3.
 the newest snapshot still shows, so two gains whose snapshots land before one refresh both fire. The giant popup is an
 event, which the newest snapshot alone would lose then, so the service takes the swallow from the `GameEventBus`
 (architecture/client.md §6), which hears every snapshot in order, and keeps it until folded
-(`hud/format/giant-popups.ts`). A fold fires each swallow of the seat after the last folded tick, so a recomputation
-never fires it twice and the first snapshot of a seat only remembers; it queues ahead of a trait popup fired by the
-same fold. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
+(`hud/format/giant-popups.ts`). After each fold it drops the kept swallows of another seat or after the folded tick: only
+a fold that starts the memory over leaves any, and they would fire again when the clock came back to them. A fold fires
+each swallow of the seat after the last folded tick, so a recomputation never fires it twice and the first snapshot
+of a seat only remembers; it queues ahead of a trait popup fired by the same fold. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
 binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.
