@@ -177,9 +177,9 @@ content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 beside the lens: where the content column is under the lens, the gap and that floor (692 units), the title column
 wraps under the lens column, `UI_SPACE_L_PX` below the lens control, and runs the content column's full width; the
 lens keeps its place and its size at the content column's left. The reference sizes never stack (their content
-column is 702), and 800 × 600 always does (430 units at scale 0.8). Squeezed beside the lens there, the title column
+column is 702), and 800 × 600 always does (about 421 units at scale 0.8). Squeezed beside the lens there, the title column
 was 78 px: the breadcrumb wrapped, the title broke over two lines and the facts ran out through the panel's right
-edge, names and values both, on 69 of the 81 entries. Shrinking the lens instead was weighed and rejected: a 344 px
+edge, names and values both, on 69 of the 81 entries. Shrinking the lens instead was weighed and rejected: a 337 px
 content column leaves a title column of at most about 200 px beside any lens worth looking at, still too narrow for
 `DNA per mass gained at the largest mass` and a value, and the lens's diameter is also its preview canvas's side
 (§12.7), so a lens that changed size per viewport would re-bake every scene. Stacked, the page scrolls a little
@@ -199,7 +199,7 @@ Widths are scale-1 units (px in brackets). Detail inner width is the panel less 
 built page measures (521, 113) at 1280 × 800, which is the content box's own top — the inset, the header, its rule and
 `UI_PANEL_PADDING_PX` — and the lens shares it with the title column beside it, so the 4 units are the mockup's and
 not a layout error (#465). At the `UI_SCALE_MIN` viewport
-(1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 372; narrower viewports stack the
+(1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 370; narrower viewports stack the
 title column under the lens (above).
 
 **The lens column** (`preview` not `null`):
