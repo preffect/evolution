@@ -136,7 +136,7 @@ gives a wild cell nothing, because it has no counters.
 `stage` and `requires` are met by the entries before it, and no entry before it shares its exclusion group, so a build
 owns at most one body plan and one membrane). The rule has one home, `ladderProblem`
 (`shared/simulation/ladder-check.ts`), which the wild builds' test and the giants' `giantBalanceProblems` (giants.md
-§3.5.14) both call; its per-pick part, `traitPickProblem`, is also what the player's draft asks of a new trait
+§3.5.14) both call; its per-pick part, `traitPickProblem`, is also what the player's draft asks of every card
 (PROGRESSION.md §3):
 
 | Build (seat mod 3) | Picks in order                                                                                                        |

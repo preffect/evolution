@@ -75,15 +75,11 @@ describe('listDraftCandidates', () => {
     expect(maxed.map((candidate) => candidate.trait.id)).not.toContain('nucleoid');
   });
 
-  it('requires every prerequisite and excludes other members of an owned group', () => {
+  it('requires every prerequisite', () => {
     const eukaryote = owned('nucleoid', 'chloroplast', 'nuclear_envelope');
     const withoutCilia = listDraftCandidates(input({ ownedTraits: eukaryote }), balance);
     expect(withoutCilia.map((candidate) => candidate.trait.id)).not.toContain('paramecium_cilia');
     expect(withoutCilia.map((candidate) => candidate.trait.id)).toContain('euglena_eyespot');
-    const withForm = listDraftCandidates(input({ ownedTraits: [...eukaryote, ...owned('euglena_eyespot')] }), balance);
-    const ids = withForm.map((candidate) => candidate.trait.id);
-    expect(ids).toContain('euglena_eyespot');
-    expect(ids.filter((id) => FORM_IDS.includes(id))).toEqual(['euglena_eyespot']);
   });
 
   it('drops a second body plan whose requirement is owned once a first body plan is owned', () => {
@@ -131,7 +127,15 @@ describe('buildDraft', () => {
 
   it('P9: never offers a second form and offers owned traits only as upgrades', () => {
     const eukaryote = input({
-      ownedTraits: owned('nucleoid', 'mitochondrion', 'nuclear_envelope', 'cytoskeleton', 'amoeba_pseudopods'),
+      ownedTraits: owned(
+        'nucleoid',
+        'mitochondrion',
+        'chloroplast',
+        'nuclear_envelope',
+        'cilia',
+        'cytoskeleton',
+        'amoeba_pseudopods',
+      ),
     });
     for (const seed of SEEDS) {
       const draft = buildDraft(eukaryote, createSeededRandom(seed), balance);

@@ -1,8 +1,8 @@
 // The one "valid ladder" rule a fixed build keeps (docs/ecology/wild-cells.md §3.3, docs/ecology/giants.md §3.5.14):
 // every pick is in the catalog, picked once, and reachable from the picks before it (its stage reached, its `requires`
-// owned, no other owned trait of its exclusion group). The wild builds' test and `giantBalanceProblems` both call it, so
-// the two kinds of build cannot be held to different ladders; the server's draft asks `traitPickProblem` of every new
-// trait it offers (docs/PROGRESSION.md §3). Pure: it reads only the balance it is given.
+// owned, no other owned trait of its exclusion group). The wild builds' test and `giantBalanceProblems` both call it,
+// so the two kinds of build cannot be held to different ladders; the server's draft asks `traitPickProblem` of every
+// card it offers (docs/PROGRESSION.md §3). Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
 import type { TraitId } from '../types/game.js';

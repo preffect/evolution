@@ -1,6 +1,6 @@
 // `ladderProblem` (docs/ecology/wild-cells.md §3.3, docs/ecology/giants.md §3.5.14): the one valid-ladder rule the wild
 // builds and the giant builds keep. Each rule goes red on a build that breaks it, and only on that build.
-// `traitPickProblem` is its per-pick part, which the server's draft asks of each new trait (docs/PROGRESSION.md §3).
+// `traitPickProblem` is its per-pick part, which the server's draft asks of every card (docs/PROGRESSION.md §3).
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
