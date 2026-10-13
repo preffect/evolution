@@ -21,6 +21,17 @@ describe('ladderProblem', () => {
     expect(ladderProblem([], DEFAULT_BALANCE)).toBeNull();
   });
 
+  it('accepts one trait from each of two groups: a membrane and a body plan', () => {
+    const membraneThenBodyPlan: readonly TraitId[] = [
+      'nucleoid',
+      'mitochondrion',
+      'nuclear_envelope',
+      'cell_wall',
+      'diatom_shell',
+    ];
+    expect(ladderProblem(membraneThenBodyPlan, DEFAULT_BALANCE)).toBeNull();
+  });
+
   it('accepts a second body plan’s requirement while the build owns only one body plan', () => {
     expect(ladderProblem([...AMOEBA_CLIMB, 'cilia'], DEFAULT_BALANCE)).toBeNull();
   });
