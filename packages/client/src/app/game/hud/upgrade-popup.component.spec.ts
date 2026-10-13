@@ -223,4 +223,18 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     receive(refreshTick + FORM_TICKS + 1, []);
     expect(host().querySelector('.popup')).toBeNull();
   });
+
+  it('shows a swallow once when the clock goes back before it, and comes back to it with no swallow since (#842)', () => {
+    const swallowTick = START_TICK + 1;
+    deliver(diatomSwallowedAt(swallowTick));
+    fixture.detectChanges();
+    expect(popup(HUD_TEST_ID.giantPopup)).not.toBeNull();
+
+    // The same room's clock goes back behind the swallow, and the memory starts over.
+    receive(START_TICK - 1, []);
+    expect(host().querySelector('.popup')).toBeNull();
+    receive(swallowTick, []);
+    receive(swallowTick + 1, []);
+    expect(host().querySelector('.popup')).toBeNull();
+  });
 });
