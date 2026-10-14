@@ -9,8 +9,17 @@ import { describe, expect, it } from 'vitest';
 import { DIVE_RESOLUTION_GOVERNOR, DIVE_TARGET_FRAME_MS } from '../constants';
 import { SMOOTH_MS, governorFeed as feed, vsyncPaced, type FrameGap } from '../../../../testing/dive-governor-feed';
 
-const { stepRatio, spanMs, slightlySlowRatio, trialCpuShare, uselessStepHoldMs, maxStepUpAfterMs } =
-  DIVE_RESOLUTION_GOVERNOR;
+const {
+  stepRatio,
+  spanMs,
+  slightlySlowRatio,
+  trialCpuShare,
+  uselessStepHoldMs,
+  maxStepUpAfterMs,
+  helpRatio,
+  windowFrames,
+  stepUpAfterMs,
+} = DIVE_RESOLUTION_GOVERNOR;
 /** A GPU at about 50 fps at the dive's ratio: its frames 20 ms of work, a vsync or two apart. */
 const FIFTY_FPS_MS = 20;
 /** A GPU at about 40 fps: every other frame misses its vsync. */
@@ -26,7 +35,9 @@ const ONE_NOTCH = 2 * stepRatio;
 
 type Feed = ReturnType<typeof feed>;
 
-/** Frames `gap` apart for `durationMs`, `cpuMs` of the page's own work each; answers the ms spent at each resolution. */
+/**
+ * Frames `gap` apart for `durationMs`, `cpuMs` of the page's own work each; answers the ms spent at each resolution.
+ */
 function run(subject: Feed, gap: FrameGap, durationMs: number, cpuMs = LIGHT_CPU_MS): Map<number, number> {
   const spentMs = new Map<number, number>();
   const endMs = subject.nowMs + durationMs;
@@ -96,6 +107,23 @@ describe('DiveResolutionGovernor and a GPU a little too slow (ticket #816)', () 
     const lighter = feed(2);
     run(lighter, vsyncPaced(FIFTY_FPS_MS, 2), RUN_MS, busyCpuMs * 0.9);
     expect(lighter.changes[0]).toBeCloseTo(ONE_NOTCH, 12);
+  });
+
+  it('keeps a trial notch once its frames are a little too slow no more, though not 0.9× quicker', () => {
+    // A 19.5 ms span (51 fps) tries the notch; the next is 18 ms (55.5 fps): inside the slack, short of 0.9 × 19.5.
+    const beforeMs = 19.5;
+    const afterMs = 18;
+    expect(afterMs).toBeLessThanOrEqual(DIVE_TARGET_FRAME_MS * slightlySlowRatio);
+    expect(afterMs).toBeGreaterThan(beforeMs * helpRatio);
+    const gap = (resolution: number): number => (resolution === 2 ? beforeMs : afterMs);
+    const subject = feed(2);
+    subject.untilChange(gap, RUN_MS);
+    expect(subject.changes).toEqual([ONE_NOTCH]);
+    // The span after the trial judges it; a notch up is still a while off.
+    const judgedWithinMs = spanMs + MISSED_MS * windowFrames;
+    expect(judgedWithinMs).toBeLessThan(stepUpAfterMs);
+    run(subject, gap, judgedWithinMs);
+    expect(subject.changes).toEqual([ONE_NOTCH]);
   });
 
   it('gives a trial back when the frames come no quicker, and tries again only after a wait that doubles', () => {

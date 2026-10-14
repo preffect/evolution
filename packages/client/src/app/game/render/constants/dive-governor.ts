@@ -1,5 +1,5 @@
-// The opening dive's resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #816): the frame it aims at, how
-// it judges frames and how far it steps the dive's canvas resolution. Re-exported by `render/constants`.
+// The opening dive's resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #816): the frame it aims
+// at, how it judges frames and how far it steps the dive's canvas resolution. Re-exported by `render/constants`.
 
 /** The frame the dive aims at: one display frame at 60 Hz (the epic's 60 fps on a laptop's integrated GPU). */
 export const DIVE_TARGET_FRAME_MS = 1000 / 60;
@@ -25,7 +25,8 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   left out, the window's to judge). A mean over the target times `slightlySlowRatio` (about 55 fps) is a little too
  *   slow: a GPU at 40–55 fps mixes quick and late frames as a busy page does, so its windows are never over budget
  *   throughout (ticket #816). That span tries one notch down, only when the page's own work averages under
- *   `trialCpuShare` of the target (a page busy half the frame misses its vsyncs itself), and checks it by the next span.
+ *   `trialCpuShare` of the target (a page busy half the frame misses its vsyncs itself), and checks it by the next
+ *   span.
  * - `stepUpAfterMs`: on budget this long in a row, it tries one notch up. A step down within `probeFailMs` of a step
  *   up means that notch did not fit: the wait before the next try grows by `backoffFactor`, up to `maxStepUpAfterMs`;
  *   a notch up that holds puts the wait back. So it never pumps: a level that fits stays, and the one above is tried

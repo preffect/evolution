@@ -535,7 +535,10 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     The fall itself (at most 1.5) holds 54–60 fps in both. A notch up is tried after 3, 6, 12, 24 s…, each try about
     4 s at the old rate before a span gives it back. A page whose own work is light but which is busy elsewhere (the
     CPU four times slower) can still try a notch; its next span is mostly no quicker and gives it back (one or two tries a
-    fall in three runs, each back at the notch above within 2–6 s).
+    fall in three runs, each back at the notch above within 2–6 s). So does a GPU shared with another application's
+    heavy drawing, where fewer pixels do not help either: the dive tries the notch and gives it back again, as often
+    as the 6–48 s wait lets it (graphics-qa's review: 4–8 changes in about 20 s against none on main), the same cost
+    as a busy CPU's (ticket #938).
 
   - **Down:** a notch is × 0.84 (about 0.7× the pixels). A median a little over steps one notch; past 3 × the target
     it leaps as far as the GPU's share of the frame must shrink by its pixels to fit, so software GL reaches the floor

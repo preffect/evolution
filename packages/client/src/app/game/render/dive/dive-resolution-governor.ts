@@ -1,8 +1,8 @@
 // The dive's resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #816): when its frames run over
-// budget it steps the dive canvas's device px per css px down, and back up once there is headroom. Every band draws on that one
-// canvas, so the drop's lens, the slime and the dish all shrink with it, and so does the detail the shaders judge in
-// device px (the barnacles under half a device px, the strokes' coverage). Pure: the session hands it each drawn
-// frame's time and CPU share, read off the injected clock.
+// budget it steps the dive canvas's device px per css px down, and back up once there is headroom. Every band draws on
+// that one canvas, so the drop's lens, the slime and the dish all shrink with it, and so does the detail the shaders
+// judge in device px (the barnacles under half a device px, the strokes' coverage). Pure: the session hands it each
+// drawn frame's time and CPU share, read off the injected clock.
 
 import { DIVE_RESOLUTION_GOVERNOR, DIVE_TARGET_FRAME_MS } from '../constants';
 import {
