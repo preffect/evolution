@@ -9,8 +9,8 @@ art = Sheet(1920, 1080, 7828, 'Evolution — phases concept S1: three whole-game
             'A: one journey, the room moves on together. B: each player outgrows the dish on their own. C: chapters picked from the lobby. '
             'Timelines in minutes, with triggers, carry-over, the wild cells and the build cost.')
 art.header('concept S1 — THREE WHOLE-GAME SHAPES · round timelines',
-           'Minutes from the start of a game. Dish = today\'s 10-minute round, unchanged. Pond = the big-protist chapter. Colonies = the many-celled chapter.',
-           'ticket #782 · epic #761 · picks up ticket #763', 'bars are proposals, not constants')
+           'Minutes from the start of a game. Dish = today\'s 10-minute round, unchanged. Pool = the rock pool, the big-protist chapter. Colonies = the many-celled chapter.',
+           'decided: ticket #784 A · design: docs/game-design/phases.md §14', 'build: epic #866 · numbers in §14.14')
 
 X0, X1 = 330, 1330
 MAXMIN = 26
@@ -48,11 +48,12 @@ def facts(x, y, rows):
 
 
 # ---------------------------------------------------------------- A
-art.panel(40, 90, 1840, 300, 'A · ONE JOURNEY: the room moves on together   (recommended)', 'the world clock turns the page for everyone; one continuous game of about 25 minutes', stroke=GOOD)
+art.panel(40, 90, 1840, 300, 'A · ONE JOURNEY: the room moves on together', 'the world clock turns the page for everyone; one continuous game of about 25 minutes', stroke=GOOD)
 y = 190
 bar(y, 0, 10, 'dish', 'DISH · single cell (today)')
-bar(y, 10, 17, 'pond', 'POND · a big protist')
-bar(y, 17, 25, 'colony', 'POND · colonies')
+bar(y, 10, 17, 'pond', 'ROCK POOL · a big protist')
+bar(y, 17, 25, 'colony', 'ROCK POOL · colonies')
+art.stamp(1864, 112, True, 'ticket #784')
 marker(y, 9.67, '9:40 fastest form')
 marker(y, 10, '10:00 all move', ACCENT, above=False)
 marker(y, 17, '17:00 colonies open', ACCENT, above=False)
@@ -66,7 +67,7 @@ art.sphere_cells(xm(19.6), 330, 26, 60, 3.2)
 art.text(xm(19.6) + 36, 335, 'a colony, a slug or a chain', 10.5, MUTED, 400)
 facts(1370, 162, [('trigger', 'the world clock at 10:00 and 17:00'), ('no form yet?', 'your DNA picks one for you at 10:00'),
                   ('carries over', 'form, traits, colour, name, score'), ('resets', 'size (you are small again)'),
-                  ('wild cells', 'climb with the clock, as today'), ('feel', 'one camera pull-back (sheet P1)'),
+                  ('wild cells', 'climb with the clock, as today'), ('feel', 'seamless: you never stop playing (#786 C)'),
                   ('cost', 'about 42 tickets · shape part: 4')])
 
 # ---------------------------------------------------------------- B
@@ -98,6 +99,10 @@ facts(1370, 782, [('trigger', 'you choose; no in-game transition'), ('carries ov
                   ('wild cells', 'each chapter has its own clock'), ('feel', 'a menu, not a journey'),
                   ('cost', 'about 40 tickets · shape part: 2'), ('good for', 'a later "skip ahead" for veterans')])
 
+art.dim(40, 400, 1840, 300)
+art.stamp(1864, 422, False)
+art.dim(40, 710, 1840, 300)
+art.stamp(1864, 732, False)
 art.text(40, 1040, 'Content is the same in all three (the pond, its creatures, three roads and the ciliate upgrades, about 38 tickets); '
          'the shapes differ in the part that moves players between worlds.', 11.5, MUTED)
 art.save(OUT)

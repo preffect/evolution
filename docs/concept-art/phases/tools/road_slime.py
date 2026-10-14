@@ -12,7 +12,7 @@ art = Sheet(1920, 1080, 7825, 'Evolution — phases concept R2: the gathering ro
 art.header('concept R2 — THE GATHERING ROAD · come together instead of staying together',
            'For the amoeba. The other way life went multicellular: separate cells crawl together into one body. '
            'Drawn larger at each step, not to true scale.',
-           'ticket #782 · epic #761 · a strong fit for playing together (ticket #79)', 'dark-field language of sheets 01 and 04 · zero raster')
+           'decided: tickets #785 A, #790 A · design: docs/game-design/phases.md §14.9.2', 'co-op (ticket #79) stays "not yet" · zero raster')
 A = PALETTES['amber']
 art.panel(40, 90, 1840, 470, 'A · THE LADDER — from a crowd of hungry cells to a tower', None)
 Y = 290
@@ -98,27 +98,27 @@ art.text(x + 120, Y - 60, 'spores drift off', 10.5, A[1], 600, 'middle')
 art.stage_label(x, 470, '5 · The fruiting body', ['a stalk ~1–2 mm tall', 'the front 1 in 5 cells die as stalk', 'the finale: a big score payout'], GOOD)
 for cx in (285, 610, 905, 1325):
     art.chevron(cx, Y)
-art.text(1720, 200, 'The end of this road is', 12, TEXT, 600, 'middle')
-art.text(1720, 218, 'a finish, not a fight:', 12, TEXT, 600, 'middle')
-art.text(1720, 236, 'fruit at the bank before', 12, TEXT, 600, 'middle')
-art.text(1720, 254, 'the pond clock runs out.', 12, TEXT, 600, 'middle')
+art.text(1760, 300, 'The end of this road is', 12, TEXT, 600, 'middle')
+art.text(1760, 318, 'a finish, not a fight:', 12, TEXT, 600, 'middle')
+art.text(1760, 336, 'crawl out onto the wet rock', 12, TEXT, 600, 'middle')
+art.text(1760, 354, 'at the pool\'s edge and fruit.', 12, TEXT, 600, 'middle')
 
 # ---------------------------------------------------------------- B · the call
 art.note_panel(40, 580, 600, 460, 'B · HOW YOU PLAY IT: THE CALL', [
     '§ You recruit cells instead of growing them',
-    '• Press CALL: a ring of signal spreads from you.',
-    '• Wild amoebae inside the ring stream in and join',
-    '  your body; each one is +1 cell (the other roads',
-    '  divide instead).',
-    '• The call costs food; a bigger crowd needs more.',
+    '• Press the ability key (E): a ring of signal spreads.',
+    '• Small amoebae on the bacteria films inside the ring',
+    '  stream in and join you; each one is +1 cell (the',
+    '  other roads divide instead).',
+    '• Each step raises how many cells you can hold.',
     '§ Mound, then slug',
     '• At 16 cells you heap into a mound, at 32 a slug.',
-    '• The slug crawls on the pond floor only; it is',
-    '  slow to turn but nothing on the floor can eat it.',
+    '• The slug is faster than any one amoeba and heads',
+    '  for the bank, the wet rock at the pool\'s edge.',
     '§ Fruiting',
-    '• Reach the bank and hold: your front fifth becomes',
+    '• On the bank, hold the key 3 s: a fifth of you becomes',
     '  the stalk, the rest spores. Big score, then you',
-    '  spectate or start again as one amoeba.',
+    '  start again as one amoeba, the road open again.',
 ], 'steer with the pointer, as today; one extra key')
 
 # ---------------------------------------------------------------- C · together (ticket #79)
@@ -126,22 +126,22 @@ art.note_panel(660, 580, 600, 460, 'C · PLAYING TOGETHER — the co-op option',
     '§ Real slime moulds mix: that makes co-op honest',
     '• Cells from different families answer the same',
     '  call and build one slug (a "chimera").',
-    '• In the game: two amoeba players could merge. The',
-    '  one with more cells steers; the other adds cells',
-    '  and shares the fruiting score.',
+    '• In the game, later: two amoeba players could merge.',
+    '  Not in this build: another player\'s body never',
+    '  joins yours.',
     '§ And the real twist: cheaters',
     '• Some strains dodge the stalk and end up as spores',
     '  (Strassmann, Zhu and Queller, Nature 2000).',
     '• A game rule could echo it: whoever is at the back',
     '  when you fruit scores more.',
     '§ Status',
-    '• Ticket #79 (co-op fusion) is "not yet" by your',
-    '  call. This road works solo with wild amoebae; co-op',
-    '  can be added later without redesign.',
+    '• Ticket #79 (co-op fusion) is still "not yet". The',
+    '  road works solo with small amoebae; co-op can be',
+    '  added later without redesign.',
 ], 'optional; the road stands without it')
 
 # ---------------------------------------------------------------- D · the real story
-art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and one honest caveat', [
+art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and honest caveats', [
     '§ True',
     '• Dictyostelium lives as single amoebae while food',
     '  lasts; when it runs out, cells relay pulses of a',
@@ -150,12 +150,13 @@ art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and one honest cave
     '  stands up; about a fifth of the cells die to form',
     '  the stalk that lifts the spores.',
     '§ Caveat for the encyclopedia',
-    '• The game\'s amoeba (Amoeba proteus, ~0.5 mm) never',
-    '  does this. Its small cousins, the social amoebae',
-    '  (~10 µm each), do. Both are amoebozoans.',
+    '• The game\'s amoeba never does this, nor do forams,',
+    '  its sea-water cousins. Its small cousins the social',
+    '  amoebae do, on land: damp soil and leaf litter. So',
+    '  the road ends out of the water, on the bank.',
     '~ Bonner, "The Social Amoebae", Princeton 2009',
     '~ Kessin, "Dictyostelium", Cambridge 2001',
-], 'sources in the proposal on ticket #782')
-art.footer('R2 · the gathering road · sizes and fractions are the real organism\'s; game numbers are proposals',
+], 'sources in docs/game-design/phases.md §14.16')
+art.footer('R2 · the gathering road · sizes and fractions are the real organism\'s; game numbers are §14.14 tuning values',
            'docs/concept-art/phases/road-slime.svg · 1920 × 1080')
 art.save(OUT)

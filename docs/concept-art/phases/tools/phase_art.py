@@ -37,6 +37,8 @@ PALETTES = {
     'coral': ('#ff7a5c', '#ffc0b0', '#6c2a1c', '#240c08', '#5a2010', '#ffb09c'),  # Didinium, the hunter
     'sand': ('#c8c0a0', '#f0ecd8', '#5a5440', '#1c1a12', '#48402c', '#e8e0c0'),  # nematode
     'ghost': ('#7d8da1', '#cfdbe6', '#2a3440', '#0c1016', '#222c38', '#a8b8c8'),  # greyed / locked
+    'golden': ('#d7a441', '#ffe2a6', '#6c5020', '#241a08', '#5a4010', '#ffd890'),  # Phaeocystis (a haptophyte)
+    'scarlet': ('#d8503a', '#ffb49c', '#6c2418', '#240a06', '#5a1a10', '#ff9a80'),  # Tigriopus, the red copepod
 }
 
 
@@ -567,6 +569,24 @@ class Sheet:
             self.emit(f'<path d="{smooth_open(spiral)}" fill="none" stroke="{CHLORO}" stroke-width="{width * 0.16:.1f}" opacity="0.8"/>')
         self.emit('</g>')
 
+    def cladophora(self, x0, y0, length, heading=0.0, cell_len=None, depth=2):
+        """Cladophora, a branched green thread of rock pools: long cells packed with green, a side branch every few cells."""
+        cell_len = cell_len or length / 8
+        width = cell_len * 0.32
+        a = math.radians(heading)
+        ux, uy = math.cos(a), math.sin(a)
+        n = max(1, int(length / cell_len))
+        for k in range(n):
+            sx, sy = x0 + k * cell_len * ux, y0 + k * cell_len * uy
+            ex, ey = sx + (cell_len - 1.5) * ux, sy + (cell_len - 1.5) * uy
+            self.emit(f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" stroke="{CHLORO_D}" stroke-width="{width:.1f}" '
+                      f'stroke-linecap="round" opacity="0.55"/>')
+            self.emit(f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" stroke="{CHLORO}" stroke-width="{width * 0.6:.1f}" '
+                      f'stroke-linecap="round" opacity="0.55" stroke-dasharray="{width * 0.5:.1f} {width * 0.25:.1f}"/>')
+            if depth > 0 and k % 3 == 2:
+                side = 1 if (k // 3) % 2 else -1
+                self.cladophora(ex, ey, length * 0.45, heading + side * 38, cell_len * 0.8, depth - 1)
+
     def dish(self, cx, cy, r, crowd=True, glow=0.5):
         self.emit(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r * 1.05:.1f}" fill="{ACCENT}" opacity="{0.25 * glow:.2f}" filter="url(#{blur_id(0.05 * r)})"/>')
         self.emit(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" fill="url(#dish-g)"/>')
@@ -575,6 +595,58 @@ class Sheet:
             for _ in range(int(r * 0.5)):
                 ang, rr = self.rng.uniform(0, 2 * math.pi), r * math.sqrt(self.rng.uniform(0, 0.92))
                 self.speck(cx + rr * math.cos(ang), cy + rr * math.sin(ang), max(0.6, r * 0.008), FOOD_MOTE, 0.6)
+
+    # ------------------------------------------------------------ decision marks (ticket #864)
+    def stamp(self, right_x, y, chosen, note=''):
+        """A pill whose right edge is at right_x: CHOSEN (green) or NOT CHOSEN (grey), with an optional note."""
+        label = ('CHOSEN' if chosen else 'NOT CHOSEN') + (f' · {note}' if note else '')
+        colour = GOOD if chosen else MUTED
+        wdt = 0.64 * 12 * len(label) + 26
+        self.emit(f'<rect x="{right_x - wdt:.1f}" y="{y - 15:.1f}" width="{wdt:.0f}" height="24" rx="12" fill="{colour}" '
+                  f'fill-opacity="{0.18 if chosen else 0.1}" stroke="{colour}" stroke-width="1.4"/>')
+        self.text(right_x - wdt + 13, y + 2, label, 12, colour, 800, mono=True)
+
+    def dim(self, x, y, w, h, opacity=0.5):
+        """Grey out an option that was not chosen."""
+        self.emit(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="10" fill="{BG_DEEP}" opacity="{opacity}"/>')
+
+    def copepod(self, cx, cy, length, heading=0.0, pal='scarlet'):
+        """Tigriopus, seen from above: a teardrop front body, a narrow segmented tail with two bristles, long first
+        antennae swept back, a single red eye. `heading` is where the head points (0 = right)."""
+        base, rim, _cl, _cd, _edge, _nuc = PALETTES[pal]
+        lw = max(0.8, length * 0.005)
+        self.emit(f'<g transform="rotate({heading:.1f} {cx:.1f} {cy:.1f})">')
+        head = cx + 0.5 * length
+        front = [(head - 0.62 * length * t, cy + 0.15 * length * math.sin(math.pi * t) ** 0.8) for t in [i / 16 for i in range(17)]]
+        back = [(px, 2 * cy - py) for (px, py) in reversed(front)]
+        body = smooth_closed(front + back[1:-1])
+        self.emit(f'<path d="{body}" fill="{rim}" opacity="0.1" filter="url(#{blur_id(0.04 * length)})"/>')
+        self.emit(f'<path d="{body}" fill="url(#body-{pal})" opacity="0.85"/>')
+        self.emit(f'<path d="{body}" fill="none" stroke="{rim}" stroke-width="{lw * 1.6:.1f}" opacity="0.7"/>')
+        for k in range(1, 5):
+            sx = head - 0.12 * length * k
+            half = 0.15 * length * math.sin(math.pi * (0.12 * k / 0.62)) ** 0.8
+            self.emit(f'<path d="M{sx:.1f} {cy - half:.1f} Q{sx - 0.03 * length:.1f} {cy:.1f} {sx:.1f} {cy + half:.1f}" fill="none" '
+                      f'stroke="{rim}" stroke-width="{lw:.1f}" opacity="0.45"/>')
+        tail0 = head - 0.62 * length
+        for k in range(4):
+            tx = tail0 - 0.07 * length * k
+            self.emit(f'<rect x="{tx - 0.065 * length:.1f}" y="{cy - 0.03 * length:.1f}" width="{0.06 * length:.1f}" '
+                      f'height="{0.06 * length:.1f}" rx="{0.015 * length:.1f}" fill="url(#body-{pal})" stroke="{rim}" '
+                      f'stroke-width="{lw:.1f}" stroke-opacity="0.6"/>')
+        tip = tail0 - 0.29 * length
+        for side in (-1, 1):
+            self.emit(f'<line x1="{tip:.1f}" y1="{cy:.1f}" x2="{tip - 0.1 * length:.1f}" y2="{cy + side * 0.05 * length:.1f}" '
+                      f'stroke="{rim}" stroke-width="{lw:.1f}" opacity="0.7"/>')
+            self.emit(f'<path d="M{head - 0.04 * length:.1f} {cy + side * 0.05 * length:.1f} Q{head + 0.05 * length:.1f} '
+                      f'{cy + side * 0.32 * length:.1f} {head - 0.3 * length:.1f} {cy + side * 0.42 * length:.1f}" fill="none" '
+                      f'stroke="{rim}" stroke-width="{lw * 1.3:.1f}" opacity="0.75"/>')
+            for k in range(4):
+                lx = head - 0.2 * length - 0.08 * length * k
+                self.emit(f'<line x1="{lx:.1f}" y1="{cy + side * 0.1 * length:.1f}" x2="{lx - 0.03 * length:.1f}" '
+                          f'y2="{cy + side * 0.19 * length:.1f}" stroke="{rim}" stroke-width="{lw:.1f}" opacity="0.5"/>')
+        self.speck(head - 0.06 * length, cy, length * 0.022, EYESPOT, 0.95)
+        self.emit('</g>')
 
     # ------------------------------------------------------------ storyboard frames
     def frame_open(self, x, y, w, h, kind='field'):

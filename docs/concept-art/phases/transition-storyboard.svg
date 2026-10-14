@@ -44,6 +44,12 @@
 <radialGradient id="body-ghost" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#2a3440" stop-opacity="0.45"/><stop offset="0.55" stop-color="#0c1016" stop-opacity="0.58"/><stop offset="0.86" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.85"/></radialGradient>
 <linearGradient id="rim-ghost" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.55"/></linearGradient>
 <radialGradient id="nuc-ghost" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#a8b8c8" stop-opacity="0.9"/><stop offset="1" stop-color="#2a3440" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-golden" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c5020" stop-opacity="0.45"/><stop offset="0.55" stop-color="#241a08" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-golden" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-golden" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#6c5020" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-scarlet" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c2418" stop-opacity="0.45"/><stop offset="0.55" stop-color="#240a06" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-scarlet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-scarlet" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ff9a80" stop-opacity="0.9"/><stop offset="1" stop-color="#6c2418" stop-opacity="0.95"/></radialGradient>
 <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#b8ff9a"/><stop offset="0.45" stop-color="#63d64a"/><stop offset="1" stop-color="#1f7a2b"/></radialGradient>
 <radialGradient id="plastid-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#f2d27a"/><stop offset="0.5" stop-color="#d7a441"/><stop offset="1" stop-color="#8a5e14"/></radialGradient>
 <radialGradient id="mote-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
@@ -135,9 +141,9 @@
 <circle cx="1132" cy="749" r="1" fill="#7fb8ff" opacity="0.15"/>
 <circle cx="1603" cy="1051" r="1" fill="#9fe8f5" opacity="0.20"/>
 <text x="40.0" y="46.0" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
-<text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept P1 — OUTGROWING THE DISH · the transition, six frames</text>
-<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">Recommended shape A: the whole room moves on together when the dish era ends (10:00). One continuous camera move, no loading card. About 9 seconds.</text>
-<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · epic #761 · a concept for a decision, not a spec</text>
+<text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept P1 — THE PULL-BACK · NOT CHOSEN (kept for the record)</text>
+<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">Ticket #786 chose C, seamless: you keep control the whole time. The chosen move is sheet P1b (transition-seamless.png); this was option A.</text>
+<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · not chosen on ticket #786 · see docs/game-design/phases.md §14.4</text>
 <text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">dark-field language of sheets 01 and 04 · zero raster</text>
 <clipPath id="frame1"><rect x="40" y="100" width="580" height="330" rx="8"/></clipPath>
 <g clip-path="url(#frame1)">
@@ -1483,4 +1489,7 @@
 <rect x="1728.0" y="1014" width="148.0" height="12" rx="6" fill="#7fe7f5" opacity="0.35"/>
 <text x="1732.0" y="1008.0" fill="#cfdbe6" font-size="10.5" font-weight="500" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">6 · play</text>
 <text x="1424.0" y="1042.0" fill="#ffb15a" font-size="10.5" font-weight="500" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">input off for 4 s only (10:00 to 10:04) · the pull back is the reward, keep it short</text>
+<rect x="30" y="90" width="1860" height="980" rx="10" fill="#04070d" opacity="0.35"/>
+<rect x="827.0" y="545.0" width="433" height="24" rx="12" fill="#7d8da1" fill-opacity="0.1" stroke="#7d8da1" stroke-width="1.4"/>
+<text x="840.0" y="562.0" fill="#7d8da1" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">NOT CHOSEN · ticket #786 chose C, seamless: sheet P1b</text>
 </svg>

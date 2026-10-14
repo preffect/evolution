@@ -10,8 +10,8 @@ art = Sheet(1920, 1080, 7830, 'Evolution — phases concept S3: three ways the m
             'A: one continuous camera pull-back. B: a results screen, then a chapter card. C: seamless, the pond fades in around you '
             'while you keep playing. Four frames each. Code-drawn.')
 art.header('concept S3 — HOW THE MOVE FEELS · three options, four frames each',
-           'The same moment in each row: the dish era ends, and you arrive in the pond.',
-           'ticket #782 · epic #761', 'dark-field language of sheets 01 and 04 · zero raster')
+           'The same moment in each row: the dish era ends, and you arrive in the rock pool (the decisions called it the pond).',
+           'decided: ticket #786 C · design: docs/game-design/phases.md §14.4', 'dark-field language of sheets 01 and 04 · zero raster')
 FW, FH = 330, 190
 XS = (340, 730, 1120, 1510)
 
@@ -43,7 +43,7 @@ def row_label(y, letter, name, lines, colour):
 
 # ---------------------------------------------------------------- A · pull back
 y = 110
-row_label(y, 'A', 'Pull back', ['one continuous camera move', 'about 4 s without control', 'the storyboard (sheet P1)', 'recommended: it shows the', 'scale, which is the lesson'], GOOD)
+row_label(y, 'A', 'Pull back', ['one continuous camera move', 'about 4 s without control', 'the storyboard (sheet P1)', 'it was the recommendation;', 'the human chose C'], MUTED)
 dish_close(XS[0], y)
 close(XS[0], y, 1, 'the rim glows')
 art.frame_open(XS[1], y, FW, FH)
@@ -60,7 +60,7 @@ close(XS[3], y, 4, 'you, small again', GOOD)
 
 # ---------------------------------------------------------------- B · chapter card
 y = 420
-row_label(y, 'B', 'Chapter card', ['results for the dish (20 s),', 'then a title card with one', 'real fact, then the pond', 'clear and calm, but a stop', 'in the middle of the game'], WARN)
+row_label(y, 'B', 'Chapter card', ['results for the dish (20 s),', 'then a title card with one', 'real fact, then the pond', 'clear and calm, but a stop', 'in the middle of the game'], MUTED)
 dish_close(XS[0], y)
 close(XS[0], y, 1, 'the dish era ends')
 art.frame_open(XS[1], y, FW, FH)
@@ -80,7 +80,7 @@ close(XS[3], y, 4, 'fade in')
 
 # ---------------------------------------------------------------- C · seamless
 y = 730
-row_label(y, 'C', 'Seamless', ['you never stop playing: the', 'pond fades in around you and', 'the camera eases out', 'smooth, but the jump in scale', 'is easy to miss or misread'], WARN)
+row_label(y, 'C', 'Seamless', ['you never stop playing: the', 'pool fades in around you and', 'the camera eases out by ten;', 'the shrinking dish ring makes', 'the jump readable (sheet P1b)'], GOOD)
 dish_close(XS[0], y)
 close(XS[0], y, 1, 'play on')
 for k, fade in ((1, 0.35), (2, 0.75)):
@@ -91,9 +91,14 @@ for k, fade in ((1, 0.35), (2, 0.75)):
         art.chlamy(x + art.rng.uniform(15, FW - 15), y + art.rng.uniform(15, FH - 15), 2.6, heading=art.rng.uniform(0, 360))
     art.emit(f'<circle cx="{x - 500}" cy="{y + 95}" r="790" fill="none" stroke="{ACCENT}" stroke-width="3" opacity="{0.8 - fade:.2f}"/>')
     art.euglena(x + 160, y + 100, 150 - 70 * fade, heading=-20)
-    close(x, y, k + 1, 'the rim dissolves' if k == 1 else 'the pond around you')
+    close(x, y, k + 1, 'the rim dissolves' if k == 1 else 'the pool around you')
 pond_arrival(XS[3], y)
 close(XS[3], y, 4, 'already playing')
+art.dim(30, 100, 1830, 290)
+art.stamp(300, 260, False, 'was recommended')
+art.dim(30, 410, 1830, 290)
+art.stamp(300, 570, False)
+art.stamp(300, 880, True, 'ticket #786')
 for yy in (110, 420, 730):
     for k in range(3):
         art.chevron(XS[k] + FW + 30, yy + FH / 2)

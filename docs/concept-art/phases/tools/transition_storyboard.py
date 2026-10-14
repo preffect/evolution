@@ -9,9 +9,9 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else 'docs/concept-art/phases/transition-
 art = Sheet(1920, 1080, 7822, 'Evolution — phases concept P1: outgrowing the dish, a storyboard',
             'Six frames from taking a form in the dish to arriving in the pond: the camera pulls back until the dish is one drop, '
             'the drop opens, and the player is small again. Code-drawn.')
-art.header('concept P1 — OUTGROWING THE DISH · the transition, six frames',
-           'Recommended shape A: the whole room moves on together when the dish era ends (10:00). One continuous camera move, no loading card. About 9 seconds.',
-           'ticket #782 · epic #761 · a concept for a decision, not a spec', 'dark-field language of sheets 01 and 04 · zero raster')
+art.header('concept P1 — THE PULL-BACK · NOT CHOSEN (kept for the record)',
+           'Ticket #786 chose C, seamless: you keep control the whole time. The chosen move is sheet P1b (transition-seamless.png); this was option A.',
+           'ticket #782 · not chosen on ticket #786 · see docs/game-design/phases.md §14.4', 'dark-field language of sheets 01 and 04 · zero raster')
 
 FW, FH = 580, 330
 COLS = (40, 670, 1300)
@@ -139,4 +139,6 @@ for name, t0, t1 in steps:
     art.emit(f'<rect x="{xa:.1f}" y="{TY - 6}" width="{max(3, xb - xa - 4):.1f}" height="12" rx="6" fill="{ACCENT}" opacity="0.35"/>')
     art.text(xa + 4, TY - 12, name, 10.5, TEXT, 500, mono=True)
 art.text(X0 + (X1 - X0) * 0.7, TY + 22, 'input off for 4 s only (10:00 to 10:04) · the pull back is the reward, keep it short', 10.5, WARN, 500, 'middle', mono=True)
+art.dim(30, 90, 1860, 980, 0.35)
+art.stamp(1260, 560, False, 'ticket #786 chose C, seamless: sheet P1b')
 art.save(OUT)

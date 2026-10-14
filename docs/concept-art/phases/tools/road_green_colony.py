@@ -1,89 +1,73 @@
 #!/usr/bin/env python3
-"""Sheet R1: the green road, one cell to a Volvox ball (the volvocine ladder), for the euglena (ticket #782)."""
+"""Sheet R1: the light road (was the green road), one cell to a great Phaeocystis ball, for the euglena (ticket #782;
+decided on ticket #790 A, docs/game-design/phases.md §14.9.1)."""
 import math
 import sys
 
-from phase_art import ACCENT, EYESPOT, GOOD, MUTED, PALETTES, PANEL, PICK, TEXT, WARN, Sheet
+from phase_art import ACCENT, GOOD, MUTED, PALETTES, PANEL, PICK, TEXT, WARN, Sheet
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'docs/concept-art/phases/road-green-colony.svg'
-art = Sheet(1920, 1080, 7824, 'Evolution — phases concept R1: the green road, from one cell to a Volvox ball',
-            'The volvocine ladder as a multicell path: Chlamydomonas, a stuck pair, Tetrabaena, Gonium, Pandorina, Eudorina, '
-            'Volvox. With the body controls, damage and spare lives, and the real biology. Code-drawn.')
-art.header('concept R1 — THE GREEN ROAD · one cell to a rolling ball',
-           'For the euglena (and any green swimmer). Every step below is a real alga alive today, except the pair. '
-           'Drawn larger at each step, not to true scale: the last is about 50× the first.',
-           'ticket #782 · epic #761 · builds on the ticket #28 research', 'dark-field language of sheets 01 and 04 · zero raster')
+art = Sheet(1920, 1080, 7824, 'Evolution — phases concept R1: the light road, from one cell to a great Phaeocystis ball',
+            'The euglena\'s road in sea water: a stuck pair, then Phaeocystis, a sea-water colony of light-fed cells in a skin of '
+            'mucus, from four cells to a ball centimetres across. With the body controls, damage and spare lives, and the real '
+            'biology. Code-drawn.')
+art.header('concept R1 — THE LIGHT ROAD · one cell to a great ball (was the green road)',
+           'For the euglena. Volvox and its whole family live in fresh water, so on the kelp shore the road is Phaeocystis, a sea-water colony. '
+           'Drawn larger at each step, not to true scale.',
+           'decided: ticket #790 A · design: docs/game-design/phases.md §14.9.1', 'cell counts are game values · zero raster')
 
 art.panel(40, 90, 1840, 470, 'A · THE LADDER — what you become, one level-up at a time', None)
 Y = 290
-G = PALETTES['green']
+GOLD = PALETTES['golden']
 
-# 1 · Chlamydomonas
+# 1 · your euglena
 x = 130
-art.chlamy(x, Y, 30, heading=-90, detail=True)
-art.stage_label(x, 470, '1 · Green swimmer', ['1 cell · ~10 µm', 'Chlamydomonas', 'how it starts: your cell'])
+art.euglena(x, Y, 120, heading=-60)
+art.stage_label(x, 470, '1 · Your euglena', ['1 cell', 'Eutreptiella in the sea', 'your form, from 17:00'])
 
 # 2 · the stuck pair (game step)
 x = 350
-art.jelly(x, Y, 62)
-art.chlamy(x - 26, Y, 24, heading=-100)
-art.chlamy(x + 26, Y, 24, heading=-80)
+art.jelly(x, Y, 66, 'golden')
+art.euglena(x - 22, Y, 70, heading=-100)
+art.euglena(x + 22, Y, 70, heading=-80)
 art.stage_label(x, 470, '2 · Stuck pair', ['2 cells', 'a game step, not a species', 'divide, and stay together'], PICK)
 
-# 3 · Tetrabaena
+# 3 · four in a skin of mucus
 x = 580
-art.jelly(x, Y, 70)
+art.jelly(x, Y, 70, 'golden')
 for (dx, dy) in ((-22, -22), (22, -22), (-22, 22), (22, 22)):
-    art.chlamy(x + dx, Y + dy, 21, heading=math.degrees(math.atan2(dy, dx)))
-art.stage_label(x, 470, '3 · Square of four', ['4 cells · ~20 µm', 'Tetrabaena', 'too big for a paramecium'])
+    art.mini_cell(x + dx, Y + dy, 18, 'golden', halo=0.1)
+art.stage_label(x, 470, '3 · Four in a skin', ['4 cells', 'a young Phaeocystis colony', 'a shared skin of mucus'])
 
-# 4 · Gonium plate (seen at a tilt)
+# 4 · a small ball
 x = 830
-art.emit(f'<ellipse cx="{x}" cy="{Y}" rx="98" ry="62" fill="{G[1]}" opacity="0.07" stroke="{G[1]}" stroke-opacity="0.4" stroke-dasharray="3 3"/>')
-cells = [(-0.25, -0.25), (0.25, -0.25), (-0.25, 0.25), (0.25, 0.25)]
-for k in range(12):
-    a = 2 * math.pi * k / 12 + 0.26
-    cells.append((0.72 * math.cos(a), 0.72 * math.sin(a)))
-for (u, v) in sorted(cells, key=lambda c: c[1]):
-    cx, cy = x + 110 * u, Y + 68 * v
-    if u * u + v * v > 0.3:
-        art.whip(cx, cy, math.degrees(math.atan2(v * 0.62, u)) + 20, 26, waves=1, amp=4, width=1, colour=G[1], glow=False)
-    art.mini_cell(cx, cy, 14, 'green', halo=0)
-    art.speck(cx + 5, cy - 4, 2.2, EYESPOT, 0.8)
-art.stage_label(x, 470, '4 · Rowing plate', ['16 cells · ~60 µm', 'Gonium', 'edge whips row together'])
+art.sphere_cells(x, Y, 62, 30, 13, pal='golden')
+art.stage_label(x, 470, '4 · Small ball', ['16 cells', 'Phaeocystis', 'too big for ciliates'])
 
-# 5 · Pandorina ball
-x = 1080
-art.sphere_cells(x, Y, 58, 16, 20, jelly=True)
-art.stage_label(x, 470, '5 · Tight ball', ['16 cells · ~80 µm', 'Pandorina', 'rolls: turns on the spot'])
+# 5 · a hollow ball, in the copepod's window
+x = 1110
+art.sphere_cells(x, Y, 92, 110, 7, pal='golden')
+art.emit(f'<circle cx="{x}" cy="{Y}" r="112" fill="none" stroke="{WARN}" stroke-width="1.4" stroke-dasharray="8 6" opacity="0.7"/>')
+art.stage_label(x, 470, '5 · Hollow ball', ['64 cells', 'Phaeocystis', 'in the copepod\'s window'], WARN)
 
-# 6 · Eudorina hollow ball
-x = 1320
-art.sphere_cells(x, Y, 80, 36, 13, jelly=True)
-art.stage_label(x, 470, '6 · Hollow ball', ['32 cells · ~150 µm', 'Eudorina', 'too big for a rotifer'])
-
-# 7 · Volvox with daughters
-x = 1640
-art.sphere_cells(x, Y - 10, 138, 420, 4.2, jelly=True, front=-90, eyes=True)
-for (dx, dy, dr) in ((-45, 20, 30), (40, -10, 34), (0, 70, 26), (60, 60, 20)):
-    art.sphere_cells(x + dx, Y - 10 + dy, dr, 60, 2.6, jelly=True)
-art.arrow(x + 150, Y - 120, x + 150, Y - 160, ACCENT, 1.6)
-art.text(x + 160, Y - 150, 'front', 10.5, ACCENT, 600)
-art.stage_label(x, 470, '7 · Volvox', ['500–50 000 cells · ~0.5 mm', 'babies grow inside', 'front cells see; spare lives'], GOOD)
-for cx in (240, 465, 705, 955, 1200, 1460):
+# 6 · a great ball
+x = 1550
+art.sphere_cells(x, Y - 10, 160, 520, 4.2, pal='golden')
+art.stage_label(x, 470, '6 · Great ball', ['256 cells', 'Phaeocystis: real ones to 3 cm', 'past the copepod'], GOOD)
+for cx in (240, 465, 705, 960, 1260):
     art.chevron(cx, Y)
 
 # ---------------------------------------------------------------- B · controls and the body map (mock HUD)
 art.panel(40, 580, 620, 460, 'B · STEERING A BODY OF MANY CELLS', 'you steer the whole body with the pointer, as today; cells are slots')
 BX, BY, BR = 210, 830, 118
 art.emit(f'<circle cx="{BX}" cy="{BY}" r="{BR + 18}" fill="{PANEL}" stroke="{ACCENT}" stroke-opacity="0.3"/>')
-jobs = {'whip': PICK, 'eye': EYESPOT, 'germ': GOOD, 'plain': G[0], 'empty': '#2a3440'}
-ring = ['eye', 'eye', 'whip', 'plain', 'whip', 'plain', 'whip', 'plain', 'whip', 'plain', 'whip', 'eye']
+jobs = {'light': '#b8ff9a', 'mucus': '#a9dcef', 'swarmer': PICK, 'plain': GOLD[2], 'empty': '#2a3440'}
+ring = ['light', 'light', 'mucus', 'plain', 'mucus', 'plain', 'light', 'plain', 'mucus', 'plain', 'light', 'plain']
 for k, job in enumerate(ring):
     a = -math.pi / 2 + 2 * math.pi * k / len(ring) - math.pi / 12
     art.emit(f'<circle cx="{BX + BR * math.cos(a):.1f}" cy="{BY + BR * math.sin(a):.1f}" r="17" fill="{jobs[job]}" '
              f'fill-opacity="0.75" stroke="#ffffff" stroke-opacity="0.5"/>')
-inner = ['germ', 'plain', 'empty', 'empty']
+inner = ['swarmer', 'plain', 'empty', 'empty']
 for k, job in enumerate(inner):
     a = -math.pi / 4 + math.pi / 2 * k
     dash = ' stroke-dasharray="3 3"' if job == 'empty' else ''
@@ -91,50 +75,48 @@ for k, job in enumerate(inner):
              f'fill-opacity="0.75" stroke="#ffffff" stroke-opacity="0.5"{dash}/>')
 art.arrow(BX, BY - BR - 22, BX, BY - BR - 44, ACCENT, 1.6)
 art.text(BX + 10, BY - BR - 30, 'heading', 10, ACCENT, 600)
-legend = [('whip cell', PICK, 'edge: +speed while it beats'), ('eye cell', EYESPOT, 'front: sees food and light farther'),
-          ('germ cell', GOOD, 'inside: a spare life (a daughter)'), ('plain cell', G[0], 'feeds in light; armour by bulk'),
-          ('empty slot', '#2a3440', 'the next level-up fills one')]
+legend = [('light cell', '#b8ff9a', 'grows faster in the light patch'), ('mucus cell', '#a9dcef', 'a thicker skin: harder to bite'),
+          ('swarmer cell', PICK, 'a spare life: swims off, starts again'), ('plain cell', GOLD[2], 'no job yet'),
+          ('empty slot', '#2a3440', 'a bitten cell, growing back')]
 for i, (name, col, what) in enumerate(legend):
     ly = 690 + i * 44
     art.emit(f'<circle cx="{392}" cy="{ly - 4}" r="9" fill="{col}" fill-opacity="0.8" stroke="#ffffff" stroke-opacity="0.5"/>')
     art.text(410, ly, name, 12, TEXT, 700)
     art.text(410, ly + 16, what, 10.5, MUTED, 400, mono=True)
-art.lines(60, 990, ['Level-up = pick a job for one more cell (3 cards, as today).', 'The body turns as one; a wider body turns slower.'], 11.5, TEXT, 17)
+art.lines(60, 990, ['Level-up: the next step (one card is kept for it) or a job.', 'The body turns as one; a wider body turns slower.'], 11.5, TEXT, 17)
 
 # ---------------------------------------------------------------- C · hurt, death, spare lives
 art.note_panel(680, 580, 580, 460, 'C · GETTING HURT, AND SPARE LIVES', [
     '§ A bite takes a cell, not your life',
-    '• A predator that catches your edge eats one cell.',
-    '• You lose that cell\'s job (a whip cell lost = slower).',
-    '• Below 4 cells you are a single cell again: fragile.',
-    '§ Germ cells are spare lives (Volvox only)',
-    '• Volvox grows daughter balls inside itself.',
-    '• If your body dies, a daughter swims out and you',
-    '  keep playing from there, smaller, with your jobs.',
-    '§ Why it matters to the player',
-    '• Many cells = hard to kill. That is the real reason',
-    '  multicellular life won: it escaped its predators.',
-    '• Size also brings a problem: the ball is slow to',
-    '  turn, so small fast hunters still pick at the edge.',
+    '• Only a predator big enough to swallow the whole ball',
+    '  can bite it; it takes one cell, and that cell\'s job.',
+    '• Anything smaller cannot hurt you: the size refuge.',
+    '• Down to one cell you are your euglena again: fragile.',
+    '§ Swarmer cells are spare lives',
+    '• When the body dies, a swarmer swims off and you go on',
+    '  from there, one step smaller, with your jobs.',
+    '§ The copepod\'s window',
+    '• Single cells: ciliates eat them.',
+    '• Mid-sized balls: the copepod eats them.',
+    '• The great ball: too big for almost anything.',
 ], 'the colony\'s answer to the dish\'s "one hit and you respawn"')
 
 # ---------------------------------------------------------------- D · the real story
-art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and one honest caveat', [
+art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and honest caveats', [
     '§ True',
-    '• Every alga on the ladder is alive today; together they',
-    '  replay how this family went multicellular, ~200 million',
-    '  years ago (Herron et al., PNAS 2009).',
-    '• Volvox front cells have bigger eyespots and steer the',
-    '  ball into light (Ueki et al., BMC Biology 2010).',
-    '• In the lab, a single-cell green alga evolved clusters',
-    '  within ~750 generations when a paramecium hunted it',
-    '  (Herron et al., Scientific Reports 2019).',
-    '§ Caveat for the encyclopedia',
-    '• Euglena itself never did this. Its green look-alikes',
-    '  (Chlamydomonas\'s family) did. The game gives the',
-    '  euglena player their road and says so.',
-    '~ also: Kirk, BioEssays 2005, "a twelve-step program"',
-], 'sources in the proposal on ticket #782')
-art.footer('R1 · the green road · cell counts and sizes are the real organisms\'; game numbers are proposals',
+    '• Phaeocystis swims as single cells of 4–6 µm and builds',
+    '  colonies up to 3 cm across, big enough to see.',
+    '• Grazers change it: ciliate smells bring more colonies,',
+    '  copepod smells fewer (Long et al., PNAS 2007).',
+    '• Copepods eat mid-sized colonies; the biggest are too big',
+    '  for most grazers (Nejstgaard et al. 2007).',
+    '§ Caveats for the encyclopedia',
+    '• Euglena never did this, and Phaeocystis is no relative:',
+    '  a golden-brown haptophyte, fed by light like you.',
+    '• Volvox and all its family live in fresh water.',
+    '• Real colonies drift with the water; in the game you steer.',
+    '~ design: docs/game-design/phases.md §14.9.1',
+], 'sources in docs/game-design/phases.md §14.16')
+art.footer('R1 · the light road · real sizes are the organisms\'; cell counts and game numbers are §14.14 tuning values',
            'docs/concept-art/phases/road-green-colony.svg · 1920 × 1080')
 art.save(OUT)

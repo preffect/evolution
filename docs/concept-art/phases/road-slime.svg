@@ -44,6 +44,12 @@
 <radialGradient id="body-ghost" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#2a3440" stop-opacity="0.45"/><stop offset="0.55" stop-color="#0c1016" stop-opacity="0.58"/><stop offset="0.86" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.85"/></radialGradient>
 <linearGradient id="rim-ghost" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.55"/></linearGradient>
 <radialGradient id="nuc-ghost" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#a8b8c8" stop-opacity="0.9"/><stop offset="1" stop-color="#2a3440" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-golden" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c5020" stop-opacity="0.45"/><stop offset="0.55" stop-color="#241a08" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-golden" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-golden" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#6c5020" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-scarlet" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c2418" stop-opacity="0.45"/><stop offset="0.55" stop-color="#240a06" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-scarlet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-scarlet" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ff9a80" stop-opacity="0.9"/><stop offset="1" stop-color="#6c2418" stop-opacity="0.95"/></radialGradient>
 <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#b8ff9a"/><stop offset="0.45" stop-color="#63d64a"/><stop offset="1" stop-color="#1f7a2b"/></radialGradient>
 <radialGradient id="plastid-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#f2d27a"/><stop offset="0.5" stop-color="#d7a441"/><stop offset="1" stop-color="#8a5e14"/></radialGradient>
 <radialGradient id="mote-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
@@ -137,8 +143,8 @@
 <text x="40.0" y="46.0" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
 <text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept R2 — THE GATHERING ROAD · come together instead of staying together</text>
 <text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">For the amoeba. The other way life went multicellular: separate cells crawl together into one body. Drawn larger at each step, not to true scale.</text>
-<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · epic #761 · a strong fit for playing together (ticket #79)</text>
-<text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">dark-field language of sheets 01 and 04 · zero raster</text>
+<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">decided: tickets #785 A, #790 A · design: docs/game-design/phases.md §14.9.2</text>
+<text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">co-op (ticket #79) stays "not yet" · zero raster</text>
 <rect x="40" y="90" width="1840" height="470" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
 <text x="56.0" y="116.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">A · THE LADDER — from a crowd of hungry cells to a tower</text>
 <clipPath id="clip1"><path d="M200.1 290.0 C200.5 291.1 200.7 292.2 200.5 293.3 C200.3 294.4 199.6 295.5 198.8 296.4 C197.9 297.4 196.6 298.3 195.3 299.0 C194.0 299.8 192.5 300.4 191.1 301.0 C189.7 301.6 188.2 302.1 186.9 302.5 C185.6 303.0 184.4 303.4 183.4 303.8 C182.4 304.3 181.5 304.7 180.7 305.1 C179.9 305.6 179.2 306.0 178.6 306.5 C178.0 307.0 177.5 307.5 177.0 308.0 C176.4 308.5 176.0 309.0 175.5 309.6 C175.0 310.1 174.6 310.6 174.1 311.1 C173.6 311.6 173.1 312.1 172.6 312.6 C172.1 313.1 171.6 313.6 171.1 314.0 C170.6 314.5 170.0 314.9 169.5 315.4 C168.9 315.8 168.3 316.2 167.8 316.6 C167.2 317.0 166.6 317.3 166.0 317.7 C165.4 318.0 164.8 318.4 164.1 318.7 C163.5 319.0 162.9 319.3 162.2 319.5 C161.6 319.8 160.9 320.0 160.3 320.3 C159.6 320.5 158.9 320.7 158.3 320.9 C157.6 321.1 156.9 321.2 156.2 321.3 C155.6 321.5 154.9 321.6 154.2 321.7 C153.5 321.8 152.8 321.8 152.1 321.9 C151.4 321.9 150.7 322.0 150.0 322.0 C149.3 322.0 148.6 321.9 147.9 321.9 C147.2 321.8 146.5 321.8 145.8 321.7 C145.1 321.6 144.4 321.5 143.8 321.3 C143.1 321.2 142.4 321.1 141.7 320.9 C141.1 320.7 140.4 320.5 139.7 320.3 C139.1 320.1 138.4 319.8 137.8 319.6 C137.1 319.3 136.5 319.0 135.8 318.7 C135.2 318.5 134.5 318.2 133.9 317.9 C133.2 317.6 132.6 317.3 131.9 317.1 C131.2 316.9 130.5 316.7 129.7 316.5 C128.8 316.4 128.0 316.3 127.0 316.2 C126.0 316.2 124.9 316.2 123.7 316.3 C122.5 316.3 121.1 316.5 119.7 316.6 C118.2 316.7 116.6 316.8 115.1 316.8 C113.5 316.8 111.9 316.7 110.5 316.4 C109.1 316.1 107.7 315.6 106.7 315.0 C105.7 314.3 105.0 313.4 104.6 312.4 C104.2 311.4 104.2 310.1 104.4 308.9 C104.7 307.6 105.3 306.2 106.0 304.9 C106.7 303.6 107.8 302.3 108.7 301.1 C109.6 299.9 110.7 298.7 111.5 297.6 C112.4 296.6 113.3 295.6 114.0 294.7 C114.7 293.8 115.3 293.0 115.8 292.2 C116.3 291.5 116.6 290.7 116.9 290.0 C117.2 289.3 117.4 288.6 117.6 287.9 C117.8 287.2 118.0 286.5 118.1 285.8 C118.3 285.1 118.4 284.4 118.6 283.8 C118.8 283.1 118.9 282.4 119.1 281.7 C119.3 281.1 119.5 280.4 119.7 279.7 C120.0 279.1 120.2 278.4 120.5 277.8 C120.7 277.1 121.0 276.5 121.3 275.8 C121.6 275.2 121.9 274.6 122.2 273.9 C122.5 273.3 122.8 272.7 123.1 272.0 C123.4 271.4 123.7 270.7 123.9 270.0 C124.1 269.2 124.3 268.5 124.5 267.6 C124.6 266.7 124.7 265.8 124.7 264.7 C124.8 263.6 124.7 262.4 124.7 261.1 C124.6 259.8 124.5 258.3 124.5 256.8 C124.5 255.3 124.5 253.6 124.7 252.1 C124.9 250.6 125.1 249.0 125.6 247.8 C126.1 246.6 126.8 245.4 127.7 244.7 C128.5 244.0 129.6 243.6 130.7 243.5 C131.9 243.5 133.2 243.8 134.5 244.3 C135.8 244.8 137.1 245.7 138.4 246.6 C139.6 247.5 140.8 248.6 142.0 249.6 C143.1 250.6 144.1 251.6 145.1 252.4 C146.0 253.3 146.9 254.1 147.7 254.7 C148.5 255.4 149.3 255.9 150.0 256.3 C150.7 256.7 151.4 257.0 152.1 257.3 C152.8 257.6 153.5 257.8 154.2 258.0 C154.9 258.2 155.6 258.3 156.3 258.5 C156.9 258.7 157.6 258.9 158.3 259.1 C159.0 259.3 159.6 259.5 160.3 259.7 C160.9 260.0 161.6 260.2 162.2 260.5 C162.9 260.7 163.5 261.0 164.1 261.3 C164.8 261.6 165.4 262.0 166.0 262.3 C166.6 262.7 167.2 263.0 167.8 263.4 C168.3 263.8 168.9 264.2 169.5 264.6 C170.0 265.1 170.5 265.5 171.1 266.0 C171.6 266.4 172.1 266.9 172.6 267.4 C173.1 267.9 173.6 268.4 174.0 268.9 C174.5 269.4 174.9 270.0 175.4 270.5 C175.8 271.1 176.2 271.6 176.7 272.2 C177.1 272.7 177.5 273.3 177.9 273.9 C178.4 274.4 178.8 275.0 179.3 275.6 C179.8 276.1 180.3 276.7 180.9 277.2 C181.6 277.7 182.3 278.2 183.1 278.8 C184.0 279.3 185.0 279.8 186.1 280.3 C187.2 280.9 188.5 281.4 189.8 282.1 C191.1 282.7 192.6 283.4 193.9 284.2 C195.2 285.0 196.6 285.9 197.6 286.9 C198.6 287.8 199.6 288.9 200.1 290.0 Z"/></clipPath>
@@ -1057,33 +1063,33 @@
 <path d="M605 281 L615 290 L605 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M900 281 L910 290 L900 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M1320 281 L1330 290 L1320 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-<text x="1720.0" y="200.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">The end of this road is</text>
-<text x="1720.0" y="218.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">a finish, not a fight:</text>
-<text x="1720.0" y="236.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">fruit at the bank before</text>
-<text x="1720.0" y="254.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">the pond clock runs out.</text>
+<text x="1760.0" y="300.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">The end of this road is</text>
+<text x="1760.0" y="318.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">a finish, not a fight:</text>
+<text x="1760.0" y="336.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">crawl out onto the wet rock</text>
+<text x="1760.0" y="354.0" fill="#cfdbe6" font-size="12" font-weight="600" text-anchor="middle">at the pool's edge and fruit.</text>
 <rect x="40" y="580" width="600" height="460" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
 <text x="56.0" y="606.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">B · HOW YOU PLAY IT: THE CALL</text>
 <text x="56.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">steer with the pointer, as today; one extra key</text>
 <text x="56.0" y="648.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">You recruit cells instead of growing them</text>
 <text x="60.0" y="665.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="74.0" y="665.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Press CALL: a ring of signal spreads from you.</text>
+<text x="74.0" y="665.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Press the ability key (E): a ring of signal spreads.</text>
 <text x="60.0" y="682.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="74.0" y="682.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Wild amoebae inside the ring stream in and join</text>
-<text x="74.0" y="699.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">your body; each one is +1 cell (the other roads</text>
-<text x="74.0" y="716.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">divide instead).</text>
+<text x="74.0" y="682.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Small amoebae on the bacteria films inside the ring</text>
+<text x="74.0" y="699.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">stream in and join you; each one is +1 cell (the</text>
+<text x="74.0" y="716.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">other roads divide instead).</text>
 <text x="60.0" y="733.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="74.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">The call costs food; a bigger crowd needs more.</text>
+<text x="74.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Each step raises how many cells you can hold.</text>
 <text x="56.0" y="754.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">Mound, then slug</text>
 <text x="60.0" y="771.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="74.0" y="771.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">At 16 cells you heap into a mound, at 32 a slug.</text>
 <text x="60.0" y="788.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="74.0" y="788.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">The slug crawls on the pond floor only; it is</text>
-<text x="74.0" y="805.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">slow to turn but nothing on the floor can eat it.</text>
+<text x="74.0" y="788.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">The slug is faster than any one amoeba and heads</text>
+<text x="74.0" y="805.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">for the bank, the wet rock at the pool's edge.</text>
 <text x="56.0" y="826.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">Fruiting</text>
 <text x="60.0" y="843.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="74.0" y="843.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Reach the bank and hold: your front fifth becomes</text>
+<text x="74.0" y="843.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">On the bank, hold the key 3 s: a fifth of you becomes</text>
 <text x="74.0" y="860.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">the stalk, the rest spores. Big score, then you</text>
-<text x="74.0" y="877.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">spectate or start again as one amoeba.</text>
+<text x="74.0" y="877.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">start again as one amoeba, the road open again.</text>
 <rect x="660" y="580" width="600" height="460" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
 <text x="676.0" y="606.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">C · PLAYING TOGETHER — the co-op option</text>
 <text x="676.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">optional; the road stands without it</text>
@@ -1092,9 +1098,9 @@
 <text x="694.0" y="665.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Cells from different families answer the same</text>
 <text x="694.0" y="682.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">call and build one slug (a "chimera").</text>
 <text x="680.0" y="699.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="694.0" y="699.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">In the game: two amoeba players could merge. The</text>
-<text x="694.0" y="716.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">one with more cells steers; the other adds cells</text>
-<text x="694.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">and shares the fruiting score.</text>
+<text x="694.0" y="699.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">In the game, later: two amoeba players could merge.</text>
+<text x="694.0" y="716.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Not in this build: another player's body never</text>
+<text x="694.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">joins yours.</text>
 <text x="676.0" y="754.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">And the real twist: cheaters</text>
 <text x="680.0" y="771.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="694.0" y="771.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Some strains dodge the stalk and end up as spores</text>
@@ -1104,12 +1110,12 @@
 <text x="694.0" y="822.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">when you fruit scores more.</text>
 <text x="676.0" y="843.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">Status</text>
 <text x="680.0" y="860.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="694.0" y="860.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Ticket #79 (co-op fusion) is "not yet" by your</text>
-<text x="694.0" y="877.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">call. This road works solo with wild amoebae; co-op</text>
-<text x="694.0" y="894.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">can be added later without redesign.</text>
+<text x="694.0" y="860.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Ticket #79 (co-op fusion) is still "not yet". The</text>
+<text x="694.0" y="877.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">road works solo with small amoebae; co-op can be</text>
+<text x="694.0" y="894.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">added later without redesign.</text>
 <rect x="1280" y="580" width="600" height="460" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
-<text x="1296.0" y="606.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">D · THE REAL STORY — and one honest caveat</text>
-<text x="1296.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">sources in the proposal on ticket #782</text>
+<text x="1296.0" y="606.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">D · THE REAL STORY — and honest caveats</text>
+<text x="1296.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">sources in docs/game-design/phases.md §14.16</text>
 <text x="1296.0" y="648.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">True</text>
 <text x="1300.0" y="665.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="1314.0" y="665.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Dictyostelium lives as single amoebae while food</text>
@@ -1121,11 +1127,12 @@
 <text x="1314.0" y="750.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">the stalk that lifts the spores.</text>
 <text x="1296.0" y="771.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">Caveat for the encyclopedia</text>
 <text x="1300.0" y="788.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="1314.0" y="788.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">The game's amoeba (Amoeba proteus, ~0.5 mm) never</text>
-<text x="1314.0" y="805.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">does this. Its small cousins, the social amoebae</text>
-<text x="1314.0" y="822.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">(~10 µm each), do. Both are amoebozoans.</text>
-<text x="1314.0" y="839.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Bonner, "The Social Amoebae", Princeton 2009</text>
-<text x="1314.0" y="856.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Kessin, "Dictyostelium", Cambridge 2001</text>
-<text x="40.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">R2 · the gathering road · sizes and fractions are the real organism's; game numbers are proposals</text>
+<text x="1314.0" y="788.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">The game's amoeba never does this, nor do forams,</text>
+<text x="1314.0" y="805.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">its sea-water cousins. Its small cousins the social</text>
+<text x="1314.0" y="822.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">amoebae do, on land: damp soil and leaf litter. So</text>
+<text x="1314.0" y="839.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">the road ends out of the water, on the bank.</text>
+<text x="1314.0" y="856.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Bonner, "The Social Amoebae", Princeton 2009</text>
+<text x="1314.0" y="873.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Kessin, "Dictyostelium", Cambridge 2001</text>
+<text x="40.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">R2 · the gathering road · sizes and fractions are the real organism's; game numbers are §14.14 tuning values</text>
 <text x="1880.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="end" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">docs/concept-art/phases/road-slime.svg · 1920 × 1080</text>
 </svg>

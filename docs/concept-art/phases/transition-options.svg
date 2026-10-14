@@ -44,6 +44,12 @@
 <radialGradient id="body-ghost" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#2a3440" stop-opacity="0.45"/><stop offset="0.55" stop-color="#0c1016" stop-opacity="0.58"/><stop offset="0.86" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.85"/></radialGradient>
 <linearGradient id="rim-ghost" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.55"/></linearGradient>
 <radialGradient id="nuc-ghost" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#a8b8c8" stop-opacity="0.9"/><stop offset="1" stop-color="#2a3440" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-golden" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c5020" stop-opacity="0.45"/><stop offset="0.55" stop-color="#241a08" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-golden" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-golden" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#6c5020" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-scarlet" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c2418" stop-opacity="0.45"/><stop offset="0.55" stop-color="#240a06" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-scarlet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-scarlet" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ff9a80" stop-opacity="0.9"/><stop offset="1" stop-color="#6c2418" stop-opacity="0.95"/></radialGradient>
 <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#b8ff9a"/><stop offset="0.45" stop-color="#63d64a"/><stop offset="1" stop-color="#1f7a2b"/></radialGradient>
 <radialGradient id="plastid-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#f2d27a"/><stop offset="0.5" stop-color="#d7a441"/><stop offset="1" stop-color="#8a5e14"/></radialGradient>
 <radialGradient id="mote-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
@@ -136,15 +142,15 @@
 <circle cx="293" cy="1074" r="1.3" fill="#c4f0ff" opacity="0.11"/>
 <text x="40.0" y="46.0" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
 <text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept S3 — HOW THE MOVE FEELS · three options, four frames each</text>
-<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">The same moment in each row: the dish era ends, and you arrive in the pond.</text>
-<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · epic #761</text>
+<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">The same moment in each row: the dish era ends, and you arrive in the rock pool (the decisions called it the pond).</text>
+<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">decided: ticket #786 C · design: docs/game-design/phases.md §14.4</text>
 <text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">dark-field language of sheets 01 and 04 · zero raster</text>
-<text x="40.0" y="140.0" fill="#8dff6a" font-size="16" font-weight="700" text-anchor="start">A · Pull back</text>
+<text x="40.0" y="140.0" fill="#7d8da1" font-size="16" font-weight="700" text-anchor="start">A · Pull back</text>
 <text x="40.0" y="166.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">one continuous camera move</text>
 <text x="40.0" y="183.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">about 4 s without control</text>
 <text x="40.0" y="200.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the storyboard (sheet P1)</text>
-<text x="40.0" y="217.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">recommended: it shows the</text>
-<text x="40.0" y="234.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">scale, which is the lesson</text>
+<text x="40.0" y="217.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">it was the recommendation;</text>
+<text x="40.0" y="234.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the human chose C</text>
 <clipPath id="frame1"><rect x="340" y="110" width="330" height="190" rx="8"/></clipPath>
 <g clip-path="url(#frame1)">
 <rect x="340" y="110" width="330" height="190" fill="url(#bg-field)"/>
@@ -606,7 +612,7 @@
 <circle cx="1532" cy="132" r="13" fill="#0a1422" stroke="#8dff6a" stroke-width="1.2"/>
 <text x="1532.0" y="137.0" fill="#8dff6a" font-size="13" font-weight="700" text-anchor="middle">4</text>
 <text x="1510.0" y="322.0" fill="#cfdbe6" font-size="14" font-weight="700" text-anchor="start">you, small again</text>
-<text x="40.0" y="450.0" fill="#ffb15a" font-size="16" font-weight="700" text-anchor="start">B · Chapter card</text>
+<text x="40.0" y="450.0" fill="#7d8da1" font-size="16" font-weight="700" text-anchor="start">B · Chapter card</text>
 <text x="40.0" y="476.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">results for the dish (20 s),</text>
 <text x="40.0" y="493.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">then a title card with one</text>
 <text x="40.0" y="510.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">real fact, then the pond</text>
@@ -965,12 +971,12 @@
 <circle cx="1532" cy="442" r="13" fill="#0a1422" stroke="#7fe7f5" stroke-width="1.2"/>
 <text x="1532.0" y="447.0" fill="#7fe7f5" font-size="13" font-weight="700" text-anchor="middle">4</text>
 <text x="1510.0" y="632.0" fill="#cfdbe6" font-size="14" font-weight="700" text-anchor="start">fade in</text>
-<text x="40.0" y="760.0" fill="#ffb15a" font-size="16" font-weight="700" text-anchor="start">C · Seamless</text>
+<text x="40.0" y="760.0" fill="#8dff6a" font-size="16" font-weight="700" text-anchor="start">C · Seamless</text>
 <text x="40.0" y="786.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">you never stop playing: the</text>
-<text x="40.0" y="803.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">pond fades in around you and</text>
-<text x="40.0" y="820.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the camera eases out</text>
-<text x="40.0" y="837.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">smooth, but the jump in scale</text>
-<text x="40.0" y="854.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">is easy to miss or misread</text>
+<text x="40.0" y="803.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">pool fades in around you and</text>
+<text x="40.0" y="820.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the camera eases out by ten;</text>
+<text x="40.0" y="837.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the shrinking dish ring makes</text>
+<text x="40.0" y="854.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the jump readable (sheet P1b)</text>
 <clipPath id="frame14"><rect x="340" y="730" width="330" height="190" rx="8"/></clipPath>
 <g clip-path="url(#frame14)">
 <rect x="340" y="730" width="330" height="190" fill="url(#bg-field)"/>
@@ -1301,7 +1307,7 @@
 <rect x="1120" y="730" width="330" height="190" rx="8" fill="none" stroke="#1a2a3b" stroke-width="1.2"/>
 <circle cx="1142" cy="752" r="13" fill="#0a1422" stroke="#7fe7f5" stroke-width="1.2"/>
 <text x="1142.0" y="757.0" fill="#7fe7f5" font-size="13" font-weight="700" text-anchor="middle">3</text>
-<text x="1120.0" y="942.0" fill="#cfdbe6" font-size="14" font-weight="700" text-anchor="start">the pond around you</text>
+<text x="1120.0" y="942.0" fill="#cfdbe6" font-size="14" font-weight="700" text-anchor="start">the pool around you</text>
 <clipPath id="frame20"><rect x="1510" y="730" width="330" height="190" rx="8"/></clipPath>
 <g clip-path="url(#frame20)">
 <rect x="1510" y="730" width="330" height="190" fill="url(#bg-pond)"/>
@@ -1557,6 +1563,14 @@
 <circle cx="1532" cy="752" r="13" fill="#0a1422" stroke="#7fe7f5" stroke-width="1.2"/>
 <text x="1532.0" y="757.0" fill="#7fe7f5" font-size="13" font-weight="700" text-anchor="middle">4</text>
 <text x="1510.0" y="942.0" fill="#cfdbe6" font-size="14" font-weight="700" text-anchor="start">already playing</text>
+<rect x="30" y="100" width="1830" height="290" rx="10" fill="#04070d" opacity="0.5"/>
+<rect x="59.0" y="245.0" width="241" height="24" rx="12" fill="#7d8da1" fill-opacity="0.1" stroke="#7d8da1" stroke-width="1.4"/>
+<text x="72.0" y="262.0" fill="#7d8da1" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">NOT CHOSEN · was recommended</text>
+<rect x="30" y="410" width="1830" height="290" rx="10" fill="#04070d" opacity="0.5"/>
+<rect x="197.2" y="555.0" width="103" height="24" rx="12" fill="#7d8da1" fill-opacity="0.1" stroke="#7d8da1" stroke-width="1.4"/>
+<text x="210.2" y="572.0" fill="#7d8da1" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">NOT CHOSEN</text>
+<rect x="120.4" y="865.0" width="180" height="24" rx="12" fill="#8dff6a" fill-opacity="0.18" stroke="#8dff6a" stroke-width="1.4"/>
+<text x="133.4" y="882.0" fill="#8dff6a" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">CHOSEN · ticket #786</text>
 <path d="M695 196.0 L705 205.0 L695 214.0" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M1085 196.0 L1095 205.0 L1085 214.0" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M1475 196.0 L1485 205.0 L1475 214.0" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>

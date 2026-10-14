@@ -11,7 +11,7 @@ art = Sheet(1920, 1080, 7829, 'Evolution — phases concept S2: where multicell 
             'or in a third world), and a sketch of an animal era after it. Code-drawn.')
 art.header('concept S2 — WHERE MULTICELL STARTS · and a sketch of what comes after',
            'Each row is one game, left to right. The icons are the player; the frames are the worlds.',
-           'ticket #782 · epic #761', 'dark-field language of sheets 01 and 04 · zero raster')
+           'decided: ticket #785 A · design: docs/game-design/phases.md §14', 'dark-field language of sheets 01 and 04 · zero raster')
 
 
 def world(x, y, w, h, kind, label):
@@ -47,35 +47,42 @@ def pond_big(x, y):
 
 def pond_colony(x, y):
     for (dx, dy) in ((-10, -10), (10, -10), (-10, 10), (10, 10)):
-        art.chlamy(x + 50 + dx, y + dy, 8, heading=math.degrees(math.atan2(dy, dx)))
+        art.mini_cell(x + 50 + dx, y + dy, 8, 'golden', halo=0)
+    art.jelly(x + 50, y, 24, 'golden')
     art.arrow(x + 80, y, x + 108, y, ACCENT, 1.2)
-    art.sphere_cells(x + 150, y, 26, 40, 4)
+    art.sphere_cells(x + 150, y, 26, 40, 4, pal='golden')
     art.arrow(x + 186, y, x + 214, y, ACCENT, 1.2)
-    art.sphere_cells(x + 255, y, 34, 160, 2.6, eyes=True, front=-90)
+    art.sphere_cells(x + 255, y, 34, 160, 2.6, pal='golden')
 
 
 # ---------------------------------------------------------------- A
-row(230, 'A · In the pond, after a big-protist chapter   (recommended)', GOOD, [
+row(230, 'A · In the rock pool, after a big-protist chapter', GOOD, [
     (60, 260, 'dish', 'DISH · 0–10 min', dish_icons),
-    (360, 300, 'pond', 'POND · 10–17 min', pond_big),
-    (700, 330, 'pond', 'SAME POND · 17–25 min', pond_colony),
-], ['Forms get played for 7 minutes', 'the forms were reached at 9:40 and never used; the pond gives', 'them time, and gives their tier II and III upgrades a home.',
-    'Colonies at 0.1–1 mm fit the pond\'s scale: no new world.', 'Cost: the pond is built once and used twice.'])
+    (360, 300, 'pond', 'ROCK POOL · 10–17 min', pond_big),
+    (700, 330, 'pond', 'SAME POOL · 17–25 min', pond_colony),
+], ['Forms get played for 7 minutes', 'the forms were reached at 9:40 and never used; the pool gives', 'them time, and gives their tier II and III upgrades a home.',
+    'Colonies at 0.1–1 mm fit the pool\'s scale: no new world.', 'Cost: the pool is built once and used twice.'])
 
 # ---------------------------------------------------------------- B
 row(500, 'B · Straight from the dish into colonies', WARN, [
     (60, 260, 'dish', 'DISH · 0–10 min', dish_icons),
-    (360, 330, 'pond', 'POND · colonies · 10–20 min', pond_colony),
+    (360, 330, 'pond', 'POOL · colonies · 10–20 min', pond_colony),
 ], ['Shorter game (about 20 min)', 'the form you took at 9:40 divides at 10:00, so you barely play it;', 'the paramecium and the stentor have nothing to do.',
     'Fewer new creatures to build.', 'Cost: about 8 tickets fewer than A.'])
 
 # ---------------------------------------------------------------- C
 row(770, 'C · A third world for colonies', WARN, [
     (60, 260, 'dish', 'DISH · 0–10 min', dish_icons),
-    (360, 300, 'pond', 'POND · 10–17 min', pond_big),
-    (700, 330, 'pond', 'LAKE FLOOR · 17–25 min', pond_colony),
-], ['A second pull-back at 17:00', 'more spectacle, but a second world and transition to build', 'for sizes the pond already holds (Volvox ~0.5 mm, a rotifer ~0.3 mm).',
+    (360, 300, 'pond', 'POOL · 10–17 min', pond_big),
+    (700, 330, 'pond', 'SEA FLOOR · 17–25 min', pond_colony),
+], ['A second pull-back at 17:00', 'more spectacle, but a second world and transition to build', 'for sizes the pool already holds (a Phaeocystis ball ~1 mm, a rotifer ~0.3 mm).',
     'Cost: about 6 tickets more than A.'])
+
+art.stamp(1864, 160, True, 'ticket #785')
+art.dim(40, 415, 1840, 165)
+art.stamp(1864, 430, False)
+art.dim(40, 685, 1840, 165)
+art.stamp(1864, 700, False)
 
 # ---------------------------------------------------------------- after multicell (sketch)
 art.panel(40, 880, 1840, 180, 'LATER, ONLY A SKETCH · the road to animals starts from a sixth cell, not from our five', None)
@@ -107,5 +114,6 @@ art.lines(900, 940, [
     'Animals come from the collar flagellates (choanoflagellates), a sixth line that is none of our five forms:',
     'some of them make rosette colonies (King et al., Nature 2008). A fourth era would start from a new collar-cell form, with sponges',
     'and Trichoplax, the simplest animal, as steps. Not for now: it needs its own world, its own roads and its own decision.',
+    'Decided now (ticket #790 A): sea-water rosettes (Salpingoeca rosetta) appear as wild colonies in the pool from 17:00.',
 ], 12, TEXT, 18)
 art.save(OUT)

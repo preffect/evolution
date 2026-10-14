@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Sheet R3: the glass road, diatom chains and stars (Chaetoceros, Skeletonema, Asterionella), for the diatom (ticket #782)."""
+"""Sheet R3: the glass road, diatom chains and stars (Skeletonema, Chaetoceros, Asterionellopsis), for the diatom (ticket #782;
+docs/game-design/phases.md §14.9.3)."""
 import math
 import sys
 
@@ -8,11 +9,11 @@ from phase_art import ACCENT, GOOD, MUTED, PICK, SILICA, SILICA_L, TEXT, WARN, S
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'docs/concept-art/phases/road-diatom-chain.svg'
 art = Sheet(1920, 1080, 7826, 'Evolution — phases concept R3: the glass road, diatom chains and stars',
             'Diatom colonies as a multicell path: one glass box, the division inside the box, a linked chain, a long horned chain, '
-            'an Asterionella star. With the break-the-chain mechanic and the real biology. Code-drawn.')
+            'an Asterionellopsis star. With the break-the-chain mechanic and the real biology. All sea-water diatoms. Code-drawn.')
 art.header('concept R3 — THE GLASS ROAD · linked boxes, chains and stars',
            'For the diatom. A colony, not a true many-celled body: every cell still does everything, but the chain is hard to eat. '
            'Drawn larger at each step, not to true scale.',
-           'ticket #782 · epic #761', 'dark-field language of sheets 01 and 04 · zero raster')
+           'decided: tickets #785 A, #790 A · design: docs/game-design/phases.md §14.9.3', 'dark-field language of sheets 01 and 04 · zero raster')
 art.panel(40, 90, 1840, 470, 'A · THE LADDER — seen from the side, where the glass box shows', None)
 Y = 290
 
@@ -72,7 +73,7 @@ for k in range(6):
     box_cell(x + t * 58, Y + 0.0025 * (t * 58) ** 2 - 20, 50, 40, rot=90 + t * 4, horns=True, horn_len=55)
 art.stage_label(x, 470, '4 · Horned chain', ['6–20 cells · up to ~0.5 mm', 'Chaetoceros: locked horns', 'a rotifer cannot swallow it'])
 
-# 5 · the star (Asterionella)
+# 5 · the star (Asterionellopsis)
 x = 1480
 for k in range(8):
     a = 2 * math.pi * k / 8 + 0.2
@@ -86,7 +87,7 @@ for k in range(8):
         art.plastid(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, 9, 3.5, math.degrees(a))
     art.emit(f'<circle cx="{x1:.1f}" cy="{y1:.1f}" r="7" fill="{SILICA_L}" opacity="0.5"/>')
     art.emit(f'<circle cx="{x2:.1f}" cy="{y2:.1f}" r="7" fill="{SILICA_L}" opacity="0.35"/>')
-art.stage_label(x, 470, '5 · The star', ['8 cells · ~0.2 mm across', 'Asterionella', 'spins as it floats; the apex'], GOOD)
+art.stage_label(x, 470, '5 · The star', ['8 arms · ~0.2 mm across', 'Asterionellopsis (sea)', 'stars and spirals; the apex'], GOOD)
 for cx in (290, 600, 880, 1270):
     art.chevron(cx, Y)
 art.text(1740, 200, 'Every cell still eats,', 12, TEXT, 600, 'middle')
@@ -106,15 +107,15 @@ art.text(250, 830, 'Didinium, rotifers, amoebae give up', 10.5, MUTED, 400, 'mid
 for k in range(6):
     box_cell(470 + (k % 3) * 70 + (k // 3) * 30, 690 + (k // 3) * 70 + (k % 2) * 16, 38, 30, rot=90 + k * 25)
 art.emit(f'<polygon points="440,760 740,660 740,860" fill="{WARN}" opacity="0.06"/>')
-art.text(580, 850, 'BROKEN: slip through a Daphnia sieve', 11.5, WARN, 700, 'middle')
-art.text(580, 868, 'smaller pieces are less noticed', 10.5, MUTED, 400, 'middle', mono=True)
+art.text(580, 850, 'BROKEN: the copepod passes you by', 11.5, WARN, 700, 'middle')
+art.text(580, 868, 'each piece is below its window, but small hunters bite', 10.5, MUTED, 400, 'middle', mono=True)
 art.lines(60, 900, [
-    '• Level-up "link": +1 cell to the chain (the new cell is a free, ready piece).',
-    '• BREAK key: the chain snaps into single cells for a few seconds; they drift',
-    '  back together and relink. Lose a piece while broken and it is gone.',
+    '• Level-up: the next step (one card kept for it), Setae (spines) or a Resting spore.',
+    '• Ability key (E): the chain snaps into single cells for 5 s, then re-forms.',
+    '  While broken, small hunters can bite single pieces off.',
     '• A cell bitten off the end is lost; the chain keeps going.',
-    '• The star (8 cells) is the capstone: it cannot break, it spins, and its',
-    '  arms spread the load: the hardest single thing in the pond to eat.',
+    '• The star (8 arms) is the last step: the hardest single thing in the',
+    '  pool to eat. No jobs on this road: every cell still does everything.',
 ], 12, TEXT, 18)
 
 # ---------------------------------------------------------------- C · the real story
@@ -124,16 +125,17 @@ art.note_panel(760, 580, 1120, 460, 'C · THE REAL STORY — a colony, with a le
     '• When it divides, each daughter keeps one old half and builds a new, smaller one inside it,',
     '  so one line of the family shrinks each generation until sex resets the size.',
     '• Chain diatoms stay linked after dividing: Skeletonema by rings of glass tubes, Chaetoceros by locked',
-    '  horns. Asterionella forms eight-armed stars in lakes.',
-    '• Chain length is a real trade-off: some diatoms shorten their chains when big grazers are about,',
-    '  and long chains resist small ones (Bergkvist et al., Limnology and Oceanography 2012).',
+    '  horns. In the sea, Asterionellopsis joins its cells at their bases into stars and spirals.',
+    '• Chain length is a real trade-off: sea diatoms shorten their chains when copepods are about,',
+    '  and long chains resist small grazers (Bergkvist et al., Limnology and Oceanography 2012).',
     '§ Caveats for the encyclopedia',
     '• These are colonies, not bodies: no cell gives up its own life for the group. That is why this road',
     '  ends at the star, and why the encyclopedia calls it "a colony".',
     '• Real diatoms cannot swim: they drift, sink, and some glide on surfaces. The game lets you steer, as it',
     '  already does for the diatom form.',
+    '• Real chains shorten over days by growing shorter; the game\'s break is instant.',
     '~ Round, Crawford and Mann, "The Diatoms", Cambridge 1990',
-], 'sources in the proposal on ticket #782')
-art.footer('R3 · the glass road · sizes are the real organisms\'; game numbers are proposals',
+], 'sources in docs/game-design/phases.md §14.16')
+art.footer('R3 · the glass road · sizes are the real organisms\'; game numbers are §14.14 tuning values',
            'docs/concept-art/phases/road-diatom-chain.svg · 1920 × 1080')
 art.save(OUT)

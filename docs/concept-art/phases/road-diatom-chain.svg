@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Inter, 'Segoe UI', DejaVu Sans, Helvetica, Arial, sans-serif">
 <title>Evolution — phases concept R3: the glass road, diatom chains and stars</title>
-<desc>Diatom colonies as a multicell path: one glass box, the division inside the box, a linked chain, a long horned chain, an Asterionella star. With the break-the-chain mechanic and the real biology. Code-drawn.</desc>
+<desc>Diatom colonies as a multicell path: one glass box, the division inside the box, a linked chain, a long horned chain, an Asterionellopsis star. With the break-the-chain mechanic and the real biology. All sea-water diatoms. Code-drawn.</desc>
 <defs>
 <radialGradient id="bg-field" cx="0.5" cy="0.45" r="0.75"><stop offset="0" stop-color="#0b1626"/><stop offset="1" stop-color="#04070d"/></radialGradient>
 <radialGradient id="bg-pond" cx="0.35" cy="0.2" r="0.95"><stop offset="0" stop-color="#123a33"/><stop offset="0.45" stop-color="#0a1d1c"/><stop offset="1" stop-color="#030a0a"/></radialGradient>
@@ -44,6 +44,12 @@
 <radialGradient id="body-ghost" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#2a3440" stop-opacity="0.45"/><stop offset="0.55" stop-color="#0c1016" stop-opacity="0.58"/><stop offset="0.86" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.85"/></radialGradient>
 <linearGradient id="rim-ghost" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.55"/></linearGradient>
 <radialGradient id="nuc-ghost" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#a8b8c8" stop-opacity="0.9"/><stop offset="1" stop-color="#2a3440" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-golden" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c5020" stop-opacity="0.45"/><stop offset="0.55" stop-color="#241a08" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-golden" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-golden" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#6c5020" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-scarlet" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c2418" stop-opacity="0.45"/><stop offset="0.55" stop-color="#240a06" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-scarlet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-scarlet" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ff9a80" stop-opacity="0.9"/><stop offset="1" stop-color="#6c2418" stop-opacity="0.95"/></radialGradient>
 <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#b8ff9a"/><stop offset="0.45" stop-color="#63d64a"/><stop offset="1" stop-color="#1f7a2b"/></radialGradient>
 <radialGradient id="plastid-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#f2d27a"/><stop offset="0.5" stop-color="#d7a441"/><stop offset="1" stop-color="#8a5e14"/></radialGradient>
 <radialGradient id="mote-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
@@ -137,7 +143,7 @@
 <text x="40.0" y="46.0" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
 <text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept R3 — THE GLASS ROAD · linked boxes, chains and stars</text>
 <text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">For the diatom. A colony, not a true many-celled body: every cell still does everything, but the chain is hard to eat. Drawn larger at each step, not to true scale.</text>
-<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · epic #761</text>
+<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">decided: tickets #785 A, #790 A · design: docs/game-design/phases.md §14.9.3</text>
 <text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">dark-field language of sheets 01 and 04 · zero raster</text>
 <rect x="40" y="90" width="1840" height="470" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
 <text x="56.0" y="116.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">A · THE LADDER — seen from the side, where the glass box shows</text>
@@ -445,9 +451,9 @@
 <circle cx="1490.0" cy="273.4" r="7" fill="#eef9ff" opacity="0.5"/>
 <circle cx="1588.4" cy="208.2" r="7" fill="#eef9ff" opacity="0.35"/>
 <text x="1480.0" y="470.0" fill="#8dff6a" font-size="13.5" font-weight="700" text-anchor="middle">5 · The star</text>
-<text x="1480.0" y="487.0" fill="#7fe7f5" font-size="10.5" font-weight="500" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">8 cells · ~0.2 mm across</text>
-<text x="1480.0" y="502.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle">Asterionella</text>
-<text x="1480.0" y="517.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle">spins as it floats; the apex</text>
+<text x="1480.0" y="487.0" fill="#7fe7f5" font-size="10.5" font-weight="500" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">8 arms · ~0.2 mm across</text>
+<text x="1480.0" y="502.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle">Asterionellopsis (sea)</text>
+<text x="1480.0" y="517.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle">stars and spirals; the apex</text>
 <path d="M285 281 L295 290 L285 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M595 281 L605 290 L595 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
 <path d="M875 281 L885 290 L875 299" fill="none" stroke="#7fe7f5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
@@ -647,17 +653,17 @@
 <line x1="623.0" y1="782.0" x2="657.0" y2="782.0" stroke="#a9dcef" stroke-width="1" opacity="0.7"/>
 </g>
 <polygon points="440,760 740,660 740,860" fill="#ffb15a" opacity="0.06"/>
-<text x="580.0" y="850.0" fill="#ffb15a" font-size="11.5" font-weight="700" text-anchor="middle">BROKEN: slip through a Daphnia sieve</text>
-<text x="580.0" y="868.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">smaller pieces are less noticed</text>
-<text x="60.0" y="900.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• Level-up "link": +1 cell to the chain (the new cell is a free, ready piece).</text>
-<text x="60.0" y="918.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• BREAK key: the chain snaps into single cells for a few seconds; they drift</text>
-<text x="60.0" y="936.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">  back together and relink. Lose a piece while broken and it is gone.</text>
+<text x="580.0" y="850.0" fill="#ffb15a" font-size="11.5" font-weight="700" text-anchor="middle">BROKEN: the copepod passes you by</text>
+<text x="580.0" y="868.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">each piece is below its window, but small hunters bite</text>
+<text x="60.0" y="900.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• Level-up: the next step (one card kept for it), Setae (spines) or a Resting spore.</text>
+<text x="60.0" y="918.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• Ability key (E): the chain snaps into single cells for 5 s, then re-forms.</text>
+<text x="60.0" y="936.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">  While broken, small hunters can bite single pieces off.</text>
 <text x="60.0" y="954.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• A cell bitten off the end is lost; the chain keeps going.</text>
-<text x="60.0" y="972.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• The star (8 cells) is the capstone: it cannot break, it spins, and its</text>
-<text x="60.0" y="990.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">  arms spread the load: the hardest single thing in the pond to eat.</text>
+<text x="60.0" y="972.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">• The star (8 arms) is the last step: the hardest single thing in the</text>
+<text x="60.0" y="990.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">  pool to eat. No jobs on this road: every cell still does everything.</text>
 <rect x="760" y="580" width="1120" height="460" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
 <text x="776.0" y="606.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">C · THE REAL STORY — a colony, with a lesson in glass</text>
-<text x="776.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">sources in the proposal on ticket #782</text>
+<text x="776.0" y="624.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">sources in docs/game-design/phases.md §14.16</text>
 <text x="776.0" y="648.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">True</text>
 <text x="780.0" y="665.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="794.0" y="665.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">A diatom lives in a glass box of two halves that fit like a petri dish's lid and base.</text>
@@ -666,10 +672,10 @@
 <text x="794.0" y="699.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">so one line of the family shrinks each generation until sex resets the size.</text>
 <text x="780.0" y="716.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="794.0" y="716.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Chain diatoms stay linked after dividing: Skeletonema by rings of glass tubes, Chaetoceros by locked</text>
-<text x="794.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">horns. Asterionella forms eight-armed stars in lakes.</text>
+<text x="794.0" y="733.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">horns. In the sea, Asterionellopsis joins its cells at their bases into stars and spirals.</text>
 <text x="780.0" y="750.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
-<text x="794.0" y="750.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Chain length is a real trade-off: some diatoms shorten their chains when big grazers are about,</text>
-<text x="794.0" y="767.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">and long chains resist small ones (Bergkvist et al., Limnology and Oceanography 2012).</text>
+<text x="794.0" y="750.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Chain length is a real trade-off: sea diatoms shorten their chains when copepods are about,</text>
+<text x="794.0" y="767.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">and long chains resist small grazers (Bergkvist et al., Limnology and Oceanography 2012).</text>
 <text x="776.0" y="788.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">Caveats for the encyclopedia</text>
 <text x="780.0" y="805.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="794.0" y="805.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">These are colonies, not bodies: no cell gives up its own life for the group. That is why this road</text>
@@ -677,7 +683,9 @@
 <text x="780.0" y="839.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
 <text x="794.0" y="839.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Real diatoms cannot swim: they drift, sink, and some glide on surfaces. The game lets you steer, as it</text>
 <text x="794.0" y="856.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">already does for the diatom form.</text>
-<text x="794.0" y="873.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Round, Crawford and Mann, "The Diatoms", Cambridge 1990</text>
-<text x="40.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">R3 · the glass road · sizes are the real organisms'; game numbers are proposals</text>
+<text x="780.0" y="873.0" fill="#7fe7f5" font-size="12" font-weight="700" text-anchor="start">•</text>
+<text x="794.0" y="873.0" fill="#cfdbe6" font-size="12" font-weight="400" text-anchor="start">Real chains shorten over days by growing shorter; the game's break is instant.</text>
+<text x="794.0" y="890.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">Round, Crawford and Mann, "The Diatoms", Cambridge 1990</text>
+<text x="40.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">R3 · the glass road · sizes are the real organisms'; game numbers are §14.14 tuning values</text>
 <text x="1880.0" y="1066.0" fill="#7d8da1" font-size="10.5" font-weight="400" text-anchor="end" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">docs/concept-art/phases/road-diatom-chain.svg · 1920 × 1080</text>
 </svg>

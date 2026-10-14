@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Mock P3: a game screen in the pond, the player's euglena to scale, with today's HUD chrome (ticket #782)."""
+"""Mock P3: a game screen in the rock pool, the player's euglena to scale, with today's HUD chrome (ticket #782)."""
 import math
 import sys
 
 from phase_art import ACCENT, GOOD, MUTED, PALETTES, PANEL, PICK, TEXT, WARN, Sheet, smooth_closed
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'docs/concept-art/phases/pond-screen.svg'
-art = Sheet(1920, 1080, 7823, 'Evolution — phases mock P3: a game screen in the pond',
-            'The pond chapter at play scale: the player\'s euglena at the centre, green swimmers as food, a rotifer whirlpool, '
-            'a Didinium, a nematode, a wild stentor on an algal thread, a Daphnia about to sweep a lane. Code-drawn.',
+art = Sheet(1920, 1080, 7823, 'Evolution — phases mock P3: a game screen in the rock pool',
+            'The rock pool era at play scale: the player\'s euglena at the centre, green specks as food, a rotifer whirlpool, '
+            'a Didinium, a nematode, a wild folliculinid on an algal thread, a copepod about to cross a lane. Code-drawn.',
             background='pond')
 W, H = 1920, 1080
 
@@ -28,13 +28,13 @@ for i in range(14):
     x0 = art.rng.uniform(-100, 600)
     art.emit(f'<path d="M{x0:.0f} {y0} q 220 -18 440 0 t 440 0" fill="none" stroke="{ACCENT}" stroke-width="1" opacity="0.07"/>')
 art.arrow(90, 120, 250, 112, ACCENT, 1.4, dashed=True)
-art.text(90, 104, 'CURRENT', 10.5, ACCENT, 600, mono=True)
+art.text(90, 104, 'THE SURGE', 10.5, ACCENT, 600, mono=True)
 
 # algal threads with a wild stentor anchored on one
-art.filament(-40, 330, 780, heading=12, cell_len=62, width=26)
-art.filament(1380, -20, 520, heading=72, cell_len=58, width=24)
+art.cladophora(-40, 330, 760, heading=12, cell_len=44)
+art.cladophora(1380, -20, 520, heading=72, cell_len=42)
 art.stentor(1520, 250, 150, lean=-0.12)
-art.text(1520, 240, 'wild stentor', 10.5, MUTED, 500, 'middle')
+art.text(1520, 240, 'wild folliculinid', 10.5, MUTED, 500, 'middle')
 
 # green swimmer swarms in the light (food)
 for (sx, sy, n) in ((420, 210, 26), (1180, 300, 18), (700, 760, 14), (300, 620, 12)):
@@ -63,22 +63,20 @@ art.text(1310, 628, 'DIDINIUM · hunts ciliates', 11, WARN, 600, 'middle', mono=
 art.paramecium(1180, 700, 150, heading=160, pal='magenta')
 art.text(1180, 770, 'Mira', 12, PALETTES['magenta'][1], 700, 'middle')
 art.amoeba(620, 470, 46, arms=3, pal='amber')
-art.text(620, 540, 'wild amoeba', 10.5, MUTED, 500, 'middle')
+art.text(620, 540, 'wild foram', 10.5, MUTED, 500, 'middle')
 
-# Daphnia sweep warning: a lane across the top right, the giant's edge in the corner
+# copepod lane warning: a lane across the top right, the giant's head in the corner
 art.emit(f'<polygon points="900,0 1240,0 1920,520 1920,860" fill="{WARN}" opacity="0.05"/>')
 art.emit(f'<path d="M900 0 L1920 860 M1240 0 L1920 520" stroke="{WARN}" stroke-width="1.4" stroke-dasharray="14 10" opacity="0.5"/>')
-shell = [(1700, -80), (1980, -120), (2100, 200), (1960, 330), (1790, 250)]
-art.emit(f'<path d="{smooth_closed(shell)}" fill="url(#body-ghost)" opacity="0.85"/>')
-art.emit(f'<path d="{smooth_closed(shell)}" fill="none" stroke="{PALETTES["ghost"][1]}" stroke-width="2.4" opacity="0.6"/>')
+art.copepod(2000, 190, 520, heading=145)
 
 # ---------------------------------------------------------------- the player: euglena at 1x, with own-cell indicators
 px, py = 960, 520
 art.euglena(px, py, 120, heading=-35)
 art.emit(f'<circle cx="{px}" cy="{py}" r="78" fill="none" stroke="{ACCENT}" stroke-width="2.2" opacity="0.55"/>')
 art.emit(f'<path d="M{px} {py - 78} A78 78 0 0 1 {px + 67.5} {py + 39}" fill="none" stroke="{PICK}" stroke-width="3.4" opacity="0.9"/>')
-art.text(px, py + 104, 'POND LEVEL 2 · EUGLENA II', 11, ACCENT, 700, 'middle', mono=True)
-art.text(px, py + 120, 'eyespot pulls green swimmers from 4 body-lengths', 10.5, MUTED, 400, 'middle', mono=True)
+art.text(px, py + 104, 'LEVEL 7 · EUGLENA II', 11, ACCENT, 700, 'middle', mono=True)
+art.text(px, py + 120, 'eyespot pulls green specks from 4 body-lengths', 10.5, MUTED, 400, 'middle', mono=True)
 
 # ---------------------------------------------------------------- chrome: leaderboard top-right, clock bottom-right
 LX, LY = W - 16 - 240, 16
@@ -87,8 +85,8 @@ art.text(LX + 12, LY + 18, 'LEADERBOARD', 10.5, MUTED, 700)
 art.text(LX + 228, LY + 18, 'HOLD TAB', 10, MUTED, 400, 'end')
 art.text(LX + 150, LY + 36, 'LV', 9.5, MUTED, 600, 'end')
 art.text(LX + 228, LY + 36, 'SCORE', 9.5, MUTED, 600, 'end')
-rows = [('1', 'Mira', 'magenta', 'P3', '1 412'), ('2', 'you', 'cyan', 'P2', '1 290'), ('3', 'Oskar', 'amber', 'P2', '1 105'),
-        ('4', 'Juno', 'green', 'P1', '980')]
+rows = [('1', 'Mira', 'magenta', '8', '1 412'), ('2', 'you', 'cyan', '7', '1 290'), ('3', 'Oskar', 'amber', '7', '1 105'),
+        ('4', 'Juno', 'green', '6', '980')]
 for i, (rank, name, pal, lv, score) in enumerate(rows):
     y = LY + 42 + 24 * i
     if name == 'you':
@@ -99,21 +97,21 @@ for i, (rank, name, pal, lv, score) in enumerate(rows):
     art.text(LX + 150, y + 17, lv, 11.5, TEXT, 500, 'end', mono=True)
     art.text(LX + 228, y + 17, score, 11.5, TEXT, 500, 'end', mono=True)
 art.text(W - 16, H - 40, '14:22', 30, TEXT, 600, 'end', mono=True)
-art.text(W - 16, H - 18, 'THE POND · CHAPTER 2 OF 3 · COLONIES AT 17:00', 10.5, MUTED, 600, 'end')
+art.text(W - 16, H - 18, 'THE ROCK POOL · COLONIES AT 17:00', 10.5, MUTED, 600, 'end')
 
-# Daphnia warning chip, top centre
-art.caption_banner(W / 2, 46, 'DAPHNIA SWEEPS THIS LANE IN 0:08 · small things get sieved', 14, WARN)
+# copepod warning (the HUD uses an edge cue; the banner is the mock's annotation), top centre
+art.caption_banner(W / 2, 46, 'COPEPOD CROSSING · it eats what fits its mouth', 14, WARN)
 
 # field-note toast (the learning hook), bottom left
 TX, TY = 16, H - 16 - 84
 art.emit(f'<rect x="{TX}" y="{TY}" width="440" height="84" rx="8" fill="{PANEL}" fill-opacity="0.88" stroke="{GOOD}" stroke-opacity="0.6"/>')
 art.text(TX + 14, TY + 22, 'NEW IN THE ENCYCLOPEDIA · ROTIFER', 11, GOOD, 700, mono=True)
-art.text(TX + 14, TY + 44, 'A whole animal of about 1000 cells, smaller than a stentor.', 12, TEXT, 500)
+art.text(TX + 14, TY + 44, 'Brachionus: a whole animal of about 1000 cells, in sea water.', 12, TEXT, 500)
 art.text(TX + 14, TY + 62, 'Its crown of cilia spins a whirlpool that pulls food in.', 12, TEXT, 500)
 art.text(TX + 426, TY + 76, 'H  read more', 10, MUTED, 600, 'end', mono=True)
 
 # annotation callouts for the reader of the mock (outside the game look)
 art.emit(f'<rect x="16" y="150" width="300" height="118" rx="8" fill="#000000" fill-opacity="0.55" stroke="{ACCENT}" stroke-opacity="0.4" stroke-dasharray="4 4"/>')
-art.lines(28, 172, ['MOCK NOTES (not in game)', 'you = the cyan euglena at the centre, 1×', 'green specks = food (green swimmers)',
+art.lines(28, 172, ['MOCK NOTES (not in game)', 'you = the cyan euglena at the centre, 1×', 'green specks = food (Dunaliella)',
                     'orange = danger', "chrome = today's HUD: board and clock"], 11, TEXT, 17)
 art.save(OUT)

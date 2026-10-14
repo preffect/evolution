@@ -44,6 +44,12 @@
 <radialGradient id="body-ghost" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#2a3440" stop-opacity="0.45"/><stop offset="0.55" stop-color="#0c1016" stop-opacity="0.58"/><stop offset="0.86" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.85"/></radialGradient>
 <linearGradient id="rim-ghost" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#7d8da1" stop-opacity="0.55"/><stop offset="1" stop-color="#cfdbe6" stop-opacity="0.55"/></linearGradient>
 <radialGradient id="nuc-ghost" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#cfdbe6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#a8b8c8" stop-opacity="0.9"/><stop offset="1" stop-color="#2a3440" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-golden" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c5020" stop-opacity="0.45"/><stop offset="0.55" stop-color="#241a08" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-golden" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d7a441" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe2a6" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-golden" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffe2a6" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ffd890" stop-opacity="0.9"/><stop offset="1" stop-color="#6c5020" stop-opacity="0.95"/></radialGradient>
+<radialGradient id="body-scarlet" cx="0.42" cy="0.38" r="0.68"><stop offset="0" stop-color="#6c2418" stop-opacity="0.45"/><stop offset="0.55" stop-color="#240a06" stop-opacity="0.58"/><stop offset="0.86" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.85"/></radialGradient>
+<linearGradient id="rim-scarlet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/><stop offset="0.18" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.55" stop-color="#d8503a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffb49c" stop-opacity="0.55"/></linearGradient>
+<radialGradient id="nuc-scarlet" cx="0.38" cy="0.34" r="0.7"><stop offset="0" stop-color="#ffb49c" stop-opacity="0.95"/><stop offset="0.5" stop-color="#ff9a80" stop-opacity="0.9"/><stop offset="1" stop-color="#6c2418" stop-opacity="0.95"/></radialGradient>
 <radialGradient id="chloro-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#b8ff9a"/><stop offset="0.45" stop-color="#63d64a"/><stop offset="1" stop-color="#1f7a2b"/></radialGradient>
 <radialGradient id="plastid-g" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#f2d27a"/><stop offset="0.5" stop-color="#d7a441"/><stop offset="1" stop-color="#8a5e14"/></radialGradient>
 <radialGradient id="mote-g" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="#8dff6a"/><stop offset="1" stop-color="#3f9a2c"/></radialGradient>
@@ -136,18 +142,20 @@
 <circle cx="1302" cy="788" r="0.8" fill="#ffffff" opacity="0.13"/>
 <text x="40.0" y="46.0" fill="#cfdbe6" font-size="26" font-weight="800" text-anchor="start">EVOLUTION</text>
 <text x="214.0" y="46.0" fill="#7fe7f5" font-size="20" font-weight="500" text-anchor="start">· concept S1 — THREE WHOLE-GAME SHAPES · round timelines</text>
-<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">Minutes from the start of a game. Dish = today's 10-minute round, unchanged. Pond = the big-protist chapter. Colonies = the many-celled chapter.</text>
-<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">ticket #782 · epic #761 · picks up ticket #763</text>
-<text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">bars are proposals, not constants</text>
+<text x="40.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="start">Minutes from the start of a game. Dish = today's 10-minute round, unchanged. Pool = the rock pool, the big-protist chapter. Colonies = the many-celled chapter.</text>
+<text x="1880.0" y="46.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">decided: ticket #784 A · design: docs/game-design/phases.md §14</text>
+<text x="1880.0" y="68.0" fill="#7d8da1" font-size="12" font-weight="400" text-anchor="end">build: epic #866 · numbers in §14.14</text>
 <rect x="40" y="90" width="1840" height="300" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#8dff6a" stroke-width="1"/>
-<text x="56.0" y="116.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">A · ONE JOURNEY: the room moves on together   (recommended)</text>
+<text x="56.0" y="116.0" fill="#7fe7f5" font-size="15" font-weight="700" text-anchor="start">A · ONE JOURNEY: the room moves on together</text>
 <text x="56.0" y="134.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">the world clock turns the page for everyone; one continuous game of about 25 minutes</text>
 <rect x="330.0" y="177.0" width="381.6" height="26" rx="6" fill="#22c1d6" opacity="0.8"/>
 <text x="522.3" y="194.5" fill="#04070d" font-size="11.5" font-weight="700" text-anchor="middle">DISH · single cell (today)</text>
 <rect x="714.6" y="177.0" width="266.2" height="26" rx="6" fill="#2fae8f" opacity="0.8"/>
-<text x="849.2" y="194.5" fill="#04070d" font-size="11.5" font-weight="700" text-anchor="middle">POND · a big protist</text>
+<text x="849.2" y="194.5" fill="#04070d" font-size="11.5" font-weight="700" text-anchor="middle">ROCK POOL · a big protist</text>
 <rect x="983.8" y="177.0" width="304.7" height="26" rx="6" fill="#63d64a" opacity="0.8"/>
-<text x="1137.7" y="194.5" fill="#04070d" font-size="11.5" font-weight="700" text-anchor="middle">POND · colonies</text>
+<text x="1137.7" y="194.5" fill="#04070d" font-size="11.5" font-weight="700" text-anchor="middle">ROCK POOL · colonies</text>
+<rect x="1684.4" y="97.0" width="180" height="24" rx="12" fill="#8dff6a" fill-opacity="0.18" stroke="#8dff6a" stroke-width="1.4"/>
+<text x="1697.4" y="114.0" fill="#8dff6a" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">CHOSEN · ticket #784</text>
 <path d="M701.9 170.0 V210.0" stroke="#ffd166" stroke-width="2"/>
 <circle cx="701.9" cy="170.0" r="4" fill="#ffd166"/>
 <text x="701.9" y="162.0" fill="#ffd166" font-size="10.5" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">9:40 fastest form</text>
@@ -338,7 +346,7 @@
 <text x="1370.0" y="238.0" fill="#7fe7f5" font-size="11" font-weight="700" text-anchor="start">wild cells</text>
 <text x="1478.0" y="238.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">climb with the clock, as today</text>
 <text x="1370.0" y="257.0" fill="#7fe7f5" font-size="11" font-weight="700" text-anchor="start">feel</text>
-<text x="1478.0" y="257.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">one camera pull-back (sheet P1)</text>
+<text x="1478.0" y="257.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">seamless: you never stop playing (#786 C)</text>
 <text x="1370.0" y="276.0" fill="#7fe7f5" font-size="11" font-weight="700" text-anchor="start">cost</text>
 <text x="1478.0" y="276.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">about 42 tickets · shape part: 4</text>
 <rect x="40" y="400" width="1840" height="300" rx="10" fill="#0a1422" fill-opacity="0.45" stroke="#1a2a3b" stroke-width="1"/>
@@ -439,5 +447,11 @@
 <text x="1478.0" y="858.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">about 40 tickets · shape part: 2</text>
 <text x="1370.0" y="877.0" fill="#7fe7f5" font-size="11" font-weight="700" text-anchor="start">good for</text>
 <text x="1478.0" y="877.0" fill="#cfdbe6" font-size="11" font-weight="400" text-anchor="start">a later "skip ahead" for veterans</text>
+<rect x="40" y="400" width="1840" height="300" rx="10" fill="#04070d" opacity="0.5"/>
+<rect x="1761.2" y="407.0" width="103" height="24" rx="12" fill="#7d8da1" fill-opacity="0.1" stroke="#7d8da1" stroke-width="1.4"/>
+<text x="1774.2" y="424.0" fill="#7d8da1" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">NOT CHOSEN</text>
+<rect x="40" y="710" width="1840" height="300" rx="10" fill="#04070d" opacity="0.5"/>
+<rect x="1761.2" y="717.0" width="103" height="24" rx="12" fill="#7d8da1" fill-opacity="0.1" stroke="#7d8da1" stroke-width="1.4"/>
+<text x="1774.2" y="734.0" fill="#7d8da1" font-size="12" font-weight="800" text-anchor="start" font-family="JetBrains Mono, DejaVu Sans Mono, Consolas, Menlo, monospace">NOT CHOSEN</text>
 <text x="40.0" y="1040.0" fill="#7d8da1" font-size="11.5" font-weight="400" text-anchor="start">Content is the same in all three (the pond, its creatures, three roads and the ciliate upgrades, about 38 tickets); the shapes differ in the part that moves players between worlds.</text>
 </svg>

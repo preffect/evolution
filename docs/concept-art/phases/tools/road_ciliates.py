@@ -11,10 +11,11 @@ art = Sheet(1920, 1080, 7827, 'Evolution — phases concept R4: the paramecium a
             '(trichocysts, conjugation, anchored crowds, regrowth); B borrows a colonial ciliate; C switches road. Code-drawn.')
 art.header('concept R4 — THE CILIATES · the paramecium and the stentor stay one cell',
            'In real life neither line ever became many-celled: they bet on one huge, complicated cell. Three ways to handle that in the game.',
-           'ticket #782 · epic #761', 'dark-field language of sheets 01 and 04 · zero raster')
+           'decided: ticket #787 A · design: docs/game-design/phases.md §14.10', 'dark-field language of sheets 01 and 04 · zero raster')
 
-# ---------------------------------------------------------------- A · the last great single cells (recommended)
-art.panel(40, 90, 1120, 600, 'A · STAY ONE CELL: the last great single cells   (recommended)', 'real upgrades from their own biology; they become the pond\'s specialists', stroke=GOOD)
+# ---------------------------------------------------------------- A · the last great single cells (chosen)
+art.panel(40, 90, 1120, 600, 'A · STAY ONE CELL: the last great single cells', 'real upgrades from their own biology; sea-water cousins: Frontonia and the folliculinids', stroke=GOOD)
+art.stamp(1144, 112, True, 'ticket #787')
 
 # paramecium: trichocysts at a Didinium
 px, py = 230, 290
@@ -24,9 +25,9 @@ for k in range(9):
     x0, y0 = px + 95 * math.cos(a), py + 45 * math.sin(a)
     art.emit(f'<line x1="{x0:.1f}" y1="{y0:.1f}" x2="{x0 + 70 * math.cos(a):.1f}" y2="{y0 + 70 * math.sin(a):.1f}" stroke="{PICK}" '
              f'stroke-width="1.4" opacity="0.8"/>')
-art.didinium(470, 250, 34, heading=170)
+art.amoeba(480, 250, 34, arms=3, pal='amber')
 art.text(px, 400, 'Trichocysts: fires a burst of tiny harpoons', 12, TEXT, 700, 'middle')
-art.text(px, 417, 'a real defence against Didinium · a new active ability', 10.5, MUTED, 400, 'middle', mono=True)
+art.text(px, 417, 'pushes a hunter off · never the Didinium, as in life', 10.5, MUTED, 400, 'middle', mono=True)
 
 # paramecium conjugation pair
 cx, cy = 230, 540
@@ -38,7 +39,7 @@ art.text(cx, 647, 'real sex in a single cell · co-op without a merged body', 10
 
 # stentor: the anchored crowd
 sx, sy = 760, 150
-art.filament(560, 360, 520, heading=-6, cell_len=52, width=22)
+art.cladophora(560, 360, 520, heading=-6, cell_len=52, depth=0)
 for (dx, lean, ln) in ((-160, -0.08, 140), (-50, 0.0, 160), (60, 0.05, 150), (170, 0.1, 135)):
     art.stentor(sx + dx, sy + 190 - ln + 10, ln, lean=lean)
 for k in range(5):
@@ -57,8 +58,8 @@ art.stentor(rx + 110, ry - 70, 120, lean=0.03)
 art.text(rx + 20, 630, 'Regrowth: a bitten stentor regrows from a piece', 12, TEXT, 700, 'middle')
 art.text(rx + 20, 647, 'a real feat · the ciliate answer to the colony\'s spare lives', 10.5, MUTED, 400, 'middle', mono=True)
 
-art.lines(930, 470, ['Also for both:', '• the tier-II and tier-III form', '  upgrades that no round reaches', '  today get a home in the pond',
-                     '• the pond\'s specialists: fast', '  hunters of small colonies'], 11.5, TEXT, 17)
+art.lines(930, 470, ['Also for both:', '• the tier-II and tier-III form', '  upgrades that no round reaches', '  today get a home in the pool',
+                     '• from 17:00 the upgrades are', '  their road: one card each level'], 11.5, TEXT, 17)
 
 # ---------------------------------------------------------------- B · a borrowed colony road
 art.panel(1180, 90, 700, 290, 'B · A BORROWED COLONY ROAD', 'the stentor grows a branching tree of bell-cells on one shared stalk')
@@ -74,23 +75,27 @@ art.lines(1560, 180, ['Real model: Zoothamnium,', 'a colonial bell ciliate.', 'B
 # ---------------------------------------------------------------- C · switch road
 art.panel(1180, 400, 700, 290, 'C · SWITCH ROAD WHEN COLONIES ARRIVE', 'at 17:00 a ciliate player picks one of the three real roads')
 art.paramecium(1300, 560, 120, heading=0)
-for i, (label, pal, yy) in enumerate((('green road', 'green', 480), ('gathering road', 'amber', 560), ('glass road', 'silica', 640))):
+for i, (label, pal, yy) in enumerate((('light road', 'golden', 480), ('gathering road', 'amber', 560), ('glass road', 'silica', 640))):
     art.arrow(1370, 560, 1560, yy, ACCENT, 1.4)
     art.mini_cell(1590, yy, 16, pal, halo=0.3)
     art.text(1615, yy + 5, label, 12, TEXT, 600)
 art.lines(1200, 470, ['Simple to build;', 'but you drop the', 'form you chose.'], 11, MUTED, 16)
+art.dim(1180, 90, 700, 290)
+art.stamp(1864, 112, False)
+art.dim(1180, 400, 700, 290)
+art.stamp(1864, 422, False)
 
 # ---------------------------------------------------------------- D · the real story and recommendation
-art.note_panel(40, 710, 1840, 330, 'D · THE REAL STORY, AND WHY A', [
+art.note_panel(40, 710, 1840, 330, 'D · THE REAL STORY, AND WHY A WAS CHOSEN', [
     '§ True',
     '• Ciliates (paramecium, stentor) never evolved a many-celled body. Instead each is one of the most complex cells alive, with two kinds of nucleus.',
-    '• Paramecium fires trichocysts, tiny harpoons, when Didinium attacks; it reproduces by splitting and has sex by conjugation, swapping nuclei with a partner.',
+    '• Paramecium fires trichocysts, tiny harpoons: in the lab they save it from the hunter Dileptus but not from Didinium (Harumoto and Miyake). It has sex by conjugation, swapping nuclei.',
     '• Stentor coeruleus (up to ~2 mm) can regrow a whole cell from a small piece (Tartar, "The Biology of Stentor", 1961), and anchored stentors that settle close together',
     '  feed better by pooling their currents (Shekhar et al., Current Biology 2023).',
     '• The paramecium even shaped multicellular life: a green alga hunted by paramecia evolved clusters in the lab (Herron et al., Scientific Reports 2019).',
-    '§ Recommendation: A',
+    '§ Chosen: A (ticket #787)',
     '• It is true to life, it teaches something ("not every line goes multicellular"), and it keeps the form the player chose. B invents biology; C throws the choice away.',
-    '• The cost: the ciliates need their own pond upgrades (about 3 tickets), and the pond needs to make one big fast cell as viable as a colony (a balance job).',
-], 'these are the forms that elongate: the paramecium slipper and the stentor trumpet (the euglena has the green road)')
-art.footer('R4 · the ciliates · game numbers are proposals', 'docs/concept-art/phases/road-ciliates.svg · 1920 × 1080')
+    '• Sea-water cousins (ticket #790 A): Frontonia, of the paramecium\'s own order and armed with trichocysts; the folliculinids, trumpet ciliates in a case on seaweed. The stentor experiments were on freshwater Stentor.',
+], 'these are the forms that elongate: the paramecium slipper and the stentor trumpet (the euglena has the light road)')
+art.footer('R4 · the ciliates · game numbers are §14.14 tuning values', 'docs/concept-art/phases/road-ciliates.svg · 1920 × 1080')
 art.save(OUT)
