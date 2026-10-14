@@ -1,7 +1,8 @@
 // The debug surface of the era clock (docs/architecture/debug-mcp.md §8, docs/game-design/phases.md §14.2.4):
-// `debug_set_era` moves `roundStartTick`, never the tick counter, so the next step is the era's first tick (PH19: a
-// jump at tick 600 to the pool gives −35 400); it refuses an era not in play, past the round, or not forward; it is
-// recorded as a `debug_patch`; and `debug_set_balance` takes the era list and refuses era starts the clock cannot run on.
+// `debug_set_era` moves `roundStartTick`, never the tick counter, so the next step is the era's first tick (a jump
+// stamped for step 600 to the pool, the world at 599, gives −35 400; PH19's, the world at 600, gives −35 399); it
+// refuses an era not in play, past the round, or not forward; it is recorded as a `debug_patch`; and `debug_set_balance`
+// takes the era list and refuses era starts the clock cannot run on.
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -9,17 +10,15 @@ import {
   GAME_ERA,
   GAME_ERA_ORDER,
   ROUND_PHASE,
-  createTestSessionConfig,
   eraAt,
   worldElapsedSeconds,
-  withErasInPlay,
   type BalanceConfig,
   type GameEra,
 } from '@evolution/shared';
 import { registerBalanceTools } from '../../mcp/handlers/balance.js';
 import { registerEraTools } from '../../mcp/handlers/eras.js';
 import { createActiveRoomFixture, parseToolJson } from '../../testing/builders.js';
-import { createTestWorld } from '../../testing/world-builders.js';
+import { COLONIES_ON_ROUND_SECONDS, createTestWorld, createTestWorldInEras } from '../../testing/world-builders.js';
 import { createEvolutionBotRoster } from '../bots/evolution-bots.js';
 import { evolutionModuleFactory, type EvolutionModule } from '../evolution-module.js';
 import { DEBUG_PATCH_KIND, REPLAY_EVENT_KIND, type Replay } from '../replay/replay-format.js';
@@ -32,14 +31,16 @@ import { DebugRequestError } from './debug-request-error.js';
 import { applyDebugPatch, setBalanceForDebug } from './debug-operations.js';
 import { createEvolutionDebugHandle } from './evolution-debug-handle.js';
 
-/** The game's length with the colonies on (§14.2.3), so every era is reachable, and today's, which ends at the pool. */
-const COLONIES_ON_ROUND_SECONDS = 1500;
+/** Today's game's length (§14.2.3), which ends before the pool. */
 const DISH_ONLY_ROUND_SECONDS = 600;
-/** PH19: the jump at tick 600 to the pool (applied before that step) and the round start it leaves (600 − 36 000). */
-const PH19_JUMP_TICK = 600;
-const PH19_ROUND_START_TICK = -35_400;
+/**
+ * A jump stamped for step 600 to the pool (applied before that step, the world at 599) and the round start it leaves
+ * (600 − 36 000). PH19's own jump is one tick later (−35 399, phases.md §14.2.4).
+ */
+const STAMPED_JUMP_TICK = 600;
+const STAMPED_JUMP_ROUND_START_TICK = -35_400;
 /** The world's tick when a patch stamped for step 600 is applied. */
-const TICK_BEFORE_THE_JUMP = PH19_JUMP_TICK - 1;
+const TICK_BEFORE_THE_JUMP = STAMPED_JUMP_TICK - 1;
 const COLONIES_FIRST_ELAPSED_TICKS = 61_200;
 /** Real balance paths, named through constants because a patch is keyed by constant names. */
 const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
@@ -56,8 +57,7 @@ function worldPlaying(
   tick = TICK_BEFORE_THE_JUMP,
   roundDurationSeconds = COLONIES_ON_ROUND_SECONDS,
 ): WorldState {
-  const world = createTestWorld({ balance: withErasInPlay(erasInPlay) });
-  world.config = createTestSessionConfig({ seed: world.seed, roundDurationSeconds });
+  const world = createTestWorldInEras(erasInPlay, roundDurationSeconds);
   world.tick = tick;
   return world;
 }
@@ -72,17 +72,17 @@ function stepOnce(world: WorldState): void {
 }
 
 describe('setEraForDebug', () => {
-  it('moves roundStartTick so the next step is the pool’s first tick, below zero early in a round (PH19)', () => {
+  it('moves roundStartTick so the next step is the pool’s first tick, below zero early in a round', () => {
     const world = worldPlaying(GAME_ERA_ORDER);
     expect(setEraForDebug(world, GAME_ERA.pool)).toEqual({
       era: GAME_ERA.pool,
-      firstTick: PH19_JUMP_TICK,
-      roundStartTick: PH19_ROUND_START_TICK,
+      firstTick: STAMPED_JUMP_TICK,
+      roundStartTick: STAMPED_JUMP_ROUND_START_TICK,
     });
     expect(world.tick).toBe(TICK_BEFORE_THE_JUMP);
     expect(eraOf(world)).toBe(GAME_ERA.dish);
     stepOnce(world);
-    expect(world.tick).toBe(PH19_JUMP_TICK);
+    expect(world.tick).toBe(STAMPED_JUMP_TICK);
     expect(eraOf(world)).toBe(GAME_ERA.pool);
     expect(world.roundPhase).toBe(ROUND_PHASE.playing);
   });
@@ -90,7 +90,7 @@ describe('setEraForDebug', () => {
   it('jumps from the dish straight to the colonies, and from the pool on to them', () => {
     const fromDish = worldPlaying(GAME_ERA_ORDER);
     setEraForDebug(fromDish, GAME_ERA.colonies);
-    expect(fromDish.roundStartTick).toBe(PH19_JUMP_TICK - COLONIES_FIRST_ELAPSED_TICKS);
+    expect(fromDish.roundStartTick).toBe(STAMPED_JUMP_TICK - COLONIES_FIRST_ELAPSED_TICKS);
     const fromPool = worldPlaying(GAME_ERA_ORDER);
     setEraForDebug(fromPool, GAME_ERA.pool);
     stepOnce(fromPool);
@@ -134,7 +134,7 @@ describe('setEraForDebug', () => {
   it('is what applyDebugPatch runs for a recorded set_era', () => {
     const world = worldPlaying(GAME_ERA_ORDER);
     applyDebugPatch(world, { kind: DEBUG_PATCH_KIND.setEra, era: GAME_ERA.pool });
-    expect(world.roundStartTick).toBe(PH19_ROUND_START_TICK);
+    expect(world.roundStartTick).toBe(STAMPED_JUMP_ROUND_START_TICK);
   });
 });
 
@@ -212,7 +212,7 @@ describe('the Evolution handle records the jump', () => {
     );
     expect(events).toEqual([
       {
-        tick: PH19_JUMP_TICK,
+        tick: STAMPED_JUMP_TICK,
         kind: REPLAY_EVENT_KIND.debugPatch,
         patch: { kind: DEBUG_PATCH_KIND.setEra, era: GAME_ERA.pool },
       },

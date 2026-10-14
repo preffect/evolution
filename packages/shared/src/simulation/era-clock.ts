@@ -24,6 +24,14 @@ export function eraStartTicks(era: GameEra, balance: EraClockBalance): number {
   return secondsToTicks(balance.eras.ERA_START_SECONDS[era]);
 }
 
+/**
+ * The tick `era` starts on in a round that started on `roundStartTick` (phases.md §14.2.1's `eraStartedAtTick`): the
+ * move's tick for an era the world has moved into, since a `debug_set_era` jump moves `roundStartTick` so that it is.
+ */
+export function eraStartedAtTick(era: GameEra, roundStartTick: number, balance: EraClockBalance): number {
+  return roundStartTick + eraStartTicks(era, balance);
+}
+
 /** True when `era` opens in a round of `roundDurationSeconds`: it is in play and it starts before the round's end. */
 export function isEraReachable(era: GameEra, roundDurationSeconds: number, balance: EraClockBalance): boolean {
   return balance.eras.ERAS_IN_PLAY.includes(era) && eraStartTicks(era, balance) < secondsToTicks(roundDurationSeconds);

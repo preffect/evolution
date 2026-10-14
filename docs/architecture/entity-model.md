@@ -181,8 +181,10 @@ massGained, dnaGained }` (the amounts measured around the gains,
 renderer knows which rod): `bacterium_latched { cellId, moteId, variant }` at the mote's centre, `bacterium_bonded {
 cellId, moteId, isCredited }` at the rim point beside the ordinary `eat` of the same mote (which carries the payout, so
 the mass accounting is unchanged), and `latch_shaken { cellId, moteIds }` at the cell's centre (`moteIds` the ids they
-were held under; the freed motes take fresh ids); `world_level_up { level, stage }`
-(ecology/food-and-spawn.md §3.1) happens everywhere and is the one effect without a position.
+were held under; the freed motes take fresh ids). Three happen everywhere and carry no position: `world_level_up {
+level, stage }` (ecology/food-and-spawn.md §3.1), and the eras' two (game-design/phases.md §14.4.1, ticket #931),
+`era_warning { era }` `ERA_MOVE_WARNING_SECONDS` before a move and `era_moved { era }` on its tick, `era` being the era
+the move goes into (a step that runs two moves emits two `era_moved`, in era order).
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -313,7 +315,7 @@ export interface WorldState {
   roundTimeLeftMs: number;
   config: GameSessionConfig;
   balance: BalanceConfig; // defaults from shared constants; patched only by debug_set_balance
-  eraMovedInto: GameEra; // the last era whose move has run: 'dish' at build (creation, rematch), kept by a reseed; the step runs every move after it up to eraAt (server-simulation.md §3); added with the move (ticket #867)
+  eraMovedInto: GameEra; // the last era whose move has run: 'dish' at build (creation, rematch), kept by a reseed, left alone by a debug_set_era jump; the step runs every move after it up to eraAt (server-simulation.md §3); the snapshot's era copies it; hashed in the walk's trailing section once it leaves the dish (ticket #931)
   gelPatches: GelPatchView[];
   cells: CellRecord[]; // insertion order
   food: FoodMoteRecord[];

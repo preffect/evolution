@@ -19,6 +19,7 @@ export * from './time/deferred-call.js';
 export * from './time/fixed-step-accumulator.js';
 export * from './time/units.js';
 export * from './camera/camera-follow.js';
+export * from './camera/era-move-camera.js';
 export * from './camera/interest-margin.js';
 export * from './net/snapshot-acknowledger.js';
 export * from './simulation/bacterium-contact.js';

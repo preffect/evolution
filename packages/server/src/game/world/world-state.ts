@@ -5,6 +5,7 @@
 import type {
   BalanceConfig,
   GameEffect,
+  GameEra,
   GameSessionConfig,
   GelPatchView,
   LeaderboardRow,
@@ -39,6 +40,12 @@ export interface WorldState {
   config: GameSessionConfig;
   /** Defaults from the shared constants; patched only by `debug_set_balance`. */
   balance: BalanceConfig;
+  /**
+   * The last era whose move has run (docs/architecture/server-simulation.md §3): `dish` when the world is built (creation,
+   * rematch), kept by a reseed. The step runs every move after it up to `roundEraAt` (ticket #868); the snapshot's `era`
+   * copies it. Hashed only once it has left the dish (`TRAILING_WORLD_HASHED_FIELDS`).
+   */
+  eraMovedInto: GameEra;
   gelPatches: GelPatchView[];
   /** Insertion order. */
   cells: CellRecord[];

@@ -70,6 +70,8 @@ describe('id tables', () => {
       'bacterium_latched',
       'bacterium_bonded',
       'latch_shaken',
+      'era_warning',
+      'era_moved',
     ]);
   });
 });

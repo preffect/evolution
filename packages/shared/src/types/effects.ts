@@ -4,7 +4,7 @@
 // moment they mark (`eat`, `level_up`, `respawn`; docs/CODE-STANDARDS.md §6), pinned in game.test.ts.
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
-import type { BacteriumVariant, CellStage, EntityKind, GiantSpecies } from './game.js';
+import type { BacteriumVariant, CellStage, EntityKind, GameEra, GiantSpecies } from './game.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
@@ -16,6 +16,8 @@ export const EFFECT_KIND = {
   bacteriumLatched: 'bacterium_latched',
   bacteriumBonded: 'bacterium_bonded',
   latchShaken: 'latch_shaken',
+  eraWarning: 'era_warning',
+  eraMoved: 'era_moved',
 } as const;
 export type EffectKind = (typeof EFFECT_KIND)[keyof typeof EFFECT_KIND];
 
@@ -138,6 +140,24 @@ export interface LatchShakenEffect extends EffectBase {
   moteIds: EntityId[];
 }
 
+/**
+ * A move is `ERA_MOVE_WARNING_SECONDS` away (docs/game-design/phases.md §14.4.1): the toast, the thinning rim, the
+ * music's swell. `era` is the era the move goes into. It happens everywhere, so it carries no position.
+ */
+export interface EraWarningEffect extends EffectMoment {
+  kind: typeof EFFECT_KIND.eraWarning;
+  era: GameEra;
+}
+
+/**
+ * The world moved into `era` this tick (phases.md §14.4.2, §14.4.5). A step that crosses two starts (a
+ * `debug_set_era` jump past the pool) emits one per move, in era order. It happens everywhere: no position.
+ */
+export interface EraMovedEffect extends EffectMoment {
+  kind: typeof EFFECT_KIND.eraMoved;
+  era: GameEra;
+}
+
 export type GameEffect =
   | CellAbsorbedEffect
   | CellReleasedEffect
@@ -147,4 +167,6 @@ export type GameEffect =
   | WorldLevelUpEffect
   | BacteriumLatchedEffect
   | BacteriumBondedEffect
-  | LatchShakenEffect;
+  | LatchShakenEffect
+  | EraWarningEffect
+  | EraMovedEffect;

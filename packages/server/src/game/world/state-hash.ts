@@ -1,7 +1,8 @@
 // The state hash of a world (docs/determinism/ordering-and-state-hash.md §5): the canonical walk over `HASHED_FIELDS`
-// through the shared hasher. Every non-derived record field is listed (the test pins it); the
-// derived ones are excluded and named here so a debug-only field can never move the hash (the held lists are walked
-// last, `TRAILING_CELL_HASHED_FIELDS`):
+// through the shared hasher. Every non-derived record field is listed (the test pins it; the seats' lists live in
+// `seat-hashed-fields.ts`), and two sections are walked last, each only when it has something to say: the held lists
+// (`TRAILING_CELL_HASHED_FIELDS`), then the era moved into (`TRAILING_WORLD_HASHED_FIELDS`). The derived fields are
+// excluded and named here so a debug-only field can never move the hash:
 // `leaderboard` (a function of the players), `effects` and `massFlow` (transient), `balance` and `config`
 // (replay inputs), `CellRecord.modifiers` (folded at step 1), `CellRecord.heldDisplacementX/Y` (transient: cleared at
 // step 6 and read only by the serializer, #774), `PlayerRecord.score` (step 10),
@@ -11,6 +12,7 @@
 import {
   BACTERIUM_VARIANTS,
   DNA_TAGS,
+  GAME_ERA,
   SERVER_RANDOM_STREAM_LABELS,
   StateHasher,
   hashArray,
@@ -18,6 +20,7 @@ import {
   hashFields,
   hashRandomStreams,
   hashScalarArray,
+  type GameEra,
   type GameInput,
   type GelPatchView,
   type HashedField,
@@ -31,15 +34,13 @@ import type {
   DnaFragmentRecord,
   EngulfReleaseRecord,
   FoodMoteRecord,
-  GiantSeatRecord,
   LatchedBacteriumRecord,
   PlayerRecord,
-  SeatMindRecord,
   SpawnerState,
   SpitOutRefractoryRecord,
   TraitOffer,
-  WildSeatRecord,
 } from './entities.js';
+import { GIANT_SEAT_HASHED_FIELDS, WILD_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import type { WorldState } from './world-state.js';
 
 /** The record fields the walk leaves out, by record, for the pin test. */
@@ -113,6 +114,19 @@ function hashLatchedBacteriaOfCells(hasher: StateHasher, cells: readonly CellRec
       hashFields(entryHasher, entry, LATCHED_BACTERIUM_FIELDS),
     ),
   );
+}
+
+/** World fields walked after the held lists: the era the world has moved into (architecture/server-simulation.md §3). */
+export const TRAILING_WORLD_HASHED_FIELDS = ['eraMovedInto'] as const;
+
+/**
+ * The era the world has moved into, after the held lists and only once it has left the dish, so every world while the
+ * eras are off feeds nothing and hashes byte for byte as before the eras (#931). It opens with a string's tag where the
+ * held lists open with an array's, so each trailing section's presence reads from its first byte.
+ */
+function hashEraMovedInto(hasher: StateHasher, era: GameEra): void {
+  if (era === GAME_ERA.dish) return;
+  hasher.hashString(era);
 }
 
 export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
@@ -233,34 +247,6 @@ export const GEL_PATCH_HASHED_FIELDS: readonly HashedField<GelPatchView>[] = ['x
 
 export const SPAWNER_HASHED_FIELDS: readonly HashedField<SpawnerState>[] = ['accumulator', 'spawnedCount', 'isEnabled'];
 
-/** What every seat with a mind keeps (`SeatMindRecord`): the head of the wild and the giant seats' lists. */
-const SEAT_MIND_HASHED_FIELDS = [
-  'seatNumber',
-  'cellId',
-  'grownMass',
-  'fullMass',
-  'respawnInTicks',
-  'headingX',
-  'headingY',
-  'decideInTicks',
-  'huntPreyId',
-  'huntStartTick',
-  'givenUpPreyId',
-  'huntRestUntilTick',
-] as const satisfies readonly HashedField<SeatMindRecord>[];
-
-export const WILD_SEAT_HASHED_FIELDS: readonly HashedField<WildSeatRecord>[] = [
-  ...SEAT_MIND_HASHED_FIELDS,
-  'sizeFactor',
-  'isStarving',
-];
-
-export const GIANT_SEAT_HASHED_FIELDS: readonly HashedField<GiantSeatRecord>[] = [
-  ...SEAT_MIND_HASHED_FIELDS,
-  'species',
-  'bornMass',
-];
-
 function hashRecords<Record>(
   hasher: StateHasher,
   records: readonly Record[],
@@ -295,5 +281,6 @@ export function computeStateHash(world: WorldState): StateHash {
   hashRandomStreams(hasher, world.random, SERVER_RANDOM_STREAM_LABELS);
   hasher.hashNumber(world.nextEntityNumber);
   hashLatchedBacteriaOfCells(hasher, world.cells);
+  hashEraMovedInto(hasher, world.eraMovedInto);
   return hasher.digest();
 }

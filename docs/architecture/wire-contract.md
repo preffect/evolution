@@ -29,6 +29,7 @@ export interface GameSnapshot {
   tick: number;
   seed: number; // current round seed (G2 asserts 43 after the first rematch)
   roundStartTick: number; // 0 at creation, the tick at a rematch; may be negative after a debug_set_era jump (game-design/phases.md §14.2.4): the world clock and eraAt read tick − roundStartTick
+  era: GameEra; // the world's eraMovedInto, not eraAt: the world the moves have built (architecture/server-simulation.md §3); 'dish' throughout while the eras are off (ticket #931)
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
@@ -96,8 +97,10 @@ sees one twice: a sprint start's cost as `sprintSpent`, and the mass an offer dr
 `level_up` effect, because the drop is not always on the level-up's tick: an offer queued behind a shown one is dropped
 at step 1 after the pick. **A drop at entry (a join or respawn, step 9) is not reported**: entry runs after the
 metabolism step, so the new cell has no `massFlow` on that tick, and the bonus is simply part of the cell's first mass
-(`NO_DRAFT_BONUS_REPORT.inFirstMass`, `progression/offers.ts`). The identity below starts from a cell's second tick. A
-`game_state` carries neither amount, as it carries no effects. The `eat` and `cell_absorbed` amounts and the no-draft bonus are measured around the gains
+(`NO_DRAFT_BONUS_REPORT.inFirstMass`, `progression/offers.ts`). The identity below starts from a cell's second tick,
+and skips the pool's move tick, as it skips an entry: the move sets every player's mass to `POOL_ARRIVAL_MASS`, a reset
+and not a flow (game-design/phases.md §14.4.2 step 5). A
+`game_state` carries neither amount, as it carries no effects (but the move's: "The move" below). The `eat` and `cell_absorbed` amounts and the no-draft bonus are measured around the gains
 (`measureGain`, `simulation/cell-mass.ts`), so a bonus clipped at `CELL_MAX_MASS` reports only the mass it added. On
 every tick
 `Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained − sprintSpent + noDraftBonusGained`
@@ -111,6 +114,41 @@ every tick
   delete-if-present `removedIds`, patch `moved`) and resets its food store on every
   `game_state`; WebSocket ordering makes this sufficient, so there is no base-tick check. A
   reconnect is a new `game_state`, and so is a resync: there is no separate verb for one.
+- **The move** (game-design/phases.md §14.4.2 step 9, ticket #931; ticket #868 wires it). The broadcast whose window
+  holds the pool's move tick is sent to every viewer as a `game_state`, not a delta. The client's store resets on it
+  (client.md §5), so the own-cell predictor starts afresh instead of blending a 1 000 wu correction, the interpolation
+  buffer restarts instead of streaking cells from dish to pool coordinates, and the food store is refilled with the
+  pool's motes in one message. It goes out through the resync path (`SnapshotDispatch`), so the flow control's
+  one-resync-in-flight bookkeeping counts it.
+  - **A broadcast closes on the tick before a move**, whatever the cadence: the room sees from state that the next
+    step runs one (`roundEraAt(world, world.tick + 1)` is past `eraMovedInto`, which covers the clock, a
+    `debug_set_era` jump and a balance patch alike). The move's window therefore starts on the move tick, every dish
+    moment goes out in an ordinary delta in dish coordinates, and nothing is dropped: a respawn, an engulf or a
+    level-up on the ticks just before the move reaches the renderer, the HUD and the sound bus as usual.
+  - **It is still the broadcast's one drain**: unlike every other `game_state` it carries its window's effects (its
+    `era_moved` included) and mass amounts.
+  - **A viewer the flow control holds** (a resync already in flight, §4 "One resync per recovery") is sent nothing at
+    the move; it reaches the pool through its next ordinary resync, which carries no effects, so it never sees that
+    `era_moved`. The client's move cues (the layer swap, the fade, the caption, the camera's remap) therefore key on the
+    snapshot's `era` leaving the dish, never on the `era_moved` effect; the effect drives only the moment's sound and
+    toast.
+  - The colonies' move (§14.4.5) maps nothing and goes out as an ordinary delta; a step that runs both (a
+    `debug_set_era` jump past the pool) sends the one `game_state`.
+- **The cameras across the move.** Both sides remap with the shared `remapCameraAcrossMove(state, eras.ERA_SCALE_STEP)`
+  (`camera/era-move-camera.ts`: x, y and the view's half-height divided by the step) when the era they frame leaves
+  the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` at its step has left the dish
+  and had not at its previous step, remapping **every** state of its history so no dish-coordinate rectangle stays in
+  the cull union; the client's when the snapshot it draws has (client.md §5). Neither re-parks. Then each side
+  passes `moveCameraZoomSecondsAt(tick, roundStartTick, era, balance)` as `stepCamera`'s zoom constant:
+  `ERA_MOVE_CAMERA_ZOOM_SECONDS` for `ERA_MOVE_CAMERA_EASE_SECONDS` from the pool's move tick, `CAMERA_ZOOM_SECONDS`
+  otherwise (one ease, not two). The move tick is derived (`eraStartedAtTick` of the pool), never sent. It is exact
+  for a step the clock carries to the pool's start and for a `debug_set_era` jump to the pool (which moves
+  `roundStartTick` so that it is); a jump past the pool lands with no ease. It is **not** the move's tick after a
+  `debug_set_balance` that adds the pool to `ERAS_IN_PLAY` after its start, or moves the start (server-simulation.md
+  §3): there it is the era's start, so the ease may have run already, run in part, or restart inside the pool. That
+  is cosmetic and debug-only, so the camera and the client's other move cues may read it. **Anything gameplay-timed
+  from the move is stored world state, never derived this way**: the grace (phases.md §14.4.2 step 8) is a tick kept
+  in the eras' hashed section (determinism/ordering-and-state-hash.md §5), set by the move itself (ticket #868).
 - **Flow control: a client is never queued deeper than it is keeping up** (#266). The room
   broadcasts every `SNAPSHOT_EVERY_TICKS` whatever the clients are doing, so one that cannot
   consume the cadence — a page rebuilding its renderer after a reload is the ordinary way to get
