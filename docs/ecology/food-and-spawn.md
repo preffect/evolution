@@ -12,6 +12,10 @@
 | DNA fragment  | `DNA_FRAGMENT_` | 0    | 5    | one tag by zone (§2) | slow drift, `DNA_FRAGMENT_DRIFT_SPEED` | 9           | none                        |
 | Wild cell     | `WILD_CELL_`    | §3.3 | §3.3 | none                 | steered by the wild strategy (§3.3)    | §5.1        | respawns, §3.3              |
 
+> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.3–§15.5).**
+> Specks (algae, detritus, DNA fragments) are absorbed by every cell; a bacterium passes under a protocell, is
+> latched by an archaeon's arms and paid on the bond, and is swallowed only by a eukaryote.
+
 - **Eating rule.** A mote is eaten the tick its centre lies within the cell's radius. Any player cell can
   eat any mote; no minimum size. A wild cell eats algae and detritus only and passes over bacteria and
   DNA fragments (§3.3.3). Mass is added instantly (the renderer animates the gulp); DNA and tag

@@ -34,6 +34,10 @@ for one active player who takes the trip at the first chance, ± 20 s.
 | Hunt  | 4:30 – 8:00  | Levels 3–4: the endosymbiont around 5:40, the nuclear envelope around 8:00; engulfs decide the leaderboard; nobody is specialised yet.                                   |
 | Bloom | 8:00 – 10:00 | Food and DNA spawn multiply (`ROUND_BLOOM_START_FRACTION` = 0.8): catch-up + chaos; the most active player takes a form at level 5 around 9:40.                          |
 
+**Decided, not built yet (ticket #865, [`early-life.md`](./early-life.md) §15.7).** With the early game true to life
+nothing swallows before the nucleus: the dawn absorbs, the trip latches, the hunt phase becomes the archaeon's
+partnership, and the food web opens at ~8:00; no form is reachable before level 6.
+
 Bloom multipliers live in [`ecology/food-and-spawn.md`](../ecology/food-and-spawn.md#3-spawn-model) (`FOOD_BLOOM_SPAWN_MULTIPLIER`,
 `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`).
 
