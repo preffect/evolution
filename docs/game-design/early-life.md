@@ -4,7 +4,7 @@
 
 ## 15. The early game true to life (ticket #865)
 
-Epic #761; decision ticket #791 (answer **A**). This section is the decided design: what the build makes. Numbers
+Epic #761; decision ticket #791 (answer **A**); the build is epic #906 (its roadmap comment gives the order). This section is the decided design: what the build makes. Numbers
 marked **(tuning)** are starting values for the build and for gameplay QA to move; everything else is decided.
 Nothing here is built yet: until the "early life on" slice lands (§15.10), [`core.md`](./core.md) §3,
 [`session.md`](./session.md) §5.1 and the ecology and trait docs describe the game as it plays today, each with a
