@@ -34,7 +34,7 @@ export function factNameFromNoun(noun: string): string {
 }
 
 /**
- * A tier row's name (§11.4, #858): the noun, then the unit its cells' bare figures are in, `Photosynthesis (mass / s)`.
+ * A tier row's name (§11.4, #858): the noun, then the unit its cells' bare figures are in, `In sunlight (mass / s)`.
  * The unit is the modifier's own, so it is the same in every tier; a unit with no header form adds nothing.
  */
 export function tierRowName(fact: ResolvedFact): string {
@@ -43,9 +43,17 @@ export function tierRowName(fact: ResolvedFact): string {
   return unit === '' ? name : `${name}${ENCYCLOPEDIA_TIER_UNIT_OPEN}${unit}${ENCYCLOPEDIA_TIER_UNIT_CLOSE}`;
 }
 
-/** A tier's cell for a row: its bare figure, or the identity mark where the tier leaves the modifier alone. */
+/** The fact a tier section sets for a row's modifier; `undefined` where the tier leaves it at identity. */
+function tierFactOf(section: ResolvedSection, key: string): ResolvedFact | undefined {
+  return section.facts.find((candidate) => candidate.key === key);
+}
+
+/**
+ * A tier's cell for a row: its bare figure, or the identity mark where the tier leaves the modifier alone. A fact
+ * without a split reads whole, as `tierRowName` then leaves the unit out of the name, so the row never loses it.
+ */
 function tierCellText(section: ResolvedSection, key: string): string {
-  const tierFact = section.facts.find((candidate) => candidate.key === key);
+  const tierFact = tierFactOf(section, key);
   if (tierFact === undefined) return ENCYCLOPEDIA_TIER_IDENTITY_TEXT;
   return tierFact.parts?.figure ?? tierFact.text;
 }
@@ -72,7 +80,7 @@ export function tierTableFor(
     rowId: fact.key,
     name: tierRowName(fact),
     values: tiers.map((column) => tierCellText(column.section, fact.key)),
-    effects: tiers.map((column) => column.section.facts.find((tierFact) => tierFact.key === fact.key)?.effect ?? null),
+    effects: tiers.map((column) => tierFactOf(column.section, fact.key)?.effect ?? null),
     links: NO_FACT_LINKS,
   }));
   if (rows.length === 0) return null;

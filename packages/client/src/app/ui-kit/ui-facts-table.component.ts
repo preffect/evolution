@@ -128,9 +128,9 @@ export class UiFactsTableComponent {
    * line either way, since a wrapping name column is one the auto layout can squeeze. **Off by default**: a table
    * whose values are short figures reads as one line per row, and that is every table the kit had when this was
    * added. A feature turns it on when a value can be wider than the column it is given — several links in one cell
-   * (a quantity never wraps: its number and unit are joined by no-break spaces, #858) — because the alternative is not a narrower column but
-   * a table wider than its container: the cells' minimum content width wins over `width: 100%`, and the table pushes
-   * out through whatever is holding it (PR #471).
+   * (a quantity never wraps: its number and unit are joined by no-break spaces, #858) — because the alternative is
+   * not a narrower column but a table wider than its container: the cells' minimum content width wins over
+   * `width: 100%`, and the table pushes out through whatever is holding it (PR #471).
    */
   readonly shouldWrapValues = input(false);
   readonly testId = input<string | null>(null);

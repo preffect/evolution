@@ -120,7 +120,8 @@ export interface UnitFormat {
  * over `mass`, `+0.3 mass` over `/ s` (#858). The table below writes plain spaces for legibility; `unitFormat` swaps.
  */
 export const NO_BREAK_SPACE = '\u00A0';
-const BREAKING_SPACE = ' ';
+/** The plain space a no-break space stands in for: what the table writes, and what a search query is typed with. */
+export const BREAKING_SPACE = ' ';
 
 /** `text` with every space made non-breaking. */
 function unbreakable(text: string): string {

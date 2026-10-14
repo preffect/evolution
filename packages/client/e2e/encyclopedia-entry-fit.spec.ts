@@ -8,11 +8,22 @@
 
 import { expect, test, type Page } from '@playwright/test';
 import { ENCYCLOPEDIA_CATEGORY_ORDER } from '../src/app/game/encyclopedia/model/categories';
-import { ENCYCLOPEDIA_TEST_ID, encyclopediaCategoryTestId } from '../src/app/game/encyclopedia/test-ids';
+import type { EntryId } from '../src/app/game/encyclopedia/model/entry-id';
+import {
+  ENCYCLOPEDIA_TEST_ID,
+  encyclopediaCategoryTestId,
+  encyclopediaLinkTestId,
+  encyclopediaRowTestId,
+} from '../src/app/game/encyclopedia/test-ids';
 
-/** The sizes §11.3 promises the panel reads at, the same four the landing tiles are held to. */
+/**
+ * The sizes §11.3 promises the panel reads at, the same four the landing tiles are held to, and 1017 × 640: the
+ * widest viewport whose title column still stacks under the lens is the narrowest it sits beside it at the floor
+ * (`ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX`), so a table that outgrows the floor shows there first (#858's review).
+ */
 const ENTRY_FIT_VIEWPORTS = [
   { width: 800, height: 600 },
+  { width: 1017, height: 640 },
   { width: 1024, height: 640 },
   { width: 1280, height: 800 },
   { width: 1920, height: 1080 },
@@ -24,11 +35,11 @@ const FIT_TOLERANCE_PX = 1;
  * box, and several times that while a validation run shares it, which the default two minutes did not cover.
  */
 const ENTRY_WALK_TIMEOUT_MS = 300_000;
-/** A list row's test id is this plus the entry id (`encyclopediaRowTestId`). */
-const ROW_TEST_ID_PREFIX = 'encyclopedia-row-';
-/** A fact link's test id is this plus the entry id (`encyclopediaLinkTestId`). */
-const LINK_TEST_ID_PREFIX = 'encyclopedia-link-';
-/** Two text boxes whose bottoms are further apart than this are on different lines; one line's boxes share a bottom. */
+/** A list row's test id is this plus the entry id: `encyclopediaRowTestId`'s own prefix. */
+const ROW_TEST_ID_PREFIX = encyclopediaRowTestId('' as EntryId);
+/** A fact link's test id is this plus the entry id: `encyclopediaLinkTestId`'s own prefix. */
+const LINK_TEST_ID_PREFIX = encyclopediaLinkTestId('' as EntryId);
+/** Two boxes overlapping vertically by more than this share a line; a box clear of every line starts a new one. */
 const SAME_LINE_TOLERANCE_PX = 1;
 
 /** The text of every facts-table cell on the open entry page that crosses the detail column's left or right edge. */
@@ -73,23 +84,32 @@ function wideFactTables(page: Page): Promise<string[]> {
  * a list of links is one `formatQuantity` result — one number and its unit — or, in the tier table, a bare figure
  * whose unit is in its row's name; either way a second line can only be a break inside the pair: `+0.3 mass` over
  * `/ s`, `5000` over `mass`. A list of links may wrap between its titles, and a title is no number, so those cells are
- * left out. Lines are told apart by the bottoms of the cell's text boxes.
+ * left out. A cell's lines are its text boxes and its atomic inline boxes (the effect mark before a tier figure, which
+ * breaking off above its figure is the same fault), grouped by vertical overlap.
  */
 function brokenFactValues(page: Page): Promise<string[]> {
   return page.evaluate(
     ({ factsTestId, linkTestIdPrefix, tolerance }) => {
-      const lineCountOf = (cell: Element): number => {
-        const bottoms: number[] = [];
+      const boxesOf = (cell: Element): DOMRect[] => {
+        const boxes: DOMRect[] = [];
         const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
           const range = document.createRange();
           range.selectNodeContents(node);
-          for (const box of range.getClientRects()) {
-            const isNewLine = box.width > 0 && bottoms.every((bottom) => Math.abs(bottom - box.bottom) > tolerance);
-            if (isNewLine) bottoms.push(box.bottom);
-          }
+          boxes.push(...range.getClientRects());
         }
-        return bottoms.length;
+        const atomicInlines = [...cell.querySelectorAll('*')].filter(
+          (element) => getComputedStyle(element).display === 'inline-block',
+        );
+        return [...boxes, ...atomicInlines.map((element) => element.getBoundingClientRect())];
+      };
+      const lineCountOf = (cell: Element): number => {
+        const lines: { top: number; bottom: number }[] = [];
+        for (const box of boxesOf(cell).filter((candidate) => candidate.width > 0)) {
+          const line = lines.find((known) => box.top < known.bottom - tolerance && box.bottom > known.top + tolerance);
+          if (line === undefined) lines.push({ top: box.top, bottom: box.bottom });
+        }
+        return lines.length;
       };
       return [...document.querySelectorAll(`[data-testid="${factsTestId}"] td`)]
         .filter((cell) => cell.querySelector(`[data-testid^="${linkTestIdPrefix}"]`) === null && lineCountOf(cell) > 1)

@@ -184,11 +184,15 @@ content column leaves a title column of at most about 200 px beside any lens wor
 Chloroplast's tier table or Mass and size's facts, and the lens's diameter is also its preview canvas's side
 (§12.7), so a lens that changed size per viewport would re-bake every scene. Stacked, the page scrolls a little
 further, which it already does on a long entry. The floor is set between the widest title column any entry needs
-and the 370 the reference sizes give it: 343 when #854 set it (Mass and size, its values free to wrap); since #858 no
-value wraps inside a quantity, and the widest facts table beside a lens is Chloroplast's Effects by tier at 331, with
-Mass and size at 297 once its last fact was named `DNA per mass past the largest` (it was `… gained at the largest
-mass`, which with an unbreakable `5000 mass` needed 375 and overflowed at 1024 × 640). `e2e/encyclopedia-entry-fit.spec.ts`
-holds every entry at the four sizes of §11.3 to it (§11.4's facts rules below).
+and the 370 the reference sizes give it: 343 when #854 set it (Mass and size, its values free to wrap). Since #858 no
+value wraps, the effect mark included, and the widest facts tables beside a lens, measured whole with their marks, are
+Amoeba Pseudopods' Effects by tier at 340, Mass and size's facts at 336 and Chloroplast's Effects by tier at 331. Two
+names were shortened to get there: Mass and size's last fact, `DNA per mass gained at the largest mass`, is `DNA per
+mass past the largest mass` (with an unbreakable `5000 mass` the old name needed 375), and Chloroplast's tier row is
+`In sunlight (mass / s)` (as `Photosynthesis (mass / s)` it needed 364, past the floor, and between 1017 and 1019 px
+wide its effect marks broke off above their figures). `e2e/encyclopedia-entry-fit.spec.ts` holds every entry to it at
+the four sizes of §11.3 and at 1017 × 640, the narrowest viewport that keeps the title column beside the lens
+(§11.4's facts rules below).
 
 **Geometry**, every length × `--ui-scale`:
 
@@ -281,32 +285,34 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
    trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
    - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
      modifier keys their `facts` carry. **The unit is in the row's name, the cells hold bare figures** (#858): the
-     name is the noun and the unit after it in brackets (`Photosynthesis (mass / s)`, `Mass decay (%)`, `Arm grab
-reach (radii)`), and each cell the signed figure alone (`+0.3`, `−15`, `0.62`), in `figure`. Both halves come
-     from one split at the modifier-label formatter (`formatModifierParts`, quantities/modifier-labels.ts): a
+     name is the noun and the unit after it in brackets (`In sunlight (mass / s)`, `Mass decay (%)`,
+     `Arm grab reach (radii)`), and each cell the signed figure alone (`+0.3`, `−15`, `0.62`), in `figure`. Both
+     halves come from one split at the modifier-label formatter (`formatModifierParts`, quantities/modifier-labels.ts): a
      modifier's unit is its own, so every tier of a row shares it, and the unit's header form is its plural suffix
      (`radii`, never `radius` for a tier of 1); a multiplier read as a change is a share, so `%`. A unit with no suffix
-     adds nothing to the name. `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` stands where a tier leaves that key at identity, each
+     falls back to its prefix (`Level`, `Tier`; no modifier has one today), and a unit with neither, a count, adds
+     nothing to the name. `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` stands where a tier leaves that key at identity, each
      figure is led by the effect mark (up for a benefit, down for a drawback) by its effect on the owner
-     (docs/ui/hud.md §3.1.5, #453), and the owned tier's column is tinted accent under `You own II`
+     (docs/ui/hud.md §3.1.5, #453), the mark and the figure one reading that never breaks (a plain value is
+     `white-space: nowrap`), and the owned tier's column is tinted accent under `You own II`
      (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier column is its widest figure plus `UI_SPACE_S_PX` at
      each end, and the noun column takes the rest. The trait cards and the HUD keep the unit beside each figure
-     (`+0.3 mass / s in sunlight`): the split is the tier table's alone.
+     (`+0.3 mass / s in sunlight`, the noun after the value): the split is the tier table's alone.
    - **A number and its unit never part** (#858). `formatQuantity` joins a figure to its unit with no-break spaces
      (`5000 mass`, `+0.3 mass / s`, `Level 4`), so no line, in either table or anywhere else, breaks inside a reading.
      That made the old rule (#465), where a tier value broke at its spaces to fit, impossible: three unbreakable
      `+0.3 mass / s` columns need 488 units beside the noun, against a title column of 370 beside the lens and 421
      stacked at 800 × 600, and Amoeba Pseudopods' three `0.62 radii` need 415. Under it, every tier cell with a unit
      of two words broke at every size, `+0.3 mass` over `/ s`. Writing the unit once per row is the data-table
-     convention and makes each tier a number to compare, I over II over III; it leaves Chloroplast's table about 330
-     units wide. Two alternatives were weighed and rejected: the noun on its own line above the three values (351 of
+     convention and makes each tier a number to compare, I over II over III; it leaves Chloroplast's table 331 units
+     wide, its marks included. Two alternatives were weighed and rejected: the noun on its own line above the three values (351 of
      370, with nothing to spare, and every trait's table taller), and keeping the break inside the pair. Both tables
      still ask the kit for `shouldWrapValues` (components-and-constants.md §10.2), for the second table's lists of
      links; a bare figure has nothing to break at. The nouns keep one line — a noun column that may wrap is one the
      table's auto layout can squeeze, which broke `Reached by` over two lines to widen a value column that had room
      to spare. Nothing ever crosses the content column, and `e2e/encyclopedia-entry-fit.spec.ts` holds every entry at
-     the four sizes of §11.3 to all three: no cell past the column, no table wider than its column, no value over two
-     lines.
+     the four sizes of §11.3 and 1017 × 640 to all three: no cell past the column, no table wider than its column, no
+     value on more than one line (its effect mark counted as one of its boxes).
    - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
      left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry. Consecutive
      facts sharing a `key` are one row: the label once, the texts as links joined by `, ` (a link with several targets
@@ -448,7 +454,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX`                                  | 848                                                                  | px   | The content column's widest. The panel's own width cap already holds the detail column there; this is the page's measure, so a wider panel later never stretches the prose and the tables with it.                                                                                                                                                                          |
 | `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                                  | px   | The lens, and the side of its square preview canvas.                                                                                                                                                                                                                                                                                                                        |
 | `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                                   | px   | The lens to the title column.                                                                                                                                                                                                                                                                                                                                               |
-| `ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX`                             | 360                                                                  | px   | The title column's floor beside the lens; under it the title column wraps below the lens at full width (§11.4, #854). Between the widest any entry needs (343) and the reference sizes' 370.                                                                                                                                                                                |
+| `ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX`                             | 360                                                                  | px   | The title column's floor beside the lens; under it the title column wraps below the lens at full width (§11.4, #854). Between the widest any entry needs (340, #858) and the reference sizes' 370.                                                                                                                                                                          |
 | `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                                    | px   | The lens rim, in `PANEL_RIM`.                                                                                                                                                                                                                                                                                                                                               |
 | `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                                 | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                                                                                                                                                                                                                                                                                                |
 | `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                                   | —    | Reticle ticks around the lens.                                                                                                                                                                                                                                                                                                                                              |
@@ -472,7 +478,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_TIER_CAPTION_PREFIX`                                   | `You own `                                                           | —    | Before the owned tier's numeral, as the caption over the tier table's noun column.                                                                                                                                                                                                                                                                                          |
 | `ENCYCLOPEDIA_OWNED_CHIP_LABEL`, `ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR` | `OWNED`, `·`                                                         | —    | The level-gold chip a round adds, around the tier's numeral: `OWNED · II`.                                                                                                                                                                                                                                                                                                  |
 | `ENCYCLOPEDIA_TIER_IDENTITY_TEXT`                                    | `—`                                                                  | —    | What a tier column shows where that tier leaves the row's modifier at identity.                                                                                                                                                                                                                                                                                             |
-| `ENCYCLOPEDIA_TIER_UNIT_OPEN`                                        | ` (`                                                                 | —    | Before the unit a tier row's name carries for its bare figures: `Photosynthesis (mass / s)` (#858).                                                                                                                                                                                                                                                                         |
+| `ENCYCLOPEDIA_TIER_UNIT_OPEN`                                        | ` (`                                                                 | —    | Before the unit a tier row's name carries for its bare figures: `In sunlight (mass / s)` (#858).                                                                                                                                                                                                                                                                            |
 | `ENCYCLOPEDIA_TIER_UNIT_CLOSE`                                       | `)`                                                                  | —    | After that unit.                                                                                                                                                                                                                                                                                                                                                            |
 | `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                                  | px   | A landing tile; three to a row at 1280 × 800 and four at 1920 × 1080. The grid wraps to whatever the column fits.                                                                                                                                                                                                                                                           |
 | `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 172                                                                  | px   | A landing tile: the well, a title of up to `ENCYCLOPEDIA_TILE_TITLE_LINES` lines (#847) and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines (#462).                                                                                                                                                                                                                    |

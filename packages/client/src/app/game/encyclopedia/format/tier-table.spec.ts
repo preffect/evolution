@@ -48,12 +48,12 @@ describe('tierTableFor (docs/ui/encyclopedia.md §11.4)', () => {
   });
 
   /** #858: the unit once, in the row's name; each tier a bare figure that cannot break from it. */
-  it('names Chloroplast’s photosynthesis row with its unit and writes its tiers as bare figures', () => {
+  it('names Chloroplast’s sunlight row with its unit and writes its tiers as bare figures', () => {
     const photosynthesis = tierTableFor(resolve(CHLOROPLAST).sections, null)?.rows.find(
       (row) => row.rowId === 'photosynthesisMassPerSecond',
     );
     expect(photosynthesis?.name).toBe(
-      `Photosynthesis${ENCYCLOPEDIA_TIER_UNIT_OPEN}${unbroken('mass / s')}${ENCYCLOPEDIA_TIER_UNIT_CLOSE}`,
+      `In sunlight${ENCYCLOPEDIA_TIER_UNIT_OPEN}${unbroken('mass / s')}${ENCYCLOPEDIA_TIER_UNIT_CLOSE}`,
     );
     expect(photosynthesis?.values).toEqual(['+0.3', '+0.6', '+0.9']);
   });
@@ -125,6 +125,12 @@ describe('tierRowName (docs/ui/encyclopedia.md §11.4)', () => {
   it('adds nothing for a unit with no header form, and reads a fact without a split as its noun alone', () => {
     expect(tierRowName(tierFact('count', 'count', '3', ''))).toBe('Count');
     expect(tierRowName({ key: 'speedMultiplier', label: 'speed', text: '+10 %', link: null })).toBe('Speed');
+  });
+
+  it('keeps the unit in the cell for a fact without a split, so the row still names it exactly once', () => {
+    const unsplit: ResolvedFact = { key: 'speedMultiplier', label: 'speed', text: '+10 %', link: null };
+    const table = tierTableFor([tierSection('tier_1', [unsplit])], null);
+    expect(table?.rows.map((row) => [row.name, ...row.values])).toEqual([['Speed', '+10 %']]);
   });
 });
 

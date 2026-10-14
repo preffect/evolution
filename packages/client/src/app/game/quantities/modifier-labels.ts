@@ -1,9 +1,10 @@
 // The one label table for trait modifiers (docs/ui/overlays.md §3.2, docs/architecture/encyclopedia.md §12.3): a
 // tier row's value as a trait card and the encyclopedia both read it, so the two can never read differently. Each row
-// is the effect's `noun` and its `quantity`: the encyclopedia shows them as a fact's label and text, and a card
-// line is the two joined (`+15 % speed`), or the row's `formatLine` where the line is a sentence rather than a value
-// and a noun (`Toxin reaches 1.5 radii`). The encyclopedia's tier table alone splits the value (`formatModifierParts`):
-// the unit once in the row's name, the bare figure in each tier's cell (docs/ui/encyclopedia.md §11.4, #858). Every key of `CellModifiers` has a label (the spec pins the set against the
+// is the effect's `noun` and its `quantity`: the encyclopedia shows them as a fact's label and text, and a card line
+// is the two joined (`+15 % speed`, `+0.3 mass / s in sunlight`), or the row's `formatLine` where the line is a
+// sentence rather than a value and a noun (`Toxin reaches 1.5 radii`). The encyclopedia's tier table alone splits
+// the value (`formatModifierParts`): the unit once in the row's name, the bare figure in each tier's cell
+// (docs/ui/encyclopedia.md §11.4, #858). Every key of `CellModifiers` has a label (the spec pins the set against the
 // live identity record), so a new modifier without copy fails the gate instead of rendering `undefined`. The numbers
 // go through `formatQuantity`; this table keeps only the words. It reads no tunable: the tier row and the identity
 // come from the caller's live balance. Pure.
@@ -141,9 +142,8 @@ export const MODIFIER_LABELS: Readonly<Record<ModifierKey, ModifierLabel>> = {
   digestionFactorBonus: { noun: 'digestion', quantity: SIGNED_PERCENT, betterWhen: MODIFIER_BETTER_WHEN.higher },
   decayMultiplier: { noun: 'mass decay', quantity: FROM_ONE, betterWhen: MODIFIER_BETTER_WHEN.lower },
   photosynthesisMassPerSecond: {
-    noun: 'photosynthesis',
+    noun: 'in sunlight',
     quantity: SIGNED_MASS_PER_SECOND,
-    formatLine: (value) => `${read(SIGNED_MASS_PER_SECOND, value)} in sunlight`,
     betterWhen: MODIFIER_BETTER_WHEN.higher,
   },
   spikeDrainFractionPerSecond: {

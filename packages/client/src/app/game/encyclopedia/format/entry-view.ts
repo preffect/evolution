@@ -1,7 +1,8 @@
 // The entry page's view model (docs/ui/encyclopedia.md §11.4), pure: the title column's chips, the facts table (the
-// Effects by tier table is `tier-table.ts`'s, from the sections and numerals here) and the prose's paragraphs. Every number it shows is already formatted — a `ResolvedEntry` holds text, not values
-// (architecture/encyclopedia.md §12.2) — so nothing here calls `formatQuantity` except on the one figure the page
-// owns itself, the tier numeral, which §11.4 names as a `formatQuantity` call.
+// Effects by tier table is `tier-table.ts`'s, from the sections and numerals here) and the prose's paragraphs. Every
+// number it shows is already formatted — a `ResolvedEntry` holds text, not values (architecture/encyclopedia.md
+// §12.2) — so nothing here calls `formatQuantity` except on the one figure the page owns itself, the tier numeral,
+// which §11.4 names as a `formatQuantity` call.
 
 import {
   GIANT_ROLE,
