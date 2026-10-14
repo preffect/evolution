@@ -7,9 +7,10 @@ below hold the numbers for their domain (one fact, one home).
 
 This document is split into topic files (#306). Read only the file a ticket or brief cites.
 
-| File                                                                                   | Sections | Topic                                |
-| -------------------------------------------------------------------------------------- | -------- | ------------------------------------ |
-| [`game-design/core.md`](./game-design/core.md)                                         | §1–§4    | Companions, fantasy, ladder and loop |
-| [`game-design/session.md`](./game-design/session.md)                                   | §5       | Session structure                    |
-| [`game-design/controls-and-scope.md`](./game-design/controls-and-scope.md)             | §6–§11   | Controls, camera, dish and scope     |
-| [`game-design/constants-and-acceptance.md`](./game-design/constants-and-acceptance.md) | §12–§13  | Constants and acceptance             |
+| File                                                                                   | Sections | Topic                                                                               |
+| -------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| [`game-design/core.md`](./game-design/core.md)                                         | §1–§4    | Companions, fantasy, ladder and loop                                                |
+| [`game-design/session.md`](./game-design/session.md)                                   | §5       | Session structure                                                                   |
+| [`game-design/controls-and-scope.md`](./game-design/controls-and-scope.md)             | §6–§11   | Controls, camera, dish and scope                                                    |
+| [`game-design/constants-and-acceptance.md`](./game-design/constants-and-acceptance.md) | §12–§13  | Constants and acceptance                                                            |
+| [`game-design/phases.md`](./game-design/phases.md)                                     | §14      | The game in phases: the dish, the rock pool and the colonies (decided, ticket #864) |
