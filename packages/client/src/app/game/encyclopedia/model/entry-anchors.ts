@@ -22,9 +22,12 @@ export const ENTRY_BY_EFFECT: Readonly<Record<EffectKind, EntryId>> = {
   [EFFECT_KIND.bacteriumLatched]: EATING_ENTRY,
   [EFFECT_KIND.bacteriumBonded]: EATING_ENTRY,
   [EFFECT_KIND.latchShaken]: EATING_ENTRY,
-  // The eras open on the world clock (docs/game-design/phases.md §14.2.2): its page until the pool has its own.
+  // The eras and the pool's warnings open on the world clock (docs/game-design/phases.md §14.2.2): its page until the
+  // pool has its own (ticket #878).
   [EFFECT_KIND.eraWarning]: WORLD_CLOCK_ENTRY,
   [EFFECT_KIND.eraMoved]: WORLD_CLOCK_ENTRY,
+  [EFFECT_KIND.surgeWarning]: WORLD_CLOCK_ENTRY,
+  [EFFECT_KIND.copepodWarning]: WORLD_CLOCK_ENTRY,
 };
 
 export const ENTRY_BY_WORLD_STANDING: Readonly<Record<WorldStanding, EntryAnchor>> = {

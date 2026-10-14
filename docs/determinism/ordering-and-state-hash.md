@@ -36,15 +36,23 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
 - Two independent 32-bit FNV-1a lanes over a **canonical walk**: `tick`, `seed`, `roundStartTick`,
   `roundPhase`, `roundTimeLeftMs`, `roundFirstEntityNumber`, `firstGiantSeatNumber`, then each array in order (`cells`,
   `food`, `dnaFragments`, `players`, `wildSeats`, `giantSeats`, `gelPatches`), the two `spawners`, the `random`
-  streams in `SERVER_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`, then, only when some cell holds a bacterium,
+  streams in `ALWAYS_HASHED_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`, then, only when some cell holds a bacterium,
   every cell's held list in cell order (`TRAILING_CELL_HASHED_FIELDS`: `latchedBacteria`, game-design/early-life.md
   §15.11; last, so a world in which no cell holds one hashes byte for byte as before the lists existed, and the
-  section's presence is unambiguous: it is there or the walk has ended, #907), then, only once the world has left the
-  dish, the era it moved into (`TRAILING_WORLD_HASHED_FIELDS`: `eraMovedInto`, architecture/server-simulation.md §3;
-  a world in the dish, every world while the eras are off, hashes as before the eras, #931; the era opens with a
-  string's tag where the held lists open with an array's, so either section's presence reads from its first byte). This
-  section is the home of the eras' own hashed state: the pool's surge, the copepod and the move's grace (ticket #868)
-  are walked inside it, after `eraMovedInto` and under the same gate, never in a third trailing section, so the
+  section's presence is unambiguous: it is there or the walk has ended, #907), then, only once the world has **era
+  state**, the eras' section (`game/world/era-hashed-section.ts`, `hashEraSection`): the era it moved into
+  (`eraMovedInto`, architecture/server-simulation.md §3), the eras' three streams in `ERA_RANDOM_STREAM_LABELS` order,
+  then the pool's own state, each `null` or its fields: `poolLayout`, `surge`, `copepodLane`
+  (`TRAILING_WORLD_HASHED_FIELDS` lists the world fields in walk order). A world has era state (`hasEraState`) once it
+  has left the dish, drawn from one of the eras' streams (determinism/random-streams.md §3: they are hashed only once
+  drawn) or holds a layout, a surge or a copepod's pass. Every world that never reaches the pool, every world while
+  the eras are off, feeds the section nothing and hashes as before the eras (#931, #932). The era opens the section
+  with a string's tag where the held lists open with an array's, so either section's presence reads from its first
+  byte. This section is the home of all the eras' hashed state: the move's grace (ticket #868) and the creatures'
+  state join it, inside it and under its gate: each joins `POOL_STATE_HASHED_FIELDS`, the one list the gate and the walk
+  both iterate (null when the world has none of it), and its test then asks for a case that changes the field inside an
+  open section, while a recorded hash of a world holding every field pins the walk's order; never in a third trailing
+  section, so the
   pre-eras hash stays byte for byte and the sections' boundaries stay unambiguous;
   each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
@@ -53,7 +61,8 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   marker byte; arrays and enum records by a length prefix then their items.
 - **No object-key iteration.** `Record<DnaTag, number>` and `Record<BacteriumVariant, number>`
   are walked in `DNA_TAGS` / `BACTERIUM_VARIANTS` order; `world.random` in
-  `SERVER_RANDOM_STREAM_LABELS` order (the client's `cosmetic` stream is never in the hashed
+  `ALWAYS_HASHED_RANDOM_STREAM_LABELS` order, then the eras' streams in `ERA_RANDOM_STREAM_LABELS` order inside their
+  section (the client's `cosmetic` stream is never in the hashed
   world). A record field that is not in `HASHED_FIELDS` is not hashed, so adding a debug-only
   field cannot silently change the hash, and a new gameplay field must be added to the list
   (the test table pins that every non-derived field is listed, in its record's list or a trailing one).

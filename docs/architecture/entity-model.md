@@ -111,6 +111,45 @@ export interface GelPatchView {
   y: number;
   radius: number;
 }
+// packages/shared/src/types/pool.ts — the rock pool's views (game-design/phases.md §14.5), ticket #932: the layout is drawn once, from the `pool` stream, at the round's start
+// a view carries only what was drawn (positions, angles, ticks); every size is read from the live balance (wire-contract.md §4 "The pool layout")
+export interface PoolFilmView {
+  // a bacteria film on the floor: a fixed disc of POOL_FILM_RADIUS
+  x: number;
+  y: number;
+}
+export interface PoolThreadView {
+  // an algal thread: a band POOL_THREAD_WIDTH wide and POOL_THREAD_LENGTH long, centred here along angleRadians (poolThreadEnds; a segment with a bounding radius for the hash and the cull)
+  x: number;
+  y: number;
+  angleRadians: number;
+}
+export interface LightPatchOrbitView {
+  // on startTick the patch's centre lies orbitRadius from the pool's centre at startAngleRadians; it turns counter-clockwise once per POOL_LIGHT_PATCH_PERIOD_SECONDS (lightPatchCentreAt, simulation/pool-layout.ts)
+  orbitRadius: number;
+  startAngleRadians: number;
+  startTick: number;
+}
+export interface PoolLayoutView {
+  // the bank has no field: it is the band POOL_BANK_WIDTH wide inside the wall
+  films: PoolFilmView[];
+  threads: PoolThreadView[];
+  lightPatchOrbit: LightPatchOrbitView;
+}
+export interface SurgeView {
+  // from startedAtTick for POOL_SURGE_SECONDS every cell and mote but the anchored is pushed along the unit direction at POOL_SURGE_SPEED (§14.5.3)
+  startedAtTick: number;
+  directionX: number;
+  directionY: number;
+}
+export interface CopepodLaneView {
+  // the copepod has no body (§14.6.4): its head is at the start point on startedAtTick and runs along the unit direction at COPEPOD_SPEED, sweeping a lane COPEPOD_LANE_WIDTH wide
+  startX: number;
+  startY: number;
+  directionX: number;
+  directionY: number;
+  startedAtTick: number;
+}
 export interface TraitOfferView {
   offerId: number;
   level: number; // the level-up that queued it: back-to-back offers keep their own levels (PROGRESSION §4, ui/overlays.md §3.2)
@@ -181,10 +220,14 @@ massGained, dnaGained }` (the amounts measured around the gains,
 renderer knows which rod): `bacterium_latched { cellId, moteId, variant }` at the mote's centre, `bacterium_bonded {
 cellId, moteId, isCredited }` at the rim point beside the ordinary `eat` of the same mote (which carries the payout, so
 the mass accounting is unchanged), and `latch_shaken { cellId, moteIds }` at the cell's centre (`moteIds` the ids they
-were held under; the freed motes take fresh ids). Three happen everywhere and carry no position: `world_level_up {
-level, stage }` (ecology/food-and-spawn.md §3.1), and the eras' two (game-design/phases.md §14.4.1, ticket #931),
+were held under; the freed motes take fresh ids). Five happen everywhere and carry no position: `world_level_up {
+level, stage }` (ecology/food-and-spawn.md §3.1), the eras' two (game-design/phases.md §14.4.1, ticket #931),
 `era_warning { era }` `ERA_MOVE_WARNING_SECONDS` before a move and `era_moved { era }` on its tick, `era` being the era
-the move goes into (a step that runs two moves emits two `era_moved`, in era order).
+the move goes into (a step that runs two moves emits two `era_moved`, in era order), and the pool's two warnings
+(phases.md §14.5.2, §14.6.1, ticket #932), each carrying its view's fields: `surge_warning { startedAtTick,
+directionX, directionY }` `POOL_SURGE_WARNING_SECONDS` before a surge and `copepod_warning { startX, startY,
+directionX, directionY, startedAtTick }` `COPEPOD_WARNING_SECONDS` before a pass, on the tick the snapshot's `surge` or
+`copepodLane` first carries it.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -315,8 +358,12 @@ export interface WorldState {
   roundTimeLeftMs: number;
   config: GameSessionConfig;
   balance: BalanceConfig; // defaults from shared constants; patched only by debug_set_balance
-  eraMovedInto: GameEra; // the last era whose move has run: 'dish' at build (creation, rematch), kept by a reseed, left alone by a debug_set_era jump; the step runs every move after it up to eraAt (server-simulation.md §3); the snapshot's era copies it; hashed in the walk's trailing section once it leaves the dish (ticket #931)
+  eraMovedInto: GameEra; // the last era whose move has run: 'dish' at build (creation, rematch), kept by a reseed, left alone by a debug_set_era jump; the step runs every move after it up to eraAt (server-simulation.md §3); the snapshot's era copies it; hashed in the eras' section (ticket #931)
   gelPatches: GelPatchView[];
+  poolLayout: PoolLayoutView | null; // drawn from the `pool` stream at the round's start when the pool is in play (ticket #870), null in every other round; on the snapshot from the pool's warning tick (wire-contract.md §4 "The pool layout")
+  surge: SurgeView | null; // from its warning to its end (ticket #903), else null
+  copepodLane: CopepodLaneView | null; // the copepod's pass from its warning to its end (ticket #873), else null
+  // the three above are hashed in the eras' section, with the eras' streams (determinism/ordering-and-state-hash.md §5, ticket #932)
   cells: CellRecord[]; // insertion order
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];

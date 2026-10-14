@@ -37,6 +37,7 @@ import type {
 import { findPlayer } from '../world/lookups.js';
 import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
+import { serializeEraMembers } from './era-views.js';
 import { toEffectView, toMassFlowView } from './mass-flow-view.js';
 import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
 import type { BroadcastSnapshot } from './viewer-snapshot-keys.js';
@@ -257,6 +258,7 @@ function serializeShared(world: WorldState, precision: SnapshotPrecision): Omit<
   return {
     ...serializeRoundHeader(world),
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),
+    ...serializeEraMembers(world),
     cells: world.cells.map((cell) => toCellView(cell, precision)),
     players,
     leaderboard: world.leaderboard.map((row) => toLeaderboardRowView(row, precision)),

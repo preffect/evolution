@@ -8,6 +8,7 @@ import {
   hashArray,
   hashEnumRecord,
   hashFields,
+  hashNullable,
   hashRandomState,
   hashRandomStreams,
   hashScalarArray,
@@ -76,6 +77,18 @@ describe('hashFields', () => {
 
   it('ignores fields that are not listed', () => {
     expect(hashCell(createTestCell({ debugOnly: 'other' }))).toBe(hashCell(createTestCell()));
+  });
+});
+
+describe('hashNullable', () => {
+  it('hashes a record exactly as hashFields does, and null as the null marker alone', () => {
+    const cell = createTestCell();
+    const viaNullable = new StateHasher();
+    hashNullable(viaNullable, cell, CELL_FIELDS);
+    expect(viaNullable.digest()).toBe(hashCell(cell));
+    const nothing = new StateHasher();
+    hashNullable(nothing, null, CELL_FIELDS);
+    expect(nothing.digest()).toBe(new StateHasher().hashNull().digest());
   });
 });
 

@@ -19,6 +19,12 @@ export const RANDOM_STREAM = {
   engulf: 'engulf',
   /** Giant cells: born masses, placement candidates, wander headings and turn rolls (ecology/giants.md §3.5.9). */
   giants: 'giants',
+  /** The eras (game-design/phases.md §14.4.2): the no-form gift's draw and the landmark's bearing. */
+  eras: 'eras',
+  /** The rock pool (phases.md §14.4.2): its layout, swarm placement and respawn points, the surge's direction. */
+  pool: 'pool',
+  /** The pool's creatures (phases.md §14.6.2): their placement, their minds and the copepod's lanes. */
+  poolCreatures: 'pool_creatures',
   /** Client only, never on the server: wobble and particles. */
   cosmetic: 'cosmetic',
 } as const;
@@ -60,12 +66,11 @@ export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREA
 export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, typeof RANDOM_STREAM.cosmetic>;
 
 /**
- * The streams `createWorld` forks on the server, in declared order: the order they are forked
- * from the round seed and the walk order of `world.random` in the state hash (never
- * `Object.keys`, determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5). Declared by hand rather than filtered from
- * `RANDOM_STREAM_LABELS` so the narrowing is by declaration, not by a type guard.
+ * The server streams the state hash walks in its stream section in every world, in declared order (never `Object.keys`,
+ * determinism/random-streams.md §3, determinism/ordering-and-state-hash.md §5). Declared by hand rather than filtered
+ * from `RANDOM_STREAM_LABELS` so the narrowing is by declaration, not by a type guard.
  */
-export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
+export const ALWAYS_HASHED_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.spawner,
   RANDOM_STREAM.zones,
   RANDOM_STREAM.spawnPlacement,
@@ -74,6 +79,27 @@ export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.wildCells,
   RANDOM_STREAM.engulf,
   RANDOM_STREAM.giants,
+];
+
+/**
+ * The eras' streams, in declared order: the hash walks them in the eras' section, which a world opens only once it has
+ * left the dish or drawn from one of them, so a game that never reaches the pool hashes as before they existed
+ * (determinism/ordering-and-state-hash.md §5, ticket #932).
+ */
+export const ERA_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
+  RANDOM_STREAM.eras,
+  RANDOM_STREAM.pool,
+  RANDOM_STREAM.poolCreatures,
+];
+
+/**
+ * The streams `createWorld` forks on the server, in declared order: the order they are forked from the round seed
+ * (determinism/random-streams.md §3). A fork is seeded from its label, never from another stream, so the order changes
+ * no stream's draws.
+ */
+export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
+  ...ALWAYS_HASHED_RANDOM_STREAM_LABELS,
+  ...ERA_RANDOM_STREAM_LABELS,
 ];
 
 /** Every label in declared order: the server streams, then the client's `cosmetic` stream. */

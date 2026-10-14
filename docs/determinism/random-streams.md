@@ -31,11 +31,18 @@ export const RANDOM_STREAM = {
   wildCells: 'wild_cells', // wild cells: spread factors, wander headings, turn rolls (ecology/wild-cells.md §3.3)
   engulf: 'engulf', // spit-out rolls: one draw per tick per wrapped or sealed prey with spitOutChancePerSecond > 0, its only consumer (ecology/absorption.md §6.1)
   giants: 'giants', // giant cells: born masses, placement candidates, wander headings, turn rolls (ecology/giants.md §3.5.9)
+  eras: 'eras', // the eras: the no-form gift's draw, the landmark's bearing (game-design/phases.md §14.4.2)
+  pool: 'pool', // the rock pool: its layout, swarm placement and respawn points, the surge's direction (phases.md §14.4.2)
+  poolCreatures: 'pool_creatures', // the pool's creatures: placement, minds, the copepod's lanes (phases.md §14.6.2)
   cosmetic: 'cosmetic', // client only, never on the server
 } as const;
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
 export type ServerRandomStreamLabel = Exclude<RandomStreamLabel, 'cosmetic'>;
-/** The server streams in declared order: the order createWorld forks them and the hash walk of world.random. */
+/** The streams the state hash walks in its stream section in every world: spawner … giants, in declared order. */
+export const ALWAYS_HASHED_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[];
+/** The eras' three, in declared order: walked in the hash's eras' section, so only once the world has era state. */
+export const ERA_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[];
+/** Both lists, in that order: the order createWorld forks the server streams. */
 export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[];
 /** Every label: the server streams, then `cosmetic` (client only). */
 export const RANDOM_STREAM_LABELS: readonly RandomStreamLabel[];
@@ -85,6 +92,12 @@ export const forkStreamStates: <Label extends string>(
   `debug_spawn('giant')` draws the born mass and the heading too (a named mass replaces the drawn one, so the stream
   advances the same either way). So a giant never shifts a mote, a wild cell's draw or a player's spawn. Adding the stream moved every world's state hash once (the walk covers every stream), and no
   other stream's draws.
+- **The eras' three are hashed only once drawn** (game-design/phases.md §14.4.2, ticket #932). `eras`, `pool` and
+  `pool_creatures` are forked at creation with every other server stream, so a draw from them never depends on when it
+  comes, but the hash walks them in its eras' section (determinism/ordering-and-state-hash.md §5), not in the stream
+  section: a world opens that section only once it has left the dish, drawn from one of the three (its `position` above 0) or holds some of the pool's state. A game that never reaches the pool (every game while `ERAS_IN_PLAY` is the dish
+  alone) draws none of them and hashes exactly as before they existed. Walked with the other streams, they would have
+  moved every world's hash, as the giants' stream did once.
 - **Who creates the streams.** `createWorld(seed, config, playerIds)` forks the server
   streams from the round seed (`forkStreamStates(createSeededRandom(seed), SERVER_RANDOM_STREAM_LABELS)`)
   and stores their state in `world.random`; systems obtain a live

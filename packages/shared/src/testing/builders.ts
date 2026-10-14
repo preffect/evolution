@@ -14,6 +14,7 @@ import {
   ROUND_PHASE,
 } from '../types/game.js';
 import type { CellView, TraitOfferView } from '../types/game.js';
+import type { CopepodLaneView, PoolLayoutView, SurgeView } from '../types/pool.js';
 import type { OwnProgressView } from '../types/mass-flow.js';
 import { RENDER_STAGE_NAMES } from '../types/messages.js';
 import type { ClientPerformanceReport, GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
@@ -128,6 +129,9 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
     roundPhase: ROUND_PHASE.playing,
     roundTimeLeftMs: ROUND_DURATION_SECONDS * MILLISECONDS_PER_SECOND,
     gelPatches: [],
+    poolLayout: null,
+    surge: null,
+    copepodLane: null,
     cells: [],
     dnaFragments: [],
     food: { spawned: [], removedIds: [], moved: [] },
@@ -138,6 +142,26 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
     effects: [],
     ...overrides,
   };
+}
+
+/** A pool layout of one film, one thread and an orbit due east (docs/game-design/phases.md §14.5.2). */
+export function createTestPoolLayout(overrides: Partial<PoolLayoutView> = {}): PoolLayoutView {
+  return {
+    films: [{ x: -1200, y: 400 }],
+    threads: [{ x: 800, y: -550, angleRadians: 0.5 }],
+    lightPatchOrbit: { orbitRadius: 1500, startAngleRadians: 0, startTick: 0 },
+    ...overrides,
+  };
+}
+
+/** A surge from the west, starting on tick 600 (phases.md §14.5.3). */
+export function createTestSurge(overrides: Partial<SurgeView> = {}): SurgeView {
+  return { startedAtTick: 600, directionX: 1, directionY: 0, ...overrides };
+}
+
+/** A copepod pass running north from below the pool, starting on tick 600 (phases.md §14.6.4). */
+export function createTestCopepodLane(overrides: Partial<CopepodLaneView> = {}): CopepodLaneView {
+  return { startX: 0, startY: -3600, directionX: 0, directionY: 1, startedAtTick: 600, ...overrides };
 }
 
 /** A client frame report inside every docs/rendering/budget.md §7 budget; pass the fields the test reads. */

@@ -261,8 +261,8 @@ camera on its first frame. The move keeps the seed, so it must not rebuild:
   in the same renderer, with the camera remapped (step 9), no rebuild and no park. The fade (§14.4.1) plays on that
   swap. A client that first builds its renderer during the pool era builds it with the pool layer directly.
 
-The contract (ticket #867) writes the layout view's timing into wire-contract.md §4 and client.md §5; ticket #875
-owns the in-place pool layer.
+The contract (ticket #932) writes the layout view's timing into wire-contract.md §4 ("The pool layout") and client.md §5;
+ticket #875 owns the in-place pool layer.
 
 ### 14.5 The rock pool (the second world)
 
@@ -294,13 +294,13 @@ which today resolves only the gel). Every pool force that changes a cell's veloc
 step, and its inputs are on the wire; otherwise a surge alone (90 wu/s for 4 s) mispredicts by up to 360 wu and
 snaps the pose every 45 s.
 
-| Force                          | In the shared step as                                                    | Its inputs on the wire                                                                                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The surge                      | an added velocity while the tick lies inside the surge                   | `surge: { startedAtTick, directionX, directionY }` or null on the snapshot, set the tick its warning starts                                                                     |
-| The algal threads' slow-down   | a speed factor while the cell's centre lies in a band under the mass cap | the pool layout, a static view (films, threads, the bank, the light patch's orbit) first sent on the warning tick and then in every `game_state`, beside `gelPatches` (§14.4.6) |
-| The rotifers' pull             | a shared formula over the rotifers' positions and radii                  | the rotifers are cells on the snapshot already; the pull reads their species and skips the landmark (`isLandmark`, §14.6.3)                                                     |
-| An anchored stentor (§14.10.2) | zero velocity                                                            | `isAnchored` on the cell view                                                                                                                                                   |
-| The nematode's knock           | not predicted: a rare, short server correction the predictor absorbs     | —                                                                                                                                                                               |
+| Force                          | In the shared step as                                                    | Its inputs on the wire                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The surge                      | an added velocity while the tick lies inside the surge                   | `surge: { startedAtTick, directionX, directionY }` or null on the snapshot, set the tick its warning starts                                                       |
+| The algal threads' slow-down   | a speed factor while the cell's centre lies in a band under the mass cap | the pool layout, a static view (films, threads, the bank, the light patch's orbit) sent in every snapshot from the warning tick on, beside `gelPatches` (§14.4.6) |
+| The rotifers' pull             | a shared formula over the rotifers' positions and radii                  | the rotifers are cells on the snapshot already; the pull reads their species and skips the landmark (`isLandmark`, §14.6.3)                                       |
+| An anchored stentor (§14.10.2) | zero velocity                                                            | `isAnchored` on the cell view                                                                                                                                     |
+| The nematode's knock           | not predicted: a rare, short server correction the predictor absorbs     | —                                                                                                                                                                 |
 
 The light patch's centre is a pure function of the tick and the layout, so it needs no per-tick field.
 

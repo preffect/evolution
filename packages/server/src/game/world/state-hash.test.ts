@@ -14,6 +14,7 @@ import {
   playerId,
 } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
+import { hashedFieldKeys } from '../../testing/hashed-field-keys.js';
 import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
 import type { PlayerIdentity } from '../session/players.js';
 import { createGiantSeatRecord } from '../wild/giant-seats.js';
@@ -31,10 +32,10 @@ import {
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
   TRAILING_CELL_HASHED_FIELDS,
-  TRAILING_WORLD_HASHED_FIELDS,
   WORLD_SCALAR_HASHED_FIELDS,
   computeStateHash,
 } from './state-hash.js';
+import { TRAILING_WORLD_HASHED_FIELDS } from './era-hashed-section.js';
 import { GIANT_SEAT_HASHED_FIELDS, WILD_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 
 const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'Bea', avatarIndex: 1 };
@@ -42,10 +43,6 @@ const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'B
 const HELD_BEARING_RADIANS = 1;
 const FIRST_CELL = 0;
 const SECOND_CELL = 1;
-
-function keysOf(fields: readonly unknown[]): string[] {
-  return fields.map((field) => (typeof field === 'string' ? field : (field as { key: string }).key)).sort();
-}
 
 function populatedWorld(players: readonly PlayerIdentity[] = [TEST_PLAYER]): WorldState {
   const world = createTestWorld({ players });
@@ -73,15 +70,15 @@ function worldHoldingTheMote(holderIndex: number | null): WorldState {
 
 /**
  * `computeStateHash(populatedWorld())` recorded on main (4fe77f46) before ticket #907 added the held lists. It must not
- * move while no cell holds a bacterium and the world is in the dish: the held lists, then the era moved into, are walked
- * last and only when they leave their defaults (`hashLatchedBacteriaOfCells`, `hashEraMovedInto`, #931), so recordings
- * exported before them keep their `finalHash`. A deliberate change to the walk or to the test world re-records it, and
- * says so here.
+ * move while no cell holds a bacterium and the world has no era state: the held lists, then the eras' section, are
+ * walked last and only when they leave their defaults (`hashLatchedBacteriaOfCells`, `hashEraSection`, #931), so
+ * recordings exported before them keep their `finalHash`, and so does a world carrying the eras' streams undrawn
+ * (#932). A deliberate change to the walk or to the test world re-records it, and says so here.
  */
 const RECORDED_POPULATED_WORLD_HASH = 'bf921363406e995f';
 
 describe('computeStateHash', () => {
-  it('hashes a world in the dish whose cells hold nothing exactly as main did before the held lists and the eras', () => {
+  it('hashes a world in the dish whose cells hold nothing exactly as main did before the held lists and the eras, its era streams undrawn', () => {
     expect(computeStateHash(populatedWorld())).toBe(RECORDED_POPULATED_WORLD_HASH);
   });
 
@@ -145,10 +142,6 @@ describe('computeStateHash', () => {
     });
     expect(hashes[0]).toBe(RECORDED_POPULATED_WORLD_HASH);
     expect(new Set(hashes).size).toBe(GAME_ERA_ORDER.length);
-  });
-
-  it('walks exactly the era moved into after the held lists: a world field added there needs its own test here', () => {
-    expect(TRAILING_WORLD_HASHED_FIELDS).toEqual(['eraMovedInto']);
   });
 
   it('tells the two trailing sections apart: held lists, an era, both or neither', () => {
@@ -223,7 +216,7 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
       .filter((key) => !nested.includes(key) && !(DERIVED_FIELDS.world as readonly string[]).includes(key))
       .filter((key) => !(TRAILING_WORLD_HASHED_FIELDS as readonly string[]).includes(key))
       .sort();
-    expect(keysOf(WORLD_SCALAR_HASHED_FIELDS)).toEqual(expected);
+    expect(hashedFieldKeys(WORLD_SCALAR_HASHED_FIELDS)).toEqual(expected);
     expect(Object.keys(world)).toEqual(expect.arrayContaining([...TRAILING_WORLD_HASHED_FIELDS]));
   });
 
@@ -232,36 +225,36 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
     const expected = Object.keys(world.cells[0]!).filter(
       (key) => !(DERIVED_FIELDS.cell as readonly string[]).includes(key) && !trailing.includes(key),
     );
-    expect(keysOf(CELL_HASHED_FIELDS)).toEqual(expected.sort());
-    expect(keysOf(CELL_HASHED_FIELDS).filter((key) => trailing.includes(key))).toEqual([]);
+    expect(hashedFieldKeys(CELL_HASHED_FIELDS)).toEqual(expected.sort());
+    expect(hashedFieldKeys(CELL_HASHED_FIELDS).filter((key) => trailing.includes(key))).toEqual([]);
   });
 
   it('players', () => {
     const expected = Object.keys(world.players[0]!).filter(
       (key) => !(DERIVED_FIELDS.player as readonly string[]).includes(key),
     );
-    expect(keysOf(PLAYER_HASHED_FIELDS)).toEqual(expected.sort());
+    expect(hashedFieldKeys(PLAYER_HASHED_FIELDS)).toEqual(expected.sort());
   });
 
   it('held bacteria: every field of an entry, so a field the latch adds later is hashed or fails here', () => {
     const entry = worldHoldingTheMote(FIRST_CELL).cells[FIRST_CELL]!.latchedBacteria[0]!;
-    expect(keysOf(LATCHED_BACTERIUM_FIELDS)).toEqual(Object.keys(entry).sort());
+    expect(hashedFieldKeys(LATCHED_BACTERIUM_FIELDS)).toEqual(Object.keys(entry).sort());
   });
 
   it('motes, fragments, gel patches and spawners', () => {
-    expect(keysOf(FOOD_MOTE_HASHED_FIELDS)).toEqual(Object.keys(world.food[0]!).sort());
-    expect(keysOf(DNA_FRAGMENT_HASHED_FIELDS)).toEqual(Object.keys(world.dnaFragments[0]!).sort());
-    expect(keysOf(GEL_PATCH_HASHED_FIELDS)).toEqual(Object.keys(world.gelPatches[0]!).sort());
-    expect(keysOf(SPAWNER_HASHED_FIELDS)).toEqual(Object.keys(world.spawners.food).sort());
+    expect(hashedFieldKeys(FOOD_MOTE_HASHED_FIELDS)).toEqual(Object.keys(world.food[0]!).sort());
+    expect(hashedFieldKeys(DNA_FRAGMENT_HASHED_FIELDS)).toEqual(Object.keys(world.dnaFragments[0]!).sort());
+    expect(hashedFieldKeys(GEL_PATCH_HASHED_FIELDS)).toEqual(Object.keys(world.gelPatches[0]!).sort());
+    expect(hashedFieldKeys(SPAWNER_HASHED_FIELDS)).toEqual(Object.keys(world.spawners.food).sort());
   });
 
   it('wild seats: every field, the die-off flag included, so a seat field added later is hashed or fails here', () => {
-    expect(keysOf(WILD_SEAT_HASHED_FIELDS)).toEqual(Object.keys(createWildSeatRecord(0)).sort());
+    expect(hashedFieldKeys(WILD_SEAT_HASHED_FIELDS)).toEqual(Object.keys(createWildSeatRecord(0)).sort());
   });
 
   it('giant seats: every field, so a seat field added later is hashed or fails here', () => {
     const seat = createGiantSeatRecord(GIANT_SPECIES.amoeba, DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT);
-    expect(keysOf(GIANT_SEAT_HASHED_FIELDS)).toEqual(Object.keys(seat).sort());
+    expect(hashedFieldKeys(GIANT_SEAT_HASHED_FIELDS)).toEqual(Object.keys(seat).sort());
   });
 });
 

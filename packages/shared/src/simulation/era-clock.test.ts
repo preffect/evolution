@@ -12,6 +12,7 @@ import {
   eraBalanceProblems,
   eraStartTicks,
   eraStartedAtTick,
+  eraWarningStartedAtTick,
   isEraAfter,
   isEraReachable,
   type EraClockBalance,
@@ -30,6 +31,8 @@ const POOL_FIRST_TICK = 36_000;
 const PH19_JUMP_TICK = 600;
 const PH19_MOVE_TICK = PH19_JUMP_TICK + 1;
 const PH19_ROUND_START_TICK = -35_399;
+/** PH17: the pool's warning, `ERA_MOVE_WARNING_SECONDS` (10 s) before its move on tick 36 000. */
+const POOL_WARNING_TICK = 35_400;
 const A_TICK_IN_SECONDS = ticksToSeconds(1);
 /** A start on a whole tick whose `ticks × (1 / TICK_HZ)` reads a hair under `ticks / TICK_HZ` (600.3166… s). */
 const FLOAT_SHY_POOL_START_TICK = 36_019;
@@ -108,6 +111,18 @@ describe('eraStartedAtTick', () => {
   it('reads a patched start', () => {
     const balance = withStarts({ [GAME_ERA.pool]: 60 });
     expect(eraStartedAtTick(GAME_ERA.pool, PH19_JUMP_TICK, balance)).toBe(PH19_JUMP_TICK + 60 * TICK_HZ);
+  });
+});
+
+describe('eraWarningStartedAtTick', () => {
+  it('is the era’s start less the move warning: tick 35 400 for the pool of a round started at 0', () => {
+    expect(eraWarningStartedAtTick(GAME_ERA.pool, 0, DEFAULT_BALANCE)).toBe(POOL_WARNING_TICK);
+  });
+
+  it('reads a patched warning', () => {
+    const balance = structuredClone(DEFAULT_BALANCE);
+    balance.eras.ERA_MOVE_WARNING_SECONDS = 1;
+    expect(eraWarningStartedAtTick(GAME_ERA.pool, 0, balance)).toBe(POOL_FIRST_TICK - TICK_HZ);
   });
 });
 

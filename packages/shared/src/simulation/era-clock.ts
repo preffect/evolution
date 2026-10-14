@@ -32,6 +32,18 @@ export function eraStartedAtTick(era: GameEra, roundStartTick: number, balance: 
   return roundStartTick + eraStartTicks(era, balance);
 }
 
+/**
+ * The tick `era`'s move warning starts on (phases.md §14.4.1, §14.4.6): `ERA_MOVE_WARNING_SECONDS` before its start.
+ * The `era_warning` effect marks it, and the pool's layout rides every snapshot from it on.
+ */
+export function eraWarningStartedAtTick(
+  era: GameEra,
+  roundStartTick: number,
+  balance: EraClockBalance & { eras: Pick<BalanceConfig['eras'], 'ERA_MOVE_WARNING_SECONDS'> },
+): number {
+  return eraStartedAtTick(era, roundStartTick, balance) - secondsToTicks(balance.eras.ERA_MOVE_WARNING_SECONDS);
+}
+
 /** True when `era` opens in a round of `roundDurationSeconds`: it is in play and it starts before the round's end. */
 export function isEraReachable(era: GameEra, roundDurationSeconds: number, balance: EraClockBalance): boolean {
   return balance.eras.ERAS_IN_PLAY.includes(era) && eraStartTicks(era, balance) < secondsToTicks(roundDurationSeconds);

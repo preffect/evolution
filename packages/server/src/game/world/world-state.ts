@@ -4,15 +4,18 @@
 
 import type {
   BalanceConfig,
+  CopepodLaneView,
   GameEffect,
   GameEra,
   GameSessionConfig,
   GelPatchView,
   LeaderboardRow,
+  PoolLayoutView,
   RandomSource,
   RandomState,
   RoundPhase,
   ServerRandomStreamLabel,
+  SurgeView,
 } from '@evolution/shared';
 import type {
   CellRecord,
@@ -43,10 +46,19 @@ export interface WorldState {
   /**
    * The last era whose move has run (docs/architecture/server-simulation.md §3): `dish` when the world is built (creation,
    * rematch), kept by a reseed. The step runs every move after it up to `roundEraAt` (ticket #868); the snapshot's `era`
-   * copies it. Hashed only once it has left the dish (`TRAILING_WORLD_HASHED_FIELDS`).
+   * copies it. Hashed in the eras' section (`era-hashed-section.ts`), which a world opens only once it has era state.
    */
   eraMovedInto: GameEra;
   gelPatches: GelPatchView[];
+  /**
+   * The rock pool's layout (docs/game-design/phases.md §14.4.6): drawn from the `pool` stream at the round's start when
+   * the pool is in play (ticket #870), null in every other round. The snapshot carries it from the pool's warning tick.
+   */
+  poolLayout: PoolLayoutView | null;
+  /** The surge from its warning to its end (phases.md §14.5.2, ticket #903), else null. */
+  surge: SurgeView | null;
+  /** The copepod's pass from its warning to its end (phases.md §14.6.4, ticket #873), else null. */
+  copepodLane: CopepodLaneView | null;
   /** Insertion order. */
   cells: CellRecord[];
   food: FoodMoteRecord[];
