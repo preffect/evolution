@@ -56,6 +56,25 @@ export const DIVE_PLANET_CROWN_FADE: DivePlanetFade = { fromZoom: 3.95, toZoom: 
 export const DIVE_PLANET_RELIEF_FADE: DivePlanetFade = { fromZoom: 3.8, toZoom: 6.6 };
 export const DIVE_PLANET_RELIEF_EXAGGERATION = { near: 3.4, far: 4.2 } as const;
 
+// ===== The Salish region's detail over the world's land (dive/planet/dive-planet-region-mask.ts, ticket #817) =====
+
+/**
+ * Where the region's relief, snow and meadows show over the world's biomes, measured in the region box's own unit
+ * from its middle (`|u − ½| / ½`: 0 at the middle, 1 on its edge). The shape is a rounded box, a superellipse of this
+ * `roundness`, and noise moves its edge inward by up to `edgeWarp` (two octaves, `warpDegrees` apart, in
+ * `warpShares`). The detail is full within `fullWithin` and gone from `goneFrom`. It ends inside the box, so neither
+ * the box's straight edges nor its corners ever show; the mockup feathered the box itself, which read as a soft
+ * rectangle at 1,000–2,300 km.
+ */
+export const DIVE_PLANET_REGION_DETAIL_MASK = {
+  roundness: 3,
+  fullWithin: 0.76,
+  goneFrom: 0.96,
+  edgeWarp: 0.14,
+  warpDegrees: { broad: 1.4, fine: 0.5 },
+  warpShares: { broad: 0.65, fine: 0.35 },
+} as const;
+
 /** The sun, from the top-left and in front: the game's light (`sun`, normalised where it is used). */
 export const DIVE_PLANET_SUN_DIRECTION = { x: -0.52, y: 0.5, z: 0.69 } as const;
 

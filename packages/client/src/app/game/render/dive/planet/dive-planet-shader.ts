@@ -16,6 +16,7 @@ import { HALF } from '../../geometry';
 import { glslFloat } from '../../cells/cell-shader-source';
 import { DIVE_PLANET_SHADER_LAND } from './dive-planet-shader-land';
 import { DIVE_PLANET_SHADER_NOISE } from './dive-planet-shader-noise';
+import { DIVE_REGION_DETAIL_MASK_SOURCE } from './dive-planet-region-mask';
 
 /** The uniforms and samplers, by the name the mesh sets them under; `DivePlanetFrame` names each one's meaning. */
 export const DIVE_PLANET_UNIFORM = {
@@ -108,14 +109,19 @@ float worldMetres(vec2 uv) {
   return mix(preview, fine, ${UNIFORM.worldFineWeight});
 }
 
-/** The signed distance to the coast in metres (+ land), the inland distance in km, and the region's weight here. */
-void coastDistance(vec2 lonLat, out float metres, out float inlandKm, out float regionWeight) {
+/**
+ * The signed distance to the coast in metres (+ land), the inland distance in km, and the region's own land here
+ * ('regionDetailMask'): its bake's coast comes in across the box's edge, its detail only well inside it.
+ */
+void coastDistance(vec2 lonLat, out float metres, out float inlandKm, out float detailWeight) {
   metres = worldMetres(vec2((lonLat.x + PI) / (2. * PI), (.5 * PI - lonLat.y) / PI));
   inlandKm = metres / 1000.;
   vec4 box = ${UNIFORM.regionBoxRadians};
   vec2 ru = vec2((lonLat.x - box.x) / (box.z - box.x), (box.w - lonLat.y) / (box.w - box.y));
-  regionWeight = ${UNIFORM.isRegionReady} * smoothstep(0., .12, min(ru.x, 1. - ru.x)) * smoothstep(0., .12, min(ru.y, 1. - ru.y));
+  float regionWeight = ${UNIFORM.isRegionReady} * smoothstep(0., .12, min(ru.x, 1. - ru.x)) * smoothstep(0., .12, min(ru.y, 1. - ru.y));
+  detailWeight = 0.;
   if (regionWeight > 0.) {
+    detailWeight = regionDetailMask(ru, lonLat * 180. / PI);
     float regional = texelsOf(texture(${UNIFORM.regionSdf}, ru)) * ${UNIFORM.regionTexelMetres};
     metres = mix(metres, regional, regionWeight);
     inlandKm = mix(inlandKm, regional / 1000., regionWeight);
@@ -162,19 +168,19 @@ vec3 sea(float offshoreM, float latitude, float speckle) {
 const SURFACE = /* glsl */ `
 vec3 surface(vec2 q, vec2 lonLat, vec3 e, out float landAlpha) {
   vec2 ld = lonLat * 180. / PI;
-  float metres, inlandKm, regionWeight;
-  coastDistance(lonLat, metres, inlandKm, regionWeight);
+  float metres, inlandKm, detailWeight;
+  coastDistance(lonLat, metres, inlandKm, detailWeight);
   float aa = ${UNIFORM.metresPerPixel} * .9;
   landAlpha = mix(1., smoothstep(-aa, aa, metres), ${UNIFORM.landEdge});
   float speckle = fractal3(e * 9., 4);
   vec3 c = sea(-metres, ld.y, speckle);
   if (landAlpha > 0.) {
     vec3 land = biome(ld, speckle);
-    if (regionWeight > 0.) {
+    if (detailWeight > 0.) {
       float meadow, shade;
       vec3 rc = region(q, ld, inlandKm, ${UNIFORM.metresPerPixel}, meadow, shade);
       if (${UNIFORM.crowns} > 0.) rc = mix(rc, canopy(q, meadow, ${UNIFORM.metresPerPixel}), ${UNIFORM.crowns});
-      land = mix(land, mix(land, rc * shade, ${UNIFORM.regionDetail}), regionWeight);
+      land = mix(land, mix(land, rc * shade, ${UNIFORM.regionDetail}), detailWeight);
     }
     c = mix(c, land, landAlpha);
   }
@@ -236,6 +242,7 @@ precision highp float;
 ${UNIFORMS}
 ${DIVE_PLANET_SHADER_NOISE}
 ${DIVE_PLANET_SHADER_LAND}
+${DIVE_REGION_DETAIL_MASK_SOURCE}
 ${SIGNED_DISTANCE}
 ${SKY}
 ${SURFACE}
