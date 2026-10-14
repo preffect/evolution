@@ -2,8 +2,8 @@
 // and a form popup's glow) keeps `CUE_GAP_PX` off the own cell's cues and never comes nearer the centre than the
 // picker band's mirror: above the cell, over the room a full rate-tag column takes at the cell's on-screen size, where
 // the whole host fits under the top edge; else below it, under the zone pill, unless the picker's band is there; else
-// above, pinned just under the toast row and never into the exclusion box. The column is reserved whole, so a tag that comes up mid-popup never meets it and the
-// popup never jumps. Pure: `upgrade-popup.component.ts` feeds it the viewport, the own cell's radius, the host's
+// above, pinned just under the toast row and never into the exclusion box. The column is reserved whole, so a tag
+// that comes up mid-popup never meets it and the popup never jumps. Pure: `upgrade-popup.component.ts` feeds it the viewport, the own cell's radius, the host's
 // measured height and whether the picker is open, and binds what it answers as `data-placement` and `--popup-offset`.
 
 import { PLAYER_LIFE_STATE, type PlayerLifeState, type ValueOf } from '@evolution/shared';

@@ -430,9 +430,11 @@ zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, gro
    (`toastRowBottomPx`: `HUD_MARGIN_PX`, the toast's padding and one `body` line, scaled; y 41.8 at 1024 × 640 and
    y 52.3 at 1280 × 800), so a toast up with it (a giant's unlock, raised by the same swallow whose payout opened the
    picker) never covers its kicker; and never into the exclusion box. Between the two it may come nearer than the band
-   offset. Only here may it meet the cues: the glow, and for the tallest form popup at 1024 × 640 the bottom few px of
-   its box, over the top of the rate-tag column, which the picker's dim greys. A notice row, when up, still drops the
-   toast over its top (§3.6).
+   offset. Only here may it meet the cues, over the rate-tag column the picker's dim greys, and by more than its glow:
+   at mass about 1,250 with one tag the tallest form popup's box sits on the tag's top edge at 1024 × 640; at the mass
+   cap there a giant popup hides the top half of the DECAY tag and the Amoeba form popup hides it whole; with all
+   three tag rows up the box covers two rows even at mass 1,250. Main pinned lower and covered more; the fix is
+   ticket #863. A notice row, when up, still drops the toast over its top (§3.6).
 
 A popup takes its slot afresh each frame, so it moves when the slot changes under it: most visibly, a popup below the
 cell jumps to the pinned slot when an offer opens the picker during its life. It does not animate the move.
