@@ -95,7 +95,15 @@ export class ShoreLevels<Level> extends SteppedQueue {
       this.baked.delete(candidate);
       this.drafts.delete(candidate);
     }
-    if (this.isJobDropped()) this.job = null;
+    if (this.isJobDropped()) this.dropJob();
+  }
+
+  /** Lets the bake under way go, ended (`return()`) so a worker's bake of it is cancelled too (ticket #811). */
+  private dropJob(): void {
+    // widened to `Iterator`, whose `return` takes no argument: `Generator.return` wants a `ShoreSnapshot` to end with
+    const bake: Iterator<ShoreBakeStep, ShoreSnapshot> | undefined = this.job?.bake;
+    bake?.return?.();
+    this.job = null;
   }
 
   /**
@@ -192,7 +200,7 @@ export class ShoreLevels<Level> extends SteppedQueue {
     this.retired.push(...this.baked.values());
     this.baked.clear();
     this.drafts.clear();
-    this.job = null;
+    this.dropJob();
   }
 
   /** Gives back the levels let go, once the frame that might still have drawn with them has been drawn. */

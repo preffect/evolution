@@ -173,6 +173,36 @@ describe('ShoreLevels', () => {
     expect(uploads[0]!.zoom).toBe(shoreLevelZoom(30));
   });
 
+  it('ends a bake it drops, when the camera turns away and when the stage changes, so a worker cancels it', () => {
+    const factory = createFakeShoreCanvasFactory();
+    const ended: number[] = [];
+    function* awaitingBake(view: ShoreView): Generator<ShoreBakeStep, ShoreSnapshot> {
+      let hasLanded = false;
+      try {
+        yield SHORE_BAKE_WAITING;
+        hasLanded = true;
+        return { view } as unknown as ShoreSnapshot;
+      } finally {
+        if (!hasLanded) ended.push(view.zoom);
+      }
+    }
+    const subject = new ShoreLevels<Uploaded>(
+      { land: TEST_SHORE_LAND, tiles: bakedTestTiles(factory), factory },
+      uploaderOf([]),
+      awaitingBake,
+    );
+    subject.setStage(TEST_SHORE_STAGE, 1);
+    subject.focus(shoreLevelZoom(10), 1);
+    subject.pump(DIVE_BAKE_BUDGET_MS, counter());
+    // the camera turns away from the level under way
+    subject.focus(shoreLevelZoom(30), 1);
+    expect(ended).toEqual([shoreLevelZoom(10)]);
+    // the stage changes under the next one
+    subject.pump(DIVE_BAKE_BUDGET_MS, counter());
+    subject.setStage({ width: 600, height: 400 }, 1);
+    expect(ended).toEqual([shoreLevelZoom(10), shoreLevelZoom(30)]);
+  });
+
   it('starts again when the stage changes size: the levels are baked for one', () => {
     const { subject, uploads } = levels();
     subject.focus(shoreLevelZoom(10), 1);
