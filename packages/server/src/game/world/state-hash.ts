@@ -92,7 +92,7 @@ export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [
   'expiresAtTick',
 ];
 
-const LATCHED_BACTERIUM_FIELDS: readonly HashedField<LatchedBacteriumRecord>[] = [
+export const LATCHED_BACTERIUM_FIELDS: readonly HashedField<LatchedBacteriumRecord>[] = [
   { key: 'mote', hash: (hasher, mote) => hashFields(hasher, mote, FOOD_MOTE_HASHED_FIELDS) },
   'bearingRadians',
   'caughtAtTick',

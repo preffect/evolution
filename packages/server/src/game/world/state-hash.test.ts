@@ -26,6 +26,7 @@ import {
   FOOD_MOTE_HASHED_FIELDS,
   GEL_PATCH_HASHED_FIELDS,
   GIANT_SEAT_HASHED_FIELDS,
+  LATCHED_BACTERIUM_FIELDS,
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
   TRAILING_CELL_HASHED_FIELDS,
@@ -68,7 +69,19 @@ function worldHoldingTheMote(holderIndex: number | null): WorldState {
   return world;
 }
 
+/**
+ * `computeStateHash(populatedWorld())` recorded on main (4fe77f46) before ticket #907 added the held lists. It must not
+ * move while no cell holds a bacterium: the held lists are walked last and only when one is non-empty
+ * (`hashLatchedBacteriaOfCells`), so recordings exported before them keep their `finalHash`. A deliberate change to the
+ * walk or to the test world re-records it, and says so here.
+ */
+const RECORDED_POPULATED_WORLD_HASH = 'bf921363406e995f';
+
 describe('computeStateHash', () => {
+  it('hashes a world whose cells hold nothing exactly as main did before the held lists existed (#907)', () => {
+    expect(computeStateHash(populatedWorld())).toBe(RECORDED_POPULATED_WORLD_HASH);
+  });
+
   it('hashes two worlds built the same way equal, and 16 hex characters long', () => {
     const hash = computeStateHash(populatedWorld());
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
@@ -198,6 +211,11 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
       (key) => !(DERIVED_FIELDS.player as readonly string[]).includes(key),
     );
     expect(keysOf(PLAYER_HASHED_FIELDS)).toEqual(expected.sort());
+  });
+
+  it('held bacteria: every field of an entry, so a field the latch adds later is hashed or fails here', () => {
+    const entry = worldHoldingTheMote(FIRST_CELL).cells[FIRST_CELL]!.latchedBacteria[0]!;
+    expect(keysOf(LATCHED_BACTERIUM_FIELDS)).toEqual(Object.keys(entry).sort());
   });
 
   it('motes, fragments, gel patches and spawners', () => {
