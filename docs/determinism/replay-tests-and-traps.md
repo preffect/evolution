@@ -16,7 +16,7 @@ export interface Replay {
   roster: readonly PlayerIdentity[]; // who was present when the recording started, in join order
   events: readonly ReplayEvent[]; // every event in the order the simulation saw it, stamped by tick:
   //   { tick, kind: 'join' | 'leave', playerId, playerName, avatarIndex }
-  //   { tick, kind: 'debug_patch', patch } — debug_spawn / debug_grant_dna / debug_set_player / debug_set_balance
+  //   { tick, kind: 'debug_patch', patch } — debug_spawn / debug_grant_dna / debug_set_player / debug_set_balance / debug_set_era
   //   { tick, kind: 'input', playerId, input } — the coalesced input step 1 applied at that tick
   finalTick: number;
   finalHash: StateHash;
@@ -41,6 +41,13 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   included), pins it in `recorded-balance.test.ts`: it goes red the day a filled default stops meaning what such a
   recording ran under. The early-life flip (ticket #916) moves `SWALLOW_FROM_STAGE` to `eukaryote` and so must fill
   that leaf with `protocell` for such recordings, or move the version.
+  The same fill covers the eras (ticket #867): a recording from before them has no `eras`, `pool` or `poolCreatures`
+  domain and replays under their defaults, `ERAS_IN_PLAY` = `['dish']`, which is the game it ran (the same fixture
+  pins it). An "on" slice that lengthens the shipping list must fill `['dish']` for such recordings, or move the version.
+- **An era jump is a debug patch** (game-design/phases.md §14.2.4): `debug_set_era` is recorded as
+  `{ kind: 'set_era', era }`, stamped like any patch, and replayed through `applyDebugPatch`, so the replay moves
+  `roundStartTick` (hashed) on the same tick. The tick counter never jumps, so the log's ticks stay one sequence and a
+  negative `roundStartTick` is an ordinary state.
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
   and start a new one from the new seed, marked by `startedBy`; a replay never spans a reseed. The
   rematch round closes at the rematch tick with the rebuilt world's hash (the reset happens inside

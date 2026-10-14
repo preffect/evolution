@@ -129,6 +129,20 @@ prediction reuses them unchanged.
   `wild/`): step 4 feeds a wild cell algae and detritus, the grazer algae, detritus and bacteria while its seat's
   growth is under `GIANT_GRAZER_APPETITE_MASS` (tested once per cell before its meal), and the hunter and the drifter
   nothing; the seat's sight sees only the motes its diet eats now.
+- **The eras** (game-design/phases.md §14.2, ticket #867): the era is derived, never stored. `eraAt(elapsedSeconds,
+roundDurationSeconds, balance)` (`shared/simulation/era-clock.ts`, beside `worldReference`) reads the same
+  `worldElapsedSeconds` as the round clock and gives the last era of `eras.ERAS_IN_PLAY` whose start
+  (`eras.ERA_START_SECONDS`) has come and lies before the round's end (`isEraReachable`), so the step, the bloom and the
+  HUD cannot disagree; a round shorter than an era's start never reaches it. `ERAS_IN_PLAY` ships as `['dish']`, so
+  `eraAt` is the dish throughout and no step reads the eras yet: the default game is today's, its state hash and
+  replays unchanged. **Every crossed move runs, in order:** the step runs each era move whose start lies in (the
+  previous step's elapsed time, this step's], in `GAME_ERA_ORDER`, so a `debug_set_era` jump from the dish to
+  `colonies` (architecture/debug-mcp.md §8) runs the pool's move and then the colonies' on the same tick, and the colony
+  era never opens in the dish; an ordinary step crosses at most one start. The previous step's elapsed time is the
+  one before the jump moved `roundStartTick`, so the step keeps which era it last moved into rather than recomputing it
+  from `tick − 1`; that marker is hashed only once it leaves the dish, as the held lists are, so it feeds nothing while
+  the eras are off. No era is ever left: `debug_set_balance` refuses era starts `eraBalanceProblems` finds (the dish at
+  0 s, each later era strictly after the one before) and a patch that would take the round back an era.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 

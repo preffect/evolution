@@ -284,6 +284,9 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   from the wild seats so the die-off's sum and `WILD_CELL_COUNT` stay the wild seats' (ecology/giants.md §3.5.10).
   The world clock is never sent: the snapshot carries `roundStartTick` and both sides compute
   `worldReference(worldElapsedSeconds(tick, roundStartTick, roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
+  The era is never stored either (game-design/phases.md §14.2.1): `GameEra` (`types/game.ts`: `dish`, `pool`,
+  `colonies`, opening in `GAME_ERA_ORDER`) is `eraAt(<the same elapsed seconds>, roundDurationSeconds, balance)`
+  (`simulation/era-clock.ts`), the one function the step, the bloom and the HUD ask.
 
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
@@ -303,7 +306,7 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 export interface WorldState {
   tick: number;
   seed: number; // the current round's seed (rematch increments it)
-  roundStartTick: number; // 0 at creation, the current tick at a rematch (ecology/food-and-spawn.md §3.1); carried on the snapshot
+  roundStartTick: number; // 0 at creation, the current tick at a rematch (ecology/food-and-spawn.md §3.1); moved back, possibly below 0, by debug_set_era (game-design/phases.md §14.2.4); carried on the snapshot
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   config: GameSessionConfig;

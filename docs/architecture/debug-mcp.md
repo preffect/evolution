@@ -32,6 +32,7 @@ world; they need no capability):
 | `debug_pause_room(gameId)` / `debug_step_room(gameId, ticks)` / `debug_resume_room(gameId)` | `pause()`, `step(ticks)`, `resume()` on the room loop                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `debug_set_seed(gameId, seed)`                                                              | `reseed(seed)`: rebuilds the streams (`determinism/random-streams.md §3`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `debug_get_balance(gameId)` / `debug_set_balance(gameId, patch)`                            | `getBalance()` / `patchBalance(patch)` + `balance_updated`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `debug_set_era(gameId, era)`                                                                | `setEra(era)` (logged as a `set_era` debug patch): jumps the round forward to a later era in play by moving `roundStartTick`, never the tick counter (below; game-design/phases.md §14.2.4)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `debug_get_state_hash(gameId)`                                                              | `computeStateHash()`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `debug_export_replay(gameId)`                                                               | `exportReplay()` (`ReplayRecorder.export()`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)`                                   | `spawnBot(request, seat)`: a synthetic player the module drives (`testing/bots-and-design-tables.md §8.3`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -68,8 +69,11 @@ validator); any other value that is not a finite number, or one its kind refuses
 it takes. The kinds today: the stage id (a member of `STAGE_ORDER`), declared for `absorption.SWALLOW_FROM_STAGE` and
 `earlyLife.LATCH_FROM_STAGE` (game-design/early-life.md §15.10), so `{"absorption":{"SWALLOW_FROM_STAGE":"eukaryote"}}`
 moves the swallow switch in a running room (cell engulf at once: no protocell or archaeon starts one; bacteria are
-still eaten whole and nothing latches until the latch ticket, #909, wires the latch) and `"amoeba"` or `3` is refused (ticket #907; phases ticket #867 declares the
-era list beside it). The tool's schema takes numbers, strings and lists of strings as leaves and leaves the check to
+still eaten whole and nothing latches until the latch ticket, #909, wires the latch) and `"amoeba"` or `3` is refused (ticket #907);
+and the era list (a non-empty prefix of `GAME_ERA_ORDER`, `dish, pool, colonies`: `isErasInPlayList`), declared for
+`eras.ERAS_IN_PLAY` (game-design/phases.md §14.2.4, ticket #867), so `{"eras":{"ERAS_IN_PLAY":["dish","pool"]}}` turns
+the pool on in a running room and `["dish","colonies"]`, `["pool"]`, `[]`, `"dish"` or `[1]` is refused. A list is
+written as a copy, so the balance never aliases the patch it came in. The tool's schema takes numbers, strings and lists of strings as leaves and leaves the check to
 the patch. The replay records the patch as it was applied (`debug_patch`), so a game whose switch moved mid-way
 replays to its state hash. A declared structure path is refused by
 name, saying where its numbers live: a `traits.TRAIT_CATALOG` patch is told that trait tier numbers live in
@@ -92,15 +96,31 @@ so a connection over the limit is sent nothing and can still be left on a stale 
 room's client is normally current, so this is theoretical rather than seen. `GameRoom.getTickCount()` is the room's own step counter, the `tick` these tools
 report even for a module without a world tick. **Every mutating tool republishes the frame** (#236):
 a tool registered with `isWorldMutation` (`debug_spawn`, `debug_grant_dna`, `debug_set_player`,
-`debug_set_balance`, `debug_set_seed`, `debug_spawn_bot`, `debug_remove_bot`) calls
+`debug_set_balance`, `debug_set_era`, `debug_set_seed`, `debug_spawn_bot`, `debug_remove_bot`) calls
 `GameRoom.republishSnapshot()` after its handle method succeeds, a `game_snapshot` at the current
 tick without a step, so a paused room shows the patched world at once and the stage that
 `debug_get_player_progress` reports is the stage the client draws. The client's `SnapshotBuffer`
 takes a snapshot at its latest tick as a replacement (a republished frame), not as a stale one, and
 the tick estimator is not re-observed for it (§5); a refused request republishes nothing.
 `debug_set_balance` refuses a patch whose result breaks a balance-wide rule, whichever domain the patch
-names: the wild builds' ladder (#671) and the giants' rules (`giantBalanceProblems`, giants.md §3.5.14),
-so a patch of `growth.CELL_STARTING_MASS` or `traits.TRAIT_TIER_COUNT` can be refused with no giant in the dish.
+names: the wild builds' ladder (#671), the giants' rules (`giantBalanceProblems`, giants.md §3.5.14) and the era
+starts (`eraBalanceProblems`: the dish at 0 s, each later era strictly after the one before), so a patch of
+`growth.CELL_STARTING_MASS` or `traits.TRAIT_TIER_COUNT` can be refused with no giant in the dish. It also refuses a
+patch that would take the round back to an earlier era (an era taken out of `ERAS_IN_PLAY`, or a start moved past the
+round's time, while the round is in it): an era, once opened, is never left (game-design/phases.md §14.2.4).
+
+**The era jump (ticket #867, game-design/phases.md §14.2.4).** `debug_set_era(gameId, era)` reaches any era in play
+without waiting for it: `setEraForDebug` (`game/debug/debug-era.ts`) sets `roundStartTick` to the next step's tick minus
+the era's start in ticks, so that step is the era's first tick, and answers `{ era, firstTick, roundStartTick }`. It
+never moves the tick counter, which the replay log, the acks and the effect windows are keyed by, so `roundStartTick`
+may go below zero (a jump stamped for tick 600 to the pool leaves −35 400); nothing on the wire or in the round clock
+requires it to be non-negative (`worldElapsedSeconds` reads a tick before the round's start as the start). It refuses
+an era not in `ERAS_IN_PLAY` (patch the list first), one that starts at or after the round's end
+(`isEraReachable`), the current era and every earlier one (no way back: to start over, a new round), and any jump
+once the round is in `results`; a refusal changes nothing. The jump is recorded as a `set_era` `debug_patch` and
+replayed through `applyDebugPatch`, so `debug_export_replay` reproduces the state hash across it. The step that
+follows runs every era move whose start it crosses, in era order (architecture/server-simulation.md §3), so a jump
+from the dish to `colonies` runs the pool's move and then the colonies' on that one tick.
 
 **Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
 perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);

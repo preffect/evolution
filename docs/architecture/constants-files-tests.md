@@ -6,8 +6,8 @@
 
 `packages/shared/src/constants/<domain>.ts` is the **source of truth** for every tunable, named
 exactly as the design tables name it (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
-`traits/constants-and-acceptance.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
-`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, giants, absorption, earlyLife, progression, traits }`
+`traits/constants-and-acceptance.md §5`, `game-design/early-life.md §15.12.1`, `game-design/phases.md §14.14.1`). `packages/shared/src/constants/balance.ts` assembles them into one
+`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, giants, absorption, earlyLife, progression, traits, eras, pool, poolCreatures }`
 (the domain modules spread into plain records; `giants` leaves out `GIANT_ROLE_BY_SPECIES`, a plain constant of
 `giants.ts` because a role is what a species is and no patch may change it (ecology/giants.md §3.5.14); `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
 room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
@@ -17,7 +17,7 @@ change; and no domain carries a constant computed from other constants of its mo
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
 patched copy holds other numbers). A patchable non-number leaf (one `debug_set_balance` declares a kind for,
 architecture/debug-mcp.md §8) is declared with its widened type, never its literal: an id with its id type
-(`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`readonly EraId[]`, not `['dish'] as const`), so a
+(`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`ERAS_IN_PLAY: readonly GameEra[]`, not `['dish'] as const`), so a
 patched value never lies to the type; `balance-leaf-kinds.test.ts` checks that each declared leaf's default passes its
 own kind. The record is deep-frozen: it aliases the module constants, so a room
 that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
@@ -26,8 +26,8 @@ returns a fresh copy and never writes its input.
 checked in as the diffable reference the debug tools quote, and pinned by
 `balance.test.ts` (file equals `DEFAULT_BALANCE`, so hand edits fail the gate). At runtime each
 room starts from a copy of `DEFAULT_BALANCE`; `debug_set_balance` patches number leaves and the declared
-non-number leaves (a stage id: `absorption.SWALLOW_FROM_STAGE`, `earlyLife.LATCH_FROM_STAGE`; architecture/debug-mcp.md
-§8) and the world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TIERS` only:
+non-number leaves (a stage id: `absorption.SWALLOW_FROM_STAGE`, `earlyLife.LATCH_FROM_STAGE`; the era list:
+`eras.ERAS_IN_PLAY`; architecture/debug-mcp.md §8) and the world carries the live copy. Tier numbers are read from `balance.traits.TRAIT_TIERS` only:
 `TRAIT_CATALOG[n].tiers` is structure and is never read for a number (the JSON writes both because a
 catalog row carries its tiers), so a patch has one path. The one number read from catalog structure is
 `TRAIT_CATALOG[n].unlockedBy.count` (above), which has no patch path at all. Nothing reads `data/balance.json` at
@@ -54,13 +54,19 @@ balance sets them). `debug_set_balance` refuses a patch whose result breaks a ru
 `constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
 `viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
 knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
+**The eras' three domains (game-design/phases.md §14.14, ticket #867).** `eras` (the era starts, `ERAS_IN_PLAY`, the
+move), `pool` (the rock pool's world) and `poolCreatures` (its creatures) hold the stage 1 table's rows; the arena keeps
+`DISH_RADIUS`, so there is no pool radius. `ERA_START_SECONDS` is a record keyed by `GameEra` whose numbers are
+patchable leaves; `debug_set_balance` refuses starts `eraBalanceProblems` (`simulation/era-clock.ts`) finds, the rule
+`era-clock.test.ts` pins on `DEFAULT_BALANCE`. The colonies' domains (stage 2, §14.14.2) arrive with their own ledger
+registration (ticket #884), so the ledger never reads a row whose file does not exist.
 
 ## 10. File plan (target ≤ 250 lines per file; 300 is the lint cap)
 
 ```text
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
-  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,giants,absorption,early-life,progression,traits}.ts
+  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,giants,absorption,early-life,progression,traits,eras,pool,pool-creatures}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig, DERIVED_BALANCE_CONSTANTS
   constants/absorption-derived.ts                               the engulf base duration and progress bands at the defaults, derived from absorption.ts; not in balance (§9)
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
@@ -69,13 +75,13 @@ packages/shared/src/
   constants/audio.ts                                            SOUND_EVENT_CATALOG and the layering numbers (AUDIO.md §2, §3); cosmetic, not in balance.json
   types/{common,messages,game,traits,effects,audio}.ts          traits: TraitDefinition, CellModifiers, TRAIT_CATEGORY, TRAIT_RARITY; audio: SOUND_EVENT, AUDIO_BUS, SoundEventRule
   testing/builders.ts                                           createTestSessionConfig, createTestGameInput, createTestSnapshot, createTestCellView, createTestPlayerProgressView
-  testing/{markdown-document,swallow-balance}.ts                 the design-table reader the ledgers share; withSwallowFromStage / withSwallowFromProtocell, the one way a test states its swallow stage (game-design/early-life.md §15.8.5)
+  testing/{markdown-document,swallow-balance,era-balance}.ts    the design-table reader the ledgers share; withSwallowFromStage / withSwallowFromProtocell, the one way a test states its swallow stage (game-design/early-life.md §15.8.5); withErasInPlay, the one way a test states the eras it plays (game-design/phases.md §14.2.4)
   hashing/fnv1a.ts                                              one FNV-1a fold for label seeds and hash lanes
   random/{random-source,seeded-random,xoshiro128-star-star,label-hash,stream-labels}.ts
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
-  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,bacterium-contact,trait-tiers,giant-balance,ladder-check}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
+  simulation/{world-clock,era-clock,stage-of,entry-rule,bacterium-variant-weights,bacterium-contact,trait-tiers,giant-balance,ladder-check}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); era-clock: eraAt, isEraReachable, isEraAfter and eraBalanceProblems, the era from the round clock (game-design/phases.md §14.2.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (canEngulf reads the predator's stage against SWALLOW_FROM_STAGE, game-design/early-life.md §15.5.1), meetsEngulfStartRatio (its mass half), isCellEaterSpecies (ecology/absorption.md §6.1, ecology/giants.md §3.5.6) and engulfStartMass(prey, balance.absorption), canEngulf's bound as a figure (the encyclopedia's giant pages, #831)
                                                                 bacterium-contact: bacteriumContactOutcome(stage, heldCount, balance), what a player cell's touch does to a bacterium: swallow, latch or pass (game-design/early-life.md §15.5.1)
@@ -103,12 +109,12 @@ packages/server/src/
   game/serialize/{viewer-state,viewer-cameras,interest-area}.ts  per-viewer members: the culled food delta and fragments over each viewer's camera and area (wire-contract.md §4.2 lever 1)
   game/serialize/viewer-snapshot-keys.ts                      which members the broadcast carries and which each viewer is sent apart; read by both sides so neither imports the other (wire-contract.md §4, #399)
   game/replay/{replay-format,replay-recorder,recorded-step,replay-runner,index-by-tick}.ts
-  game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,debug-giant-spawn,balance-patch,balance-leaf-kinds,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations (debug-giant-spawn: `debug_spawn('giant')`, #826); balance-leaf-kinds: the non-number balance leaves a patch may write, each path's kind and validator (debug-mcp.md §8, #907)
+  game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,debug-giant-spawn,debug-era,balance-patch,balance-leaf-kinds,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations (debug-giant-spawn: `debug_spawn('giant')`, #826; debug-era: `debug_set_era` and the era-rewind refusal, #867); balance-leaf-kinds: the non-number balance leaves a patch may write, each path's kind and validator (debug-mcp.md §8, #907)
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives
   game/bots/strategies/{idle,wander,grazer,hunter,flee,forager}.ts           the build-1 strategies (testing/bots-and-design-tables.md §8.3)
-  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot
+  mcp/handlers/<tool>.ts (one file per tool, one shared room lookup)          bots.ts: debug_spawn_bot / debug_remove_bot; eras.ts: debug_set_era
   testing/builders.ts   testing/world-builders.ts   testing/bot-builders.ts   testing/socket-builders.ts  test doubles: rooms and tools; createTestWorld / createTestStepContext / createTestPlayerRecord over the records; strategy contexts, fake transport and socket; a real /ws server on an ephemeral port
   testing/gameplay/*.ts (the scenario runner, #75; re-exports the game/bots seam)   testing/gameplay/strategies/script-sequence.ts (scenario-only)
   testing/gameplay/{evolution-adapter,evolution-fixtures,evolution-views}.ts   the Evolution ScenarioAdapter (testing/scenario-runner.md §8), the placed and world fixtures on a live world, the table selectors
@@ -156,12 +162,19 @@ reference each other only as types (`TraitId`, `CellStage`), and `traits.ts` imp
   snapshot buffer / prediction / reconciliation; schemas (`message-schemas.test.ts` bounds);
   `balance.test.ts` (generated file equals `DEFAULT_BALANCE`), `constants-ledger.test.ts` (every design
   table constant exists; each table is found by its heading line at any level, so a `####` table inside a larger
-  section, game-design/early-life.md §15.12.1, registers as a `##` one does, #907).
+  section, game-design/early-life.md §15.12.1, registers as a `##` one does, #907), `constants-consumers.test.ts` (the
+  constants whose doc block claims something about their consumers, checked against the shipping sources).
 - **Early life (#907, game-design/early-life.md §15.8.5):** the predicate's cases (a protocell player predator fails
   with the switch on and passes with it off; the giant hunter passes at any stage), `bacteriumContactOutcome`'s
   three answers, the stage-id patch (taken, refused for a non-stage and a number, replayed to its hash), and the held
   list in the state hash. A test about the engulf process states its swallow stage through
   `withSwallowFromProtocell` (`shared/src/testing/swallow-balance.ts`), so it keeps passing when the switch flips.
+- **The eras (#867, game-design/phases.md §14.2):** `eraAt` against the era table (each start on its tick, a round
+  shorter than an era never reaching it, a negative `roundStartTick`); the stage 1 defaults read from §14.14.1 itself
+  (`phases-constants.test.ts`); the era-list leaf (a prefix written as a copy; a non-prefix, a non-list and a list of
+  non-strings refused naming the path; the MCP tool forwarding the list); `debug_set_era`'s jump and each refusal, and
+  a replay across the jump reproducing its hash. A test about a later era states the eras it plays through
+  `withErasInPlay` (`shared/src/testing/era-balance.ts`).
 - **Wild cells (#517):** `settleWildMass` and `wildSizeFactor` against ecology W11; the wild perception's sight
   filter against a brute-force distance check on a seeded population (boundary: a centre exactly at the range is
   seen); the wild floor (a 10-mass wild cell that sprints or is drained stays at 10, a player cell floors at 20);
