@@ -96,6 +96,7 @@ export function previewCellView(spec: PreviewCellSpec, balance: BalanceConfig): 
     sprintCooldownRemainingTicks: spec.sprintCooldownRemainingTicks ?? NO_SPRINT_TICKS,
     isStarving: false,
     giantSpecies: spec.giantSpecies ?? null,
+    poolCreature: null,
     latchedBacteria: [],
   };
 }

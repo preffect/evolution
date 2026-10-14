@@ -55,7 +55,7 @@ describe('game guards', () => {
       expect(isPoolCreatureSpecies(species), species).toBe(true);
     for (const stranger of STRANGERS) expect(isPoolCreatureSpecies(stranger), String(stranger)).toBe(false);
     expect(isPoolCreatureSpecies(GIANT_SPECIES.amoeba)).toBe(false);
-    expect(isPoolCreatureSpecies(FOOD_KIND.greenSpeck)).toBe(false);
+    expect(isPoolCreatureSpecies(FOOD_KIND.algae)).toBe(false);
   });
 
   it('isCellStage accepts every stage and nothing else: no form name, no state', () => {

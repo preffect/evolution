@@ -21,13 +21,8 @@ export type RoundEndCondition = ValueOf<typeof ROUND_END_CONDITION>;
 export const ROUND_PHASE = { playing: 'playing', results: 'results' } as const;
 export type RoundPhase = ValueOf<typeof ROUND_PHASE>;
 
-/** docs/ecology/food-and-spawn.md §1; `green_speck` is the rock pool's (docs/game-design/phases.md §14.5.2). */
-export const FOOD_KIND = {
-  algae: 'algae',
-  bacterium: 'bacterium',
-  detritus: 'detritus',
-  greenSpeck: 'green_speck',
-} as const;
+/** docs/ecology/food-and-spawn.md §1. */
+export const FOOD_KIND = { algae: 'algae', bacterium: 'bacterium', detritus: 'detritus' } as const;
 export type FoodKind = ValueOf<typeof FOOD_KIND>;
 
 /** The endosymbiosis hook (docs/ecology/food-and-spawn.md §1); `BACTERIUM_VARIANTS` (constants/ecology.ts) fixes the walk order. */

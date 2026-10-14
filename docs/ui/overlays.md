@@ -101,7 +101,10 @@ block at top-centre from y 96, 480 wide: `ENGULFED BY AMOEBOID` (`title` role, d
 `players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters; for a wild killer
 (`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature) `A` and
 the name `cellDisplayName` gives it, upper-cased: `ENGULFED BY A WILD CELL`, or `ENGULFED BY A GIANT AMOEBA` for a giant
-(ecology/giants.md §3.5.11); `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+(ecology/giants.md §3.5.11); a pool creature with no killer cell names itself from the `eaten_by_creature` effect of
+the player's own death (game-design/phases.md §14.6.4): `SWALLOWED BY A ROTIFER` (its `killerCellId` is the spectated
+rotifer) or `EATEN BY A COPEPOD` (no cell to spectate); `ENGULFED` alone if the killer has left, or for a client that
+never saw the effect), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, never below 1, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
 muted; `Level 1 kept` without traits). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
 spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
