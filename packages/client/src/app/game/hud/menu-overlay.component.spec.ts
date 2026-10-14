@@ -17,6 +17,7 @@ import { OVERLAY_ALERT_KIND } from './format/overlay-alert';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { MenuOverlayComponent } from './menu-overlay.component';
 import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;
@@ -205,7 +206,7 @@ describe('MenuOverlayComponent', () => {
     mountMenu();
     const strip = query(HUD_TEST_ID.menuAlert)!;
     expect(strip.getAttribute('data-alert-kind')).toBe(OVERLAY_ALERT_KIND.offer);
-    expect(strip.textContent).toContain('6.5 s');
+    expect(strip.textContent).toContain(unbroken('6.5 s'));
 
     activate(HUD_TEST_ID.menuAlert);
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);

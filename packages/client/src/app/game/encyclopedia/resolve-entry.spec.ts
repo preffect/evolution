@@ -3,6 +3,7 @@
 // tier table; the derived links match the balance's catalog; groups and see-also are derived, never written.
 
 import { describe, expect, it } from 'vitest';
+import { unbroken } from '../../../testing/unbroken-quantity';
 import {
   DEFAULT_BALANCE,
   ENGULF_BASE_DURATION_SECONDS,
@@ -45,8 +46,8 @@ describe('resolveEntry over a patched balance', () => {
       'dna_tag:motile',
       factContextFor(patchedBalance((balance) => (balance.progression['TAG_WEIGHT_PER_POINT'] = 0.25))),
     );
-    expect(factText(before, 'weightPerPoint')).toEqual(['+10 %']);
-    expect(factText(after, 'weightPerPoint')).toEqual(['+25 %']);
+    expect(factText(before, 'weightPerPoint')).toEqual([unbroken('+10 %')]);
+    expect(factText(after, 'weightPerPoint')).toEqual([unbroken('+25 %')]);
     const dosed = resolveEntry(
       'trait:toxin_vacuole',
       factContextFor(patchedBalance((balance) => (balance.absorption['ENGULF_SWALLOWED_TOXIN_MULTIPLIER'] = 4))),
@@ -70,10 +71,10 @@ describe('resolveEntry over a patched balance', () => {
   });
 
   it('floors the world level at the round’s end as the game does, never rounding it up', () => {
-    expect(factText(resolveEntry('world:world_clock', shipped), 'worldLevelAtEnd')).toEqual(['Level 4']);
+    expect(factText(resolveEntry('world:world_clock', shipped), 'worldLevelAtEnd')).toEqual([unbroken('Level 4')]);
     // 600 s / 240 s per level: the world is at level 3.5, which plays as level 3.
     const halfway = factContextFor(patchedBalance((balance) => (balance.worldClock['WORLD_LEVEL_SECONDS'] = 240)));
-    expect(factText(resolveEntry('world:world_clock', halfway), 'worldLevelAtEnd')).toEqual(['Level 3']);
+    expect(factText(resolveEntry('world:world_clock', halfway), 'worldLevelAtEnd')).toEqual([unbroken('Level 3')]);
   });
 
   it('changes a trait’s tier lines', () => {
@@ -83,8 +84,8 @@ describe('resolveEntry over a patched balance', () => {
     });
     const before = resolveEntry('trait:cilia', shipped);
     const after = resolveEntry('trait:cilia', factContextFor(patched));
-    expect(factText(before, 'speedMultiplier', 'tier_2')).toEqual(['+20 %']);
-    expect(factText(after, 'speedMultiplier', 'tier_2')).toEqual(['+50 %']);
+    expect(factText(before, 'speedMultiplier', 'tier_2')).toEqual([unbroken('+20 %')]);
+    expect(factText(after, 'speedMultiplier', 'tier_2')).toEqual([unbroken('+50 %')]);
     expect(after.sections[1]?.facts.map((fact) => fact.label)).toEqual(['speed', 'grip resistance']);
   });
 
@@ -103,9 +104,9 @@ describe('the generated tier sections', () => {
     const resolved = resolveEntry('trait:nucleoid', shipped);
     expect(resolved.sections.map((section) => section.key)).toEqual(['tier_1', 'tier_2', 'tier_3']);
     expect(resolved.sections.map((section) => section.heading.map((segment) => segment.text).join(''))).toEqual([
-      'Tier I',
-      'Tier II',
-      'Tier III',
+      unbroken('Tier I'),
+      unbroken('Tier II'),
+      unbroken('Tier III'),
     ]);
     expect(resolved.subject).toMatchObject({ kind: 'trait', tierCount: 3, traitCategory: TRAIT_CATEGORY.genome });
   });
@@ -121,7 +122,10 @@ describe('the generated tier sections', () => {
       titleOf: entryTitle,
       isReference: isEntryReference,
     });
-    expect(resolved.sections.map((section) => section.heading[0]?.text)).toEqual(['Tier I', 'Tier II']);
+    expect(resolved.sections.map((section) => section.heading[0]?.text)).toEqual([
+      unbroken('Tier I'),
+      unbroken('Tier II'),
+    ]);
   });
 
   it('refuses a tier table longer than the trait’s tier prose', () => {

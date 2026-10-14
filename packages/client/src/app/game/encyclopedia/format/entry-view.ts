@@ -1,7 +1,8 @@
-// The entry page's view model (docs/ui/encyclopedia.md §11.4), pure: the title column's chips, the two facts tables
-// and the prose's paragraphs. Every number it shows is already formatted — a `ResolvedEntry` holds text, not values
-// (architecture/encyclopedia.md §12.2) — so nothing here calls `formatQuantity` except on the one figure the page
-// owns itself, the tier numeral, which §11.4 names as a `formatQuantity` call.
+// The entry page's view model (docs/ui/encyclopedia.md §11.4), pure: the title column's chips, the facts table (the
+// Effects by tier table is `tier-table.ts`'s, from the sections and numerals here) and the prose's paragraphs. Every
+// number it shows is already formatted — a `ResolvedEntry` holds text, not values (architecture/encyclopedia.md
+// §12.2) — so nothing here calls `formatQuantity` except on the one figure the page owns itself, the tier numeral,
+// which §11.4 names as a `formatQuantity` call.
 
 import {
   GIANT_ROLE,
@@ -24,8 +25,6 @@ import {
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR,
   ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL,
-  ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
-  ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
 } from '../encyclopedia-constants';
 import type { PreviewActionScene, PreviewScene, PreviewSpec } from '../../render/preview/preview-spec';
 import type { EntryLink, ProseSegment, ResolvedFact, ResolvedSection, ResolvedSubject } from '../model/entry';
@@ -126,7 +125,7 @@ export interface EncyclopediaFactRow extends UiFactRow {
 }
 
 /** Shared by every plain value row, so a row's identity does not change with each rebuild. */
-const NO_FACT_LINKS: readonly EntryLink[] = [];
+export const NO_FACT_LINKS: readonly EntryLink[] = [];
 
 function factRowOf(run: readonly ResolvedFact[], rowId: string): EncyclopediaFactRow {
   const [first] = run;
@@ -154,42 +153,13 @@ export function factRowsFor(facts: readonly ResolvedFact[]): readonly Encycloped
   return rows;
 }
 
-/** The Effects by tier table (§11.4): one column per `tier_n` section, one row per modifier key any of them sets. */
-export interface EncyclopediaTierTable {
-  /** `You own II`, or empty outside a round: the header cell over the noun column. */
-  readonly caption: string;
-  /** The tier numerals, in tier order. */
-  readonly columns: readonly string[];
-  /** Plain value rows: a tier's effect is a figure, never a link, so every row's `links` is empty. */
-  readonly rows: readonly EncyclopediaFactRow[];
-  /** The owned tier's column, tinted accent; `null` when the round does not have the trait. */
-  readonly highlightColumn: number | null;
-}
-
-/**
- * A modifier's noun as the tier table writes it: §11.4's `Mass decay`, from the `mass decay` the trait cards read
- * inside a sentence (`+15 % speed`). One place, so the two never drift into two spellings of one effect.
- */
-export function factNameFromNoun(noun: string): string {
-  return `${noun.slice(0, 1).toUpperCase()}${noun.slice(1)}`;
-}
-
-/** The union of the modifier keys the tier sections carry, in the order the sections first name each one. */
-function modifierKeysOf(sections: readonly ResolvedSection[]): readonly ResolvedFact[] {
-  const byKey = new Map<string, ResolvedFact>();
-  for (const section of sections) {
-    for (const fact of section.facts) if (!byKey.has(fact.key)) byKey.set(fact.key, fact);
-  }
-  return [...byKey.values()];
-}
-
 /** A tier section with the tier its key names: the shape both the tier table and the lens's tier switch are built of. */
-interface TierSection {
+export interface TierSection {
   readonly section: ResolvedSection;
   readonly tier: TraitTier;
 }
 
-function tierSectionsOf(sections: readonly ResolvedSection[]): readonly TierSection[] {
+export function tierSectionsOf(sections: readonly ResolvedSection[]): readonly TierSection[] {
   return sections
     .map((section) => ({ section, tier: tierOfSectionKey(section.key) }))
     .filter((column): column is TierSection => column.tier !== null);
@@ -226,35 +196,6 @@ export function tierSwitchFor(
   return {
     segments: tiers.map(({ section, tier }) => ({ tier, numeral: tierNumeral(tier), preview: section.preview })),
     defaultTier: (owned ?? firstTier).tier,
-  };
-}
-
-/**
- * The tier table, or `null` for an entry with no tier section — which is every entry but a trait, and a trait whose
- * tiers all sit at identity, where §11.4 says a table with no rows is left out rather than drawn empty.
- */
-export function tierTableFor(
-  sections: readonly ResolvedSection[],
-  ownedTier: TraitTier | null,
-): EncyclopediaTierTable | null {
-  const tiers = tierSectionsOf(sections);
-  const rows: EncyclopediaFactRow[] = modifierKeysOf(tiers.map((column) => column.section)).map((fact) => ({
-    rowId: fact.key,
-    name: factNameFromNoun(fact.label),
-    values: tiers.map(
-      (column) =>
-        column.section.facts.find((tierFact) => tierFact.key === fact.key)?.text ?? ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
-    ),
-    effects: tiers.map((column) => column.section.facts.find((tierFact) => tierFact.key === fact.key)?.effect ?? null),
-    links: NO_FACT_LINKS,
-  }));
-  if (rows.length === 0) return null;
-  const ownedColumn = tiers.findIndex((column) => column.tier === ownedTier);
-  return {
-    caption: ownedTier === null ? '' : `${ENCYCLOPEDIA_TIER_CAPTION_PREFIX}${tierNumeral(ownedTier)}`,
-    columns: tiers.map((column) => tierNumeral(column.tier)),
-    rows,
-    highlightColumn: ownedColumn < 0 ? null : ownedColumn,
   };
 }
 

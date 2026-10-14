@@ -3,10 +3,10 @@
 // the Unlock and ladder table, whose values may be links.
 //
 // **Both tables wrap** (`shouldWrapValues`, §10.2). A value here can be wider than the 370 px title column it sits
-// in: `Opens` on a stage page is three entry titles in one cell, and Chloroplast's `+0.3 mass / s` across three tier
-// columns does not fit on one line whatever the noun column gives up. The kit's default single-line row would not
-// make the column narrower — it would make the table wider than the panel (PR #471's blocker). What gives when the
-// tier columns do not fit is docs/ui/encyclopedia.md §11.4's ruling, made there rather than here.
+// in: `Opens` on a stage page is three entry titles in one cell. The kit's default single-line row would not make
+// the column narrower — it would make the table wider than the panel (PR #471's blocker). A quantity never wraps (its
+// number and unit are joined by no-break spaces), and the tier table fits by carrying each row's unit in its name
+// rather than in its cells: docs/ui/encyclopedia.md §11.4's ruling (#858), made there rather than here.
 //
 // The kit draws a value that is more than text through `ng-template[uiFactValue]`, whose context types its row as the
 // kit's own `UiFactRow`. The links belong to the feature's row, so they are looked up by `rowId` rather than read off

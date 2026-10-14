@@ -35,7 +35,6 @@ import { joinFacts } from './fact-line';
 import { leadingMultiplier, type RoundClockState } from './round-clock';
 import type { ModifierEffect } from '../../quantities/modifier-labels';
 import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
-import { bindQuantities } from './trait-cards';
 import { zonePillText } from './zone-pill';
 
 /** The panel's four sections, in the order they are drawn. */
@@ -197,7 +196,7 @@ function traitRows(input: AffectingRowsInput): readonly AffectingRow[] {
       {
         rowId: affectingTraitTestId(definition.id),
         name: `${definition.name} ${tier}`,
-        values: effect === undefined ? [] : [bindQuantities(effect)],
+        values: effect === undefined ? [] : [effect],
         marker: null,
         traitId: definition.id,
         valueEffect: effectTone ?? null,

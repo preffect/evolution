@@ -1,5 +1,5 @@
 /* A facts table under its `label` header (docs/ui/encyclopedia.md §11.4). The table itself is the kit's; what is here
-   is the header over it and the link a value may be. */
+   is the header over it, the plain value that holds one line and the link a value may be. */
 
 :host {
   display: block;
@@ -14,6 +14,13 @@
   letter-spacing: var(--ui-label-tracking);
   line-height: 1;
   text-transform: uppercase;
+}
+
+/* A plain value, the effect mark and its figure, is one reading that never breaks (#858): the kit lets values wrap
+   for the lists of links, and without this the mark is a break opportunity of its own, dropping above its figure
+   where the tier table is a few pixels short of its column (#858's review). */
+.value {
+  white-space: nowrap;
 }
 
 /* A link value: the link colour with the underline §11.4 gives every entry-to-entry link. `transparent` rather than

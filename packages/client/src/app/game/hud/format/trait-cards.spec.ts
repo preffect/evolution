@@ -14,7 +14,8 @@ import {
   TRAIT_CATALOG,
 } from '@evolution/shared';
 import { describeTierModifiers } from './trait-effects';
-import { bindQuantities, traitOfferViewFor } from './trait-cards';
+import { traitOfferViewFor } from './trait-cards';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const WINDOW_SECONDS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS;
 const EXPIRES_AT = 10_000;
@@ -65,9 +66,7 @@ describe('traitOfferViewFor', () => {
       category: 'genome',
       rarity: 'common',
     });
-    expect(view.cards[0]!.effects).toEqual(
-      describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1).map(bindQuantities),
-    );
+    expect(view.cards[0]!.effects).toEqual(describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1));
   });
 
   it('reads the effect lines from the live balance, so a debug_set_balance patch reaches the card', () => {
@@ -101,7 +100,7 @@ describe('traitOfferViewFor', () => {
 
   it('counts down from the newest snapshot tick and fills the bar by the share of the window left', () => {
     const view = viewAt(6.5);
-    expect(view.secondsText).toBe('6.5 s');
+    expect(view.secondsText).toBe(unbroken('6.5 s'));
     expect(view.timerFraction).toBeCloseTo(6.5 / WINDOW_SECONDS, 9);
   });
 
@@ -115,13 +114,13 @@ describe('traitOfferViewFor', () => {
   });
 
   it('never counts below zero or above the window', () => {
-    expect(viewAt(-3)).toMatchObject({ secondsLeft: 0, secondsText: '0.0 s', timerFraction: 0 });
+    expect(viewAt(-3)).toMatchObject({ secondsLeft: 0, secondsText: unbroken('0.0 s'), timerFraction: 0 });
     expect(viewAt(WINDOW_SECONDS * 2)).toMatchObject({ secondsLeft: WINDOW_SECONDS, timerFraction: 1 });
   });
 
   it('starts the countdown at the full window the tick the offer is shown', () => {
     expect(viewAt(WINDOW_SECONDS)).toMatchObject({
-      secondsText: `${WINDOW_SECONDS.toFixed(1)} s`,
+      secondsText: unbroken(`${WINDOW_SECONDS.toFixed(1)} s`),
       timerFraction: 1,
     });
   });
@@ -137,11 +136,5 @@ describe('traitOfferViewFor', () => {
         expect(card!.tierLabel, `${trait.id} ${tier}`).not.toContain(' ');
       }
     }
-  });
-
-  it('binds a number to its unit and a unit’s slash to both sides, and leaves the words free to wrap', () => {
-    expect(bindQuantities('Spines drain 70 % / s, spit out 4 % / s')).toBe(
-      'Spines drain 70\u00a0%\u00a0/\u00a0s, spit out 4\u00a0%\u00a0/\u00a0s',
-    );
   });
 });
