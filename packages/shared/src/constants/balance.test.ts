@@ -7,6 +7,7 @@ import { DEFAULT_BALANCE, DERIVED_BALANCE_CONSTANTS, type BalanceConfig } from '
 import { DISH_RADIUS } from './world.js';
 import * as absorption from './absorption.js';
 import * as absorptionDerived from './absorption-derived.js';
+import * as erasDerived from './eras-derived.js';
 import * as giants from './giants.js';
 import * as ladder from './ladder.js';
 import { TRAIT_TIERS } from './traits.js';
@@ -29,6 +30,9 @@ const EXPECTED_DOMAINS = [
   'earlyLife',
   'progression',
   'traits',
+  'eras',
+  'pool',
+  'poolCreatures',
 ];
 
 describe('DEFAULT_BALANCE', () => {
@@ -70,7 +74,7 @@ describe('DEFAULT_BALANCE', () => {
 
   it('carries every absorption.ts constant, the phase seconds included, and lists every derived one', () => {
     expect(Object.keys(DEFAULT_BALANCE.absorption).sort()).toEqual(Object.keys(absorption).sort());
-    expect(Object.keys(absorptionDerived).sort()).toEqual([...DERIVED_BALANCE_CONSTANTS].sort());
+    expect(Object.keys({ ...absorptionDerived, ...erasDerived }).sort()).toEqual([...DERIVED_BALANCE_CONSTANTS].sort());
   });
 
   it('is a plain record, not a module namespace, so it clones and compares like its JSON', () => {

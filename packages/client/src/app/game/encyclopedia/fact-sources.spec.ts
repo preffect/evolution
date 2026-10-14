@@ -34,9 +34,16 @@ const traitIds = DEFAULT_BALANCE.traits.TRAIT_CATALOG.map((row) => row.id);
 
 /**
  * Balance domains no page quotes yet, each until its page lands: the latch's (`earlyLife`) is written with the archaeon's
- * page (docs/game-design/early-life.md §15.9.4), and the switch is off until then, so no player meets it unexplained.
+ * page (docs/game-design/early-life.md §15.9.4), and the switch is off until then, so no player meets it unexplained;
+ * the eras' (`eras`, `pool`, `poolCreatures`) with the pool's pages (docs/game-design/phases.md §14.6.1), and
+ * `ERAS_IN_PLAY` ships as the dish alone until then.
  */
-const DOMAINS_WITHOUT_A_FACT_YET: readonly string[] = ['earlyLife'] satisfies (keyof BalanceConfig)[];
+const DOMAINS_WITHOUT_A_FACT_YET: readonly string[] = [
+  'earlyLife',
+  'eras',
+  'pool',
+  'poolCreatures',
+] satisfies (keyof BalanceConfig)[];
 
 /** One call of a table row: its id and its argument. */
 function callOf<Id extends string, Argument>(

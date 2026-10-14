@@ -284,6 +284,11 @@ export interface DnaFragmentRecord extends DnaFragmentView {
   from the wild seats so the die-off's sum and `WILD_CELL_COUNT` stay the wild seats' (ecology/giants.md §3.5.10).
   The world clock is never sent: the snapshot carries `roundStartTick` and both sides compute
   `worldReference(worldElapsedSeconds(tick, roundStartTick, roundDurationSeconds), balance)` (`simulation/world-clock.ts`).
+  The era is derived too (game-design/phases.md §14.2.1): `GameEra` (`types/game.ts`: `dish`, `pool`, `colonies`,
+  opening in `GAME_ERA_ORDER`) is `eraAt(<the same elapsed seconds>, roundDurationSeconds, balance)`
+  (`simulation/era-clock.ts`), the one function the step, the bloom and the HUD ask. What the world stores is which
+  moves have run, `eraMovedInto` (below; the rule is architecture/server-simulation.md §3), and the snapshot's `era`
+  copies that.
 
 - **Score** is computed, never stored twice: `session/leaderboard.ts` implements
   `score = (dnaCumulative − dnaCatchUpGift) + SCORE_ABSORPTION_BONUS × absorptions` with ties by
@@ -303,11 +308,12 @@ export interface DnaFragmentRecord extends DnaFragmentView {
 export interface WorldState {
   tick: number;
   seed: number; // the current round's seed (rematch increments it)
-  roundStartTick: number; // 0 at creation, the current tick at a rematch (ecology/food-and-spawn.md §3.1); carried on the snapshot
+  roundStartTick: number; // 0 at creation, the current tick at a rematch (ecology/food-and-spawn.md §3.1); moved back, possibly below 0, by debug_set_era (game-design/phases.md §14.2.4); carried on the snapshot
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   config: GameSessionConfig;
   balance: BalanceConfig; // defaults from shared constants; patched only by debug_set_balance
+  eraMovedInto: GameEra; // the last era whose move has run: 'dish' at build (creation, rematch), kept by a reseed; the step runs every move after it up to eraAt (server-simulation.md §3); added with the move (ticket #867)
   gelPatches: GelPatchView[];
   cells: CellRecord[]; // insertion order
   food: FoodMoteRecord[];

@@ -126,7 +126,7 @@ export const SERVER_TICK_ESTIMATE_SMOOTHING = 0.1;
  * and never sees this value. So it cannot be pinned by mutating it and watching behaviour —
  * `world-store.spec.ts` measures the cliff from the real store against a repeated literal, and
  * `netcode.test.ts` checks this against that literal. A test that imported it and fed it back would
- * assert the constant equals itself. `constants-ledger.test.ts` keeps the "no consumer" claim true.
+ * assert the constant equals itself. `constants-consumers.test.ts` keeps the "no consumer" claim true.
  *
  * The part worth knowing before pulling §4.2 lever 2 is the direction: the bracket buys the whole
  * budget, so a **faster** cadence buys a **tighter** draw deadline — 4 ticks / 67 ms / 15 fps at the

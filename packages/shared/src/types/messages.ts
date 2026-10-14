@@ -73,7 +73,11 @@ export interface GameSnapshot {
   tick: number;
   /** The current round's seed; a rematch increments it. */
   seed: number;
-  /** 0 at creation, the current tick at a rematch: the HUD derives the world clock from `tick − roundStartTick` (docs/ecology/food-and-spawn.md §3.1). */
+  /**
+   * 0 at creation, the current tick at a rematch: the HUD derives the world clock and the era from
+   * `tick − roundStartTick` (docs/ecology/food-and-spawn.md §3.1, docs/game-design/phases.md §14.2.1). It may be negative:
+   * `debug_set_era` moves it back rather than jump the tick counter (§14.2.4).
+   */
   roundStartTick: number;
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;

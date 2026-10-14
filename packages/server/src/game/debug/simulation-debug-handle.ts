@@ -3,7 +3,7 @@
 // "not supported by this game module" instead of pretending. The echo module implements none;
 // the Evolution module (#98) implements all of them.
 
-import type { PlayerId, StateHash } from '@evolution/shared';
+import type { GameEra, PlayerId, StateHash } from '@evolution/shared';
 import type { BotStrategyName } from '../bots/strategy-constants.js';
 
 /** Axis-aligned world-unit box; both bounds inclusive. */
@@ -60,7 +60,7 @@ export interface SpawnedBot {
 
 /**
  * What a patch may write at a leaf: a number, or a value of a declared non-number kind (`balance-leaf-kinds.ts`: a stage
- * id today), so the shapes a declared kind may take are strings and lists of them.
+ * id, a list of eras), so the shapes a declared kind may take are strings and lists of them.
  */
 export type BalancePatchLeaf = number | string | readonly string[];
 
@@ -88,6 +88,11 @@ export interface SimulationDebugHandle {
   getBalance?(): unknown;
   /** Applies a patch of number leaves and declared non-number leaves and returns the live balance. */
   patchBalance?(patch: BalancePatch): unknown;
+  /**
+   * Jumps the round forward to `era` by moving its `roundStartTick`, never the tick counter (docs/game-design/phases.md
+   * §14.2.4); refuses an era not in play, past the round's end, or not after the current one.
+   */
+  setEra?(era: GameEra): unknown;
   computeStateHash?(): StateHash;
   exportReplay?(): unknown;
   /**

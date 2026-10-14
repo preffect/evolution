@@ -3,8 +3,9 @@ import { SERVER_MESSAGE_TYPE } from '@evolution/shared';
 import { registerBalanceTools } from './balance.js';
 import { createActiveRoomFixture, createDebugCapableGameModule, parseToolJson } from '../../testing/builders.js';
 
-/** A real balance path, named through a constant because a patch is keyed by constant names. */
+/** Real balance paths, named through constants because a patch is keyed by constant names. */
 const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 
 function capableFixture() {
   const balance = { ecology: { foodCapBase: 800 } };
@@ -39,6 +40,15 @@ describe('debug_set_balance', () => {
   it('forwards a stage-id leaf, the swallow switch, to the module that validates it', async () => {
     const fixture = capableFixture();
     const patch = { absorption: { [SWALLOW_LEAF]: 'eukaryote' } };
+    const result = await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch });
+    expect(result.isError).not.toBe(true);
+    expect(fixture.handle.patchBalance).toHaveBeenCalledWith(patch);
+    fixture.stop();
+  });
+
+  it('forwards a list leaf, the eras in play, to the module that validates it', async () => {
+    const fixture = capableFixture();
+    const patch = { eras: { [ERAS_IN_PLAY_LEAF]: ['dish', 'pool'] } };
     const result = await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch });
     expect(result.isError).not.toBe(true);
     expect(fixture.handle.patchBalance).toHaveBeenCalledWith(patch);

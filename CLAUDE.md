@@ -232,7 +232,7 @@ change ports inside the container; they are already baked into the integration f
   `debug_get_player_progress(gameId, playerId)`, `debug_get_state_hash(gameId)`, `debug_get_balance(gameId)`,
   `debug_export_replay(gameId)`; manipulate `debug_spawn(gameId, kind, x, y, params)`,
   `debug_grant_dna(gameId, playerId, dna, tags?)`, `debug_set_player(gameId, playerId, mass?, level?, traits?, position?)`,
-  `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`; freeze the loop for deterministic screenshots
+  `debug_set_seed(gameId, seed)`, `debug_set_balance(gameId, patch)`, `debug_set_era(gameId, era)`; freeze the loop for deterministic screenshots
   with `debug_pause_room(gameId)`, `debug_step_room(gameId, ticks)`, `debug_resume_room(gameId)` (these work with
   every module); populate a room with `debug_spawn_bot(gameId, behavior, seed?, preyPlayerId?)` /
   `debug_remove_bot(gameId, playerId)` (`idle` | `wander` | `grazer` | `hunter` | `flee` | `forager`, `docs/testing/bots-and-design-tables.md` §8.3)
