@@ -24,6 +24,7 @@ import {
   type SurgeView,
 } from '@evolution/shared';
 import type { PoolCreatureSeatRecord } from './entities.js';
+import { POOL_CREATURE_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import type { WorldState } from './world-state.js';
 
 export const POOL_FILM_HASHED_FIELDS: readonly HashedField<PoolFilmView>[] = ['x', 'y'];
@@ -53,15 +54,6 @@ export const COPEPOD_LANE_HASHED_FIELDS: readonly HashedField<CopepodLaneView>[]
   'directionX',
   'directionY',
   'startedAtTick',
-];
-
-/** A creature's seat, the whole of its memory (its cell's `poolCreature` mirrors it and is left out as derived). */
-export const POOL_CREATURE_SEAT_HASHED_FIELDS: readonly HashedField<PoolCreatureSeatRecord>[] = [
-  'species',
-  'isLandmark',
-  'cellId',
-  'respawnInTicks',
-  'headingRadians',
 ];
 
 /** The seats in seat order, or null's marker for a world without creatures. */

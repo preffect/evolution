@@ -17,7 +17,6 @@ import { createTestWorld } from '../../testing/world-builders.js';
 import {
   COPEPOD_LANE_HASHED_FIELDS,
   LIGHT_PATCH_ORBIT_HASHED_FIELDS,
-  POOL_CREATURE_SEAT_HASHED_FIELDS,
   POOL_FILM_HASHED_FIELDS,
   POOL_LAYOUT_HASHED_FIELDS,
   POOL_STATE_HASHED_FIELDS,
@@ -26,6 +25,7 @@ import {
   TRAILING_WORLD_HASHED_FIELDS,
   hasEraState,
 } from './era-hashed-section.js';
+import { POOL_CREATURE_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import { computeStateHash } from './state-hash.js';
 import { withStream } from './streams.js';
 import type { WorldState } from './world-state.js';
@@ -58,18 +58,18 @@ const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, EraFieldCase>> = {
   },
   poolCreatureSeats: {
     give: (world) => (world.poolCreatureSeats = [createTestPoolCreatureSeat()]),
-    vary: (world) => (world.poolCreatureSeats![0]!.headingRadians += 1),
+    vary: (world) => (world.poolCreatureSeats![0]!.headingX += 1),
   },
 };
 
 /**
  * `computeStateHash(worldWithEveryEraField())` as recorded: it pins the section's walk, its order included (the order
  * decides every pool-era replay's `finalHash`). A deliberate change to the walk or to the test world re-records it, and
- * says so here. Ticket #932 recorded `cd86432a9b38f62e`; ticket #935 appended the creatures' seats to the walk (an open
- * section now ends with their list or null's marker), so it re-recorded it. No world outside the pool opens the section,
+ * says so here. Ticket #932 recorded `cd86432a9b38f62e`; ticket #935 appended the creatures' seats, each a seat with a
+ * mind, to the walk (an open section now ends with their list or null's marker), so it re-recorded it. No world outside the pool opens the section,
  * so no pinned dish hash or recorded replay moved.
  */
-const RECORDED_EVERY_ERA_FIELD_HASH = '6d1afc8c3ce18948';
+const RECORDED_EVERY_ERA_FIELD_HASH = 'e071445019643754';
 
 function drawFrom(world: WorldState, label: ServerRandomStreamLabel): void {
   withStream(world, label, (random) => random.nextFloat());
@@ -150,6 +150,7 @@ describe('the eras’ section of computeStateHash', () => {
     ['the landmark flag', (world) => (world.poolCreatureSeats![0]!.isLandmark = true)],
     ['a seat’s cell', (world) => (world.poolCreatureSeats![0]!.cellId = entityId('c-9'))],
     ['a seat’s respawn countdown', (world) => (world.poolCreatureSeats![0]!.respawnInTicks -= 1)],
+    ['a seat’s mind', (world) => (world.poolCreatureSeats![0]!.huntPreyId = entityId('c-3'))],
     ['a second seat', (world) => world.poolCreatureSeats!.push(createTestPoolCreatureSeat())],
     ['the seats emptied, which is not their absence', (world) => (world.poolCreatureSeats = [])],
   ])('covers %s once open', (_label, mutate) => {

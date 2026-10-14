@@ -378,7 +378,8 @@ mass or DNA to anyone. The victim's `spectatingCellId` is the rotifer's cell for
 does a killer) and null for the copepod (`followTargetIn` gives no target, so the camera holds where the cell died).
 The respawn line names the creature (`EATEN BY A COPEPOD`, `SWALLOWED BY A ROTIFER`, ui/overlays.md §3.3), from the
 `eaten_by_creature` effect such a death emits instead of `cell_absorbed` (`killWithoutCredit`, server
-`session/death.ts`; architecture/entity-model.md §2). The Didinium's kills are ordinary engulfs with the Didinium as
+`session/death.ts`; architecture/entity-model.md §2), which the swallow and the pass call at or before step 9, the
+respawn countdown, so the spectate is not a tick short. The Didinium's kills are ordinary engulfs with the Didinium as
 the killer.
 
 ### 14.7 Progression across eras

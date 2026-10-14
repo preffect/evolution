@@ -5,6 +5,7 @@ import {
   CELL_KIND,
   DEFAULT_BALANCE,
   FIRST_LEVEL,
+  GIANT_SPECIES_ORDER,
   POOL_CREATURE_SPECIES,
   entityId,
   eraLandmarkRadius,
@@ -15,7 +16,7 @@ import { createTestPoolCreatureSeat, seatTestPoolCreature } from '../../testing/
 import { createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { bornCellRecord, type CellIdentity } from './cell-record.js';
-import { mirrorPoolCreatureSeat } from './pool-creature-mirror.js';
+import { mirrorPoolCreatureSeat, poolCreatureSeatNumber } from './pool-creature-mirror.js';
 import { computeStateHash } from './state-hash.js';
 
 const SEAT_POINT = { x: 650, y: 0 };
@@ -38,16 +39,25 @@ function bareCell() {
 }
 
 describe('mirrorPoolCreatureSeat', () => {
-  it('copies the seat’s species, landmark flag and heading onto the cell', () => {
+  it('copies the seat’s species and landmark flag, and its mind’s heading as the body’s angle', () => {
     const cell = bareCell();
-    const seat = createTestPoolCreatureSeat({ species: POOL_CREATURE_SPECIES.didinium, headingRadians: 1.25 });
+    const seat = createTestPoolCreatureSeat({ species: POOL_CREATURE_SPECIES.didinium, headingX: 0, headingY: -1 });
     mirrorPoolCreatureSeat(seat, cell, DEFAULT_BALANCE);
     expect(cell.poolCreature).toEqual({
       species: POOL_CREATURE_SPECIES.didinium,
       isLandmark: false,
-      headingRadians: 1.25,
+      headingRadians: -Math.PI / 2,
     });
-    expect(cell.poolCreature).not.toBe(seat);
+    seat.headingX = -1;
+    seat.headingY = 0;
+    mirrorPoolCreatureSeat(seat, cell, DEFAULT_BALANCE);
+    expect(cell.poolCreature!.headingRadians).toBe(Math.PI);
+  });
+
+  it('lies due east for a mind at rest, its heading not yet drawn', () => {
+    const cell = bareCell();
+    mirrorPoolCreatureSeat(createTestPoolCreatureSeat(), cell, DEFAULT_BALANCE);
+    expect(cell.poolCreature!.headingRadians).toBe(0);
   });
 
   it.each([
@@ -76,6 +86,25 @@ describe('mirrorPoolCreatureSeat', () => {
   });
 });
 
+describe('poolCreatureSeatNumber', () => {
+  it('numbers the creatures’ seats after every giant seat, in list order', () => {
+    const firstGiant = DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT;
+    const afterGiants = firstGiant + GIANT_SPECIES_ORDER.length;
+    expect(poolCreatureSeatNumber(firstGiant, 0)).toBe(afterGiants);
+    expect(poolCreatureSeatNumber(firstGiant, 2)).toBe(afterGiants + 2);
+  });
+
+  it('gives a seated test creature the next number', () => {
+    const world = createTestWorld();
+    const seating = { species: POOL_CREATURE_SPECIES.rotifer, at: SEAT_POINT, mass: ROTIFER_MASS };
+    const first = seatTestPoolCreature(world, seating).seat;
+    const second = seatTestPoolCreature(world, seating).seat;
+    expect([first.seatNumber, second.seatNumber]).toEqual(
+      [0, 1].map((place) => poolCreatureSeatNumber(world.firstGiantSeatNumber, place)),
+    );
+  });
+});
+
 describe('the creature’s state in the hash', () => {
   function worldWithANematode() {
     const world = createTestWorld();
@@ -90,7 +119,7 @@ describe('the creature’s state in the hash', () => {
   it('is the seat’s: turning the seat’s heading moves the hash', () => {
     const base = computeStateHash(worldWithANematode().world);
     const { world, seat } = worldWithANematode();
-    seat.headingRadians += 1;
+    seat.headingY += 1;
     expect(computeStateHash(world)).not.toBe(base);
   });
 

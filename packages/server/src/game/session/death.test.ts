@@ -227,6 +227,7 @@ describe('killWithoutCredit', () => {
     const { world, prey, victim, context } = playersAndARotifer();
     killWithoutCredit(world, context, { victim: prey, species: POOL_CREATURE_SPECIES.copepod, killerCell: null });
     expect(world.cells).not.toContain(prey);
+    expect(world.food).toEqual([]);
     expect(context.effects).toMatchObject([
       { kind: EFFECT_KIND.eatenByCreature, species: POOL_CREATURE_SPECIES.copepod, killerCellId: null },
     ]);
@@ -239,6 +240,7 @@ describe('killWithoutCredit', () => {
     const { cell: wild } = seatTestWildCell(world, { at: { x: rotifer.x + 60, y: rotifer.y }, mass: 20 });
     killWithoutCredit(world, context, { victim: wild, species: POOL_CREATURE_SPECIES.rotifer, killerCell: rotifer });
     expect(world.cells).not.toContain(wild);
+    expect(world.food).toEqual([]);
     expect(context.effects).toMatchObject([{ kind: EFFECT_KIND.eatenByCreature, cellId: wild.id, playerId: null }]);
     for (const player of [other, victim]) expect(player.lifeState).toBe(PLAYER_LIFE_STATE.alive);
   });

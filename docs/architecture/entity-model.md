@@ -335,21 +335,23 @@ export interface DnaFragmentRecord extends DnaFragmentView {
     species: GiantSpecies; // one seat per species
     bornMass: number; // the base size: uniform on the species' range, drawn at each (re)spawn; never decays, never moves with the world
   }
-  export interface PoolCreatureSeatRecord {
-    // a pool creature's whole memory (game-design/phases.md §14.6, ticket #935): its own seat list, WorldState.poolCreatureSeats; no mind fields yet (tickets #872, #873 add theirs)
+  export interface PoolCreatureSeatRecord extends SeatMindRecord {
+    // a pool creature's whole memory (game-design/phases.md §14.6, ticket #935): a seat with a mind, built the way a giant's is, in its own list, WorldState.poolCreatureSeats
+    // seatNumber: poolCreatureSeatNumber, after every giant seat (firstGiantSeatNumber + GIANT_SPECIES_ORDER.length + its place in the list), so the decision stagger never shares a number
     species: PoolCreatureCellSpecies;
     isLandmark: boolean;
-    cellId: EntityId | null; // null while vacant
-    respawnInTicks: number;
-    headingRadians: number;
   }
   ```
 
-  A creature's cell is a wild cell whose `poolCreature` mirrors its seat's `species`, `isLandmark` and `headingRadians`,
-  written only by `mirrorPoolCreatureSeat` (`game/world/pool-creature-mirror.ts`), which also sets the cell's radius by
+  A creature's cell is a wild cell whose `poolCreature` mirrors its seat's `species` and `isLandmark`, and its mind's
+  heading as an angle (`headingRadians = atan2(headingY, headingX)`: one fact, one home, since the body lies the way
+  it swims and the nematode's wave is that heading's swing), written only by `mirrorPoolCreatureSeat` (`game/world/pool-creature-mirror.ts`), which also sets the cell's radius by
   `cellRadiusOf` (shared `simulation/pool-creature-shapes.ts`): the landmark's is `ERA_LANDMARK_RADIUS` and the
   nematode's its bounding radius, whatever their mass, and `setCellMass` and the step-1 fold keep them (every cell's
-  radius is `cellRadiusOf`, which is `radiusForMass` for every cell that is not such a creature).
+  radius is `cellRadiusOf`, which is `radiusForMass` for every cell that is not such a creature). Its hashed fields are
+  the mind's list then `species` and `isLandmark` (`POOL_CREATURE_SEAT_HASHED_FIELDS`, `seat-hashed-fields.ts`), walked
+  in the eras' section. A kill without a killer cell (`killWithoutCredit`) runs at or before step 9, the respawn
+  countdown, as the engulf payout does, or the victim's spectate is a tick short.
 
   The seat record is the whole of a seated cell's memory: the wound is not stored, it is `cell.mass − fullMass`, and
   every field above is hashed (`WILD_SEAT_HASHED_FIELDS`, `GIANT_SEAT_HASHED_FIELDS`). The giant seats live apart

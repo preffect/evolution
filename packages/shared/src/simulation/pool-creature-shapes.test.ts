@@ -66,6 +66,18 @@ describe('the nematode’s chain', () => {
     expect(centres.at(-1)!.y).toBeGreaterThan(CENTRE.y);
   });
 
+  it.each([
+    ['π: tail east, head west', Math.PI, { x: 1, y: 0 }],
+    ['3π/2: tail north, head south', (3 * Math.PI) / 2, { x: 0, y: 1 }],
+  ])('keeps tail and head apart past a half turn, at %s', (_label, heading, tailSide) => {
+    const reach = NEMATODE_LENGTH / 2 - NEMATODE_THICKNESS / 2;
+    const centres = nematodeSegmentCentres(CENTRE, heading, DEFAULT_BALANCE);
+    expect(centres[0]!.x).toBeCloseTo(CENTRE.x + tailSide.x * reach, CLOSE_DIGITS);
+    expect(centres[0]!.y).toBeCloseTo(CENTRE.y + tailSide.y * reach, CLOSE_DIGITS);
+    expect(centres.at(-1)!.x).toBeCloseTo(CENTRE.x - tailSide.x * reach, CLOSE_DIGITS);
+    expect(centres.at(-1)!.y).toBeCloseTo(CENTRE.y - tailSide.y * reach, CLOSE_DIGITS);
+  });
+
   it('reads the live balance: a patched count and length lay a different chain, and one circle sits on the centre', () => {
     const longer = withCreatures((creatures) => {
       creatures.NEMATODE_LENGTH = 2 * NEMATODE_LENGTH;

@@ -1,8 +1,9 @@
-// The death seam (docs/game-design/session.md §5.2, docs/ecology/food-and-spawn.md §1, docs/ecology/absorption.md §6.1 payout "Prey" row). The
-// engulf slice calls `absorbCell` at payout; `removePlayer` calls `dissolveCell`. Both drop
-// detritus: `DETRITUS_MASS_FRACTION` of the mass in motes of `DETRITUS_MOTE_MASS` (floor), scattered
-// uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream; a mote drawn past
-// the food boundary (`DISH_RADIUS − FOOD_EDGE_MARGIN`) is pulled onto it, like drifting food (#638).
+// The death seam (docs/game-design/session.md §5.2, docs/ecology/food-and-spawn.md §1, docs/ecology/absorption.md
+// §6.1 payout "Prey" row). The engulf slice calls `absorbCell` at payout and `removePlayer` calls `dissolveCell`; both
+// drop detritus. A creature's kill with no killer cell (`killWithoutCredit`, docs/game-design/phases.md §14.6.4) eats
+// the cell whole and drops none. Detritus is `DETRITUS_MASS_FRACTION` of the mass in motes of `DETRITUS_MOTE_MASS`
+// (floor), scattered uniformly within `DETRITUS_SCATTER_RADIUS_FACTOR` radii of the centre from the `spawner` stream; a
+// mote drawn past the food boundary (`DISH_RADIUS − FOOD_EDGE_MARGIN`) is pulled onto it, like drifting food (#638).
 
 import {
   EFFECT_KIND,
@@ -96,9 +97,10 @@ export function dissolveCell(
  * the new cell on t + `RESPAWN_SPECTATE_SECONDS` × `TICK_HZ` + 1, which is what docs/GAME-DESIGN.md
  * §5.2 (G8, G13) and docs/ecology/acceptance.md §8.1 (W4) state.
  *
- * It is the step order that makes it right, and only the payout calls `absorbCell` today: a death
- * reaching `startSpectating` from *outside* a tick, or from a step after 9, would spend no countdown
- * tick on its own tick and land on t + 181 + 1. A caller added there adjusts this, or moves the
+ * It is the step order that makes it right. Two callers reach `startSpectating`: the payout's `absorbCell` (step 6)
+ * and `killWithoutCredit`, whose callers (a rotifer's swallow, the copepod's pass: tickets #872, #873) must run at or
+ * before step 9 for the same reason. A death reaching it from *outside* a tick, or from a step after 9, would spend no
+ * countdown tick on its own tick and land on t + 181 + 1. A caller added there adjusts this, or moves the
  * "+ 1" into the countdown where the tick of death can be compared.
  */
 const SPECTATED_DEATH_TICK = 1;
@@ -165,7 +167,8 @@ export interface CreditlessKill {
  * whole, so it leaves without detritus, its engulfs aborted, and no one is credited (no absorption, no mass, no DNA,
  * no leaderboard change). The `eaten_by_creature` effect names the creature for the respawn line. A player victim
  * spectates the rotifer's cell, or nothing for the copepod (the camera holds where the cell died), keeping
- * `dnaKeptOnDeathFraction` of its progress as after any death.
+ * `dnaKeptOnDeathFraction` of its progress as after any death. Its callers run at or before step 9, the respawn
+ * countdown, or the spectate is a tick short (`SPECTATED_DEATH_TICK`).
  */
 export function killWithoutCredit(world: WorldState, context: StepContext, kill: CreditlessKill): void {
   const { victim, species, killerCell } = kill;

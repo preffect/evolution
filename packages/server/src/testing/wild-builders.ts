@@ -6,9 +6,11 @@
 import {
   AVATAR_INDEX_MIN,
   CELL_KIND,
+  DEFAULT_BALANCE,
   ENTITY_KIND,
   FIRST_LEVEL,
   POOL_CREATURE_SPECIES,
+  pointOnCircle,
   type GiantSpecies,
   type PoolCreatureCellSpecies,
   type Vec2,
@@ -19,10 +21,13 @@ import { createWildSeatRecord, seatWildCell } from '../game/wild/wild-seats.js';
 import { bornCellRecord } from '../game/world/cell-record.js';
 import type { CellRecord, GiantSeatRecord, PoolCreatureSeatRecord, WildSeatRecord } from '../game/world/entities.js';
 import { mintEntityId } from '../game/world/entity-ids.js';
-import { mirrorPoolCreatureSeat } from '../game/world/pool-creature-mirror.js';
+import { mirrorPoolCreatureSeat, poolCreatureSeatNumber } from '../game/world/pool-creature-mirror.js';
+import { createSeatMindRecord } from '../game/wild/seat-mind.js';
 import type { WorldState } from '../game/world/world-state.js';
 
 const FIRST_SEAT = 0;
+/** A mind's heading is a unit vector. */
+const HEADING_LENGTH = 1;
 /** The world's own mass, unless `mass` asks for another base size. */
 const WORLD_SIZE = 1;
 
@@ -77,6 +82,7 @@ export interface TestPoolCreatureOptions {
   readonly at: Vec2;
   readonly mass: number;
   readonly isLandmark?: boolean;
+  /** The mind's heading, as an angle; due east when left out. */
   readonly headingRadians?: number;
 }
 
@@ -85,14 +91,17 @@ export interface TestPoolCreature {
   readonly cell: CellRecord;
 }
 
-/** A vacant roaming rotifer's seat (docs/game-design/phases.md §14.6.2): no cell, counting down to its respawn. */
+/**
+ * A vacant roaming rotifer's seat, the first after the giants of a default world (docs/game-design/phases.md §14.6.2):
+ * no cell, counting down to its respawn, its mind at rest.
+ */
 export function createTestPoolCreatureSeat(overrides: Partial<PoolCreatureSeatRecord> = {}): PoolCreatureSeatRecord {
+  const seatNumber = poolCreatureSeatNumber(DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT, FIRST_SEAT);
   return {
+    ...createSeatMindRecord(seatNumber),
     species: POOL_CREATURE_SPECIES.rotifer,
     isLandmark: false,
-    cellId: null,
     respawnInTicks: 5_400,
-    headingRadians: 0,
     ...overrides,
   };
 }
@@ -106,12 +115,15 @@ export function seatTestPoolCreature(world: WorldState, options: TestPoolCreatur
   const id = mintEntityId(world, ENTITY_KIND.cell);
   const identity = { id, kind: CELL_KIND.wild, playerId: null, organismId: id, avatarIndex: AVATAR_INDEX_MIN };
   const cell = bornCellRecord({ ...identity, level: FIRST_LEVEL }, options.at, options.mass);
+  const heading = pointOnCircle(HEADING_LENGTH, options.headingRadians ?? 0);
   const seat = createTestPoolCreatureSeat({
+    seatNumber: poolCreatureSeatNumber(world.firstGiantSeatNumber, world.poolCreatureSeats?.length ?? FIRST_SEAT),
     species: options.species,
     isLandmark: options.isLandmark ?? false,
     cellId: id,
     respawnInTicks: 0,
-    headingRadians: options.headingRadians ?? 0,
+    headingX: heading.x,
+    headingY: heading.y,
   });
   mirrorPoolCreatureSeat(seat, cell, world.balance);
   world.cells.push(cell);
