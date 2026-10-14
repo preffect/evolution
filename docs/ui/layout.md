@@ -71,6 +71,10 @@ live beside it in `hud/upgrade-popup-constants.ts`:
 | `UPGRADE_POPUP_OUT_MS`             | 700                     | ms    | Its rise and fade, at the end of its life.                                                                              |
 | `UPGRADE_POPUP_RISE_PX`            | 24                      | px    | How far it rises as it fades.                                                                                           |
 | `UPGRADE_POPUP_FROM_SCALE`         | 0.85                    | ×     | The scale it pops in from.                                                                                              |
+| `UPGRADE_POPUP_MOVE_FADE_OUT_MS`   | 90                      | ms    | A popup's fade out of its slot when the slot changes while up, `ease-out` (overlays.md §3.8).                           |
+| `UPGRADE_POPUP_MOVE_FADE_IN_MS`    | 150                     | ms    | Its fade back in at the new slot, `ease-in-out`.                                                                        |
+| `UPGRADE_POPUP_MOVE_CLASS_LAG_MS`  | 50                      | ms    | How far the fade out can trail the hold's start (up to three frames at 60 Hz).                                          |
+| `UPGRADE_POPUP_MOVE_HOLD_MS`       | 140                     | ms    | How long it is held in its old slot: the fade out and the lag, so it leaves at zero opacity.                            |
 | `UPGRADE_POPUP_MAX_WIDTH_PX`       | 240                     | px    | Its widest: `PICKER_CARD_WIDTH_PX`, so a card's effect lines fit.                                                       |
 | `FORM_POPUP_DURATION_SECONDS`      | 6                       | s     | A form popup's whole life: about 5 s held between its scale-in and fade.                                                |
 | `FORM_POPUP_IN_MS`                 | 350                     | ms    | Its entrance's grow to the overshoot, while the glow flares.                                                            |
