@@ -223,7 +223,7 @@ export interface FoodMoteRecord extends FoodMoteView {
 export type BacteriumMoteRecord = FoodMoteRecord & { bacteriumVariant: BacteriumVariant }; // the only food a latch takes
 export interface LatchedBacteriumRecord {
   // one held bacterium (game-design/early-life.md §15.4.1): the mote's own record kept untouched from the catch, so a bond
-  // eats it through eatFoodMote and a shake puts it back into the world as it was (under a fresh id)
+  // eats it through eatFoodMote and a shake puts it back into the world at its rim point under a fresh id, its mass, DNA, tag and heading kept (§15.4.2)
   mote: BacteriumMoteRecord;
   bearingRadians: number;
   caughtAtTick: number;

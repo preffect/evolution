@@ -170,16 +170,21 @@ describe('applyBalancePatch on the declared non-number leaves (docs/game-design/
     expect(() => applyBalancePatch(DEFAULT_BALANCE, swallowFrom({ nested: 1 }))).toThrow(DebugRequestError);
   });
 
-  it('refuses a string or a list at a number leaf or at an undeclared path, as before', () => {
-    const refused: BalancePatch[] = [
-      { world: { [DISH_RADIUS_LEAF]: CELL_STAGE.eukaryote } },
-      { world: { [DISH_RADIUS_LEAF]: [CELL_STAGE.eukaryote] } },
-      { ladder: { [STARTING_STAGE_LEAF]: CELL_STAGE.eukaryote } },
-      { progression: { [DNA_TAGS_LEAF]: ['motile'] } },
-    ];
-    for (const patch of refused) {
-      expect(() => applyBalancePatch(DEFAULT_BALANCE, patch)).toThrow(/not a number leaf/);
-    }
+  it.each<[BalancePatch, string]>([
+    [{ world: { [DISH_RADIUS_LEAF]: CELL_STAGE.eukaryote } }, 'world.DISH_RADIUS'],
+    [{ world: { [DISH_RADIUS_LEAF]: [CELL_STAGE.eukaryote] } }, 'world.DISH_RADIUS'],
+    [{ ladder: { [STARTING_STAGE_LEAF]: CELL_STAGE.eukaryote } }, 'ladder.STARTING_STAGE'],
+    [{ progression: { [DNA_TAGS_LEAF]: ['motile'] } }, 'progression.DNA_TAGS'],
+  ])('refuses a string or a list at a number leaf or an undeclared path, naming that path: %j', (patch, path) => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, patch)).toThrow(
+      new DebugRequestError(`"${path}" is not a number leaf of the balance`),
+    );
+  });
+
+  it('refuses a declared leaf the balance being patched does not have', () => {
+    expect(() => applyBalancePatch({ absorption: {} }, swallowFrom(CELL_STAGE.eukaryote))).toThrow(
+      new DebugRequestError('"absorption.SWALLOW_FROM_STAGE" is not a leaf of the balance'),
+    );
   });
 
   it('refuses the whole patch when a stage-id leaf beside a good number is refused', () => {

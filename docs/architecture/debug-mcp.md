@@ -67,7 +67,8 @@ the declared non-number leaves, validated as a whole before anything is written.
 validator); any other value that is not a finite number, or one its kind refuses, is refused naming the leaf and what
 it takes. The kinds today: the stage id (a member of `STAGE_ORDER`), declared for `absorption.SWALLOW_FROM_STAGE` and
 `earlyLife.LATCH_FROM_STAGE` (game-design/early-life.md §15.10), so `{"absorption":{"SWALLOW_FROM_STAGE":"eukaryote"}}`
-turns early life on in a running room and `"amoeba"` or `3` is refused (ticket #907; phases ticket #867 declares the
+moves the swallow switch in a running room (cell engulf at once: no protocell or archaeon starts one; bacteria are
+still eaten whole and nothing latches until the latch ticket, #909, wires the latch) and `"amoeba"` or `3` is refused (ticket #907; phases ticket #867 declares the
 era list beside it). The tool's schema takes numbers, strings and lists of strings as leaves and leaves the check to
 the patch. The replay records the patch as it was applied (`debug_patch`), so a game whose switch moved mid-way
 replays to its state hash. A declared structure path is refused by

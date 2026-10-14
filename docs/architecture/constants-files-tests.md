@@ -15,8 +15,11 @@ ladder orbit read, so there is one copy on the wire, #286; being catalog structu
 `debug_set_balance`-patchable, so the count is a build-time constant and retuning the endosymbiosis trip is a code
 change; and no domain carries a constant computed from other constants of its module, below) and `BalanceConfig`, which is `typeof DEFAULT_BALANCE`
 with every number leaf widened to `number` (a constant declared `= 3000` has the literal type `3000`; a
-patched copy holds other numbers). A patchable id leaf is declared with its id type, never its literal
-(`SWALLOW_FROM_STAGE: CellStage`), so it is widened at its declaration. The record is deep-frozen: it aliases the module constants, so a room
+patched copy holds other numbers). A patchable non-number leaf (one `debug_set_balance` declares a kind for,
+architecture/debug-mcp.md §8) is declared with its widened type, never its literal: an id with its id type
+(`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`readonly EraId[]`, not `['dish'] as const`), so a
+patched value never lies to the type; `balance-leaf-kinds.test.ts` checks that each declared leaf's default passes its
+own kind. The record is deep-frozen: it aliases the module constants, so a room
 that patched it without cloning would rewrite every room and the constants themselves; `applyBalancePatch`
 returns a fresh copy and never writes its input.
 `data/balance.json` is **generated** from `DEFAULT_BALANCE` by `scripts/generate-balance.ts`,

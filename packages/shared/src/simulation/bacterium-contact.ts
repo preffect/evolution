@@ -1,5 +1,6 @@
 // What a player cell's touch does to a bacterium (docs/game-design/early-life.md §15.5.1, §15.4.1): the one answer the
-// server's eating step and the bots' mote filter both read, so they never disagree. A swallow outranks a latch, so at
+// server's eating step and the bots' mote filter will both read once the latch ticket (#909) wires them, so they never
+// disagree. A swallow outranks a latch, so at
 // the shipping switch (`SWALLOW_FROM_STAGE` = `protocell`) every touch swallows, today's eating rule exactly. Wild cells
 // and giants never latch: the eating step asks this of a player cell only.
 

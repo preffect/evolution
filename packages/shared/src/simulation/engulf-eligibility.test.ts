@@ -168,8 +168,9 @@ describe('canEngulf and the swallow switch (docs/game-design/early-life.md §15.
   });
 
   it('keeps the ratio rule past the switch: a eukaryote under the bound cannot start', () => {
-    expect(canEngulf(predator(24, null, CELL_STAGE.eukaryote), prey(20), switchOn)).toBe(false);
-    expect(canEngulf(predator(25, null, CELL_STAGE.eukaryote), prey(20), switchOn)).toBe(true);
+    const bound = engulfStartMass(prey(PREY_MASS), switchOn);
+    expect(canEngulf(predator(bound - JUST_UNDER, null, CELL_STAGE.eukaryote), prey(PREY_MASS), switchOn)).toBe(false);
+    expect(canEngulf(predator(bound, null, CELL_STAGE.eukaryote), prey(PREY_MASS), switchOn)).toBe(true);
   });
 });
 

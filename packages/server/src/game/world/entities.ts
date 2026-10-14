@@ -45,7 +45,7 @@ export type BacteriumMoteRecord = FoodMoteRecord & { bacteriumVariant: Bacterium
 /**
  * One bacterium a player cell holds on its rim (docs/game-design/early-life.md §15.4.1): the mote's own record, kept
  * untouched from the catch (its id, mass, DNA, tag and heading), so a bond eats it through `eatFoodMote` and a shake
- * puts it back into the world as it was; plus its bearing from the cell's centre at the catch and the catch's tick.
+ * puts it back into the world at its rim point under a fresh id, its mass, DNA, tag and heading kept (§15.4.2); plus its bearing from the cell's centre at the catch and the catch's tick.
  * `serialize.ts` projects it onto the wire's `LatchedBacteriumView`.
  */
 export interface LatchedBacteriumRecord {

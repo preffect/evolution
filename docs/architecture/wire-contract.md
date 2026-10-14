@@ -280,8 +280,9 @@ The bytes per item are measured (#331, #341, below) except the wild cells' and t
 yet; the counts are the worst case. Every cell carries `giantSpecies` (ticket #825): `"giantSpecies":null` is 20 B,
 about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about 15 B more. Every cell carries
 `latchedBacteria` too (ticket #907, game-design/early-life.md §15.11): the empty `"latchedBacteria":[]` is 20 B, about
-0.7 KB a snapshot over the 35 cells, and each held bacterium about 75 B more (`moteId`, `variant`, a two-decimal
-`bearingRadians`, `caughtAtTick`), at most `LATCH_MAX_HELD` (5) on each of the 8 player cells: 3 KB in the worst case,
+0.7 KB a snapshot over the 35 cells, and each held bacterium about 80 to 90 B more (`moteId`, `variant`, a
+two-decimal `bearingRadians`, `caughtAtTick`; measured with real `m-` ids), at most `LATCH_MAX_HELD` (5) on each of the
+8 player cells: under 4 KB in the worst case,
 and only while early life is on. The fields are stable while held, so the list adds nothing per tick.
 
 | Snapshot part (20 Hz)                                                          | Count × bytes                            | Per snapshot       |

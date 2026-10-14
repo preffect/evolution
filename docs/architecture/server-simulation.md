@@ -90,8 +90,9 @@ prediction reuses them unchanged.
   catch plus its bearing and catch tick; the serializer projects it onto `CellView.latchedBacteria`. What a player
   cell's touch does to a bacterium is the shared pure `bacteriumContactOutcome(stage, heldCount, balance)`
   (`shared/simulation/bacterium-contact.ts`: `swallow` from `SWALLOW_FROM_STAGE`, else `latch` from
-  `LATCH_FROM_STAGE` below `LATCH_MAX_HELD`, else `pass`), which the eating step and the bots' mote filter read; at
-  the shipping switch (`protocell`) it always answers `swallow`, so the list stays empty. The latch runs in step 4 in
+  `LATCH_FROM_STAGE` below `LATCH_MAX_HELD`, else `pass`), which the eating step and the bots' mote filter will read
+  once the latch ticket (#909) wires it; until then nothing calls it and the eating step swallows every bacterium by
+  its own rule. At the shipping switch (`protocell`) it always answers `swallow`, so the list stays empty. The latch runs in step 4 in
   the eating step's order and draws from no stream; a released bacterium re-enters with its kept record and draws
   nothing from `moteMotion` (the latch ticket builds the catch, the bond, the shake and the swallow invariant of
   early-life.md §15.4.2 on this state). The state hash walks the held lists last, and only when a cell holds one

@@ -31,8 +31,10 @@ import * as worldClock from './world-clock.js';
 /**
  * A constant declared as `export const X = 3000` has the literal type `3000`; a patched copy
  * holds other numbers, so the config type widens every number leaf to `number`. Ids, tables and
- * arrays keep their literal types: they are structure, not tunables. A patchable id leaf (`SWALLOW_FROM_STAGE`) is
- * declared with its id type (`CellStage`), never its literal, so it widens at its declaration.
+ * arrays keep their literal types: they are structure, not tunables. A patchable non-number leaf (one that
+ * `debug_set_balance` declares a kind for) is declared with its widened type, never its literal: an id with its id type
+ * (`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`readonly EraId[]`), so a patched value never lies to
+ * the type.
  */
 type WidenNumberLeaves<Value> = Value extends number
   ? number
