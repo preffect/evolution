@@ -112,9 +112,9 @@ Rules that keep this honest:
 
 Before writing a helper, search (`rg`) for the behaviour. Shared behaviour goes in one module
 both callers import; parallel code paths doing the same thing are a review reject.
-`./validate.sh duplication` (`jscpd`, `.jscpd.json`, #70) fails the gate on ≥ 5 duplicated
-lines / 50 tokens anywhere in `packages/*/src` outside tests and `testing/`; import blocks are
-ignored, everything else counts. `sonarjs/no-identical-functions` and
+`./validate.sh duplication` (`jscpd`, `.jscpd.json`, #70) fails the gate on any clone of ≥ 5
+duplicated lines / 50 tokens anywhere in `packages/*/src` outside tests and `testing/`, however
+small its share of the codebase (#943); import blocks are ignored, everything else counts. `sonarjs/no-identical-functions` and
 `sonarjs/no-duplicate-string` (three copies of a string ≥ 10 characters) catch the small cases.
 
 ```ts
