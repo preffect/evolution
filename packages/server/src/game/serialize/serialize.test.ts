@@ -4,6 +4,7 @@ import {
   FOOD_KIND,
   GIANT_SPECIES,
   ROUND_PHASE,
+  SNAPSHOT_BEARING_DECIMALS,
   SNAPSHOT_MASS_DECIMALS,
   SNAPSHOT_RADIUS_DECIMALS,
   SNAPSHOT_SCORE_DECIMALS,
@@ -31,6 +32,7 @@ import {
   ownProgressOf,
 } from './serialize.js';
 import { VIEWER_SNAPSHOT_KEYS } from './viewer-snapshot-keys.js';
+import type { BacteriumMoteRecord } from '../world/entities.js';
 
 /** A grown, moving cell as a recording client saw it on the wire before #341: every float at full precision. */
 const MOVING_CELL = {
@@ -39,6 +41,9 @@ const MOVING_CELL = {
   mass: 117.91111692892059,
   radius: 43.43472678624837,
 };
+
+/** A held bacterium's bearing at full precision; the wire writes it at `SNAPSHOT_BEARING_DECIMALS`. */
+const EXACT_BEARING = 1.23456;
 
 /** A drag of 3 wu east and 1 wu south in one tick: 180 and 60 wu/s on top of the kernel's velocity. */
 const HELD_THIS_TICK = { heldDisplacementX: 3, heldDisplacementY: 1 };
@@ -82,6 +87,7 @@ describe('view projections', () => {
         'sprintCooldownRemainingTicks',
         'isStarving',
         'giantSpecies',
+        'latchedBacteria',
       ].sort(),
     );
   });
@@ -92,6 +98,20 @@ describe('view projections', () => {
     expect(toCellView(cell).giantSpecies).toBeNull();
     cell.giantSpecies = GIANT_SPECIES.paramecium;
     expect(toCellView(cell).giantSpecies).toBe(GIANT_SPECIES.paramecium);
+  });
+
+  it('projects the held list by mote id, variant, bearing to its wire decimals and catch tick (early-life.md §15.11)', () => {
+    const world = createTestWorld();
+    const cell = world.cells[0]!;
+    expect(toCellView(cell).latchedBacteria).toEqual([]);
+    const mote = spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: 'aerobic', at: { x: 5, y: 0 } });
+    cell.latchedBacteria.push({ mote: mote as BacteriumMoteRecord, bearingRadians: EXACT_BEARING, caughtAtTick: 7 });
+    expect(SNAPSHOT_BEARING_DECIMALS).toBe(2);
+    expect(toCellView(cell).latchedBacteria).toEqual([
+      { moteId: mote.id, variant: 'aerobic', bearingRadians: 1.23, caughtAtTick: 7 },
+    ]);
+    expect(toCellView(cell, EXACT_SNAPSHOT_VALUES).latchedBacteria[0]?.bearingRadians).toBe(EXACT_BEARING);
+    expect(cell.latchedBacteria[0]?.bearingRadians).toBe(EXACT_BEARING);
   });
 
   it('rounds a cell’s velocity, mass and radius to their wire decimals and leaves the record exact', () => {

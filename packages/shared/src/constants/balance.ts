@@ -1,6 +1,6 @@
 // The one balance record (docs/architecture/constants-files-tests.md §9): the tunable domain modules spread into plain
 // records. Each room starts from a `structuredClone` of `DEFAULT_BALANCE`, `debug_set_balance`
-// patches number leaves of the room's copy, and the client predicts with the copy it receives in
+// patches number leaves and the declared non-number leaves (a stage id) of the room's copy, and the client predicts with the copy it receives in
 // `game_state`. Nothing here is read by the simulation as a module import; it arrives as
 // `context.balance`. The record is deep-frozen: it aliases the module constants, so a room that
 // forgot to clone would otherwise rewrite every room and the constants themselves.
@@ -16,6 +16,7 @@
 import * as absorption from './absorption.js';
 import { deepFreeze } from './deep-freeze.js';
 import * as controls from './controls.js';
+import * as earlyLife from './early-life.js';
 import * as ecology from './ecology.js';
 import * as giants from './giants.js';
 import * as growth from './growth.js';
@@ -30,7 +31,8 @@ import * as worldClock from './world-clock.js';
 /**
  * A constant declared as `export const X = 3000` has the literal type `3000`; a patched copy
  * holds other numbers, so the config type widens every number leaf to `number`. Ids, tables and
- * arrays keep their literal types: they are structure, not tunables.
+ * arrays keep their literal types: they are structure, not tunables. A patchable id leaf (`SWALLOW_FROM_STAGE`) is
+ * declared with its id type (`CellStage`), never its literal, so it widens at its declaration.
  */
 type WidenNumberLeaves<Value> = Value extends number
   ? number
@@ -75,6 +77,7 @@ const BALANCE_DEFAULTS = {
   wildCells: { ...wildCells },
   giants: omitConstant(giants, 'GIANT_ROLE_BY_SPECIES'),
   absorption: { ...absorption },
+  earlyLife: { ...earlyLife },
   progression: { ...progression },
   traits: { ...traits },
 };

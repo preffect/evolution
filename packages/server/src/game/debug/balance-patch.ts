@@ -1,14 +1,14 @@
-// Applies a `debug_set_balance` patch (docs/CODE-STANDARDS.md §2): number leaves only, at paths that already exist.
-// Tables and id arrays are structure, not tunables, so a patch that names one is refused as a whole; a live balance is
+// Applies a `debug_set_balance` patch (docs/CODE-STANDARDS.md §2): number leaves, at paths that already exist, and the
+// declared non-number leaves (`balance-leaf-kinds.ts`: a stage id), each value checked by its kind's validator. Tables
+// and id arrays are structure, not tunables, so a patch that names one is refused as a whole; a live balance is
 // never left half-patched. The one array a patch indexes is a trait's tier table under `traits.TRAIT_TIERS`
 // (`traits.TRAIT_TIERS.cilia.0.speedMultiplier`, row 0 = tier I, #715). The input is never written: the patch lands
 // on a clone, so `DEFAULT_BALANCE` (deep-frozen, shared by every room) can be patched directly and the caller keeps
 // the copy it is handed back. A declared structure path is refused by name, saying where its numbers live (#150).
 
+import { BALANCE_PATH_SEPARATOR, NON_NUMBER_BALANCE_LEAVES, type BalanceLeafKind } from './balance-leaf-kinds.js';
 import { DebugRequestError } from './debug-request-error.js';
-import type { BalancePatch } from './simulation-debug-handle.js';
-
-const PATH_SEPARATOR = '.';
+import type { BalancePatch, BalancePatchLeaf } from './simulation-debug-handle.js';
 
 /**
  * Balance paths that hold structure a patch could mistake for tunables, each with where the simulation reads
@@ -33,7 +33,7 @@ const ROW_INDEX_PATTERN = /^(0|[1-9][0-9]*)$/;
 
 /** Refuses `path` when it is a declared structure path; the walk reaches any path under one through it first. */
 function refuseStructurePath(path: readonly string[]): void {
-  const dottedPath = path.join(PATH_SEPARATOR);
+  const dottedPath = path.join(BALANCE_PATH_SEPARATOR);
   const structure = STRUCTURE_PATHS.find((entry) => dottedPath === entry.path);
   if (structure !== undefined) {
     throw new DebugRequestError(`"${structure.path}" is structure, not a tunable: ${structure.whereTheNumbersLive}`);
@@ -70,33 +70,65 @@ function childOf(container: unknown, key: string, containerPath: readonly string
   return undefined;
 }
 
-/** The dotted paths of every number leaf in `patch`; throws on a path that is not a number leaf of `target`. */
-function collectLeafWrites(target: unknown, patch: BalancePatch, pathSoFar: string[]): [string[], number][] {
-  const writes: [string[], number][] = [];
+/** One leaf write: the path and the value, checked against the balance before anything is cloned. */
+type LeafWrite = [path: string[], value: BalancePatchLeaf];
+
+/** `value` when it passes its declared kind's validator, at a leaf the balance has; otherwise a refusal naming the kind. */
+function declaredLeafValue(
+  kind: BalanceLeafKind,
+  current: unknown,
+  value: unknown,
+  path: readonly string[],
+): BalancePatchLeaf {
+  const dottedPath = path.join(BALANCE_PATH_SEPARATOR);
+  if (current === undefined) throw new DebugRequestError(`"${dottedPath}" is not a leaf of the balance`);
+  if (!kind.accepts(value)) {
+    throw new DebugRequestError(`"${dottedPath}" takes ${kind.expected}, not ${JSON.stringify(value)}`);
+  }
+  return value as BalancePatchLeaf;
+}
+
+function isPatchRecord(value: BalancePatchLeaf | BalancePatch): value is BalancePatch {
+  return typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * The path and value of every leaf in `patch`; throws on a path that is neither a number leaf of `target` given a finite
+ * number nor a declared non-number leaf given a value its kind accepts.
+ */
+function collectLeafWrites(target: unknown, patch: BalancePatch, pathSoFar: string[]): LeafWrite[] {
+  const writes: LeafWrite[] = [];
   for (const [key, value] of Object.entries(patch)) {
     const path = [...pathSoFar, key];
     refuseStructurePath(path);
     const current = childOf(target, key, pathSoFar);
-    if (typeof value === 'number') {
+    const declaredKind = NON_NUMBER_BALANCE_LEAVES.get(path.join(BALANCE_PATH_SEPARATOR));
+    if (declaredKind !== undefined) {
+      writes.push([path, declaredLeafValue(declaredKind, current, value, path)]);
+    } else if (typeof value === 'number') {
       if (typeof current !== 'number') {
-        throw new DebugRequestError(`"${path.join(PATH_SEPARATOR)}" is not a number leaf of the balance`);
+        throw new DebugRequestError(`"${path.join(BALANCE_PATH_SEPARATOR)}" is not a number leaf of the balance`);
       }
       if (!Number.isFinite(value)) {
-        throw new DebugRequestError(`"${path.join(PATH_SEPARATOR)}" must be a finite number`);
+        throw new DebugRequestError(`"${path.join(BALANCE_PATH_SEPARATOR)}" must be a finite number`);
       }
       writes.push([path, value]);
-    } else {
+    } else if (isPatchRecord(value)) {
       writes.push(...collectLeafWrites(current, value, path));
+    } else {
+      throw new DebugRequestError(`"${path.join(BALANCE_PATH_SEPARATOR)}" is not a number leaf of the balance`);
     }
   }
   return writes;
 }
 
-function writeLeaf(target: MutableBalance, path: string[], value: number): void {
+/** Writes `value` at `path`; a list is copied, so the balance never aliases the patch it came in. */
+function writeLeaf(target: MutableBalance, path: string[], value: BalancePatchLeaf): void {
   let cursor: unknown = target;
   for (const [depth, key] of path.slice(0, -1).entries()) cursor = childOf(cursor, key, path.slice(0, depth));
-  if (!isPlainRecord(cursor)) throw new DebugRequestError(`"${path.join(PATH_SEPARATOR)}" vanished while patching`);
-  cursor[path[path.length - 1] as string] = value;
+  if (!isPlainRecord(cursor))
+    throw new DebugRequestError(`"${path.join(BALANCE_PATH_SEPARATOR)}" vanished while patching`);
+  cursor[path[path.length - 1] as string] = Array.isArray(value) ? [...value] : value;
 }
 
 /**
@@ -122,7 +154,7 @@ function valueAt(balance: MutableBalance, path: readonly string[]): unknown {
 }
 
 export interface BalancePatchResult<Balance> {
-  /** A fresh copy of the input with every number leaf of the patch applied; the input is untouched. */
+  /** A fresh copy of the input with every leaf of the patch applied; the input is untouched. */
   readonly balance: Balance;
   /** The dotted paths written, in patch order. */
   readonly writtenPaths: readonly string[];
@@ -131,7 +163,7 @@ export interface BalancePatchResult<Balance> {
 }
 
 /**
- * Returns a clone of `balance` with every number leaf of `patch` applied and the dotted paths it
+ * Returns a clone of `balance` with every leaf of `patch` applied and the dotted paths it
  * wrote. Validates the whole patch against the input before cloning, so a refused patch costs no copy.
  */
 export function applyBalancePatch<Balance extends MutableBalance>(
@@ -143,5 +175,9 @@ export function applyBalancePatch<Balance extends MutableBalance>(
   for (const [path, value] of writes) writeLeaf(patched, path, value);
   const didChangeTraitTiers = writes.some(([path]) => isTraitTierPath(path));
   if (didChangeTraitTiers) realiasCatalogTiers(patched);
-  return { balance: patched, writtenPaths: writes.map(([path]) => path.join(PATH_SEPARATOR)), didChangeTraitTiers };
+  return {
+    balance: patched,
+    writtenPaths: writes.map(([path]) => path.join(BALANCE_PATH_SEPARATOR)),
+    didChangeTraitTiers,
+  };
 }

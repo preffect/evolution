@@ -32,6 +32,12 @@ import type { BacteriumVariant, SpawnedKind, ZoneId } from '@evolution/shared';
 
 const traitIds = DEFAULT_BALANCE.traits.TRAIT_CATALOG.map((row) => row.id);
 
+/**
+ * Balance domains no page quotes yet, each until its page lands: the latch's (`earlyLife`) is written with the archaeon's
+ * page (docs/game-design/early-life.md §15.9.4), and the switch is off until then, so no player meets it unexplained.
+ */
+const DOMAINS_WITHOUT_A_FACT_YET: readonly string[] = ['earlyLife'] satisfies (keyof BalanceConfig)[];
+
 /** One call of a table row: its id and its argument. */
 function callOf<Id extends string, Argument>(
   id: Id,
@@ -250,8 +256,16 @@ describe('the fact sources', () => {
     return domains;
   }
 
-  it('reads every balance domain from some fact', () => {
+  it('reads every balance domain from some fact, but the ones whose pages are still to be written', () => {
     const domains = domainsReadByFacts();
-    for (const domain of Object.keys(DEFAULT_BALANCE)) expect(domains.has(domain), domain).toBe(true);
+    for (const domain of Object.keys(DEFAULT_BALANCE)) {
+      if (DOMAINS_WITHOUT_A_FACT_YET.includes(domain)) continue;
+      expect(domains.has(domain), domain).toBe(true);
+    }
+  });
+
+  it('keeps no domain on the waiting list that a fact already reads, so the list cannot rot', () => {
+    const domains = domainsReadByFacts();
+    expect(DOMAINS_WITHOUT_A_FACT_YET.filter((domain) => domains.has(domain))).toEqual([]);
   });
 });

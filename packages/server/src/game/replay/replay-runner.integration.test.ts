@@ -4,6 +4,7 @@
 // from the new seed over the running world. Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
+  CELL_STAGE,
   DEFAULT_BALANCE,
   ENTITY_KIND,
   TICK_INTERVAL_MS,
@@ -25,12 +26,15 @@ const TICKS_AFTER_RESEED = 90;
 const JOIN_TICK = 30;
 const SPAWN_TICK = 60;
 const GRANT_TICK = 75;
+/** Between the spawn and the grant, so the switch moves with the world populated. */
+const SWITCH_TICK = 65;
 const INPUT_EVERY_TICKS = 7;
 const ALICE = playerId('alice');
 const BOB = playerId('bob');
 const CID = playerId('cid');
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
+const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
 
 function roomUnderTest() {
   const options = createTestRoomInitOptions([ALICE, BOB], { config: createTestSessionConfig({ seed: SEED }) });
@@ -84,6 +88,20 @@ describe('replaying what a room recorded', () => {
     const recording = handle.exportReplay() as Replay;
     stop();
     expect(replay(recording).hash).toBe(recording.finalHash);
+  });
+
+  it('reproduces a run whose swallow switch moved mid-way, through a JSON round trip (early-life.md §15.10)', () => {
+    const { handle, step, stop } = roomUnderTest();
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) {
+      if (tick === SWITCH_TICK) handle.patchBalance({ absorption: { [SWALLOW_LEAF]: CELL_STAGE.eukaryote } });
+      step(tick);
+    }
+    const recording = JSON.parse(JSON.stringify(handle.exportReplay())) as Replay;
+    stop();
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toContain(SWITCH_TICK);
+    const replayed = replay(recording);
+    expect(replayed.world.balance.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
+    expect(replayed.hash).toBe(recording.finalHash);
   });
 
   it('reproduces the recording a rematch opened (the entity counter continues)', () => {

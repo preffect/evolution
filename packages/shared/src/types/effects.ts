@@ -4,7 +4,7 @@
 // moment they mark (`eat`, `level_up`, `respawn`; docs/CODE-STANDARDS.md §6), pinned in game.test.ts.
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
-import type { CellStage, EntityKind, GiantSpecies } from './game.js';
+import type { BacteriumVariant, CellStage, EntityKind, GiantSpecies } from './game.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
@@ -13,6 +13,9 @@ export const EFFECT_KIND = {
   levelUp: 'level_up',
   respawn: 'respawn',
   worldLevelUp: 'world_level_up',
+  bacteriumLatched: 'bacterium_latched',
+  bacteriumBonded: 'bacterium_bonded',
+  latchShaken: 'latch_shaken',
 } as const;
 export type EffectKind = (typeof EFFECT_KIND)[keyof typeof EFFECT_KIND];
 
@@ -103,5 +106,45 @@ export interface WorldLevelUpEffect extends EffectMoment {
   stage: CellStage;
 }
 
+/**
+ * A cell latched a bacterium (docs/game-design/early-life.md §15.4.1): the mote left the world for the cell's held
+ * list. Placed at the mote's centre at the catch; keyed by the mote's id, so the renderer knows which rod.
+ */
+export interface BacteriumLatchedEffect extends EffectBase {
+  kind: typeof EFFECT_KIND.bacteriumLatched;
+  cellId: EntityId;
+  moteId: EntityId;
+  variant: BacteriumVariant;
+}
+
+/**
+ * A held bacterium bonded (early-life.md §15.4.1): emitted beside the ordinary `eat` of the same mote, which carries
+ * the payout. `isCredited` says whether the bond counted toward its variant's endosymbiont. Placed at the rim point.
+ */
+export interface BacteriumBondedEffect extends EffectBase {
+  kind: typeof EFFECT_KIND.bacteriumBonded;
+  cellId: EntityId;
+  moteId: EntityId;
+  isCredited: boolean;
+}
+
+/**
+ * A sprint shook every held bacterium loose (early-life.md §15.4.2): the motes are free in the world again, under
+ * fresh entity ids; `moteIds` are the ids they were held under, the ones the renderer drew. Placed at the cell's centre.
+ */
+export interface LatchShakenEffect extends EffectBase {
+  kind: typeof EFFECT_KIND.latchShaken;
+  cellId: EntityId;
+  moteIds: EntityId[];
+}
+
 export type GameEffect =
-  CellAbsorbedEffect | CellReleasedEffect | EatEffect | LevelUpEffect | RespawnEffect | WorldLevelUpEffect;
+  | CellAbsorbedEffect
+  | CellReleasedEffect
+  | EatEffect
+  | LevelUpEffect
+  | RespawnEffect
+  | WorldLevelUpEffect
+  | BacteriumLatchedEffect
+  | BacteriumBondedEffect
+  | LatchShakenEffect;

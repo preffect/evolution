@@ -114,8 +114,8 @@ latch.
 - **A bond is a real partnership, made quick.** In life the partners traded food for countless generations before
   one ended up inside; the game compresses it to six seconds of holding and a count of ten.
 
-The counter keeps its wire name `bacteriaEatenByVariant` unless the contract ticket renames it; its meaning is
-"taken in: held to the bond or swallowed".
+The counter keeps its wire name `bacteriaEatenByVariant` (the contract ticket #907 decided: a rename would churn the
+wire, the orbit and the draft for no change in play); its meaning is "taken in: held to the bond or swallowed".
 
 #### 15.4.2 Losing held bacteria
 
@@ -363,7 +363,7 @@ who is still an archaeon latches like anyone (PROGRESSION.md §5).
 Each bullet names the phases ticket it changes; the tickets carry the change.
 
 - **The shared non-number balance leaves (tickets #907 and #867).** `debug_set_balance` and the replay's
-  `debug_patch` take number leaves only today. `SWALLOW_FROM_STAGE` (a stage id) and phases' `ERAS_IN_PLAY` (a list of
+  `debug_patch` took number leaves only before ticket #907. `SWALLOW_FROM_STAGE` (a stage id) and phases' `ERAS_IN_PLAY` (a list of
   era ids) need the same widening, so it is built once, in ticket #907, which ships first (§15.10); ticket #867 depends
   on it and adds only `ERAS_IN_PLAY`'s validator (a prefix of dish, pool, colonies). Ticket #907 also widens the
   ledger's parser to find a constants table under a `####` heading, which §14.14.1 needs too.
@@ -467,8 +467,8 @@ the start and no cell latches (a swallow outranks a latch), which is today's gam
 sets it to `eukaryote`.
 
 **Reaching it in tests and on a private stack.** `debug_set_balance` (`server/src/game/debug/balance-patch.ts`) and the
-`BalancePatch` the replay records as a `debug_patch` take number leaves only today, so a stage id would be refused.
-Ticket #907 widens both, once, for every non-number leaf: a patch may set a leaf of a declared kind, each kind with its
+`BalancePatch` the replay records as a `debug_patch` took number leaves only, so a stage id was refused.
+Ticket #907 widened both, once, for every non-number leaf (`game/debug/balance-leaf-kinds.ts`, architecture/debug-mcp.md §8): a patch may set a leaf of a declared kind, each kind with its
 validator, and anything else is refused as today. It declares the stage-id kind (`SWALLOW_FROM_STAGE`,
 `LATCH_FROM_STAGE`: a member of `STAGE_ORDER`, any other value refused); phases ticket #867 declares the era-list kind
 for `ERAS_IN_PLAY` on the same mechanism (phases.md §14.2.4). The replay records and replays such a patch, so a game
@@ -495,8 +495,8 @@ and §10 and debug-mcp.md §8 by the contract ticket.
 - **Constants and balance:** `SWALLOW_FROM_STAGE` in `constants/absorption.ts` (the `absorption` domain), its row added
   to ecology/constants.md §7 (the ledger already parses it). The `LATCH_*` rows in a new domain file (proposed
   `constants/early-life.ts`, balance domain `earlyLife`), registered in `CONSTANTS_TABLE_SOURCES` from this doc's
-  §15.12.1 heading. The ledger finds only `## N. Constants table` sections today (`constantsTableRows`), so ticket
-  #907 widens the parser to take a section by its heading at any level; phases §14.14.1 (ticket #867) reuses it.
+  §15.12.1 heading. The ledger found only `## N. Constants table` sections (`constantsTableRows`), so ticket
+  #907 widened the parser to take a section by its heading at any level; phases §14.14.1 (ticket #867) reuses it.
 - **Non-number balance leaves:** the patch and replay widening of §15.10, built in ticket #907.
 - **The predicate:** `EngulfPredator` gains `stage`; `canEngulf` is §15.5.1's formula (the species decides for a giant
   or a creature, the stage for a player or a plain wild cell); `EngulfRatioBalance` gains `SWALLOW_FROM_STAGE`, so no

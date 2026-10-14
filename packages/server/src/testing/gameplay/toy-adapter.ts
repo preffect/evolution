@@ -3,7 +3,7 @@
 // `x = seed`. It gives the tests a module whose snapshot has cells, whose hash moves every
 // tick and whose state depends on the seed and the inputs — what the echo module cannot offer.
 
-import { DEFAULT_BALANCE, hashText, type PlayerId, type StateHash, type Vec2 } from '@evolution/shared';
+import { DEFAULT_BALANCE, STARTING_STAGE, hashText, type PlayerId, type StateHash, type Vec2 } from '@evolution/shared';
 import { locateCellThrough } from '../../game/bots/bot-binding.js';
 import type { BotCellView, BotPerception } from '../../game/bots/perception.js';
 import type { GameModule } from '../../game/game-module.js';
@@ -117,6 +117,7 @@ function toyCellView(playerId: string, cell: ToyCell): BotCellView {
     radius: TOY_RADIUS_WU,
     membraneRatioBonus: TOY_MEMBRANE_RATIO_BONUS,
     giantSpecies: null,
+    stage: STARTING_STAGE,
   };
 }
 

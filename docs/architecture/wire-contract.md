@@ -59,6 +59,8 @@ precision.
 - `MassFlowView.ratesPerSecond`: `SNAPSHOT_MASS_RATE_DECIMALS` (0.01 mass/s), a cause that rounds to 0 left out; at 0.1
   the broth decay would read 0 below mass 45 and the causes would stop adding up to the net rate (#383)
 - `MassFlowView.decayTraitShare`: `SNAPSHOT_SHARE_DECIMALS` (0.001), left out at 0
+- `LatchedBacteriumView.bearingRadians`: `SNAPSHOT_BEARING_DECIMALS` (0.01 rad: a held rod at most 0.5 wu along the rim
+  of a 100 wu cell, a drawing only)
 - `MassFlowView.sprintSpent` / `noDraftBonusGained`, `EatEffect.massGained` / `dnaGained` and
   `CellAbsorbedEffect.predatorMassGained` / `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` or
   `noDraftBonusGained` that rounds to 0 is left out
@@ -68,6 +70,17 @@ precision.
 
 The debug inspect tools read exact values instead (architecture/debug-mcp.md §8); `debug_get_game_state` is the
 `game_state` payload, at this precision.
+
+**The latch** (ticket #907, game-design/early-life.md §15.4, §15.11): `CellView.latchedBacteria` is a cell's held list
+(architecture/entity-model.md §2), `{ moteId, variant, bearingRadians, caughtAtTick }` per held bacterium, empty for
+every cell that does not latch; every field is stable while held, so a holder's view changes only on a latch, a bond or
+a shake, and the client derives the bond's progress from `caughtAtTick`, its render tick and the live
+`LATCH_BOND_SECONDS` (no per-tick progress is sent). The effects are `bacterium_latched`, `bacterium_bonded` (beside the
+ordinary `eat` of the same mote, which carries the payout, so the mass accounting reads `eat.massGained` as before) and
+`latch_shaken`, each keyed by the mote's own id. There is no new input: a sprint shakes the held bacteria loose. The
+counter `bacteriaEatenByVariant` keeps its wire name, now meaning "taken in: swallowed or held to the bond"; a rename
+would churn the wire, the HUD's orbit and the draft for no change in play. A held mote leaves `food` as an eaten one
+does (`removedIds`); a shaken one re-enters under a fresh id (`spawned`).
 
 **Mass flow** (#383, ui/hud.md §3.1.5): `ownProgress` is an `OwnProgressView`, the `PlayerProgressView` plus
 `massFlow: MassFlowView | null` (`types/mass-flow.ts`): why the receiver's cell's mass moves, as the server applied it.
@@ -265,7 +278,11 @@ cells and the 3 giants (ecology/giants.md §3.5, seated in every round since the
 ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON at the §4 wire precision.
 The bytes per item are measured (#331, #341, below) except the wild cells' and the giants', which do not exist
 yet; the counts are the worst case. Every cell carries `giantSpecies` (ticket #825): `"giantSpecies":null` is 20 B,
-about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about 15 B more.
+about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about 15 B more. Every cell carries
+`latchedBacteria` too (ticket #907, game-design/early-life.md §15.11): the empty `"latchedBacteria":[]` is 20 B, about
+0.7 KB a snapshot over the 35 cells, and each held bacterium about 75 B more (`moteId`, `variant`, a two-decimal
+`bearingRadians`, `caughtAtTick`), at most `LATCH_MAX_HELD` (5) on each of the 8 player cells: 3 KB in the worst case,
+and only while early life is on. The fields are stable while held, so the list adds nothing per tick.
 
 | Snapshot part (20 Hz)                                                          | Count × bytes                            | Per snapshot       |
 | ------------------------------------------------------------------------------ | ---------------------------------------- | ------------------ |

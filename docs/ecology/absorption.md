@@ -12,9 +12,10 @@ this section is the process those effects plug into.
 
 ### 6.1 Rules
 
-> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.5).**
-> `canEngulf` gains a predator test: its stage has reached `SWALLOW_FROM_STAGE` (`eukaryote` once the switch is on), so
-> no protocell or archaeon, player or wild, starts an engulf. The process below is unchanged.
+> **Built behind its switch (ticket #907, [`game-design/early-life.md`](../game-design/early-life.md) §15.5).**
+> `canEngulf` has a predator test: its stage has reached `SWALLOW_FROM_STAGE` unless its species decides (the giant
+> hunter swallows at any stage). The switch ships at `protocell`, so today every cell passes it; at `eukaryote` (the
+> flip, ticket #916) no protocell or archaeon, player or wild, starts an engulf. The process below is unchanged.
 
 **Eligibility (mass only, one home).**
 
@@ -35,6 +36,7 @@ below). `inHold` is the kept grab (#819, below): it holds and seals an engulf th
 `canStart` is the pure predicate `canEngulf(predator, prey, balance.absorption)` in
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
 `predator.mass`, `predator.giantSpecies` (the giant grazer and drifter engulf no cell, [`giants.md §3.5.6`](./giants.md)),
+`predator.stage` against `SWALLOW_FROM_STAGE` (above; the mass half alone is `meetsEngulfStartRatio`),
 `prey.mass`, `prey.membraneRatioBonus` (folded server-side and carried on the view,
 [`architecture/entity-model.md §2`](../architecture/entity-model.md#2-entity-model)) and `ENGULF_MASS_RATIO`. About a dozen
 callers, no copies of the rule: the server's contact and engulf steps (step 6), the wild cells' flee, hunt, hunt sprint

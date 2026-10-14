@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, DISH_RADIUS } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, DISH_RADIUS } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch } from './simulation-debug-handle.js';
@@ -7,6 +7,11 @@ import type { BalancePatch } from './simulation-debug-handle.js';
 /** A real balance path, named through a constant because the patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 const CATALOG_LEAF = 'TRAIT_CATALOG';
+/** The declared stage-id leaves (balance-leaf-kinds.ts), and an undeclared string leaf and id list beside them. */
+const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const LATCH_LEAF = 'LATCH_FROM_STAGE';
+const STARTING_STAGE_LEAF = 'STARTING_STAGE';
+const DNA_TAGS_LEAF = 'DNA_TAGS';
 const TIER_TABLES_LEAF = 'TRAIT_TIERS';
 const CILIA = 'cilia';
 const TIER_I_ROW = 0;
@@ -131,5 +136,54 @@ describe('applyBalancePatch on the trait tier tables (#715)', () => {
     expect(() => applyBalancePatch(liveBalance(), { ecology: { zones: { ringRadii: { 0: 5 } } } })).toThrow(
       /not a number leaf/,
     );
+  });
+});
+
+describe('applyBalancePatch on the declared non-number leaves (docs/game-design/early-life.md §15.10)', () => {
+  const swallowFrom = (value: unknown): BalancePatch => ({ absorption: { [SWALLOW_LEAF]: value as string } });
+
+  it('moves the swallow switch to a stage id and leaves the input untouched', () => {
+    const result = applyBalancePatch(DEFAULT_BALANCE, swallowFrom(CELL_STAGE.eukaryote));
+    expect(result.writtenPaths).toEqual(['absorption.SWALLOW_FROM_STAGE']);
+    expect(result.balance.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
+    expect(DEFAULT_BALANCE.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.protocell);
+    expect(result.didChangeTraitTiers).toBe(false);
+  });
+
+  it('moves the latch stage the same way', () => {
+    const result = applyBalancePatch(DEFAULT_BALANCE, { earlyLife: { [LATCH_LEAF]: CELL_STAGE.endosymbiosis } });
+    expect(result.balance.earlyLife.LATCH_FROM_STAGE).toBe(CELL_STAGE.endosymbiosis);
+  });
+
+  it.each<[string, unknown]>([
+    ['a form name that is no stage', 'amoeba'],
+    ['a number', 3],
+    ['a list of stages', [CELL_STAGE.eukaryote]],
+    ['an empty string', ''],
+  ])('refuses %s at a stage-id leaf, naming what it takes', (_label, value) => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, swallowFrom(value))).toThrow(
+      /"absorption\.SWALLOW_FROM_STAGE" takes a stage id \(protocell, prokaryote, endosymbiosis, eukaryote, specialised\)/,
+    );
+  });
+
+  it('refuses a nested record at a stage-id leaf', () => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, swallowFrom({ nested: 1 }))).toThrow(DebugRequestError);
+  });
+
+  it('refuses a string or a list at a number leaf or at an undeclared path, as before', () => {
+    const refused: BalancePatch[] = [
+      { world: { [DISH_RADIUS_LEAF]: CELL_STAGE.eukaryote } },
+      { world: { [DISH_RADIUS_LEAF]: [CELL_STAGE.eukaryote] } },
+      { ladder: { [STARTING_STAGE_LEAF]: CELL_STAGE.eukaryote } },
+      { progression: { [DNA_TAGS_LEAF]: ['motile'] } },
+    ];
+    for (const patch of refused) {
+      expect(() => applyBalancePatch(DEFAULT_BALANCE, patch)).toThrow(/not a number leaf/);
+    }
+  });
+
+  it('refuses the whole patch when a stage-id leaf beside a good number is refused', () => {
+    const patch = { world: { [DISH_RADIUS_LEAF]: DISH_RADIUS + 1 }, absorption: { [SWALLOW_LEAF]: 'amoeba' } };
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, patch)).toThrow(DebugRequestError);
   });
 });

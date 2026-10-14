@@ -5,6 +5,7 @@
 // Not a test file: the trait scenario and integration files import it.
 
 import {
+  CELL_STAGE,
   DEFAULT_BALANCE,
   ENGULF_PHASE,
   TICK_INTERVAL_S,
@@ -21,6 +22,8 @@ const { growth, ecology, absorption } = DEFAULT_BALANCE;
 const NO_AWAY_EFFORT = 0;
 /** The trait rows' predators are player cells, never a giant. */
 const PLAIN_PREDATOR_SPECIES = null;
+/** The trait rows' predators are protocells, as the rows' builds are. */
+const PLAIN_PREDATOR_STAGE = CELL_STAGE.protocell;
 
 /** The prey a dose is read against (#154): its start-of-span mass, decaying in the broth, and its fraction. */
 export interface PreyDose {
@@ -112,7 +115,11 @@ export function modelHeldPair(input: HeldPairModelInput): HeldPairOutcome {
   const state: HeldPairState = { predatorMass: input.predatorMass, preyMass: input.preyMass, progress: null };
   for (let tick = 1; tick <= input.maxTicks; tick += 1) {
     metabolisePair(state, input);
-    const predatorView = { mass: state.predatorMass, giantSpecies: PLAIN_PREDATOR_SPECIES };
+    const predatorView = {
+      mass: state.predatorMass,
+      giantSpecies: PLAIN_PREDATOR_SPECIES,
+      stage: PLAIN_PREDATOR_STAGE,
+    };
     const preyView = { mass: state.preyMass, membraneRatioBonus: input.prey.membraneRatioBonus };
     if (state.progress === null) {
       if (!canEngulf(predatorView, preyView, absorption)) continue;

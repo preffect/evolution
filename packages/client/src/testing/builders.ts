@@ -67,6 +67,7 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
     sprintCooldownRemainingTicks: 0,
     isStarving: false,
     giantSpecies: null,
+    latchedBacteria: [],
     ...overrides,
   };
 }

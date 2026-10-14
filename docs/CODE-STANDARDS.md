@@ -79,14 +79,16 @@ Rules that keep this honest:
 - The simulation reads tunables from `context.balance`, never from `constants/` directly
   (`architecture/server-simulation.md §3.3`); the client receives the live values in `game_state.balance` for
   prediction and never keeps its own copy of a balance number.
-- `debug_set_balance` patches number leaves only; tables and id arrays are structure, not
-  tunables. A patch whose `progression.MAX_LEVEL` would wrap a wild build past `traits.TRAIT_TIER_COUNT` is refused
+- `debug_set_balance` patches number leaves, and the few non-number leaves a kind is declared for
+  (`game/debug/balance-leaf-kinds.ts`: a stage id, each kind with its validator, architecture/debug-mcp.md §8); tables
+  and id arrays are structure, not tunables. A patch whose `progression.MAX_LEVEL` would wrap a wild build past `traits.TRAIT_TIER_COUNT` is refused
   when it is applied, by the same check the step's invariant uses (`wild/wild-build.ts`, #671), and so is one that
   breaks a giant rule, by the same check the balance test pins (`giantBalanceProblems`, ecology/giants.md §3.5.14).
   Nothing reads `data/balance.json` at runtime.
 - `constants-ledger.test.ts` pins every constant a design table names: the rows are parsed
   from the docs' constants tables (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
-  `traits/constants-and-acceptance.md §5`), one assertion per name and the per-doc name count pinned, so a rename or a
+  `traits/constants-and-acceptance.md §5`, `game-design/early-life.md §15.12.1`; each found by its heading line at any
+  level), one assertion per name and the per-doc name count pinned, so a rename or a
   row added or removed fails on either side until both are updated. It also reads the other way (#150): every
   `UPPER_SNAKE` export of a design domain file (the files each table owns, above) is named by a row of its doc's table
   or by a family glob such as `MITOSIS_*`, so a constant added in code without a doc row fails the gate. The few exports

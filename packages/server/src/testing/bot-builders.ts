@@ -5,6 +5,7 @@
 import {
   AVATAR_INDEX_MIN,
   DEFAULT_BALANCE,
+  STARTING_STAGE,
   canEngulf,
   createSeededRandom,
   playerId as brandPlayerId,
@@ -51,6 +52,7 @@ export function createTestBotCell(overrides: Partial<PlayerBotCellView> = {}): P
     radius: 10,
     membraneRatioBonus: 0,
     giantSpecies: null,
+    stage: STARTING_STAGE,
     ...overrides,
   };
 }

@@ -29,7 +29,9 @@
   tick `T + i` (the server applies the newest pending input each tick; with one input per tick
   the two counters advance together). When jitter makes the server coalesce two inputs into one
   tick the assumption is off by one tick for one snapshot, and reconciliation absorbs it. Mass,
-  radius, stage, traits, engulf state and death are never predicted.
+  radius, stage, traits, engulf state, the held bacteria (`latchedBacteria`, game-design/early-life.md §15.11) and death
+  are never predicted. The sprint's start is, so a sprint's shake-loose (`latch_shaken`) reaches the client one round
+  trip after the predicted start; the renderer may hide the own cell's held rods from that start.
   - **What the replay runs** (`net/own-cell-prediction.ts`): per tick, the server's step 1 for the own cell (latch a
     steering target, start a sprint when the reported cooldown allows) and step 3 through the shared
     `movementStepFor` (`shared/simulation/movement-step.ts`, the one fold of the speed cap and the blend the server's

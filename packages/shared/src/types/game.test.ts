@@ -65,6 +65,9 @@ describe('id tables', () => {
       'level_up',
       'respawn',
       'world_level_up',
+      'bacterium_latched',
+      'bacterium_bonded',
+      'latch_shaken',
     ]);
   });
 });

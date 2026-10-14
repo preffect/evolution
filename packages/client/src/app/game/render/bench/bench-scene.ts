@@ -212,6 +212,7 @@ export function benchCellView(world: BenchWorld, spec: BenchCellSpec, tick: numb
     sprintCooldownRemainingTicks: 0,
     isStarving: false,
     giantSpecies: null,
+    latchedBacteria: [],
   };
 }
 

@@ -8,7 +8,7 @@
 // `playerId: null` on the view) its cell's entity id (`game/wild/wild-perception.ts`), so the
 // strategy shape is the same on both sides.
 
-import { distanceBetween, type GiantSpecies, type PlayerId } from '@evolution/shared';
+import { distanceBetween, type CellStage, type GiantSpecies, type PlayerId } from '@evolution/shared';
 
 /** The fields of a cell a strategy reads; a subset of the wire `CellView`, so a view satisfies it as is. */
 export interface BotCellView {
@@ -23,6 +23,8 @@ export interface BotCellView {
   readonly membraneRatioBonus: number;
   /** The giant's species the shared predicate reads on the predator side; null for every other cell. */
   readonly giantSpecies: GiantSpecies | null;
+  /** The stage the shared predicate reads against the swallow switch (docs/game-design/early-life.md §15.5.1). */
+  readonly stage: CellStage;
 }
 
 /**
@@ -41,7 +43,7 @@ export interface BotMoteView {
 }
 
 /** The predicate's predator side, as `canEngulf` declares it. */
-export type EngulfPredatorView = Pick<BotCellView, 'mass' | 'giantSpecies'>;
+export type EngulfPredatorView = Pick<BotCellView, 'mass' | 'giantSpecies' | 'stage'>;
 /** The predicate's prey side, as `canEngulf` declares it. */
 export type EngulfPreyView = Pick<BotCellView, 'mass' | 'membraneRatioBonus'>;
 
