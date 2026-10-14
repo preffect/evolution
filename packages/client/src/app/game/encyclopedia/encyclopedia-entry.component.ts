@@ -49,10 +49,10 @@ import {
   ownedTierOf,
   replayLabelFor,
   tierSwitchFor,
-  tierTableFor,
   type EncyclopediaTierSegment,
   type EncyclopediaTierSwitch,
 } from './format/entry-view';
+import { tierTableFor } from './format/tier-table';
 import type { ResolvedEntry } from './model/entry';
 import { ENTRY_SUBJECT, type EntryId } from './model/entry-id';
 import { ENTRY_GROUP_LABEL } from './model/groups';

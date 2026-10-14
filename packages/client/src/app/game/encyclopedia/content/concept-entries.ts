@@ -53,7 +53,7 @@ export const CONCEPT_ENTRY_CONTENT: Readonly<Record<ConceptId, WrittenEntryConte
         { id: FACT_FORMULA.radiusAtMass, argument: { mass: BALANCE_MASS.max } },
       ),
       balanceFact(
-        { key: 'overflowDna', label: 'DNA per mass gained at the largest mass', unit: QUANTITY_UNIT.dna },
+        { key: 'overflowDna', label: 'DNA per mass past the largest mass', unit: QUANTITY_UNIT.dna },
         balancePath('growth', 'MASS_OVERFLOW_DNA_PER_MASS'),
       ),
     ],

@@ -200,6 +200,10 @@ export interface ResolvedFact {
   readonly text: string;
   /** Set for a link-valued fact (`Offered from`, `Climbs to`, `Found in`), `null` otherwise. */
   readonly link: EntryLink | null;
+  /** A tier fact's effect on its owner, which tones it (#453); absent on every other fact. */
+  readonly effect?: ModifierEffect;
+  /** A tier fact's value split for the Effects by tier table (#858): `{ figure: '+0.3', unit: 'mass / s' }`. */
+  readonly parts?: QuantityParts;
 }
 
 /** `entriesIn(category)`: the category's groups in walk order, each with its entries; one `null` group when ungrouped. */
@@ -347,7 +351,8 @@ name: NumberOrTableKey<D>, ...keys)`), so a renamed constant fails `typecheck` a
 - **Trait tier facts are generated, not declared.** A trait's `tier_<n>` section holds one `ResolvedFact` per
   modifier that tier sets away from identity (`nonIdentityModifiers(balance.traits.TRAIT_TIERS[traitId][n − 1],
 balance.traits.DEFAULT_CELL_MODIFIERS)`), keyed by the modifier key, labelled `MODIFIER_LABELS[key].noun` and
-  valued `MODIFIER_LABELS[key].formatValue(value)` (`quantities/modifier-labels.ts`, the trait cards' one label table,
+  valued `formatModifierValue(key, value)` and split by `formatModifierParts(key, value)` into the figure and unit the
+  tier table shows apart (`ui/encyclopedia.md §11.4`, #858) (`quantities/modifier-labels.ts`, the trait cards' one label table,
   `ui/overlays.md §3.2`), so a card and its encyclopedia page can never read differently and #354 can lay the tiers
   out as rows by modifier (a key missing from a tier is that tier at identity). Its heading is generated too:
   `formatQuantity(n, QUANTITY_UNIT.tier)` → `Tier II`, never written in content.
@@ -550,15 +555,29 @@ export interface FormatOptions {
   readonly rounding?: QuantityRounding; // the unit's own when absent
 }
 export function formatQuantity(value: number, unit: QuantityUnit, options?: FormatOptions): string;
+/** A quantity split for a table that writes the unit once (#858): the signed figure, and the unit's header form. */
+export interface QuantityParts {
+  readonly figure: string; // `+0.3`, `−15`, `0.62`
+  readonly unit: string; // `mass / s`, `%`, `radii`: the plural suffix, else the prefix, else empty
+}
+export function formatQuantityParts(value: number, unit: QuantityUnit, options?: FormatOptions): QuantityParts;
 
 // quantities/modifier-labels.ts — moved from hud/format/trait-effects.ts; hud/ and encyclopedia/ both import it
+export interface ModifierQuantity {
+  readonly unit: QuantityUnit;
+  readonly presentation: QuantityPresentation;
+}
 export interface ModifierLabel {
   readonly noun: string; // the effect's name alone: `speed`, `sprint cooldown`; the encyclopedia fact's label
-  readonly formatValue: (value: number) => string; // `+15 %`, `−0.5 s`, through `formatQuantity`; the fact's text
+  readonly quantity: ModifierQuantity; // how the value reads: `+15 %`, `−0.5 s`, through `formatQuantity`
   readonly formatLine?: (value: number) => string; // the card line where it is a sentence: `Toxin reaches 1.5 radii`
 }
 export const MODIFIER_LABELS: Readonly<Record<keyof CellModifiers, ModifierLabel>>;
-/** The card line: `formatLine`, else `${formatValue(value)} ${noun}` (`+15 % speed`). */
+/** The value beside its noun, `+15 %`: the fact's text. */
+export function formatModifierValue(key: keyof CellModifiers, value: number): string;
+/** The value split for the tier table: `{ figure: '+15', unit: '%' }` (#858). */
+export function formatModifierParts(key: keyof CellModifiers, value: number): QuantityParts;
+/** The card line: `formatLine`, else `${formatModifierValue(key, value)} ${noun}` (`+15 % speed`). */
 export function modifierLine(key: keyof CellModifiers, value: number): string;
 export function nonIdentityModifiers(
   tierRow: TraitTierModifiers,

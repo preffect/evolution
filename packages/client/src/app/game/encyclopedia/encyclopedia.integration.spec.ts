@@ -16,6 +16,7 @@ import {
   type ServerMessage,
 } from '@evolution/shared';
 import { FakeWebSocket } from '../../../testing/fake-websocket';
+import { unbroken } from '../../../testing/unbroken-quantity';
 import { IdentityService } from '../../services/identity.service';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { WebSocketService } from '../../services/websocket.service';
@@ -88,7 +89,7 @@ describe('the encyclopedia over a room', () => {
     expect(service.context().balance).toBe(DEFAULT_BALANCE);
     const entries = resolveAll(service);
     expect(entries.size).toBe(ENCYCLOPEDIA_ENTRIES.length);
-    expect(text(entries, 'dna_tag:photic', 'weightPerPoint')).toEqual(['+10 %']);
+    expect(text(entries, 'dna_tag:photic', 'weightPerPoint')).toEqual([unbroken('+10 %')]);
   });
 
   it('resolves every entry over the room’s balance and follows a balance_updated patch', () => {
@@ -96,13 +97,13 @@ describe('the encyclopedia over a room', () => {
     expect(service.context().balance).not.toBe(DEFAULT_BALANCE);
     const joined = resolveAll(service);
     expect(joined.size).toBe(ENCYCLOPEDIA_ENTRIES.length);
-    expect(text(joined, 'dna_tag:photic', 'weightPerPoint')).toEqual(['+10 %']);
-    expect(text(joined, 'trait:cilia', 'speedMultiplier', 'tier_1')).toEqual(['+10 %']);
+    expect(text(joined, 'dna_tag:photic', 'weightPerPoint')).toEqual([unbroken('+10 %')]);
+    expect(text(joined, 'trait:cilia', 'speedMultiplier', 'tier_1')).toEqual([unbroken('+10 %')]);
 
     receive({ type: SERVER_MESSAGE_TYPE.balanceUpdated, balance: retunedBalance() });
     const patched = resolveAll(service);
     expect(patched.size).toBe(ENCYCLOPEDIA_ENTRIES.length);
-    expect(text(patched, 'dna_tag:photic', 'weightPerPoint')).toEqual(['+30 %']);
-    expect(text(patched, 'trait:cilia', 'speedMultiplier', 'tier_1')).toEqual(['+40 %']);
+    expect(text(patched, 'dna_tag:photic', 'weightPerPoint')).toEqual([unbroken('+30 %')]);
+    expect(text(patched, 'trait:cilia', 'speedMultiplier', 'tier_1')).toEqual([unbroken('+40 %')]);
   });
 });

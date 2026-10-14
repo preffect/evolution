@@ -20,6 +20,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { OwnCellStatusComponent } from './own-cell-status.component';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from './hud-constants';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const NOTHING_EATEN: Record<BacteriumVariant, number> = { plain: 0, aerobic: 0, photosynthetic: 0 };
@@ -129,7 +130,7 @@ describe('OwnCellStatusComponent', () => {
 
     show({}, { level: 1, dnaTowardNextLevel: dnaFor(lowPercent) });
     const spoken = mirror()?.textContent?.trim();
-    expect(spoken).toContain(`DNA ${lowPercent} %`);
+    expect(spoken).toContain(`DNA ${unbroken(`${lowPercent} %`)}`);
 
     show({}, { level: 1, dnaTowardNextLevel: dnaFor(highPercent) });
     // The attribute moves every snapshot; the sentence must not, because both percents are in the
@@ -140,9 +141,9 @@ describe('OwnCellStatusComponent', () => {
 
   it('rewrites its sentence when the level changes, which is worth hearing', () => {
     show({}, { level: 1 });
-    expect(mirror()?.textContent).toContain('Level 1');
+    expect(mirror()?.textContent).toContain(unbroken('Level 1'));
     show({}, { level: 2, dnaTowardNextLevel: levelUpCost(2, DEFAULT_BALANCE.progression) / 2 });
-    expect(mirror()?.textContent).toContain('Level 2');
+    expect(mirror()?.textContent).toContain(unbroken('Level 2'));
   });
 
   it('stands down while spectating: there is no own cell to speak for', () => {
