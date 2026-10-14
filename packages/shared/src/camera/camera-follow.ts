@@ -88,11 +88,19 @@ function smoothingFactor(deltaSeconds: number, tau: number): number {
   return 1 - Math.exp(-Math.max(0, deltaSeconds) / tau);
 }
 
-/** One step of follow and zoom toward `target`; with no target the camera holds. */
-export function stepCamera(state: CameraState, target: CameraTarget | null, deltaSeconds: number): CameraState {
+/**
+ * One step of follow and zoom toward `target`; with no target the camera holds. `zoomSeconds` is the zoom's smoothing
+ * time constant: `CAMERA_ZOOM_SECONDS`, or the move's ease (`moveCameraZoomSecondsAt`, era-move-camera.ts).
+ */
+export function stepCamera(
+  state: CameraState,
+  target: CameraTarget | null,
+  deltaSeconds: number,
+  zoomSeconds: number = CAMERA_ZOOM_SECONDS,
+): CameraState {
   if (target === null) return state;
   const follow = smoothingFactor(deltaSeconds, CAMERA_FOLLOW_SECONDS);
-  const zoom = smoothingFactor(deltaSeconds, CAMERA_ZOOM_SECONDS);
+  const zoom = smoothingFactor(deltaSeconds, zoomSeconds);
   const centre = clampToDish(state.x + (target.x - state.x) * follow, state.y + (target.y - state.y) * follow);
   const wanted = viewHalfHeightFor(target.radius);
   return { ...centre, viewHalfHeightWu: state.viewHalfHeightWu + (wanted - state.viewHalfHeightWu) * zoom };

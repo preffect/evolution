@@ -11,6 +11,7 @@ import {
   eraAt,
   eraBalanceProblems,
   eraStartTicks,
+  eraStartedAtTick,
   isEraAfter,
   isEraReachable,
   type EraClockBalance,
@@ -21,10 +22,14 @@ import { worldElapsedSeconds } from './world-clock.js';
 const DISH_ONLY_ROUND_SECONDS = 600;
 const POOL_ON_ROUND_SECONDS = 1020;
 const COLONIES_ON_ROUND_SECONDS = 1500;
-/** The pool's first tick after a round start at 0 (§14.2.1), and PH19's jump at tick 600 to the pool (§14.2.4). */
+/**
+ * The pool's first tick after a round start at 0 (§14.2.1), and PH19's jump at tick 600 to the pool (§14.2.4): the next
+ * step, 601, is the pool's first tick, so the round start is 601 − 36 000.
+ */
 const POOL_FIRST_TICK = 36_000;
 const PH19_JUMP_TICK = 600;
-const PH19_ROUND_START_TICK = -35_400;
+const PH19_MOVE_TICK = PH19_JUMP_TICK + 1;
+const PH19_ROUND_START_TICK = -35_399;
 const A_TICK_IN_SECONDS = ticksToSeconds(1);
 /** A start on a whole tick whose `ticks × (1 / TICK_HZ)` reads a hair under `ticks / TICK_HZ` (600.3166… s). */
 const FLOAT_SHY_POOL_START_TICK = 36_019;
@@ -84,9 +89,25 @@ describe('eraAt over the round clock’s ticks', () => {
   });
 
   it('reads a negative roundStartTick like any other (PH19: a jump at tick 600 to the pool)', () => {
-    expect(PH19_JUMP_TICK - POOL_FIRST_TICK).toBe(PH19_ROUND_START_TICK);
-    expect(eraAtTick(PH19_JUMP_TICK - 1, PH19_ROUND_START_TICK)).toBe(GAME_ERA.dish);
-    expect(eraAtTick(PH19_JUMP_TICK, PH19_ROUND_START_TICK)).toBe(GAME_ERA.pool);
+    expect(PH19_MOVE_TICK - POOL_FIRST_TICK).toBe(PH19_ROUND_START_TICK);
+    expect(eraAtTick(PH19_JUMP_TICK, PH19_ROUND_START_TICK)).toBe(GAME_ERA.dish);
+    expect(eraAtTick(PH19_MOVE_TICK, PH19_ROUND_START_TICK)).toBe(GAME_ERA.pool);
+  });
+});
+
+describe('eraStartedAtTick', () => {
+  it('is the round start plus the era’s start ticks: tick 36 000 for the pool of a round started at 0', () => {
+    expect(eraStartedAtTick(GAME_ERA.dish, 0, DEFAULT_BALANCE)).toBe(0);
+    expect(eraStartedAtTick(GAME_ERA.pool, 0, DEFAULT_BALANCE)).toBe(POOL_FIRST_TICK);
+  });
+
+  it('is the jump’s first tick after a debug_set_era jump (PH19: tick 601 after the jump at 600)', () => {
+    expect(eraStartedAtTick(GAME_ERA.pool, PH19_ROUND_START_TICK, DEFAULT_BALANCE)).toBe(PH19_MOVE_TICK);
+  });
+
+  it('reads a patched start', () => {
+    const balance = withStarts({ [GAME_ERA.pool]: 60 });
+    expect(eraStartedAtTick(GAME_ERA.pool, PH19_JUMP_TICK, balance)).toBe(PH19_JUMP_TICK + 60 * TICK_HZ);
   });
 });
 

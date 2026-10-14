@@ -5,6 +5,8 @@ import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   FOOD_KIND,
+  GAME_ERA,
+  GAME_ERA_ORDER,
   GIANT_SPECIES,
   MASS_WINDOW_AMOUNT,
   StateHashError,
@@ -25,15 +27,15 @@ import {
   DNA_FRAGMENT_HASHED_FIELDS,
   FOOD_MOTE_HASHED_FIELDS,
   GEL_PATCH_HASHED_FIELDS,
-  GIANT_SEAT_HASHED_FIELDS,
   LATCHED_BACTERIUM_FIELDS,
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
   TRAILING_CELL_HASHED_FIELDS,
-  WILD_SEAT_HASHED_FIELDS,
+  TRAILING_WORLD_HASHED_FIELDS,
   WORLD_SCALAR_HASHED_FIELDS,
   computeStateHash,
 } from './state-hash.js';
+import { GIANT_SEAT_HASHED_FIELDS, WILD_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 
 const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'Bea', avatarIndex: 1 };
 /** Where on the rim the held bacterium sits; any bearing does. */
@@ -71,14 +73,15 @@ function worldHoldingTheMote(holderIndex: number | null): WorldState {
 
 /**
  * `computeStateHash(populatedWorld())` recorded on main (4fe77f46) before ticket #907 added the held lists. It must not
- * move while no cell holds a bacterium: the held lists are walked last and only when one is non-empty
- * (`hashLatchedBacteriaOfCells`), so recordings exported before them keep their `finalHash`. A deliberate change to the
- * walk or to the test world re-records it, and says so here.
+ * move while no cell holds a bacterium and the world is in the dish: the held lists, then the era moved into, are walked
+ * last and only when they leave their defaults (`hashLatchedBacteriaOfCells`, `hashEraMovedInto`, #931), so recordings
+ * exported before them keep their `finalHash`. A deliberate change to the walk or to the test world re-records it, and
+ * says so here.
  */
 const RECORDED_POPULATED_WORLD_HASH = 'bf921363406e995f';
 
 describe('computeStateHash', () => {
-  it('hashes a world whose cells hold nothing exactly as main did before the held lists existed (#907)', () => {
+  it('hashes a world in the dish whose cells hold nothing exactly as main did before the held lists and the eras', () => {
     expect(computeStateHash(populatedWorld())).toBe(RECORDED_POPULATED_WORLD_HASH);
   });
 
@@ -132,6 +135,31 @@ describe('computeStateHash', () => {
     const changed = populatedWorld();
     mutate(changed);
     expect(computeStateHash(changed)).not.toBe(base);
+  });
+
+  it('tells every era moved into apart, and from a world that never left the dish (#931)', () => {
+    const hashes = GAME_ERA_ORDER.map((era) => {
+      const world = populatedWorld();
+      world.eraMovedInto = era;
+      return computeStateHash(world);
+    });
+    expect(hashes[0]).toBe(RECORDED_POPULATED_WORLD_HASH);
+    expect(new Set(hashes).size).toBe(GAME_ERA_ORDER.length);
+  });
+
+  it('walks exactly the era moved into after the held lists: a world field added there needs its own test here', () => {
+    expect(TRAILING_WORLD_HASHED_FIELDS).toEqual(['eraMovedInto']);
+  });
+
+  it('tells the two trailing sections apart: held lists, an era, both or neither', () => {
+    const hashes = [null, FIRST_CELL].flatMap((holderIndex) =>
+      [GAME_ERA.dish, GAME_ERA.pool].map((era) => {
+        const world = worldHoldingTheMote(holderIndex);
+        world.eraMovedInto = era;
+        return computeStateHash(world);
+      }),
+    );
+    expect(new Set(hashes).size).toBe(hashes.length);
   });
 
   it('changes when a cell holds the mote that nobody holds in an otherwise equal world', () => {
@@ -193,8 +221,10 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
     ];
     const expected = Object.keys(world)
       .filter((key) => !nested.includes(key) && !(DERIVED_FIELDS.world as readonly string[]).includes(key))
+      .filter((key) => !(TRAILING_WORLD_HASHED_FIELDS as readonly string[]).includes(key))
       .sort();
     expect(keysOf(WORLD_SCALAR_HASHED_FIELDS)).toEqual(expected);
+    expect(Object.keys(world)).toEqual(expect.arrayContaining([...TRAILING_WORLD_HASHED_FIELDS]));
   });
 
   it('cells: with the cell, or in the trailing section', () => {

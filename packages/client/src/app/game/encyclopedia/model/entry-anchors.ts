@@ -8,6 +8,8 @@ import type { EntryAnchor, EntryId } from './entry-id';
 
 /** The eating page: an `eat`, and the latch's moments, which are a way of taking a bacterium in. */
 const EATING_ENTRY: EntryId = 'action:eat';
+/** The world clock's page: the clock's level-ups, and the eras it opens. */
+const WORLD_CLOCK_ENTRY: EntryId = 'world:world_clock';
 
 export const ENTRY_BY_EFFECT: Readonly<Record<EffectKind, EntryId>> = {
   [EFFECT_KIND.eat]: EATING_ENTRY,
@@ -15,11 +17,14 @@ export const ENTRY_BY_EFFECT: Readonly<Record<EffectKind, EntryId>> = {
   [EFFECT_KIND.cellReleased]: 'action:escape',
   [EFFECT_KIND.levelUp]: 'action:level_up',
   [EFFECT_KIND.respawn]: 'action:respawn',
-  [EFFECT_KIND.worldLevelUp]: 'world:world_clock',
+  [EFFECT_KIND.worldLevelUp]: WORLD_CLOCK_ENTRY,
   // The latch's moments open the eating page until the latch has its own (docs/game-design/early-life.md §15.9.4).
   [EFFECT_KIND.bacteriumLatched]: EATING_ENTRY,
   [EFFECT_KIND.bacteriumBonded]: EATING_ENTRY,
   [EFFECT_KIND.latchShaken]: EATING_ENTRY,
+  // The eras open on the world clock (docs/game-design/phases.md §14.2.2): its page until the pool has its own.
+  [EFFECT_KIND.eraWarning]: WORLD_CLOCK_ENTRY,
+  [EFFECT_KIND.eraMoved]: WORLD_CLOCK_ENTRY,
 };
 
 export const ENTRY_BY_WORLD_STANDING: Readonly<Record<WorldStanding, EntryAnchor>> = {
