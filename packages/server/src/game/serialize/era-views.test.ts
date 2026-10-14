@@ -3,16 +3,20 @@
 // ride while the world has them; each is a copy, written exact.
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   GAME_ERA,
+  POOL_CREATURE_SPECIES,
   createTestCopepodLane,
   createTestPoolLayout,
   createTestSurge,
   eraWarningStartedAtTick,
 } from '@evolution/shared';
+import { seatTestPoolCreature } from '../../testing/wild-builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import type { WorldState } from '../world/world-state.js';
 import { isPoolLayoutOnTheWire, serializeEraMembers } from './era-views.js';
-import { serializeBroadcastSnapshot, serializeFullSnapshot } from './serialize.js';
+import { EXACT_SNAPSHOT_VALUES } from './quantize.js';
+import { serializeBroadcastSnapshot, serializeFullSnapshot, toCellView } from './serialize.js';
 
 /** A world holding a drawn layout, on `tick` of a round that started on `roundStartTick`. */
 function worldWithLayoutOn(tick: number, roundStartTick = 0): WorldState {
@@ -89,5 +93,26 @@ describe('the eras’ members on the snapshots', () => {
     const world = createTestWorld();
     const snapshot = serializeFullSnapshot(world);
     expect([snapshot.poolLayout, snapshot.surge, snapshot.copepodLane]).toEqual([null, null, null]);
+  });
+});
+
+describe('a pool creature’s view on its cell (phases.md §14.6)', () => {
+  it('is null for every other cell; a creature’s is a copy, its heading at the bearing decimals on the wire', () => {
+    const world = createTestWorld();
+    expect(toCellView(world.cells[0]!).poolCreature).toBeNull();
+    const { cell } = seatTestPoolCreature(world, {
+      species: POOL_CREATURE_SPECIES.nematode,
+      at: { x: 0, y: 0 },
+      mass: DEFAULT_BALANCE.poolCreatures.ROTIFER_MASS,
+      headingRadians: 1.23456,
+    });
+    const view = toCellView(cell);
+    expect(view.poolCreature).toEqual({
+      species: POOL_CREATURE_SPECIES.nematode,
+      isLandmark: false,
+      headingRadians: 1.23,
+    });
+    expect(view.poolCreature).not.toBe(cell.poolCreature);
+    expect(toCellView(cell, EXACT_SNAPSHOT_VALUES).poolCreature!.headingRadians).toBe(1.23456);
   });
 });

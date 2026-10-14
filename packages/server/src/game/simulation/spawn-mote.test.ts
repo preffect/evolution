@@ -24,6 +24,17 @@ describe('foodKindStats', () => {
       tag: null,
     });
   });
+
+  it('pays a green speck as an alga at the pool’s speck mass, read live (phases.md §14.5.2)', () => {
+    expect(foodKindStats(FOOD_KIND.greenSpeck, null, DEFAULT_BALANCE)).toEqual({
+      mass: DEFAULT_BALANCE.pool.POOL_GREEN_SPECK_MASS,
+      dna: ecology.ALGAE_DNA,
+      tag: ecology.ALGAE_TAG,
+    });
+    const heavier = structuredClone(DEFAULT_BALANCE);
+    heavier.pool.POOL_GREEN_SPECK_MASS = 7;
+    expect(foodKindStats(FOOD_KIND.greenSpeck, null, heavier).mass).toBe(7);
+  });
 });
 
 describe('spawnFoodMote', () => {

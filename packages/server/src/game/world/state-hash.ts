@@ -4,7 +4,8 @@
 // (`TRAILING_CELL_HASHED_FIELDS`), then the eras' section (`era-hashed-section.ts`). The derived fields are
 // excluded and named here so a debug-only field can never move the hash:
 // `leaderboard` (a function of the players), `effects` and `massFlow` (transient), `balance` and `config`
-// (replay inputs), `CellRecord.modifiers` (folded at step 1), `CellRecord.heldDisplacementX/Y` (transient: cleared at
+// (replay inputs), `CellRecord.modifiers` (folded at step 1), `CellRecord.isStarving` and `CellRecord.poolCreature`
+// (mirrors of their seats, which are hashed), `CellRecord.heldDisplacementX/Y` (transient: cleared at
 // step 6 and read only by the serializer, #774), `PlayerRecord.score` (step 10),
 // `PlayerRecord.stage` (`stageOf` the hashed `ownedTraits`) and `PlayerRecord.offer` (the shown offer
 // mirror of `offerQueue[0]`).
@@ -46,7 +47,7 @@ import type { WorldState } from './world-state.js';
 /** The record fields the walk leaves out, by record, for the pin test. */
 export const DERIVED_FIELDS = {
   world: ['config', 'balance', 'leaderboard', 'effects', 'massFlow'],
-  cell: ['modifiers', 'isStarving', 'heldDisplacementX', 'heldDisplacementY'],
+  cell: ['modifiers', 'isStarving', 'poolCreature', 'heldDisplacementX', 'heldDisplacementY'],
   player: ['score', 'stage', 'offer'],
 } as const;
 

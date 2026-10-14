@@ -37,7 +37,7 @@ import type {
 import { findPlayer } from '../world/lookups.js';
 import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
-import { serializeEraMembers } from './era-views.js';
+import { serializeEraMembers, toPoolCreatureView } from './era-views.js';
 import { toEffectView, toMassFlowView } from './mass-flow-view.js';
 import { WIRE_SNAPSHOT_VALUES, quantizeToDecimals, snapshotValue, type SnapshotPrecision } from './quantize.js';
 import type { BroadcastSnapshot } from './viewer-snapshot-keys.js';
@@ -97,6 +97,7 @@ export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE
     sprintCooldownRemainingTicks: cell.sprintCooldownRemainingTicks,
     isStarving: cell.isStarving,
     giantSpecies: cell.giantSpecies,
+    poolCreature: cell.poolCreature === null ? null : toPoolCreatureView(cell.poolCreature, precision),
     latchedBacteria: cell.latchedBacteria.map((entry) => toLatchedBacteriumView(entry, precision)),
   };
 }

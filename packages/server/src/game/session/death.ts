@@ -11,6 +11,8 @@ import {
   RANDOM_STREAM,
   secondsToTicks,
   uniformPointInDiscAround,
+  type CreditlessKillerSpecies,
+  type EntityId,
   type RandomSource,
 } from '@evolution/shared';
 import type { MeasuredGain } from '../simulation/cell-mass.js';
@@ -101,9 +103,14 @@ export function dissolveCell(
  */
 const SPECTATED_DEATH_TICK = 1;
 
-function startSpectating(world: WorldState, player: PlayerRecord, killer: CellRecord, kept: number): void {
+function startSpectating(
+  world: WorldState,
+  player: PlayerRecord,
+  spectatingCellId: EntityId | null,
+  kept: number,
+): void {
   player.lifeState = PLAYER_LIFE_STATE.spectating;
-  player.spectatingCellId = killer.id;
+  player.spectatingCellId = spectatingCellId;
   player.respawnInTicks = secondsToTicks(world.balance.session.RESPAWN_SPECTATE_SECONDS) + SPECTATED_DEATH_TICK;
   player.dnaTowardNextLevel *= kept;
 }
@@ -141,6 +148,40 @@ export function absorbCell(world: WorldState, context: StepContext, absorption: 
   dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
   if (isPlayerCell(prey)) {
     const player = requirePlayer(world, prey.playerId);
-    startSpectating(world, player, predator, prey.modifiers.dnaKeptOnDeathFraction);
+    startSpectating(world, player, predator.id, prey.modifiers.dnaKeptOnDeathFraction);
+  }
+}
+
+/** A death to a creature with no killer cell (docs/game-design/phases.md §14.6.4): who died, and to what. */
+export interface CreditlessKill {
+  readonly victim: CellRecord;
+  readonly species: CreditlessKillerSpecies;
+  /** The swallowing rotifer's cell, which a player victim spectates; null for the copepod, which has no cell. */
+  readonly killerCell: CellRecord | null;
+}
+
+/**
+ * The victim side of a rotifer's swallow or the copepod's pass (docs/game-design/phases.md §14.6.4): the cell is eaten
+ * whole, so it leaves without detritus, its engulfs aborted, and no one is credited (no absorption, no mass, no DNA,
+ * no leaderboard change). The `eaten_by_creature` effect names the creature for the respawn line. A player victim
+ * spectates the rotifer's cell, or nothing for the copepod (the camera holds where the cell died), keeping
+ * `dnaKeptOnDeathFraction` of its progress as after any death.
+ */
+export function killWithoutCredit(world: WorldState, context: StepContext, kill: CreditlessKill): void {
+  const { victim, species, killerCell } = kill;
+  context.effects.push({
+    kind: EFFECT_KIND.eatenByCreature,
+    tick: world.tick,
+    x: victim.x,
+    y: victim.y,
+    cellId: victim.id,
+    playerId: victim.playerId,
+    species,
+    killerCellId: killerCell?.id ?? null,
+  });
+  withdrawCell(world, victim);
+  if (isPlayerCell(victim)) {
+    const player = requirePlayer(world, victim.playerId);
+    startSpectating(world, player, killerCell?.id ?? null, victim.modifiers.dnaKeptOnDeathFraction);
   }
 }

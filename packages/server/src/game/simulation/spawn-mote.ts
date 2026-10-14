@@ -36,6 +36,12 @@ export function foodKindStats(kind: FoodKind, variant: BacteriumVariant | null, 
       tag: variant === null ? null : ecology.BACTERIUM_TAG_BY_VARIANT[variant],
     },
     [FOOD_KIND.detritus]: { mass: ecology.DETRITUS_MOTE_MASS, dna: 0, tag: null },
+    // A green speck is a green alga (Dunaliella, docs/game-design/phases.md §14.5.2): an alga's pay at its own mass.
+    [FOOD_KIND.greenSpeck]: {
+      mass: balance.pool.POOL_GREEN_SPECK_MASS,
+      dna: ecology.ALGAE_DNA,
+      tag: ecology.ALGAE_TAG,
+    },
   };
   return byKind[kind];
 }

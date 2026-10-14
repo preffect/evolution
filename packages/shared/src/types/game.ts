@@ -6,6 +6,7 @@
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
 import type { TRAIT_CATALOG } from '../constants/traits.js';
+import type { PoolCreatureView } from './pool.js';
 
 // ===== Ids and kinds =====
 
@@ -20,8 +21,13 @@ export type RoundEndCondition = ValueOf<typeof ROUND_END_CONDITION>;
 export const ROUND_PHASE = { playing: 'playing', results: 'results' } as const;
 export type RoundPhase = ValueOf<typeof ROUND_PHASE>;
 
-/** docs/ecology/food-and-spawn.md §1. */
-export const FOOD_KIND = { algae: 'algae', bacterium: 'bacterium', detritus: 'detritus' } as const;
+/** docs/ecology/food-and-spawn.md §1; `green_speck` is the rock pool's (docs/game-design/phases.md §14.5.2). */
+export const FOOD_KIND = {
+  algae: 'algae',
+  bacterium: 'bacterium',
+  detritus: 'detritus',
+  greenSpeck: 'green_speck',
+} as const;
 export type FoodKind = ValueOf<typeof FOOD_KIND>;
 
 /** The endosymbiosis hook (docs/ecology/food-and-spawn.md §1); `BACTERIUM_VARIANTS` (constants/ecology.ts) fixes the walk order. */
@@ -160,6 +166,8 @@ export interface CellView {
   isStarving: boolean;
   /** The giant's species (docs/ecology/giants.md §3.5.15); null for a player cell and a plain wild cell. */
   giantSpecies: GiantSpecies | null;
+  /** The pool creature's species and body (docs/game-design/phases.md §14.6); null for every other cell. */
+  poolCreature: PoolCreatureView | null;
   /**
    * The bacteria this cell holds on its rim (docs/game-design/early-life.md §15.4, §15.11), in catch order, at most
    * `LATCH_MAX_HELD`; empty for every cell that does not latch. Every field is stable while held, so the list changes

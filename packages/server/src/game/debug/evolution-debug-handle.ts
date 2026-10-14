@@ -3,20 +3,12 @@
 // go through debug-operations.ts and are recorded in the replay; a reseed closes the recording;
 // the bot pair adds and removes a player the module's own roster drives (docs/testing/bots-and-design-tables.md §8.3).
 
-import {
-  ENTITY_KIND,
-  type BalanceConfig,
-  type EntityKind,
-  type GameEra,
-  type GameInput,
-  type PlayerId,
-  type StateHash,
-} from '@evolution/shared';
+import type { BalanceConfig, GameEra, GameInput, PlayerId, StateHash } from '@evolution/shared';
+import { listDebugEntities, type DebugEntity } from './debug-entities.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type {
   BalancePatch,
   BotSpawnRequest,
-  BoundingBox,
   DnaGrant,
   EntityFilter,
   PlayerPatch,
@@ -29,7 +21,7 @@ import type { CellRecord, EngulfReleaseRecord, SpitOutRefractoryRecord } from '.
 import { REPLAY_ORIGIN } from '../replay/replay-format.js';
 import type { ReplayRecorder } from '../replay/replay-recorder.js';
 import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
-import { toCellView, toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
+import { toCellView, toPlayerProgressView } from '../serialize/serialize.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
 import { computeStateHash } from '../world/state-hash.js';
 import type { InputRejectionCounters, WorldState } from '../world/world-state.js';
@@ -48,15 +40,6 @@ export interface EvolutionDebugHandleDependencies {
   readonly bots: InProcessBotRoster<GameInput, WorldState>;
   readonly membership: ModuleMembership;
 }
-
-/** A view tagged with its entity kind (a mote's own `kind` is its food kind), what `debug_get_entities` lists. */
-export interface DebugEntity {
-  readonly entityKind: EntityKind;
-  readonly x: number;
-  readonly y: number;
-}
-
-const ENTITY_KINDS: readonly EntityKind[] = Object.values(ENTITY_KIND);
 
 /** What `debug_get_player_progress` reports of a cell's engulf record (docs/architecture/debug-mcp.md §8). */
 export interface EngulfDebugState {
@@ -86,44 +69,12 @@ function engulfDebugStateOf(cell: CellRecord): EngulfDebugState {
   };
 }
 
-function isInside(entity: DebugEntity, bbox: BoundingBox | undefined): boolean {
-  if (bbox === undefined) {
-    return true;
-  }
-  return entity.x >= bbox.minX && entity.x <= bbox.maxX && entity.y >= bbox.minY && entity.y <= bbox.maxY;
-}
-
-function requireEntityKind(kind: string | undefined): EntityKind | undefined {
-  if (kind === undefined) {
-    return undefined;
-  }
-  if (!ENTITY_KINDS.includes(kind as EntityKind)) {
-    throw new DebugRequestError(`"${kind}" is not an entity kind (${ENTITY_KINDS.join(', ')})`);
-  }
-  return kind as EntityKind;
-}
-
 export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
   constructor(private readonly dependencies: EvolutionDebugHandleDependencies) {}
 
   /** Exact values, not the wire's rounding (docs/architecture/debug-mcp.md §8): the bbox tests exact positions. */
   listEntities(filter: EntityFilter): readonly DebugEntity[] {
-    const kind = requireEntityKind(filter.kind);
-    const { world } = this.dependencies;
-    const entities: DebugEntity[] = [
-      ...world.cells.map((cell) => ({ entityKind: ENTITY_KIND.cell, ...toCellView(cell, EXACT_SNAPSHOT_VALUES) })),
-      ...world.food.map((mote) => ({
-        entityKind: ENTITY_KIND.foodMote,
-        ...toFoodMoteView(mote, EXACT_SNAPSHOT_VALUES),
-      })),
-      ...world.dnaFragments.map((fragment) => ({
-        entityKind: ENTITY_KIND.dnaFragment,
-        ...toDnaFragmentView(fragment, EXACT_SNAPSHOT_VALUES),
-      })),
-    ];
-    return entities.filter(
-      (entity) => (kind === undefined || entity.entityKind === kind) && isInside(entity, filter.bbox),
-    );
+    return listDebugEntities(this.dependencies.world, filter);
   }
 
   getPlayerDebugState(playerId: PlayerId): unknown {

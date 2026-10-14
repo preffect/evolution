@@ -5,7 +5,7 @@
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
 import type { BacteriumVariant, CellStage, EntityKind, GameEra, GiantSpecies } from './game.js';
-import type { CopepodLaneView, SurgeView } from './pool.js';
+import type { CopepodLaneView, CreditlessKillerSpecies, SurgeView } from './pool.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
@@ -21,6 +21,7 @@ export const EFFECT_KIND = {
   eraMoved: 'era_moved',
   surgeWarning: 'surge_warning',
   copepodWarning: 'copepod_warning',
+  eatenByCreature: 'eaten_by_creature',
 } as const;
 export type EffectKind = (typeof EFFECT_KIND)[keyof typeof EFFECT_KIND];
 
@@ -178,6 +179,21 @@ export interface CopepodWarningEffect extends EffectMoment, CopepodLaneView {
   kind: typeof EFFECT_KIND.copepodWarning;
 }
 
+/**
+ * A cell died to a creature with no killer cell (docs/game-design/phases.md §14.6.4): a rotifer's swallow or the
+ * copepod's pass. No one is credited, so there is no `cell_absorbed`. `killerCellId` is the rotifer's cell, which a
+ * player victim spectates; null for the copepod, whose victim's camera holds where it died. The respawn line names
+ * `species` (docs/ui/overlays.md §3.3). Placed at the victim's centre.
+ */
+export interface EatenByCreatureEffect extends EffectBase {
+  kind: typeof EFFECT_KIND.eatenByCreature;
+  cellId: EntityId;
+  /** The victim's player; null for a wild victim. */
+  playerId: PlayerId | null;
+  species: CreditlessKillerSpecies;
+  killerCellId: EntityId | null;
+}
+
 export type GameEffect =
   | CellAbsorbedEffect
   | CellReleasedEffect
@@ -191,4 +207,5 @@ export type GameEffect =
   | EraWarningEffect
   | EraMovedEffect
   | SurgeWarningEffect
-  | CopepodWarningEffect;
+  | CopepodWarningEffect
+  | EatenByCreatureEffect;

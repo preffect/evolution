@@ -14,6 +14,7 @@ import type {
   GiantSpecies,
   PlayerId,
   PlayerProgressView,
+  PoolCreatureCellSpecies,
   SteerCommand,
   TraitOfferView,
 } from '@evolution/shared';
@@ -151,6 +152,21 @@ export interface WildSeatRecord extends SeatMindRecord {
 export interface GiantSeatRecord extends SeatMindRecord {
   species: GiantSpecies;
   bornMass: number;
+}
+
+/**
+ * A pool creature's seat (docs/game-design/phases.md §14.6, docs/architecture/entity-model.md §2): the whole of a
+ * creature's memory, built the way a giant's is (its own seat list, `WorldState.poolCreatureSeats`, and its own
+ * respawn). `cellId` is null while the seat waits out `respawnInTicks`. Its cell's `poolCreature` view mirrors
+ * `species`, `isLandmark` and `headingRadians` (`mirrorPoolCreatureSeat`), so the seat, hashed in the eras' section, is
+ * the one home of each. The copepod has no seat: its pass is `WorldState.copepodLane`.
+ */
+export interface PoolCreatureSeatRecord {
+  species: PoolCreatureCellSpecies;
+  isLandmark: boolean;
+  cellId: EntityId | null;
+  respawnInTicks: number;
+  headingRadians: number;
 }
 
 export interface TraitOffer extends TraitOfferView {

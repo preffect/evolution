@@ -1,7 +1,7 @@
-// Membership guards for the id objects of game.ts (docs/CODE-STANDARDS.md §3): the one home of
-// "is this value a food kind / bacterium variant / DNA tag / giant species / stage / era list", used wherever an untyped id enters
-// the simulation (a debug request, a balance patch, a scenario fixture). A guard only answers; the caller wraps
-// the refusal in its own error type.
+// Membership guards for the id objects of game.ts and pool.ts (docs/CODE-STANDARDS.md §3): the one home of "is this
+// value a food kind / bacterium variant / DNA tag / giant species / pool creature / stage / era list", used wherever an
+// untyped id enters the simulation (a debug request, a balance patch, a scenario fixture). A guard only answers; the
+// caller wraps the refusal in its own error type.
 
 import {
   BACTERIUM_VARIANT,
@@ -18,6 +18,7 @@ import {
   type GameEra,
   type GiantSpecies,
 } from './game.js';
+import { POOL_CREATURE_SPECIES, type PoolCreatureSpecies } from './pool.js';
 
 const FOOD_KINDS: ReadonlySet<unknown> = new Set(Object.values(FOOD_KIND));
 const BACTERIUM_VARIANT_NAMES: ReadonlySet<unknown> = new Set(Object.values(BACTERIUM_VARIANT));
@@ -25,6 +26,7 @@ const DNA_TAG_NAMES: ReadonlySet<unknown> = new Set(Object.values(DNA_TAG));
 const GIANT_SPECIES_NAMES: ReadonlySet<unknown> = new Set(Object.values(GIANT_SPECIES));
 const CELL_STAGE_NAMES: ReadonlySet<unknown> = new Set(Object.values(CELL_STAGE));
 const GAME_ERA_NAMES: ReadonlySet<unknown> = new Set(Object.values(GAME_ERA));
+const POOL_CREATURE_SPECIES_NAMES: ReadonlySet<unknown> = new Set(Object.values(POOL_CREATURE_SPECIES));
 
 export function isFoodKind(value: unknown): value is FoodKind {
   return FOOD_KINDS.has(value);
@@ -40,6 +42,10 @@ export function isDnaTag(value: unknown): value is DnaTag {
 
 export function isGiantSpecies(value: unknown): value is GiantSpecies {
   return GIANT_SPECIES_NAMES.has(value);
+}
+
+export function isPoolCreatureSpecies(value: unknown): value is PoolCreatureSpecies {
+  return POOL_CREATURE_SPECIES_NAMES.has(value);
 }
 
 /** A stage of the ladder: every `CELL_STAGE` value, which is every member of `STAGE_ORDER` (ladder.test.ts). */
