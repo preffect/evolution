@@ -426,8 +426,16 @@ CUE_GAP_PX)` above the centre, wherever the whole host then fits under the top e
 2. **Below the cell** (`below-cell`) where it does not fit above: its top edge `max(band offset,
 zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, grown from its top edge and sinking
    rather than rising as it fades. Never while the picker is open: the band is there.
-3. **Pinned** where neither fits (the picker open over a big cell): above, as high as the top edge allows and never
-   nearer than the band offset. Only here may it meet the top of a full rate-tag column, which the picker's dim greys.
+3. **Pinned** where neither fits (the picker open over a big cell): above, its top edge just under the toast row
+   (`toastRowBottomPx`: `HUD_MARGIN_PX`, the toast's padding and one `body` line, scaled; y 41.8 at 1024 × 640 and
+   y 52.3 at 1280 × 800), so a toast up with it (a giant's unlock, raised by the same swallow whose payout opened the
+   picker) never covers its kicker; and never into the exclusion box. Between the two it may come nearer than the band
+   offset. Only here may it meet the cues: the glow, and for the tallest form popup at 1024 × 640 the bottom few px of
+   its box, over the top of the rate-tag column, which the picker's dim greys. A notice row, when up, still drops the
+   toast over its top (§3.6).
+
+A popup takes its slot afresh each frame, so it moves when the slot changes under it: most visibly, a popup below the
+cell jumps to the pinned slot when an offer opens the picker during its life. It does not animate the move.
 
 At 1024 × 640 a form popup's host is about 176 px (138 px and two 19.2 px glow margins), and a full column over even
 a starting cell tops out 151 px above the centre, so form and giant popups hang below the cell there; an upgrade popup

@@ -9,8 +9,10 @@ import { CUE_GAP_PX, RATE_TAG_ROWS_MAX } from '../../render/constants';
 import { rateTagColumnTopPx, zonePillBottomPx } from '../../render/effects/cue-layout';
 import { HALF } from '../../render/geometry';
 import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
+import { HUD_PLAYER_EXCLUSION_PX } from '../hud-constants';
 import { FORM_POPUP_GLOW_PX } from '../upgrade-popup-constants';
 import { onScreenRadiusPx, pickerBandOffsetPx } from './picker-band';
+import { toastRowBottomPx } from './toast-row';
 import {
   UPGRADE_POPUP_PLACEMENT,
   upgradePopupSlotFor,
@@ -114,12 +116,29 @@ describe('upgradePopupSlotFor (docs/ui/overlays.md §3.8)', () => {
     expect(slot.offsetPx).toBe(Math.max(pickerBandOffsetPx(room.viewport), zonePillBottomPx(rPx) + CUE_GAP_PX));
   });
 
-  it('never drops below while the picker’s band is there: it pins to the top edge instead', () => {
-    const room = { ...roomAt(1024, 640, 1250, formHostPx(1024, 640)), isPickerOpen: true };
+  it.each([
+    { width: 1024, height: 640, mass: 1250 },
+    { width: 1024, height: 640, mass: CELL_MAX_MASS },
+    { width: 1280, height: 800, mass: 1250 },
+    { width: 1280, height: 800, mass: CELL_MAX_MASS },
+  ])(
+    'never drops below while the picker’s band is there: at $width × $height over a mass-$mass cell it pins just ' +
+      'under the toast row, outside the exclusion box (PR #852 review)',
+    ({ width, height, mass }) => {
+      const room = { ...roomAt(width, height, mass, formHostPx(width, height)), isPickerOpen: true };
+      const slot = upgradePopupSlotFor(room);
+      expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+      const hostTopPx = height * HALF - slot.offsetPx - room.popupHeightPx;
+      expect(hostTopPx).toBeCloseTo(toastRowBottomPx(room.viewport));
+      expect(slot.offsetPx).toBeGreaterThanOrEqual(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(width, height));
+    },
+  );
+
+  it('pins at the exclusion box, not into it, when even the toast row leaves no room', () => {
+    const room = { ...roomAt(1024, 640, CELL_MAX_MASS, 320), isPickerOpen: true };
     const slot = upgradePopupSlotFor(room);
     expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
-    expect(slot.offsetPx).toBeCloseTo(room.viewport.height * HALF - room.popupHeightPx);
-    expect(slot.offsetPx).toBeGreaterThanOrEqual(pickerBandOffsetPx(room.viewport));
+    expect(slot.offsetPx).toBe(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(1024, 640));
   });
 
   it('keeps the picker band’s mirror before the own cell is known', () => {

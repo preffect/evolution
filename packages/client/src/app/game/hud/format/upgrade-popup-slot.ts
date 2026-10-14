@@ -2,7 +2,7 @@
 // and a form popup's glow) keeps `CUE_GAP_PX` off the own cell's cues and never comes nearer the centre than the
 // picker band's mirror: above the cell, over the room a full rate-tag column takes at the cell's on-screen size, where
 // the whole host fits under the top edge; else below it, under the zone pill, unless the picker's band is there; else
-// above, pinned to the top edge. The column is reserved whole, so a tag that comes up mid-popup never meets it and the
+// above, pinned just under the toast row and never into the exclusion box. The column is reserved whole, so a tag that comes up mid-popup never meets it and the
 // popup never jumps. Pure: `upgrade-popup.component.ts` feeds it the viewport, the own cell's radius, the host's
 // measured height and whether the picker is open, and binds what it answers as `data-placement` and `--popup-offset`.
 
@@ -11,7 +11,10 @@ import type { ViewportPx } from '../../render/camera';
 import { CUE_GAP_PX, RATE_TAG_ROWS_MAX } from '../../render/constants';
 import { HALF } from '../../render/geometry';
 import { rateTagColumnTopPx, zonePillBottomPx } from '../../render/effects/cue-layout';
+import { uiScaleFor } from '../../../ui-kit/format/ui-scale';
+import { HUD_PLAYER_EXCLUSION_PX } from '../hud-constants';
 import { onScreenRadiusPx, pickerBandOffsetPx } from './picker-band';
+import { toastRowBottomPx } from './toast-row';
 
 /**
  * Above the own cell while it is alive, clear of its cues; below it when there is no room above; under the death
@@ -62,6 +65,17 @@ function cueClearancesPx(room: UpgradePopupRoom): { readonly abovePx: number; re
   };
 }
 
+/**
+ * No room clear of the cues (the picker open over a big cell): the host's top edge just under the toast row, so a toast
+ * up beside it (a giant's unlock) never covers its kicker, and never into the exclusion box. Between the two it may
+ * come nearer than the band's mirror, its glow over the top of a full rate-tag column under the picker's dim.
+ */
+function pinnedOffsetPx(room: UpgradePopupRoom): number {
+  const { width, height } = room.viewport;
+  const underToastPx = height * HALF - toastRowBottomPx(room.viewport) - room.popupHeightPx;
+  return Math.max(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(width, height), underToastPx);
+}
+
 export function upgradePopupSlotFor(room: UpgradePopupRoom): UpgradePopupSlot {
   if (room.lifeState === PLAYER_LIFE_STATE.spectating) {
     return { placement: UPGRADE_POPUP_PLACEMENT.belowDeathText, offsetPx: UNUSED_OFFSET_PX };
@@ -71,7 +85,5 @@ export function upgradePopupSlotFor(room: UpgradePopupRoom): UpgradePopupSlot {
   if (!room.isPickerOpen && fitsOnScreen(belowPx, room)) {
     return { placement: UPGRADE_POPUP_PLACEMENT.belowCell, offsetPx: belowPx };
   }
-  // No room clear of the cues: as high as the top edge allows, never nearer the centre than the band's mirror.
-  const pinnedPx = Math.max(pickerBandOffsetPx(room.viewport), room.viewport.height * HALF - room.popupHeightPx);
-  return { placement: UPGRADE_POPUP_PLACEMENT.aboveCell, offsetPx: Math.min(abovePx, pinnedPx) };
+  return { placement: UPGRADE_POPUP_PLACEMENT.aboveCell, offsetPx: Math.min(abovePx, pinnedOffsetPx(room)) };
 }
