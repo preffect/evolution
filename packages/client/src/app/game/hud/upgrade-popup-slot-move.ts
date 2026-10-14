@@ -2,7 +2,7 @@
 // a slot afresh each frame, and its placement can change under a popup that is up: most visibly, the picker opens over
 // a big cell while a form popup hangs below it, and the popup has to go to the pinned slot near the top. Rather than
 // jump across the cell, the host is held where it was for `UPGRADE_POPUP_MOVE_HOLD_MS` while it fades out (the fade
-// and the frame or two by which it trails the hold, so it leaves at zero opacity), then takes the slot it should be in
+// and the frames by which it trails the hold, so it leaves at zero opacity), then takes the slot it should be in
 // by then and fades back in there. A slot answered during the hold changes only where it lands, never when. Within a placement the slot is followed at once: its offset
 // eases with the camera. A popup's entrance is exempt: it is still finding its slot from its measured height, and is
 // fading in anyway. The fades are the stylesheet's (`.moving`); this decides only where the host is held, and when.

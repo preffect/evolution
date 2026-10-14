@@ -20,3 +20,30 @@ computed opacity; rows kept where one of them changed (opacity by 0.15 or more).
 
 Frame 2 was captured with the host's opacity transition paused at 75 ms (opacity 0.5) for the still; the trace above
 is a separate, unpaused run.
+
+## Round 2: a 90 ms `ease-out` fade out, a 140 ms hold, and a 150 ms fade in
+
+The same scenario on head after the review changes, every frame sampled (host computed opacity; `M` = `moving`). The
+transition shows up about two frames after the class does, and the 50 ms lag allowance covers that, so the last frame in
+the old slot is at 0. The new slot starts at 0 too.
+
+| t ms | placement  | moving | host opacity |
+| ---- | ---------- | ------ | ------------ |
+| 1099 | below-cell | yes    | 1            |
+| 1115 | below-cell | yes    | 1            |
+| 1132 | below-cell | yes    | 0.712        |
+| 1148 | below-cell | yes    | 0.465        |
+| 1165 | below-cell | yes    | 0.258        |
+| 1181 | below-cell | yes    | 0.1          |
+| 1199 | below-cell | yes    | 0.009        |
+| 1214 | below-cell | yes    | 0            |
+| 1235 | pinned     | no     | 0            |
+| 1265 | pinned     | no     | 0.025        |
+| 1315 | pinned     | no     | 0.405        |
+| 1364 | pinned     | no     | 0.899        |
+| 1398 | pinned     | no     | 1            |
+| 2287 | pinned     | yes    | 1            |
+| 2381 | pinned     | yes    | 0.01         |
+| 2399 | pinned     | yes    | 0            |
+| 2431 | below-cell | no     | 0            |
+| 2598 | below-cell | no     | 1            |

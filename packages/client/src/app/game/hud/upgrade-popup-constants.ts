@@ -21,8 +21,11 @@ export const UPGRADE_POPUP_FROM_SCALE = 0.85;
 export const UPGRADE_POPUP_MOVE_FADE_OUT_MS = 90;
 /** Its fade back in at the new slot. */
 export const UPGRADE_POPUP_MOVE_FADE_IN_MS = 150;
-/** How far the fade out can trail the hold's start: the `moving` class reaches the page a frame or two later (60 Hz). */
-export const UPGRADE_POPUP_MOVE_CLASS_LAG_MS = 33;
+/**
+ * How far the fade out can trail the hold's start: the `moving` class and then its transition reach the page up to
+ * three frames later at 60 Hz (two measured on PR #900, and one to spare so the last frame in the old slot is clear).
+ */
+export const UPGRADE_POPUP_MOVE_CLASS_LAG_MS = 50;
 /** How long the host is held in its old slot: the fade out and its lag, so it leaves at zero opacity. */
 export const UPGRADE_POPUP_MOVE_HOLD_MS = UPGRADE_POPUP_MOVE_FADE_OUT_MS + UPGRADE_POPUP_MOVE_CLASS_LAG_MS;
 /** Its widest, at scale 1: a card's width, so a card's effect lines fit on theirs. */
