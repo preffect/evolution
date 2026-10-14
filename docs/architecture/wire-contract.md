@@ -147,10 +147,21 @@ every tick
   and a client that joins, reconnects or is resynced after the warning has it in its first `game_state`. A
   `debug_set_era` jump moves `roundStartTick` so that the warning tick lies behind the move, and the move's
   `game_state` carries it. It is sent whole, like `gelPatches`, rather than once with the warning and then only in a
-  `game_state`: then a delta's `null` would have to mean "unchanged", and a reseed, a rematch and a viewer the flow
-  control holds through the warning would each need a rule of their own. The client keys its bake on the layout it
-  holds, so the same layout arriving again bakes nothing (client.md §5). `surge` and `copepodLane` ride every
-  snapshot from their warnings to their ends, the tick each first appears being the tick of its warning effect.
+  `game_state`: then a delta's `null` would have to mean "unchanged", and a rematch and a viewer the flow control holds
+  through the warning would each need a rule of their own. The client keys its bake on the layout it holds, so the
+  same layout arriving again bakes nothing (client.md §5). `surge` and `copepodLane` ride every snapshot from their
+  warnings to their ends, the tick each first appears being the tick of its warning effect.
+  - **A view carries only what was drawn**: positions, angles and ticks. Every size is read from the live balance, on
+    the server and the client alike: a film's radius (`POOL_FILM_RADIUS`), a thread's length and width
+    (`POOL_THREAD_LENGTH`, `POOL_THREAD_WIDTH`; its ends from `poolThreadEnds`, `shared/simulation/pool-layout.ts`), the
+    light patch's radius (`POOL_LIGHT_PATCH_RADIUS`), the bank's width (`POOL_BANK_WIDTH`) and the copepod's lane
+    (`COPEPOD_LANE_WIDTH`). So a `debug_set_balance` of a size moves every shape of that kind at once, and no shape
+    keeps a size of its own.
+  - **The layout's points are whole world units** (a contract rule for ticket #870): the films' and threads' centres
+    and the orbit's radius are rounded to whole wu where they are drawn, on the server, before they are stored and
+    hashed, so the rounding is deterministic and the wire sends what the world holds. The angles
+    (`PoolThreadView.angleRadians`, `startAngleRadians`) are written exact. A reseed (`debug_set_seed`) rebuilds only
+    the streams: like `gelPatches`, the drawn layout stays.
 - **The cameras across the move.** Both sides remap with the shared `remapCameraAcrossMove(state, eras.ERA_SCALE_STEP)`
   (`camera/era-move-camera.ts`: x, y and the view's half-height divided by the step) when the era they frame leaves
   the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` at its step has left the dish
@@ -342,8 +353,8 @@ two-decimal `bearingRadians`, `caughtAtTick`; measured with real `m-` ids), at m
 and only while early life is on. The fields are stable while held, so the list adds nothing per tick. Every snapshot
 carries the pool's three members (ticket #932): `"poolLayout":null,"surge":null,"copepodLane":null` is 50 B in the
 dish. From the pool's warning on, the layout (`POOL_FILM_COUNT` 5 films and `POOL_THREAD_COUNT` 6 threads) is about
-0.65 KB a snapshot when its points are whole world units, which is how ticket #870 draws them (about twice that at
-full float precision), and a surge or a copepod's pass about 80 B each while one is on. The pool replaces the dish's
+under 0.6 KB a snapshot (0.57 KB measured as JSON, with four-digit coordinates and full-precision angles) because its
+points are whole world units (§4 "The pool layout"; about 0.85 KB at full float precision), and a surge or a copepod's pass about 80 B each while one is on. The pool replaces the dish's
 motes with its own (phases.md §14.4.2), so the layout adds to the dish's worst case above only over the warning's
 10 s, by under 3 % of the 24 KB per-snapshot budget.
 

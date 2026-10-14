@@ -49,8 +49,10 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   the eras are off, feeds the section nothing and hashes as before the eras (#931, #932). The era opens the section
   with a string's tag where the held lists open with an array's, so either section's presence reads from its first
   byte. This section is the home of all the eras' hashed state: the move's grace (ticket #868) and the creatures'
-  state join it, inside it and under its gate (each added to `hasEraState` and `TRAILING_WORLD_HASHED_FIELDS`, whose
-  test then asks for a case that opens the section with it alone), never in a third trailing section, so the
+  state join it, inside it and under its gate: each joins `POOL_STATE_HASHED_FIELDS`, the one list the gate and the walk
+  both iterate (null when the world has none of it), and its test then asks for a case that changes the field inside an
+  open section, while a recorded hash of a world holding every field pins the walk's order; never in a third trailing
+  section, so the
   pre-eras hash stays byte for byte and the sections' boundaries stay unambiguous;
   each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag

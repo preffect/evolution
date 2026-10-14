@@ -17,6 +17,7 @@ import {
   hashArray,
   hashEnumRecord,
   hashFields,
+  hashNullable,
   hashRandomStreams,
   hashScalarArray,
   type GameInput,
@@ -72,11 +73,7 @@ function hashSteerCommand(hasher: StateHasher, command: SteerCommand): void {
 const ENGULF_RELEASE_FIELDS: readonly HashedField<EngulfReleaseRecord>[] = ['reason', 'tick', 'predatorCellId'];
 
 function hashLastRelease(hasher: StateHasher, release: EngulfReleaseRecord | null): void {
-  if (release === null) {
-    hasher.hashNull();
-  } else {
-    hashFields(hasher, release, ENGULF_RELEASE_FIELDS);
-  }
+  hashNullable(hasher, release, ENGULF_RELEASE_FIELDS);
 }
 
 export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [
@@ -162,11 +159,7 @@ export const DNA_FRAGMENT_HASHED_FIELDS: readonly HashedField<DnaFragmentRecord>
 const TRAIT_CHOICE_FIELDS: readonly HashedField<TraitChoiceInput>[] = ['offerId', 'cardIndex'];
 
 function hashTraitChoice(hasher: StateHasher, choice: TraitChoiceInput | null): void {
-  if (choice === null) {
-    hasher.hashNull();
-  } else {
-    hashFields(hasher, choice, TRAIT_CHOICE_FIELDS);
-  }
+  hashNullable(hasher, choice, TRAIT_CHOICE_FIELDS);
 }
 
 /** The reserved flags hash as `null` when absent so an explicit `false` differs from an omission. */
@@ -185,11 +178,7 @@ const GAME_INPUT_FIELDS: readonly HashedField<GameInput>[] = [
 ];
 
 function hashPendingInput(hasher: StateHasher, input: GameInput | null): void {
-  if (input === null) {
-    hasher.hashNull();
-  } else {
-    hashFields(hasher, input, GAME_INPUT_FIELDS);
-  }
+  hashNullable(hasher, input, GAME_INPUT_FIELDS);
 }
 
 export const TRAIT_OFFER_HASHED_FIELDS: readonly HashedField<TraitOffer>[] = [

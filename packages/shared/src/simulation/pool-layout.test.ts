@@ -5,12 +5,13 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { secondsToTicks } from '../time/units.js';
 import type { LightPatchOrbitView } from '../types/pool.js';
-import { lightPatchCentreAt } from './pool-layout.js';
+import { lightPatchCentreAt, poolThreadEnds } from './pool-layout.js';
 
 /** An orbit drawn at a rematch on tick 1 200, starting due east. */
 const ORBIT: LightPatchOrbitView = { orbitRadius: 1_500, startAngleRadians: 0, startTick: 1_200 };
 const PERIOD_TICKS = secondsToTicks(DEFAULT_BALANCE.pool.POOL_LIGHT_PATCH_PERIOD_SECONDS);
 const CLOSE_DIGITS = 9;
+const THREAD_LENGTH = DEFAULT_BALANCE.pool.POOL_THREAD_LENGTH;
 
 function expectCentre(tick: number, x: number, y: number, orbit = ORBIT): void {
   const centre = lightPatchCentreAt(orbit, tick, DEFAULT_BALANCE);
@@ -48,5 +49,23 @@ describe('lightPatchCentreAt', () => {
     const between = lightPatchCentreAt(ORBIT, ORBIT.startTick + 0.5, DEFAULT_BALANCE);
     expect(between.y).toBeGreaterThan(0);
     expect(between.y).toBeLessThan(lightPatchCentreAt(ORBIT, ORBIT.startTick + 1, DEFAULT_BALANCE).y);
+  });
+});
+
+describe('poolThreadEnds', () => {
+  it('lays the thread’s live length along its angle, its centre midway', () => {
+    const [start, end] = poolThreadEnds({ x: 100, y: -200, angleRadians: Math.PI / 2 }, DEFAULT_BALANCE);
+    expect(start.x).toBeCloseTo(100, CLOSE_DIGITS);
+    expect(end.x).toBeCloseTo(100, CLOSE_DIGITS);
+    expect(start.y).toBeCloseTo(-200 - THREAD_LENGTH / 2, CLOSE_DIGITS);
+    expect(end.y).toBeCloseTo(-200 + THREAD_LENGTH / 2, CLOSE_DIGITS);
+  });
+
+  it('reads the length from the balance, never from the view: a patched length moves the ends', () => {
+    const longer = structuredClone(DEFAULT_BALANCE);
+    longer.pool.POOL_THREAD_LENGTH *= 2;
+    const [start, end] = poolThreadEnds({ x: 0, y: 0, angleRadians: 0 }, longer);
+    expect(end.x - start.x).toBeCloseTo(2 * THREAD_LENGTH, CLOSE_DIGITS);
+    expect(start.y).toBeCloseTo(0, CLOSE_DIGITS);
   });
 });

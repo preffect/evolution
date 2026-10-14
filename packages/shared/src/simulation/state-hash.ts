@@ -34,6 +34,15 @@ export function hashFields<T>(hasher: StateHasher, record: T, fields: readonly H
   }
 }
 
+/** Hashes a nullable record: `null`'s marker, or the record's fields in the order `fields` declares. */
+export function hashNullable<T>(hasher: StateHasher, record: T | null, fields: readonly HashedField<T>[]): void {
+  if (record === null) {
+    hasher.hashNull();
+  } else {
+    hashFields(hasher, record, fields);
+  }
+}
+
 /** Hashes an array in order, length first, each item through `hashItem`. */
 export function hashArray<T>(hasher: StateHasher, items: readonly T[], hashItem: ValueHasher<T>): void {
   hasher.hashArrayLength(items.length);

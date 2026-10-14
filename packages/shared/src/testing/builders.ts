@@ -147,8 +147,8 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
 /** A pool layout of one film, one thread and an orbit due east (docs/game-design/phases.md §14.5.2). */
 export function createTestPoolLayout(overrides: Partial<PoolLayoutView> = {}): PoolLayoutView {
   return {
-    films: [{ x: -1200, y: 400, radius: 350 }],
-    threads: [{ startX: 200, startY: -900, endX: 1400, endY: -200, width: 60 }],
+    films: [{ x: -1200, y: 400 }],
+    threads: [{ x: 800, y: -550, angleRadians: 0.5 }],
     lightPatchOrbit: { orbitRadius: 1500, startAngleRadians: 0, startTick: 0 },
     ...overrides,
   };

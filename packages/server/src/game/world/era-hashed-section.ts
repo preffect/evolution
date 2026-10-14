@@ -3,14 +3,16 @@
 // some of it. Every world that never reaches the pool (every world while the eras are off) therefore hashes byte for
 // byte as before the eras (#931), though it carries the eras' streams from creation (#932). The section opens with a
 // string's tag where the held lists open with an array's, so either section's presence reads from its first byte.
-// Every field is listed and `state-hash.test.ts` pins it; a field added to the eras' state goes here, in this one
-// section and under this one gate, never in a third trailing section.
+// The pool's state is one list, `POOL_STATE_HASHED_FIELDS`, which the gate and the walk both iterate, so a field is
+// gated exactly when it is walked; a field added to the eras' state joins that list, in this one section and under
+// this one gate, never in a third trailing section.
 
 import {
   ERA_RANDOM_STREAM_LABELS,
   GAME_ERA,
   hashArray,
   hashFields,
+  hashNullable,
   hashRandomStreams,
   type CopepodLaneView,
   type HashedField,
@@ -23,14 +25,8 @@ import {
 } from '@evolution/shared';
 import type { WorldState } from './world-state.js';
 
-export const POOL_FILM_HASHED_FIELDS: readonly HashedField<PoolFilmView>[] = ['x', 'y', 'radius'];
-export const POOL_THREAD_HASHED_FIELDS: readonly HashedField<PoolThreadView>[] = [
-  'startX',
-  'startY',
-  'endX',
-  'endY',
-  'width',
-];
+export const POOL_FILM_HASHED_FIELDS: readonly HashedField<PoolFilmView>[] = ['x', 'y'];
+export const POOL_THREAD_HASHED_FIELDS: readonly HashedField<PoolThreadView>[] = ['x', 'y', 'angleRadians'];
 export const LIGHT_PATCH_ORBIT_HASHED_FIELDS: readonly HashedField<LightPatchOrbitView>[] = [
   'orbitRadius',
   'startAngleRadians',
@@ -58,19 +54,21 @@ export const COPEPOD_LANE_HASHED_FIELDS: readonly HashedField<CopepodLaneView>[]
   'startedAtTick',
 ];
 
-/** The pool's own state on the world: null in every world that has not drawn it. */
-const POOL_STATE_FIELDS = ['poolLayout', 'surge', 'copepodLane'] as const;
+/**
+ * The pool's own state on the world, in walk order: each field is null in a world that has none of it, and is walked as
+ * null's marker or its fields. The gate (`hasEraState`) and the walk (`hashEraSection`) both iterate this list.
+ */
+export const POOL_STATE_HASHED_FIELDS = [
+  { key: 'poolLayout', hash: (hasher, layout) => hashNullable(hasher, layout, POOL_LAYOUT_HASHED_FIELDS) },
+  { key: 'surge', hash: (hasher, surge) => hashNullable(hasher, surge, SURGE_HASHED_FIELDS) },
+  { key: 'copepodLane', hash: (hasher, lane) => hashNullable(hasher, lane, COPEPOD_LANE_HASHED_FIELDS) },
+] as const satisfies readonly HashedField<WorldState>[];
 
 /** The world fields the section walks, in walk order (the eras' streams are walked between the first and the rest). */
-export const TRAILING_WORLD_HASHED_FIELDS = ['eraMovedInto', ...POOL_STATE_FIELDS] as const;
-
-function hashNullable<Value>(hasher: StateHasher, value: Value | null, fields: readonly HashedField<Value>[]): void {
-  if (value === null) {
-    hasher.hashNull();
-  } else {
-    hashFields(hasher, value, fields);
-  }
-}
+export const TRAILING_WORLD_HASHED_FIELDS = [
+  'eraMovedInto',
+  ...POOL_STATE_HASHED_FIELDS.map((field) => field.key),
+] as const;
 
 /**
  * True once the world has era state: it has left the dish, drawn from one of the eras' streams (a stream's state is
@@ -80,7 +78,7 @@ export function hasEraState(world: WorldState): boolean {
   return (
     world.eraMovedInto !== GAME_ERA.dish ||
     ERA_RANDOM_STREAM_LABELS.some((label) => world.random[label].position > 0) ||
-    POOL_STATE_FIELDS.some((field) => world[field] !== null)
+    POOL_STATE_HASHED_FIELDS.some((field) => world[field.key] !== null)
   );
 }
 
@@ -89,7 +87,5 @@ export function hashEraSection(hasher: StateHasher, world: WorldState): void {
   if (!hasEraState(world)) return;
   hasher.hashString(world.eraMovedInto);
   hashRandomStreams(hasher, world.random, ERA_RANDOM_STREAM_LABELS);
-  hashNullable(hasher, world.poolLayout, POOL_LAYOUT_HASHED_FIELDS);
-  hashNullable(hasher, world.surge, SURGE_HASHED_FIELDS);
-  hashNullable(hasher, world.copepodLane, COPEPOD_LANE_HASHED_FIELDS);
+  hashFields(hasher, world, POOL_STATE_HASHED_FIELDS);
 }

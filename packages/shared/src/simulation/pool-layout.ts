@@ -1,12 +1,13 @@
-// The rock pool's light patch (docs/game-design/phases.md §14.5.2, §14.5.3): its centre is a pure function of the tick
-// and the layout's orbit, so it needs no field on the snapshot and the server, the shared movement step and the renderer
-// read one place. Pure: the orbit was drawn once, from the `pool` stream, at the round's start.
+// The rock pool's layout as shapes (docs/game-design/phases.md §14.5.2, §14.5.3): a view carries only what was drawn,
+// so the shapes come from it and the live balance here, the one place the server, the shared movement step and the
+// renderer read. The light patch's centre is a pure function of the tick and the orbit, so it needs no per-tick field.
+// Pure: the layout was drawn once, from the `pool` stream, at the round's start.
 
 import type { BalanceConfig } from '../constants/balance.js';
 import { RADIANS_PER_FULL_TURN } from '../constants/units.js';
 import { ticksToSeconds } from '../time/units.js';
 import type { Vec2 } from '../types/common.js';
-import type { LightPatchOrbitView } from '../types/pool.js';
+import type { LightPatchOrbitView, PoolThreadView } from '../types/pool.js';
 import { pointOnCircle } from './vector-math.js';
 
 /**
@@ -20,4 +21,19 @@ export function lightPatchCentreAt(
 ): Vec2 {
   const turns = ticksToSeconds(tick - orbit.startTick) / balance.pool.POOL_LIGHT_PATCH_PERIOD_SECONDS;
   return pointOnCircle(orbit.orbitRadius, orbit.startAngleRadians + turns * RADIANS_PER_FULL_TURN);
+}
+
+/** A thread's centre lies midway between its ends. */
+const THREAD_CENTRE_SHARE = 0.5;
+
+/** A thread's two ends: `POOL_THREAD_LENGTH` apart along its angle, its centre midway; the band is `POOL_THREAD_WIDTH` wide. */
+export function poolThreadEnds(
+  thread: PoolThreadView,
+  balance: { pool: Pick<BalanceConfig['pool'], 'POOL_THREAD_LENGTH'> },
+): readonly [Vec2, Vec2] {
+  const halfLength = pointOnCircle(balance.pool.POOL_THREAD_LENGTH * THREAD_CENTRE_SHARE, thread.angleRadians);
+  return [
+    { x: thread.x - halfLength.x, y: thread.y - halfLength.y },
+    { x: thread.x + halfLength.x, y: thread.y + halfLength.y },
+  ];
 }

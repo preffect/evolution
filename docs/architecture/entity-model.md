@@ -112,19 +112,17 @@ export interface GelPatchView {
   radius: number;
 }
 // packages/shared/src/types/pool.ts — the rock pool's views (game-design/phases.md §14.5), ticket #932: the layout is drawn once, from the `pool` stream, at the round's start
+// a view carries only what was drawn (positions, angles, ticks); every size is read from the live balance (wire-contract.md §4 "The pool layout")
 export interface PoolFilmView {
-  // a bacteria film on the floor: a fixed disc
+  // a bacteria film on the floor: a fixed disc of POOL_FILM_RADIUS
   x: number;
   y: number;
-  radius: number;
 }
 export interface PoolThreadView {
-  // an algal thread: a band `width` wide along the segment start → end (a segment with a bounding radius for the hash and the cull)
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  width: number;
+  // an algal thread: a band POOL_THREAD_WIDTH wide and POOL_THREAD_LENGTH long, centred here along angleRadians (poolThreadEnds; a segment with a bounding radius for the hash and the cull)
+  x: number;
+  y: number;
+  angleRadians: number;
 }
 export interface LightPatchOrbitView {
   // on startTick the patch's centre lies orbitRadius from the pool's centre at startAngleRadians; it turns counter-clockwise once per POOL_LIGHT_PATCH_PERIOD_SECONDS (lightPatchCentreAt, simulation/pool-layout.ts)

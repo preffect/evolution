@@ -1,21 +1,24 @@
 // The rock pool's views (docs/architecture/entity-model.md §2, docs/game-design/phases.md §14.5, §14.6.4): its static
 // layout, the surge and the copepod's pass, as the snapshot carries them. Apart from `game.ts`, which keeps the views
-// every era shares; `messages.ts` and `effects.ts` import them from here.
+// every era shares; `messages.ts` and `effects.ts` import them from here. A view carries only what was drawn
+// (positions, angles, ticks): every size (a film's radius, a thread's length and width, the light patch's radius, the
+// bank's and the copepod lane's widths) is read from the live balance (docs/architecture/wire-contract.md §4 "The pool
+// layout").
 
-/** A bacteria film on the rock pool's floor (docs/game-design/phases.md §14.5.2): a disc, fixed for the game. */
+/** A bacteria film on the rock pool's floor (docs/game-design/phases.md §14.5.2): a disc of `POOL_FILM_RADIUS` here. */
 export interface PoolFilmView {
   x: number;
   y: number;
-  radius: number;
 }
 
-/** An algal thread (phases.md §14.5.2): a band `width` wide along the segment from its start to its end. */
+/**
+ * An algal thread (phases.md §14.5.2): a band `POOL_THREAD_WIDTH` wide and `POOL_THREAD_LENGTH` long, centred here and
+ * laid along `angleRadians` (`poolThreadEnds`).
+ */
 export interface PoolThreadView {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-  width: number;
+  x: number;
+  y: number;
+  angleRadians: number;
 }
 
 /**

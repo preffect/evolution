@@ -24,6 +24,9 @@ function worldWithLayoutOn(tick: number, roundStartTick = 0): WorldState {
 }
 
 const WARNING_TICK = eraWarningStartedAtTick(GAME_ERA.pool, 0, createTestWorld().balance);
+/** PH19 (phases.md §14.2.4): a jump at tick 600 to the pool makes tick 601 its first, so the round started on 601 − 36 000. */
+const PH19_MOVE_TICK = 601;
+const PH19_ROUND_START_TICK = -35_399;
 
 describe('isPoolLayoutOnTheWire', () => {
   it('is false on the tick before the pool’s warning and true on the warning tick (PH17: 35 400)', () => {
@@ -32,9 +35,8 @@ describe('isPoolLayoutOnTheWire', () => {
   });
 
   it('is true on the first tick after a debug_set_era jump to the pool (PH19: round start −35 399, tick 601)', () => {
-    const jumpRoundStart = -35_399;
-    expect(isPoolLayoutOnTheWire(worldWithLayoutOn(601, jumpRoundStart))).toBe(true);
-    expect(isPoolLayoutOnTheWire(worldWithLayoutOn(601))).toBe(false);
+    expect(isPoolLayoutOnTheWire(worldWithLayoutOn(PH19_MOVE_TICK, PH19_ROUND_START_TICK))).toBe(true);
+    expect(isPoolLayoutOnTheWire(worldWithLayoutOn(PH19_MOVE_TICK))).toBe(false);
   });
 });
 
@@ -47,8 +49,8 @@ describe('serializeEraMembers', () => {
     const world = worldWithLayoutOn(WARNING_TICK);
     const { poolLayout } = serializeEraMembers(world);
     expect(poolLayout).toEqual(world.poolLayout);
-    poolLayout!.films[0]!.radius += 1;
-    poolLayout!.threads[0]!.width += 1;
+    poolLayout!.films[0]!.x += 1;
+    poolLayout!.threads[0]!.angleRadians += 1;
     poolLayout!.lightPatchOrbit.orbitRadius += 1;
     expect(world.poolLayout).toEqual(createTestPoolLayout());
   });

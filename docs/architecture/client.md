@@ -144,8 +144,11 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   step per animation frame (rendering/budget.md §7.2), and the move keeps the seed, so the move never rebuilds it.
   When a snapshot first brings a `poolLayout`, normally on the pool's warning tick, the client bakes the pool's layer
   (water, films, threads, the bank, the light patch) into the **existing** renderer across the warning, hidden; the
-  layout arrives again in every later snapshot, and the bake keys on the layout it holds, so an equal one bakes
-  nothing and a different one (a reseed) replaces it. On the snapshot whose `era` first leaves the dish (the move's
+  layout arrives again in every later snapshot, and the bake keys on the layout it holds only so that the layout
+  repeated in every snapshot bakes once. No other layout can arrive for the renderer: a reseed keeps the drawn layout
+  (`reseedForDebug` rebuilds only the streams), and a new seed (a rematch) rebuilds the renderer. The sizes come from
+  the live balance (wire-contract.md §4 "The pool layout"), so a `balance_updated` that moves one of the pool's sizes
+  (debug only) bakes the layer again. On the snapshot whose `era` first leaves the dish (the move's
   `game_state`, above) the renderer hides the dish's layers and shows the pool's, with the camera remapped and no
   rebuild and no park; the fade plays on that swap. A client that first builds its renderer when the snapshot's `era`
   is already past the dish builds it with the pool's layer directly. The light patch's centre is drawn from

@@ -10,12 +10,14 @@ import {
   createTestSurge,
   type ServerRandomStreamLabel,
 } from '@evolution/shared';
+import { hashedFieldKeys } from '../../testing/hashed-field-keys.js';
 import { createTestWorld } from '../../testing/world-builders.js';
 import {
   COPEPOD_LANE_HASHED_FIELDS,
   LIGHT_PATCH_ORBIT_HASHED_FIELDS,
   POOL_FILM_HASHED_FIELDS,
   POOL_LAYOUT_HASHED_FIELDS,
+  POOL_STATE_HASHED_FIELDS,
   POOL_THREAD_HASHED_FIELDS,
   SURGE_HASHED_FIELDS,
   TRAILING_WORLD_HASHED_FIELDS,
@@ -27,17 +29,38 @@ import type { WorldState } from './world-state.js';
 
 type TrailingWorldField = (typeof TRAILING_WORLD_HASHED_FIELDS)[number];
 
-/** One way to give a world each field of the section, keyed by field: a field added to the section without one fails to compile. */
-const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, (world: WorldState) => void>> = {
-  eraMovedInto: (world) => (world.eraMovedInto = GAME_ERA.pool),
-  poolLayout: (world) => (world.poolLayout = createTestPoolLayout()),
-  surge: (world) => (world.surge = createTestSurge()),
-  copepodLane: (world) => (world.copepodLane = createTestCopepodLane()),
+/** How a test gives a world one field of the section, and then changes it to another value. */
+interface EraFieldCase {
+  readonly give: (world: WorldState) => void;
+  readonly vary: (world: WorldState) => void;
+}
+
+/**
+ * One case per field of the section, keyed by field: a field added to the section without one fails to compile, and
+ * its `vary` then proves it is walked, not only that it opens the gate.
+ */
+const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, EraFieldCase>> = {
+  eraMovedInto: {
+    give: (world) => (world.eraMovedInto = GAME_ERA.pool),
+    vary: (world) => (world.eraMovedInto = GAME_ERA.colonies),
+  },
+  poolLayout: {
+    give: (world) => (world.poolLayout = createTestPoolLayout()),
+    vary: (world) => (world.poolLayout!.films[0]!.x += 1),
+  },
+  surge: { give: (world) => (world.surge = createTestSurge()), vary: (world) => (world.surge!.startedAtTick += 1) },
+  copepodLane: {
+    give: (world) => (world.copepodLane = createTestCopepodLane()),
+    vary: (world) => (world.copepodLane!.startX += 1),
+  },
 };
 
-function keysOf(fields: readonly unknown[]): string[] {
-  return fields.map((field) => (typeof field === 'string' ? field : (field as { key: string }).key)).sort();
-}
+/**
+ * `computeStateHash(worldWithEveryEraField())` as ticket #932 recorded it: it pins the section's walk, its order
+ * included (the order decides every pool-era replay's `finalHash`). A deliberate change to the walk or to the test
+ * world re-records it, and says so here.
+ */
+const RECORDED_EVERY_ERA_FIELD_HASH = 'cd86432a9b38f62e';
 
 function drawFrom(world: WorldState, label: ServerRandomStreamLabel): void {
   withStream(world, label, (random) => random.nextFloat());
@@ -46,7 +69,7 @@ function drawFrom(world: WorldState, label: ServerRandomStreamLabel): void {
 /** A world in the pool with the whole of the pool's state, so a change to any one part is inside an open section. */
 function worldWithEveryEraField(): WorldState {
   const world = createTestWorld();
-  for (const give of Object.values(ERA_STATE_BY_FIELD)) give(world);
+  for (const field of Object.values(ERA_STATE_BY_FIELD)) field.give(world);
   return world;
 }
 
@@ -59,7 +82,7 @@ describe('hasEraState', () => {
 
   it.each(TRAILING_WORLD_HASHED_FIELDS)('is true once the world has %s', (field) => {
     const world = createTestWorld();
-    ERA_STATE_BY_FIELD[field](world);
+    ERA_STATE_BY_FIELD[field].give(world);
     expect(hasEraState(world)).toBe(true);
   });
 
@@ -79,7 +102,7 @@ describe('hasEraState', () => {
 describe('the eras’ section of computeStateHash', () => {
   it.each(TRAILING_WORLD_HASHED_FIELDS)('opens, and moves the hash, when %s alone leaves its default', (field) => {
     const changed = createTestWorld();
-    ERA_STATE_BY_FIELD[field](changed);
+    ERA_STATE_BY_FIELD[field].give(changed);
     expect(computeStateHash(changed)).not.toBe(computeStateHash(createTestWorld()));
   });
 
@@ -98,14 +121,20 @@ describe('the eras’ section of computeStateHash', () => {
     expect(computeStateHash(twice)).not.toBe(computeStateHash(once));
   });
 
+  it.each(TRAILING_WORLD_HASHED_FIELDS)(
+    'covers %s once open: changing it inside the section moves the hash',
+    (field) => {
+      const changed = worldWithEveryEraField();
+      ERA_STATE_BY_FIELD[field].vary(changed);
+      expect(computeStateHash(changed)).not.toBe(computeStateHash(worldWithEveryEraField()));
+    },
+  );
+
   it.each<[string, (world: WorldState) => void]>([
-    ['the era moved into', (world) => (world.eraMovedInto = GAME_ERA.colonies)],
-    ['a film', (world) => (world.poolLayout!.films[0]!.radius += 1)],
-    ['a thread', (world) => (world.poolLayout!.threads[0]!.endX += 1)],
+    ['a film', (world) => (world.poolLayout!.films[0]!.y += 1)],
+    ['a thread', (world) => (world.poolLayout!.threads[0]!.angleRadians += 1)],
     ['the light patch’s orbit', (world) => (world.poolLayout!.lightPatchOrbit.startAngleRadians += 1)],
-    ['the surge’s start', (world) => (world.surge!.startedAtTick += 1)],
     ['the surge’s direction', (world) => (world.surge!.directionY = 1)],
-    ['the copepod’s lane', (world) => (world.copepodLane!.startX += 1)],
     ['the copepod’s start', (world) => (world.copepodLane!.startedAtTick += 1)],
     ['the surge ending', (world) => (world.surge = null)],
   ])('covers %s once open', (_label, mutate) => {
@@ -114,14 +143,8 @@ describe('the eras’ section of computeStateHash', () => {
     expect(computeStateHash(changed)).not.toBe(computeStateHash(worldWithEveryEraField()));
   });
 
-  it('tells a surge from a copepod pass with the same numbers apart: each has its own place in the walk', () => {
-    const withSurge = createTestWorld();
-    withSurge.eraMovedInto = GAME_ERA.pool;
-    withSurge.surge = createTestSurge();
-    const withPass = createTestWorld();
-    withPass.eraMovedInto = GAME_ERA.pool;
-    withPass.copepodLane = createTestCopepodLane();
-    expect(computeStateHash(withSurge)).not.toBe(computeStateHash(withPass));
+  it('hashes a world with every era field as recorded: the walk and its order are pinned by the hash', () => {
+    expect(computeStateHash(worldWithEveryEraField())).toBe(RECORDED_EVERY_ERA_FIELD_HASH);
   });
 });
 
@@ -129,18 +152,21 @@ describe('the eras’ hashed fields pin every field of their views', () => {
   const layout = createTestPoolLayout();
 
   it('the layout, its films, its threads and the light patch’s orbit', () => {
-    expect(keysOf(POOL_LAYOUT_HASHED_FIELDS)).toEqual(Object.keys(layout).sort());
-    expect(keysOf(POOL_FILM_HASHED_FIELDS)).toEqual(Object.keys(layout.films[0]!).sort());
-    expect(keysOf(POOL_THREAD_HASHED_FIELDS)).toEqual(Object.keys(layout.threads[0]!).sort());
-    expect(keysOf(LIGHT_PATCH_ORBIT_HASHED_FIELDS)).toEqual(Object.keys(layout.lightPatchOrbit).sort());
+    expect(hashedFieldKeys(POOL_LAYOUT_HASHED_FIELDS)).toEqual(Object.keys(layout).sort());
+    expect(hashedFieldKeys(POOL_FILM_HASHED_FIELDS)).toEqual(Object.keys(layout.films[0]!).sort());
+    expect(hashedFieldKeys(POOL_THREAD_HASHED_FIELDS)).toEqual(Object.keys(layout.threads[0]!).sort());
+    expect(hashedFieldKeys(LIGHT_PATCH_ORBIT_HASHED_FIELDS)).toEqual(Object.keys(layout.lightPatchOrbit).sort());
   });
 
   it('the surge and the copepod’s lane', () => {
-    expect(keysOf(SURGE_HASHED_FIELDS)).toEqual(Object.keys(createTestSurge()).sort());
-    expect(keysOf(COPEPOD_LANE_HASHED_FIELDS)).toEqual(Object.keys(createTestCopepodLane()).sort());
+    expect(hashedFieldKeys(SURGE_HASHED_FIELDS)).toEqual(Object.keys(createTestSurge()).sort());
+    expect(hashedFieldKeys(COPEPOD_LANE_HASHED_FIELDS)).toEqual(Object.keys(createTestCopepodLane()).sort());
   });
 
-  it('walks the era moved into first, then the pool’s state: a world field added to the eras goes here', () => {
+  it('walks the era moved into, then every field of the pool’s state the gate reads', () => {
     expect(TRAILING_WORLD_HASHED_FIELDS).toEqual(['eraMovedInto', 'poolLayout', 'surge', 'copepodLane']);
+    expect(hashedFieldKeys(POOL_STATE_HASHED_FIELDS)).toEqual(
+      TRAILING_WORLD_HASHED_FIELDS.filter((field) => field !== 'eraMovedInto').sort(),
+    );
   });
 });
