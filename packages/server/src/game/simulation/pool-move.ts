@@ -19,6 +19,7 @@ import type { StepContext, WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
 import { abortAllEngulfs } from './engulf-state.js';
 import { startMoveGrace } from './move-grace.js';
+import { clearFoodAndStopSpawners } from './spawner.js';
 
 /** A sprint ended by the move: none left to run (its cooldown runs on as after any sprint). */
 const NO_SPRINT_TICKS = 0;
@@ -52,10 +53,7 @@ function clearTheDish(world: WorldState): void {
   }
   world.wildSeats = [];
   world.giantSeats = [];
-  world.food = [];
-  world.dnaFragments = [];
-  world.spawners.food.isEnabled = false;
-  world.spawners.dnaFragments.isEnabled = false;
+  clearFoodAndStopSpawners(world);
 }
 
 /** A latched point in dish units (a steering target, a fixture's pin) as the same point in the pool. */

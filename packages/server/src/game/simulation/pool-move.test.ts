@@ -29,6 +29,8 @@ const PH1_POOL_POINT = { x: 120, y: -60 };
 const PH1_MASS = 500;
 const DISH_VELOCITY = { x: 50, y: -20 };
 const DISH_TARGET = { x: 1500, y: -900 };
+/** A fixture's pin in dish units: left there, it would drag the cell back outside the 300 wu footprint. */
+const DISH_PIN = { x: -1100, y: 700 };
 const MOVE_TICK = 36_000;
 const SPRINT_TICKS = 30;
 const SPRINT_COOLDOWN_TICKS = 120;
@@ -115,6 +117,15 @@ describe('runPoolMove', () => {
       y: DISH_VELOCITY.y / eras.ERA_SCALE_STEP,
     });
     expect({ x: cell.targetX, y: cell.targetY }).toEqual(mapDishPointToPool(DISH_TARGET, DEFAULT_BALANCE));
+  });
+
+  it('step 5: a fixture’s pin maps into the pool with its cell', () => {
+    const world = createTestWorld();
+    const cell = world.cells[0]!;
+    cell.pinnedX = DISH_PIN.x;
+    cell.pinnedY = DISH_PIN.y;
+    runPoolMove(world, createTestStepContext(world));
+    expect({ x: cell.pinnedX, y: cell.pinnedY }).toEqual(mapDishPointToPool(DISH_PIN, DEFAULT_BALANCE));
   });
 
   it('step 5: a cell with no target or pin keeps none', () => {

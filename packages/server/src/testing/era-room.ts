@@ -32,6 +32,8 @@ const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 export interface EraRoomOptions {
   readonly roundDurationSeconds: number;
   readonly erasInPlay?: readonly GameEra[];
+  /** The roster, `ERA_PLAYER` alone by default. */
+  readonly players?: readonly PlayerId[];
 }
 
 /** One tick's effects, as the broadcast that drains them would carry them. */
@@ -47,13 +49,13 @@ export interface EraRoom {
   stepTo(tick: number, observe?: TickObserver): Promise<void>;
 }
 
-/** A room of `ERA_PLAYER` alone on seed 42, its round `roundDurationSeconds` long, `erasInPlay` patched on at tick 0. */
+/** A room of `players` (`ERA_PLAYER` alone by default) on seed 42, its round `roundDurationSeconds` long, `erasInPlay` patched on at tick 0. */
 export function startEraRoom(options: EraRoomOptions): EraRoom {
   const config = createTestSessionConfig({
     seed: ERA_TABLE_SEED,
     roundDurationSeconds: options.roundDurationSeconds,
   });
-  const module = createEvolutionModule(createTestRoomInitOptions([ERA_PLAYER], { config }));
+  const module = createEvolutionModule(createTestRoomInitOptions(options.players ?? [ERA_PLAYER], { config }));
   const handle = module.getDebugHandle();
   handle.patchBalance({ eras: { [ERAS_IN_PLAY_LEAF]: [...(options.erasInPlay ?? GAME_ERA_ORDER)] } });
   const effects: GameEffect[] = [];

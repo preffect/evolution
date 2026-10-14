@@ -146,6 +146,14 @@ describe('worldReferenceInEra (docs/game-design/phases.md §14.2.2)', () => {
     expect(worldReferenceInEra(TEN_MINUTES, TEN_MINUTES, colonies)).toEqual(worldReference(TEN_MINUTES, colonies));
   });
 
+  it('caps the pool’s world mass at CELL_MAX_MASS, as the dish’s is capped', () => {
+    const fastGain = structuredClone(colonies);
+    fastGain.pool.POOL_WORLD_MASS_GAIN_PER_SECOND = balance.growth.CELL_MAX_MASS;
+    expect(worldReferenceInEra(COLONIES_ON_ROUND_SECONDS, COLONIES_ON_ROUND_SECONDS, fastGain).worldMass).toBe(
+      balance.growth.CELL_MAX_MASS,
+    );
+  });
+
   it('reads the move from the pool’s start, so a patched start moves the restart', () => {
     const early = structuredClone(colonies);
     early.eras.ERA_START_SECONDS = { ...early.eras.ERA_START_SECONDS, [GAME_ERA.pool]: 60 };

@@ -26,13 +26,12 @@ import {
   createLazyScenarioSnapshot,
   type EvolutionScenarioModule,
 } from './evolution-adapter.js';
+import { COLONIES_ON_ROUND_SECONDS } from '../world-builders.js';
 import { ScenarioSetupError } from './errors.js';
 import { placeCell, placeMote, placeWildCell } from './fixtures.js';
 import { ZONE } from './placement.js';
 
 const alice = playerId('player_0');
-/** A round that reaches every era (phases.md §14.2.3). */
-const COLONIES_ON_ROUND_SECONDS = 1500;
 const context: FixtureContext = { tick: 0, playerId: () => alice };
 
 function moduleUnderTest(seed = PLACED_ROW_SEED): EvolutionScenarioModule {

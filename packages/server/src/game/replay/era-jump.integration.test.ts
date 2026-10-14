@@ -10,9 +10,12 @@ import {
   createTestCopepodLane,
   createTestSurge,
   distanceBetween,
+  playerId,
+  secondsToTicks,
   type GameEra,
 } from '@evolution/shared';
-import { ERA_PLAYER, eraMovesIn, startEraRoom } from '../../testing/era-room.js';
+import { ERA_PLAYER, eraMovesIn, startEraRoom, type EraRoom } from '../../testing/era-room.js';
+import { COLONIES_ON_ROUND_SECONDS } from '../../testing/world-builders.js';
 import { DebugRequestError } from '../debug/debug-request-error.js';
 import { computeStateHash } from '../world/state-hash.js';
 import { findCellOfPlayer } from '../world/lookups.js';
@@ -20,7 +23,6 @@ import type { Replay } from './replay-format.js';
 import { replay } from './replay-runner.js';
 
 const { eras, pool, world: dish } = DEFAULT_BALANCE;
-const COLONIES_ON_ROUND_SECONDS = 1500;
 /** PH19's ticks: the jump at 600, the era's first tick 601, the run to 1 200, and the round start the jump leaves. */
 const JUMP_TICK = 600;
 const MOVE_TICK = JUMP_TICK + 1;
@@ -28,6 +30,20 @@ const END_TICK = 1200;
 const PH19_ROUND_START_TICK = -35_399;
 /** The footprint: the dish's radius over the scale step (300 wu). */
 const FOOTPRINT_RADIUS_WU = dish.DISH_RADIUS / eras.ERA_SCALE_STEP;
+/**
+ * The grace's player pair (§14.4.2 step 8, "players included"): a eukaryote of 400 held over a 60, its centre 5 wu off
+ * the prey's, so the engulf would start on any tick the grace allows. A eukaryote swallows whatever the swallow stage.
+ */
+const PREDATOR = playerId('bob');
+const GRACE_PAIR = {
+  predator: {
+    mass: 400,
+    level: 4,
+    traits: ['nucleoid', 'mitochondrion', 'nuclear_envelope'],
+    position: { x: 0, y: 0 },
+  },
+  prey: { mass: pool.POOL_ARRIVAL_MASS, position: { x: 5, y: 0 } },
+};
 
 /** A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick, run to 1 200. */
 async function jumpAndRun(era: GameEra) {
@@ -42,7 +58,22 @@ async function jumpAndRun(era: GameEra) {
   return { room, jump, landing };
 }
 
-function expectReplayReproduces(room: Awaited<ReturnType<typeof jumpAndRun>>['room']): void {
+/**
+ * Holds the pair in contact before every step from the move's next tick on and returns the first tick an engulf of the
+ * prey started on, or null if none had by `lastTick`.
+ */
+async function firstEngulfStartHeld(room: EraRoom, lastTick: number): Promise<number | null> {
+  room.handle.setPlayer(PREDATOR, GRACE_PAIR.predator);
+  while (room.world.tick < lastTick) {
+    room.handle.setPlayer(PREDATOR, { position: GRACE_PAIR.predator.position });
+    room.handle.setPlayer(ERA_PLAYER, GRACE_PAIR.prey);
+    await room.stepTo(room.world.tick + 1);
+    if (findCellOfPlayer(room.world, ERA_PLAYER)?.engulfedByCellId !== null) return room.world.tick;
+  }
+  return null;
+}
+
+function expectReplayReproduces(room: EraRoom): void {
   const recording = JSON.parse(JSON.stringify(room.handle.exportReplay())) as Replay;
   expect(replay(recording).hash).toBe(room.handle.computeStateHash());
 }
@@ -78,5 +109,16 @@ describe('phases.md §14.15 PH19: debug_set_era', () => {
     expect(room.world.moveGraceEndsAtTick).not.toBeNull();
     expectReplayReproduces(room);
     expect(() => room.handle.setEra(GAME_ERA.dish)).toThrow(DebugRequestError);
+  });
+
+  it('C: no engulf of a player starts while the grace runs, a player predating; the first starts as it ends', async () => {
+    const room = startEraRoom({ roundDurationSeconds: COLONIES_ON_ROUND_SECONDS, players: [ERA_PLAYER, PREDATOR] });
+    await room.stepTo(JUMP_TICK);
+    room.handle.setEra(GAME_ERA.pool);
+    await room.stepTo(MOVE_TICK);
+    const graceEndsAtTick = MOVE_TICK + secondsToTicks(eras.ERA_MOVE_GRACE_SECONDS);
+    expect(room.world.moveGraceEndsAtTick).toBe(graceEndsAtTick);
+    expect(await firstEngulfStartHeld(room, graceEndsAtTick)).toBe(graceEndsAtTick);
+    expectReplayReproduces(room);
   });
 });

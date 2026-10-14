@@ -18,12 +18,12 @@ import {
   type RoundPhase,
 } from '@evolution/shared';
 import { ERA_PLAYER, ERA_TABLE_SEED, eraMovesIn, startEraRoom } from '../../testing/era-room.js';
+import { COLONIES_ON_ROUND_SECONDS } from '../../testing/world-builders.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 
 const { pool, session } = DEFAULT_BALANCE;
-/** The colonies-on game's length and the dish-only one's (phases.md §14.2.3). */
-const COLONIES_ON_ROUND_SECONDS = 1500;
+/** The dish-only game's length (phases.md §14.2.3). */
 const DISH_ONLY_ROUND_SECONDS = 600;
 /** The ticks the rows name (60 Hz, a round started at 0). */
 const POOL_WARNING_TICK = 35_400;

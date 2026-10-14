@@ -29,6 +29,7 @@ import {
   type EvolutionView,
 } from '../gameplay/evolution-views.js';
 import { ZONE, insideCellOf, player, sprint } from '../gameplay/index.js';
+import { COLONIES_ON_ROUND_SECONDS } from '../world-builders.js';
 import { CONSERVATION_TOLERANCE, conservedEveryTick } from './mass-flow-setups.js';
 import { placedSolo } from './shared-setups.js';
 
@@ -61,7 +62,7 @@ const rateOf =
     massFlowOf(view, playerIndex)?.ratesPerSecond[cause];
 
 /** The pool's move (phases.md §14.4.2) on tick 10 of a round long enough to reach it, the identity checked to 20. */
-const MOVE = { tick: 10, ticks: 20, roundDurationSeconds: 1500 };
+const MOVE = { tick: 10, ticks: 20, roundDurationSeconds: COLONIES_ON_ROUND_SECONDS };
 
 const placedPair = (name: string) => scenario(name).seed(PLACED_ROW_SEED).players(2);
 
