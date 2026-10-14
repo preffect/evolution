@@ -393,7 +393,8 @@ export interface WorldState {
   surge: SurgeView | null; // from its warning to its end (ticket #903), else null
   copepodLane: CopepodLaneView | null; // the copepod's pass from its warning to its end (ticket #873), else null
   poolCreatureSeats: PoolCreatureSeatRecord[] | null; // seat order; placed by the pool's move (ticket #872), null in every world without creatures (ticket #935)
-  // the four above are hashed in the eras' section, with the eras' streams (determinism/ordering-and-state-hash.md §5, tickets #932, #935)
+  moveGraceEndsAtTick: number | null; // the first tick the pool's move grace no longer covers: set by the move to its tick + ERA_MOVE_GRACE_SECONDS, never derived from the clock; null until the move (game-design/phases.md §14.4.2 step 8, ticket #868)
+  // the five above are hashed in the eras' section, with the eras' streams (determinism/ordering-and-state-hash.md §5, tickets #932, #935, #868)
   cells: CellRecord[]; // insertion order
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];
