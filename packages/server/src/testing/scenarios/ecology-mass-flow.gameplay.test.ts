@@ -10,6 +10,7 @@ import {
   DEFAULT_BALANCE,
   DNA_TAG,
   EFFECT_KIND,
+  GAME_ERA,
   ENGULF_WRAP_START_PROGRESS,
   FOOD_KIND,
   TICK_INTERVAL_S,
@@ -18,7 +19,7 @@ import {
   radiusForMass,
   type TraitTier,
 } from '@evolution/shared';
-import { PLACED_ROW_SEED, evolutionScenario as scenario } from '../gameplay/evolution-adapter.js';
+import { PLACED_ROW_SEED, evolutionScenario as scenario, jumpToThePool } from '../gameplay/evolution-adapter.js';
 import {
   cellOf,
   effectsOfKind,
@@ -28,6 +29,7 @@ import {
   type EvolutionView,
 } from '../gameplay/evolution-views.js';
 import { ZONE, insideCellOf, player, sprint } from '../gameplay/index.js';
+import { COLONIES_ON_ROUND_SECONDS } from '../world-builders.js';
 import { CONSERVATION_TOLERANCE, conservedEveryTick } from './mass-flow-setups.js';
 import { placedSolo } from './shared-setups.js';
 
@@ -58,6 +60,9 @@ const EVERY_TRAIT_AT_TOP = traits.TRAIT_CATALOG.map((trait) => ({ traitId: trait
 const rateOf =
   (playerIndex: number, cause: 'toxin' | 'swallowed' | 'decay' | 'vent' | 'light') => (view: EvolutionView) =>
     massFlowOf(view, playerIndex)?.ratesPerSecond[cause];
+
+/** The pool's move (phases.md §14.4.2) on tick 10 of a round long enough to reach it, the identity checked to 20. */
+const MOVE = { tick: 10, ticks: 20, roundDurationSeconds: COLONIES_ON_ROUND_SECONDS };
 
 const placedPair = (name: string) => scenario(name).seed(PLACED_ROW_SEED).players(2);
 
@@ -254,6 +259,24 @@ describe('docs/ecology/acceptance.md §8 E17: the mass flow explains every tick 
       .expect('the bonus is reported as applied', (view) => massFlowOf(view, 0)?.noDraftBonusGained)
       .atTick(NO_DRAFT.levelUpTick)
       .toBe(progression.LEVEL_UP_NO_DRAFT_MASS_BONUS)
+      .runDeterministic();
+  });
+
+  it('across the pool’s move, whose reset to the arrival mass is skipped as no flow (phases.md §14.4.2 step 5)', async () => {
+    await conservedEveryTick(
+      placedSolo('E17 move')
+        .config({ roundDurationSeconds: MOVE.roundDurationSeconds })
+        .placeCell({ playerIndex: 0, mass: WORKED_MASS, at: ZONE.broth }),
+      MOVE.ticks,
+    )
+      .atTick(MOVE.tick)
+      .place(jumpToThePool)
+      .expect('the move runs on its tick', (view) => effectsOfKind(view, EFFECT_KIND.eraMoved).map((move) => move.era))
+      .atTick(MOVE.tick)
+      .toEqual([GAME_ERA.pool])
+      .expect('the cell arrives at the arrival mass, less its decay', (view) => massOf(view, 0))
+      .atTick(MOVE.tick)
+      .toBeLessThan(DEFAULT_BALANCE.pool.POOL_ARRIVAL_MASS)
       .runDeterministic();
   });
 });

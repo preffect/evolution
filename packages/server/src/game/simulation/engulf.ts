@@ -23,6 +23,7 @@ import { cellPairs, isEngulfContact, isEngulfHoldContact, type CellPair } from '
 import { hasArmRegrabRefractory, isGrabContact, pullPreyByArm, recordArmRegrabRefractory } from './engulf-arm-grab.js';
 import { clearHeldDisplacements, dragPreyAlong } from './engulf-drag.js';
 import { payOutEngulf } from './engulf-payout.js';
+import { isSparedByMoveGrace } from './move-grace.js';
 import {
   hasSpitOutRefractory,
   noSpitOutDraw,
@@ -58,7 +59,8 @@ export function awayEffortOf(predator: CellRecord, prey: CellRecord): number {
 
 /**
  * Can `predator` claim `prey` this tick: neither is already engaged, mass, contact (the body's, or the arm's hold for
- * a cell with arms, #735, outside its re-grab cooldown on this prey), no refractory,
+ * a cell with arms, #735, outside its re-grab cooldown on this prey), no refractory, no player prey under the pool's
+ * move grace (docs/game-design/phases.md §14.4.2 step 8),
  * and the prey was not freed by an abort this tick (docs/ecology/absorption.md §6.3, the chain row: a cell the
  * world dropped inside its next predator may be started on "next tick", never on this one).
  */
@@ -74,6 +76,7 @@ export function canStartEngulf(
     canEngulf(predator, prey, balance.absorption) &&
     !wasAbortedThisTick(prey, world.tick) &&
     !hasSpitOutRefractory(predator, prey.id, world.tick) &&
+    !isSparedByMoveGrace(world, prey) &&
     (isEngulfContact(predator, prey, balance) ||
       (isArmHold(predator, prey, balance) && !hasArmRegrabRefractory(predator, prey.id, world.tick)))
   );

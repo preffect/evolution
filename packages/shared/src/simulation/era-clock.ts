@@ -64,6 +64,16 @@ export function eraAt(elapsedSeconds: number, roundDurationSeconds: number, bala
   return current;
 }
 
+/**
+ * When the dish era ends in a round of `roundDurationSeconds` (s after `roundStartTick`): at the next era's start when
+ * one is reachable, else at the round's end. The bloom belongs to the dish (phases.md §14.2.1): it runs to here, so
+ * with `ERAS_IN_PLAY` = `['dish']` it keeps today's fraction of the whole round.
+ */
+export function dishEraEndSeconds(roundDurationSeconds: number, balance: EraClockBalance): number {
+  const nextEra = GAME_ERA_ORDER.find((era) => era !== FIRST_ERA && isEraReachable(era, roundDurationSeconds, balance));
+  return nextEra === undefined ? roundDurationSeconds : balance.eras.ERA_START_SECONDS[nextEra];
+}
+
 /** True when `era` comes after `other` in `GAME_ERA_ORDER`: the only direction a round moves. */
 export function isEraAfter(era: GameEra, other: GameEra): boolean {
   return GAME_ERA_ORDER.indexOf(era) > GAME_ERA_ORDER.indexOf(other);

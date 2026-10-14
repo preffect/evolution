@@ -2,7 +2,8 @@
 // (docs/determinism/contract-and-clock.md §1). `stepWorld` mutates the world in place and returns what happened to
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
-//   1 inputs (+ the wild settle, the giant settle and the seats' decisions)      2 round      3 movement (+ separation, pins)   4 eating   5 metabolism
+//   1 inputs (+ the wild settle, the giant settle and the seats' decisions)      2 round (+ the era moves)
+//   3 movement (+ separation, pins)   4 eating   5 metabolism
 //   6 engulf      7 progression      8 spawners + mote motion
 //   9 respawn (players, then wild seats, then giant seats)     10 leaderboard
 
@@ -21,6 +22,7 @@ import type { InputRejectionCounters, StepContext, WorldState } from '../world/w
 import { eat } from './eating.js';
 import { runEngulfs } from './engulf.js';
 import { abortAllEngulfs } from './engulf-state.js';
+import { runEraMoves } from './era-moves.js';
 import { applyInputs } from './inputs.js';
 import { metabolise } from './metabolism.js';
 import { moveMotes } from './mote-motion.js';
@@ -46,6 +48,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
     updateLeaderboard(world);
     return outcome;
   }
+  runEraMoves(world, context); // every move the era clock crossed (docs/architecture/server-simulation.md §3)
   moveCells(world, context);
   eat(world, context);
   metabolise(world, context);

@@ -32,6 +32,9 @@ import type { WorldState } from './world-state.js';
 
 type TrailingWorldField = (typeof TRAILING_WORLD_HASHED_FIELDS)[number];
 
+/** A grace set by a move on tick 36 000: 8 s on (phases.md §14.4.2 step 8). */
+const MOVE_GRACE_END_TICK = 36_480;
+
 /** How a test gives a world one field of the section, and then changes it to another value. */
 interface EraFieldCase {
   readonly give: (world: WorldState) => void;
@@ -60,16 +63,21 @@ const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, EraFieldCase>> = {
     give: (world) => (world.poolCreatureSeats = [createTestPoolCreatureSeat()]),
     vary: (world) => (world.poolCreatureSeats![0]!.headingX += 1),
   },
+  moveGraceEndsAtTick: {
+    give: (world) => (world.moveGraceEndsAtTick = MOVE_GRACE_END_TICK),
+    vary: (world) => (world.moveGraceEndsAtTick! += 1),
+  },
 };
 
 /**
  * `computeStateHash(worldWithEveryEraField())` as recorded: it pins the section's walk, its order included (the order
  * decides every pool-era replay's `finalHash`). A deliberate change to the walk or to the test world re-records it, and
  * says so here. Ticket #932 recorded `cd86432a9b38f62e`; ticket #935 appended the creatures' seats, each a seat with a
- * mind, to the walk (an open section now ends with their list or null's marker), so it re-recorded it. No world outside the pool opens the section,
- * so no pinned dish hash or recorded replay moved.
+ * mind, to the walk (an open section now ends with their list or null's marker), so it re-recorded it
+ * (`e071445019643754`); ticket #868 appended the move's grace tick and re-recorded it again. No world outside the pool
+ * opens the section, so no pinned dish hash or recorded replay moved.
  */
-const RECORDED_EVERY_ERA_FIELD_HASH = 'e071445019643754';
+const RECORDED_EVERY_ERA_FIELD_HASH = '42d85d8ad5b746d6';
 
 function drawFrom(world: WorldState, label: ServerRandomStreamLabel): void {
   withStream(world, label, (random) => random.nextFloat());
@@ -190,6 +198,7 @@ describe('the eras’ hashed fields pin every field of their views', () => {
       'surge',
       'copepodLane',
       'poolCreatureSeats',
+      'moveGraceEndsAtTick',
     ]);
     expect(hashedFieldKeys(POOL_STATE_HASHED_FIELDS)).toEqual(
       TRAILING_WORLD_HASHED_FIELDS.filter((field) => field !== 'eraMovedInto').sort(),

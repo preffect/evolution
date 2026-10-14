@@ -7,12 +7,16 @@
 
 import {
   DEFAULT_BALANCE,
+  GAME_ERA,
+  GAME_ERA_ORDER,
+  withErasInPlay,
   type BalanceConfig,
   type GameInput,
   type GameSnapshot,
   type OwnProgressView,
 } from '@evolution/shared';
 import { createEvolutionBotBinding } from '../../game/bots/evolution-binding.js';
+import { setEraForDebug } from '../../game/debug/debug-era.js';
 import { createEvolutionModule, type EvolutionModule } from '../../game/evolution-module.js';
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
@@ -86,6 +90,12 @@ export const WORLD_FIXTURE_KIND = {
    * broth point before the placement check runs.
    */
   clearGelPatches: 'clear_gel_patches',
+  /**
+   * Every era in play and a `debug_set_era` jump to the pool (docs/game-design/phases.md §14.2.4), so the step it is
+   * placed before is the pool's move: a row about the move runs in a round of `.config({ roundDurationSeconds })`
+   * long enough to reach the pool, without the 36 000 ticks before it.
+   */
+  jumpToThePool: 'jump_to_the_pool',
 } as const;
 
 export interface WorldFixture {
@@ -98,6 +108,7 @@ export const resetSpawnerAccumulators: WorldFixture = { kind: WORLD_FIXTURE_KIND
 export const clearFood: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearFood };
 export const withoutSeatedCells: WorldFixture = { kind: WORLD_FIXTURE_KIND.removeSeatedCells };
 export const withoutGelPatches: WorldFixture = { kind: WORLD_FIXTURE_KIND.clearGelPatches };
+export const jumpToThePool: WorldFixture = { kind: WORLD_FIXTURE_KIND.jumpToThePool };
 
 const PLACED_KINDS: readonly string[] = Object.values(PLACED_KIND);
 
@@ -117,6 +128,11 @@ function applyWorldFixture(world: WorldState, fixture: WorldFixture): void {
   }
   if (fixture.kind === WORLD_FIXTURE_KIND.clearGelPatches) {
     world.gelPatches = [];
+    return;
+  }
+  if (fixture.kind === WORLD_FIXTURE_KIND.jumpToThePool) {
+    world.balance = withErasInPlay(GAME_ERA_ORDER, world.balance);
+    setEraForDebug(world, GAME_ERA.pool);
     return;
   }
   world.food = [];

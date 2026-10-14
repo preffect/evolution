@@ -74,13 +74,16 @@ export const POOL_STATE_HASHED_FIELDS = [
   { key: 'surge', hash: (hasher, surge) => hashNullable(hasher, surge, SURGE_HASHED_FIELDS) },
   { key: 'copepodLane', hash: (hasher, lane) => hashNullable(hasher, lane, COPEPOD_LANE_HASHED_FIELDS) },
   { key: 'poolCreatureSeats', hash: hashPoolCreatureSeats },
+  'moveGraceEndsAtTick',
 ] as const satisfies readonly HashedField<WorldState>[];
 
+/** The world field a `POOL_STATE_HASHED_FIELDS` entry walks: a scalar's own name, a nested field's `key`. */
+function poolStateKeyOf(field: (typeof POOL_STATE_HASHED_FIELDS)[number]) {
+  return typeof field === 'string' ? field : field.key;
+}
+
 /** The world fields the section walks, in walk order (the eras' streams are walked between the first and the rest). */
-export const TRAILING_WORLD_HASHED_FIELDS = [
-  'eraMovedInto',
-  ...POOL_STATE_HASHED_FIELDS.map((field) => field.key),
-] as const;
+export const TRAILING_WORLD_HASHED_FIELDS = ['eraMovedInto', ...POOL_STATE_HASHED_FIELDS.map(poolStateKeyOf)] as const;
 
 /**
  * True once the world has era state: it has left the dish, drawn from one of the eras' streams (a stream's state is
@@ -90,7 +93,7 @@ export function hasEraState(world: WorldState): boolean {
   return (
     world.eraMovedInto !== GAME_ERA.dish ||
     ERA_RANDOM_STREAM_LABELS.some((label) => world.random[label].position > 0) ||
-    POOL_STATE_HASHED_FIELDS.some((field) => world[field.key] !== null)
+    POOL_STATE_HASHED_FIELDS.some((field) => world[poolStateKeyOf(field)] !== null)
   );
 }
 
