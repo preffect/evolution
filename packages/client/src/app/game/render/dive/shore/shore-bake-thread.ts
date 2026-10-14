@@ -34,15 +34,18 @@ export interface ShoreBakeListener {
   onFailed(): void;
 }
 
+/** No level asked for: the ids count up from the one after it. */
+const NO_LEVEL = 0;
+
 interface Landed {
   readonly id: number;
   readonly snapshot: ShoreSnapshot;
 }
 
 export class ShoreBakeThread {
-  private lastId = 0;
-  /** The level asked for last; any other that lands is stale and closed. */
-  private wantedId = 0;
+  private lastId = NO_LEVEL;
+  /** The level asked for last and still wanted; any other that lands is stale and closed. */
+  private wantedId = NO_LEVEL;
   private landed: Landed | null = null;
   private hasWorkerFailed = false;
   private isTerminated = false;
@@ -94,16 +97,27 @@ export class ShoreBakeThread {
   readonly bakeLevel = (view: ShoreView, sources: ShoreSnapshotSources): Generator<ShoreBakeStep, ShoreSnapshot> =>
     this.hasWorkerFailed ? bakeShoreSnapshot(view, sources) : this.awaitLevel(view, sources);
 
+  /** Waits on level `id`; dropped before it lands (`return()`), it cancels the level (ticket #811). */
   private *awaitLevel(view: ShoreView, sources: ShoreSnapshotSources): Generator<ShoreBakeStep, ShoreSnapshot> {
     const id = this.request(view);
-    for (;;) {
-      if (this.hasWorkerFailed) return yield* bakeShoreSnapshot(view, sources);
-      const landed = this.landed;
-      if (landed?.id === id) {
-        this.landed = null;
-        return landed.snapshot;
+    let hasLanded = false;
+    try {
+      for (;;) {
+        if (this.hasWorkerFailed) {
+          const baked = yield* bakeShoreSnapshot(view, sources);
+          hasLanded = true;
+          return baked;
+        }
+        const landed = this.landed;
+        if (landed?.id === id) {
+          this.landed = null;
+          hasLanded = true;
+          return landed.snapshot;
+        }
+        yield SHORE_BAKE_WAITING;
       }
-      yield SHORE_BAKE_WAITING;
+    } finally {
+      if (!hasLanded) this.cancel(id);
     }
   }
 
@@ -113,6 +127,20 @@ export class ShoreBakeThread {
     this.dropLanded();
     this.port.postMessage({ type: SHORE_BAKE_MESSAGE.bake, id: this.wantedId, view }, []);
     return this.wantedId;
+  }
+
+  /**
+   * Level `id` is no longer wanted: closed if it landed and was not taken, else the worker is told to drop it, and a
+   * level already on its way is closed as it lands.
+   */
+  private cancel(id: number): void {
+    if (this.landed?.id === id) {
+      this.dropLanded();
+      return;
+    }
+    if (this.wantedId === id) this.wantedId = NO_LEVEL;
+    if (this.hasWorkerFailed || this.isTerminated) return;
+    this.port.postMessage({ type: SHORE_BAKE_MESSAGE.cancel, id }, []);
   }
 
   private receive(report: ShoreBakeReport): void {

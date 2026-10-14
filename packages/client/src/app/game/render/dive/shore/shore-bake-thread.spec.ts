@@ -20,10 +20,11 @@ import {
   TEST_SHORE_STAGE,
   bakedTestTiles,
 } from '../../../../../testing/shore-paint-builder';
-import { SHORE_BAKE_MESSAGE, type ShoreBakeRequest } from './shore-bake-messages';
+import { SHORE_BAKE_MESSAGE, type ShoreBakeCancel, type ShoreBakeRequest } from './shore-bake-messages';
 import { SHORE_BAKE_WAITING } from './shore-pump';
 import { ShoreBakeThread, openShoreBakeThread } from './shore-bake-thread';
 import { shoreLevelView } from './shore-lod';
+import type { ShoreBakeStep } from './shore-pump';
 import type { ShoreSnapshot } from './shore-snapshot';
 import { SHORE_TILE_NAMES, ShoreTiles } from './shore-tiles';
 
@@ -50,6 +51,17 @@ function requestIds(port: FakeShoreBakePort): number[] {
   return port.posted
     .filter((posted) => posted.message.type === SHORE_BAKE_MESSAGE.bake)
     .map((posted) => (posted.message as ShoreBakeRequest).id);
+}
+
+function cancelIds(port: FakeShoreBakePort): number[] {
+  return port.posted
+    .filter((posted) => posted.message.type === SHORE_BAKE_MESSAGE.cancel)
+    .map((posted) => (posted.message as ShoreBakeCancel).id);
+}
+
+/** Lets a bake go as `ShoreLevels` does when the camera turns away from its level. */
+function drop(bake: Iterator<ShoreBakeStep, ShoreSnapshot>): void {
+  bake.return?.();
 }
 
 describe('ShoreBakeThread', () => {
@@ -124,6 +136,50 @@ describe('ShoreBakeThread', () => {
     port.send({ type: SHORE_BAKE_MESSAGE.level, id: 1, snapshot: late });
     expect(isClosed(late.colour.image)).toBe(true);
     expect(again.next().value).toBe(SHORE_BAKE_WAITING);
+  });
+
+  it('cancels a level dropped before it lands, once, and closes it should it land after (ticket #811)', () => {
+    const { subject, port, listener } = thread();
+    const bake = subject.bakeLevel(VIEW, sources());
+    bake.next();
+    drop(bake);
+    drop(bake);
+    expect(cancelIds(port)).toEqual([1]);
+    const late = snapshotOf();
+    port.send({ type: SHORE_BAKE_MESSAGE.level, id: 1, snapshot: late });
+    expect(isClosed(late.colour.image)).toBe(true);
+    expect(listener.onLevel).not.toHaveBeenCalled();
+  });
+
+  it('cancels nothing for a level that landed: taken, or dropped untaken and closed (ticket #811)', () => {
+    const { subject, port } = thread();
+    const taken = subject.bakeLevel(VIEW, sources());
+    taken.next();
+    port.send({ type: SHORE_BAKE_MESSAGE.level, id: 1, snapshot: snapshotOf() });
+    expect(taken.next().done).toBe(true);
+    drop(taken);
+    const untaken = subject.bakeLevel(VIEW, sources());
+    untaken.next();
+    const landed = snapshotOf();
+    port.send({ type: SHORE_BAKE_MESSAGE.level, id: 2, snapshot: landed });
+    drop(untaken);
+    expect(isClosed(landed.colour.image)).toBe(true);
+    expect(cancelIds(port)).toEqual([]);
+  });
+
+  it('cancels nothing once the worker has failed or ended (ticket #811)', () => {
+    const { subject, port } = thread();
+    const failedBake = subject.bakeLevel(VIEW, sources());
+    failedBake.next();
+    port.throwError();
+    failedBake.next();
+    drop(failedBake);
+    const { subject: ended, port: endedPort } = thread();
+    const endedBake = ended.bakeLevel(VIEW, sources());
+    endedBake.next();
+    ended.terminate();
+    drop(endedBake);
+    expect([...cancelIds(port), ...cancelIds(endedPort)]).toEqual([]);
   });
 
   it.each([

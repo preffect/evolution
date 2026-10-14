@@ -1,6 +1,7 @@
 // The shore's bake worker (docs/rendering/opening-dive.md §4, ticket #809): it bakes the tiles the page lacks and
 // sends each once, then the level asked for last, a step a turn, and sends it with its pictures and buffers
-// transferred; a level asked for while another bakes replaces it; and it says once when it cannot bake.
+// transferred; a level asked for while another bakes replaces it, and one cancelled stops; and it says once when it
+// cannot bake.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -93,6 +94,28 @@ describe('ShoreBakeWorkerCore', () => {
     const levels = reportsOf(scope, SHORE_BAKE_MESSAGE.level).map((report) => report.message as ShoreLevelBaked);
     expect(levels.map((level) => level.id)).toEqual([2]);
     expect(levels[0]!.snapshot.view.zoom).toBe(shoreLevelView(FAR_LEVEL + 1, TEST_SHORE_STAGE, 1, 1).zoom);
+  });
+
+  it('stops a level cancelled under way and sends nothing for it (ticket #811)', () => {
+    const { core, scope } = worker();
+    core.handle({ type: SHORE_BAKE_MESSAGE.open, land: TEST_SHORE_LAND, tiles: [] });
+    scope.runTurns(SHORE_TILE_NAMES.length * 2);
+    core.handle(bake(1));
+    scope.runTurns(2);
+    core.handle({ type: SHORE_BAKE_MESSAGE.cancel, id: 1 });
+    expect(scope.runTurns()).toBeLessThanOrEqual(1);
+    expect(reportsOf(scope, SHORE_BAKE_MESSAGE.level)).toEqual([]);
+  });
+
+  it('keeps baking a newer level when an older one is cancelled after it was replaced (ticket #811)', () => {
+    const { core, scope } = worker();
+    core.handle({ type: SHORE_BAKE_MESSAGE.open, land: TEST_SHORE_LAND, tiles: [] });
+    core.handle(bake(1));
+    core.handle(bake(2));
+    core.handle({ type: SHORE_BAKE_MESSAGE.cancel, id: 1 });
+    scope.runTurns();
+    const levels = reportsOf(scope, SHORE_BAKE_MESSAGE.level).map((report) => report.message as ShoreLevelBaked);
+    expect(levels.map((level) => level.id)).toEqual([2]);
   });
 
   it('says once that it cannot bake when a bake throws, and stops', () => {
