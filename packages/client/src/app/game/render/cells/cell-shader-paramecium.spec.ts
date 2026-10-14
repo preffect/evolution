@@ -30,14 +30,14 @@ describe('the paramecium in the cell shader', () => {
     }
   });
 
-  it('paints the tufts in pass B on the slipper only, after the hairs and under the prey film', () => {
+  it('paints the tufts in pass B on a player’s slipper only, after the hairs and under the prey film', () => {
     const pass = glslFunction('vec4 membranePass(Instance inst, Frame frame) {');
     expect(pass.indexOf('acc = cilia(inst, frame, acc);')).toBeLessThan(
       pass.indexOf('acc = ciliaTufts(inst, frame, acc);'),
     );
     expect(pass.indexOf('ciliaTufts(')).toBeLessThan(pass.indexOf('acc *= inst.passBAlpha;'));
     expect(glslFunction('vec4 ciliaTufts(Instance inst, Frame frame, vec4 acc) {')).toContain(
-      `if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || frame.rho < 1.0) return acc;`,
+      `if (abs(inst.formId - ${glslFloat(FORM_ID.slipper)}) > HALF || inst.giantSpeciesId > HALF || frame.rho < 1.0) return acc;`,
     );
   });
 

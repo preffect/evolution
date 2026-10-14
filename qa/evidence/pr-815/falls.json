@@ -1,0 +1,2134 @@
+{
+  "note": "before = main at 284e59ca, final = PR #815; keys are <before|final>-<gpu|sw>-<dpr>-<cpu throttle>[b = second run]; gaps in ms; r2 = PR #815 after the review fix (510028a8), throttled runs held 60 s at the dish (rest)",
+  "runs": {
+    "before-gpu-1-1b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 6,
+      "fallS": 11.8,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 0,
+      "longestTaskAllMs": 329,
+      "bands": {
+        "planet": {
+          "frames": 293,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 59.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 0,
+          "gov": null
+        },
+        "shore": {
+          "frames": 106,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 74,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 85,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 22.1
+    },
+    "before-gpu-1-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 23.5,
+      "fallS": 12.1,
+      "holdMs": 384,
+      "holdFrames": 23,
+      "longestTaskFallMs": 124,
+      "longestTaskAllMs": 999,
+      "bands": {
+        "planet": {
+          "frames": 285,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 150,
+          "fps": 57.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 124,
+          "gov": null
+        },
+        "shore": {
+          "frames": 111,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.5,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 82,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.3,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 84,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 58.6,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 135,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 54.7,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 51,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 39.8
+    },
+    "before-gpu-1-4b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 23.8,
+      "fallS": 12,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 135,
+      "longestTaskAllMs": 1004,
+      "bands": {
+        "planet": {
+          "frames": 286,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 133.4,
+          "fps": 58,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 135,
+          "gov": null
+        },
+        "shore": {
+          "frames": 112,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.2,
+          "fps": 59.5,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 79,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 85,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 33.3,
+          "fps": 59.3,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 134,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 49.9,
+          "fps": 54,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 53,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 44.1
+    },
+    "before-gpu-2-1": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 6.2,
+      "fallS": 12.7,
+      "holdMs": 333,
+      "holdFrames": 20,
+      "longestTaskFallMs": 82,
+      "longestTaskAllMs": 293,
+      "bands": {
+        "planet": {
+          "frames": 289,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 66.7,
+          "fps": 59,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 82,
+          "gov": null
+        },
+        "shore": {
+          "frames": 122,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 111,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 86,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 148,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 21.2
+    },
+    "before-gpu-2-1b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 6.1,
+      "fallS": 12.7,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 82,
+      "longestTaskAllMs": 288,
+      "bands": {
+        "planet": {
+          "frames": 289,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 83.3,
+          "fps": 59,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 82,
+          "gov": null
+        },
+        "shore": {
+          "frames": 122,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 109,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 86,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 22.1
+    },
+    "before-gpu-2-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 23.8,
+      "fallS": 13,
+      "holdMs": 367,
+      "holdFrames": 22,
+      "longestTaskFallMs": 310,
+      "longestTaskAllMs": 977,
+      "bands": {
+        "planet": {
+          "frames": 273,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 316.6,
+          "fps": 55.2,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 310,
+          "gov": null
+        },
+        "shore": {
+          "frames": 130,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.5,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 117,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 84,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.3,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 136,
+          "p50": 16.7,
+          "p95": 33.4,
+          "max": 33.4,
+          "fps": 54.8,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 40.8
+    },
+    "before-gpu-2-4b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 24,
+      "fallS": 13,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 324,
+      "longestTaskAllMs": 963,
+      "bands": {
+        "planet": {
+          "frames": 272,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 333.3,
+          "fps": 55,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 324,
+          "gov": null
+        },
+        "shore": {
+          "frames": 132,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 33.4,
+          "fps": 59.1,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 115,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 82,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 50,
+          "fps": 57.9,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 54,
+          "gov": null
+        },
+        "dish": {
+          "frames": 136,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 54.8,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 50,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 44.1
+    },
+    "before-sw-1-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 9.3,
+      "fallS": 13.6,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 2056,
+      "longestTaskAllMs": 2056,
+      "bands": {
+        "planet": {
+          "frames": 11,
+          "p50": 333.2,
+          "p95": 2050,
+          "max": 2050,
+          "fps": 2.4,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 2056,
+          "gov": null
+        },
+        "shore": {
+          "frames": 7,
+          "p50": 400,
+          "p95": 833.2,
+          "max": 833.2,
+          "fps": 2.5,
+          "dcP50": 5,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 2,
+          "p50": 1049.9,
+          "p95": 1049.9,
+          "max": 1049.9,
+          "fps": 1.4,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 3,
+          "p50": 450,
+          "p95": 1216.5,
+          "max": 1216.5,
+          "fps": 1.8,
+          "dcP50": 9,
+          "dcMax": 12,
+          "longMs": 1221,
+          "gov": null
+        },
+        "dish": {
+          "frames": 5,
+          "p50": 800,
+          "p95": 966.7,
+          "max": 966.7,
+          "fps": 1.6,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 963,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 26
+    },
+    "before-sw-1-1b": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 9.7,
+      "fallS": 13.1,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 1057,
+      "longestTaskAllMs": 1057,
+      "bands": {
+        "planet": {
+          "frames": 11,
+          "p50": 349.9,
+          "p95": 1050,
+          "max": 1050,
+          "fps": 2.3,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 1057,
+          "gov": null
+        },
+        "shore": {
+          "frames": 5,
+          "p50": 383.3,
+          "p95": 883.3,
+          "max": 883.3,
+          "fps": 2.2,
+          "dcP50": 4,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 4,
+          "p50": 416.6,
+          "p95": 433.4,
+          "max": 433.4,
+          "fps": 2.5,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 5,
+          "p50": 449.9,
+          "p95": 749.9,
+          "max": 749.9,
+          "fps": 2.9,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 741,
+          "gov": null
+        },
+        "dish": {
+          "frames": 5,
+          "p50": 600.1,
+          "p95": 1116.6,
+          "max": 1116.6,
+          "fps": 1.9,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 897,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 29.8
+    },
+    "before-sw-2-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 11,
+      "fallS": 24.5,
+      "holdMs": 200,
+      "holdFrames": 10,
+      "longestTaskFallMs": 8485,
+      "longestTaskAllMs": 8485,
+      "bands": {
+        "shore": {
+          "frames": 20,
+          "p50": 16.7,
+          "p95": 8483,
+          "max": 8483,
+          "fps": 1.1,
+          "dcP50": 5,
+          "dcMax": 5,
+          "longMs": 8485,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 1,
+          "p50": 1266.7,
+          "p95": 1266.7,
+          "max": 1266.7,
+          "fps": 0.8,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "slime": {
+          "frames": 1,
+          "p50": 1399.9,
+          "p95": 1399.9,
+          "max": 1399.9,
+          "fps": 0.7,
+          "dcP50": 12,
+          "dcMax": 12,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 1,
+          "p50": 3399.8,
+          "p95": 3399.8,
+          "max": 3399.8,
+          "fps": 0.3,
+          "dcP50": 21,
+          "dcMax": 21,
+          "longMs": 3390,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 43.3
+    },
+    "before-sw-2-1b": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 9.6,
+      "fallS": 26,
+      "holdMs": 100,
+      "holdFrames": 6,
+      "longestTaskFallMs": 3875,
+      "longestTaskAllMs": 3875,
+      "bands": {
+        "planet": {
+          "frames": 2,
+          "p50": 3883.2,
+          "p95": 3883.2,
+          "max": 3883.2,
+          "fps": 0.5,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 3875,
+          "gov": null
+        },
+        "shore": {
+          "frames": 19,
+          "p50": 16.7,
+          "p95": 10649.6,
+          "max": 10649.6,
+          "fps": 1.3,
+          "dcP50": 4,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": null
+        },
+        "kelp+drop": {
+          "frames": 2,
+          "p50": 1250,
+          "p95": 1250,
+          "max": 1250,
+          "fps": 0.8,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": null
+        },
+        "dish": {
+          "frames": 2,
+          "p50": 3333.2,
+          "p95": 3333.2,
+          "max": 3333.2,
+          "fps": 0.4,
+          "dcP50": 21,
+          "dcMax": 21,
+          "longMs": 0,
+          "gov": null
+        }
+      },
+      "contexts": 3,
+      "totalS": 41.3
+    },
+    "final-gpu-1-1": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 6.1,
+      "fallS": 11.8,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 0,
+      "longestTaskAllMs": 291,
+      "bands": {
+        "planet": {
+          "frames": 293,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "shore": {
+          "frames": 106,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "kelp+drop": {
+          "frames": 73,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "slime": {
+          "frames": 86,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": [1, 1]
+        }
+      },
+      "contexts": 3,
+      "totalS": 22
+    },
+    "final-gpu-1-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 23.6,
+      "fallS": 12.1,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 135,
+      "longestTaskAllMs": 997,
+      "bands": {
+        "planet": {
+          "frames": 286,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 166.7,
+          "fps": 57.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 135,
+          "gov": [1, 1]
+        },
+        "shore": {
+          "frames": 114,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.5,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "kelp+drop": {
+          "frames": 79,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "slime": {
+          "frames": 84,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 58.6,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "dish": {
+          "frames": 132,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 53.5,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 56,
+          "gov": [0.84, 1]
+        }
+      },
+      "contexts": 3,
+      "totalS": 44.2
+    },
+    "final-gpu-2-1": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 6.1,
+      "fallS": 12.6,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 94,
+      "longestTaskAllMs": 290,
+      "bands": {
+        "planet": {
+          "frames": 290,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 83.3,
+          "fps": 59,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 94,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 120,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 107,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "slime": {
+          "frames": 86,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        }
+      },
+      "contexts": 3,
+      "totalS": 22.1
+    },
+    "final-gpu-2-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 23.9,
+      "fallS": 12.9,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 271,
+      "longestTaskAllMs": 973,
+      "bands": {
+        "planet": {
+          "frames": 274,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 300,
+          "fps": 55.5,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 271,
+          "gov": [1.41, 1.5]
+        },
+        "shore": {
+          "frames": 130,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 58.2,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.19, 1.41]
+        },
+        "kelp+drop": {
+          "frames": 110,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.19, 1.41]
+        },
+        "slime": {
+          "frames": 82,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 57.9,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1.41, 1.41]
+        },
+        "dish": {
+          "frames": 135,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 54.4,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 51,
+          "gov": [1.19, 1.41]
+        }
+      },
+      "contexts": 3,
+      "totalS": 44.2
+    },
+    "final-sw-1-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 10,
+      "fallS": 14.2,
+      "holdMs": 67,
+      "holdFrames": 1,
+      "longestTaskFallMs": 1017,
+      "longestTaskAllMs": 1017,
+      "bands": {
+        "planet": {
+          "frames": 12,
+          "p50": 333.3,
+          "p95": 1016.6,
+          "max": 1016.6,
+          "fps": 2.5,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 1017,
+          "gov": [0.35, 1]
+        },
+        "shore": {
+          "frames": 5,
+          "p50": 416.7,
+          "p95": 1283.2,
+          "max": 1283.2,
+          "fps": 2,
+          "dcP50": 4,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "kelp+drop": {
+          "frames": 13,
+          "p50": 83.4,
+          "p95": 1050,
+          "max": 1050,
+          "fps": 5.3,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "slime": {
+          "frames": 12,
+          "p50": 83.4,
+          "p95": 316.7,
+          "max": 316.7,
+          "fps": 8.8,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 320,
+          "gov": [0.35, 0.35]
+        },
+        "dish": {
+          "frames": 37,
+          "p50": 66.6,
+          "p95": 216.7,
+          "max": 733.3,
+          "fps": 11.9,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 81,
+          "gov": [0.35, 0.35]
+        }
+      },
+      "contexts": 3,
+      "totalS": 28.8
+    },
+    "final-sw-1-1b": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 830,
+        "h": 467
+      },
+      "loadToPlayS": 10,
+      "fallS": 14,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 1086,
+      "longestTaskAllMs": 1086,
+      "bands": {
+        "planet": {
+          "frames": 11,
+          "p50": 349.9,
+          "p95": 1083.2,
+          "max": 1083.2,
+          "fps": 2.3,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 1086,
+          "gov": [0.35, 1]
+        },
+        "shore": {
+          "frames": 5,
+          "p50": 383.3,
+          "p95": 866.6,
+          "max": 866.6,
+          "fps": 2,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "kelp+drop": {
+          "frames": 12,
+          "p50": 100,
+          "p95": 800,
+          "max": 800,
+          "fps": 5.3,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "slime": {
+          "frames": 10,
+          "p50": 116.7,
+          "p95": 416.7,
+          "max": 416.7,
+          "fps": 7.5,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 429,
+          "gov": [0.35, 0.35]
+        },
+        "dish": {
+          "frames": 35,
+          "p50": 50,
+          "p95": 216.6,
+          "max": 683.3,
+          "fps": 11.4,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 89,
+          "gov": [0.35, 0.35]
+        }
+      },
+      "contexts": 3,
+      "totalS": 28.9
+    },
+    "final-sw-2-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 10.3,
+      "fallS": 31.3,
+      "holdMs": 117,
+      "holdFrames": 4,
+      "longestTaskFallMs": 3221,
+      "longestTaskAllMs": 3221,
+      "bands": {
+        "planet": {
+          "frames": 2,
+          "p50": 1666.6,
+          "p95": 1666.6,
+          "max": 1666.6,
+          "fps": 1.2,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 1667,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 22,
+          "p50": 16.7,
+          "p95": 999.9,
+          "max": 15566,
+          "fps": 1.2,
+          "dcP50": 3,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 4,
+          "p50": 1933.3,
+          "p95": 3216.5,
+          "max": 3216.5,
+          "fps": 0.7,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 3221,
+          "gov": [0.35, 0.35]
+        },
+        "slime": {
+          "frames": 1,
+          "p50": 983.3,
+          "p95": 983.3,
+          "max": 983.3,
+          "fps": 1,
+          "dcP50": 13,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "dish": {
+          "frames": 3,
+          "p50": 2000,
+          "p95": 2599.9,
+          "max": 2599.9,
+          "fps": 0.6,
+          "dcP50": 21,
+          "dcMax": 21,
+          "longMs": 2604,
+          "gov": [0.35, 0.35]
+        }
+      },
+      "contexts": 3,
+      "totalS": 47.9
+    },
+    "final-sw-2-1b": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 1660,
+        "h": 934
+      },
+      "loadToPlayS": 13.7,
+      "fallS": 32.8,
+      "holdMs": 4717,
+      "holdFrames": 12,
+      "longestTaskFallMs": 3219,
+      "longestTaskAllMs": 3219,
+      "bands": {
+        "planet": {
+          "frames": 2,
+          "p50": 2616.5,
+          "p95": 2616.5,
+          "max": 2616.5,
+          "fps": 0.8,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 2621,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 23,
+          "p50": 16.7,
+          "p95": 2616.6,
+          "max": 11799.5,
+          "fps": 1.3,
+          "dcP50": 3,
+          "dcMax": 5,
+          "longMs": 2607,
+          "gov": [1.19, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 4,
+          "p50": 1599.9,
+          "p95": 3216.5,
+          "max": 3216.5,
+          "fps": 0.7,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 3219,
+          "gov": [1.19, 1.41]
+        },
+        "slime": {
+          "frames": 1,
+          "p50": 1949.9,
+          "p95": 1949.9,
+          "max": 1949.9,
+          "fps": 0.5,
+          "dcP50": 9,
+          "dcMax": 9,
+          "longMs": 0,
+          "gov": [1.41, 1.41]
+        },
+        "dish": {
+          "frames": 2,
+          "p50": 1933.3,
+          "p95": 1933.3,
+          "max": 1933.3,
+          "fps": 0.5,
+          "dcP50": 21,
+          "dcMax": 21,
+          "longMs": 1749,
+          "gov": [0.35, 0.35]
+        }
+      },
+      "contexts": 3,
+      "totalS": 54.4
+    },
+    "r2-gpu-1-1": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "rest": {
+        "seconds": 2.7,
+        "ratioAtArrival": 1,
+        "changes": [],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 6,
+      "fallS": 11.8,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 0,
+      "longestTaskAllMs": 291,
+      "bands": {
+        "planet": {
+          "frames": 294,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 33.4,
+          "fps": 59.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "shore": {
+          "frames": 108,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "kelp+drop": {
+          "frames": 74,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "slime": {
+          "frames": 85,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": [1, 1]
+        }
+      },
+      "contexts": 3,
+      "totalS": 22.1
+    },
+    "r2-gpu-1-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "rest": {
+        "seconds": 64.8,
+        "ratioAtArrival": 1,
+        "changes": [],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 23.7,
+      "fallS": 12.1,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 139,
+      "longestTaskAllMs": 1003,
+      "bands": {
+        "planet": {
+          "frames": 287,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 150,
+          "fps": 58,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 139,
+          "gov": [1, 1]
+        },
+        "shore": {
+          "frames": 117,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "kelp+drop": {
+          "frames": 78,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.2,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "slime": {
+          "frames": 84,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 59.3,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "dish": {
+          "frames": 135,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 49.9,
+          "fps": 54.4,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 52,
+          "gov": [1, 1]
+        }
+      },
+      "contexts": 3,
+      "totalS": 104.7
+    },
+    "r2-gpu-1-4b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 1,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 830,
+        "h": 467
+      },
+      "rest": {
+        "seconds": 65.1,
+        "ratioAtArrival": 1,
+        "changes": [],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 23.5,
+      "fallS": 12.1,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 137,
+      "longestTaskAllMs": 1000,
+      "bands": {
+        "planet": {
+          "frames": 286,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 150,
+          "fps": 57.8,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 137,
+          "gov": [1, 1]
+        },
+        "shore": {
+          "frames": 113,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.3,
+          "fps": 59.5,
+          "dcP50": 4,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "kelp+drop": {
+          "frames": 80,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "slime": {
+          "frames": 83,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 58.6,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1, 1]
+        },
+        "dish": {
+          "frames": 135,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 54.4,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 54,
+          "gov": [1, 1]
+        }
+      },
+      "contexts": 3,
+      "totalS": 104.7
+    },
+    "r2-gpu-2-1": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "rest": {
+        "seconds": 1.8,
+        "ratioAtArrival": 1.5,
+        "changes": [[17, 2]],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 6.2,
+      "fallS": 12.6,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 82,
+      "longestTaskAllMs": 293,
+      "bands": {
+        "planet": {
+          "frames": 291,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 83.3,
+          "fps": 59.2,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 82,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 120,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 106,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "slime": {
+          "frames": 86,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "dish": {
+          "frames": 149,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        }
+      },
+      "contexts": 3,
+      "totalS": 22
+    },
+    "r2-gpu-2-4": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "rest": {
+        "seconds": 63.8,
+        "ratioAtArrival": 1.5,
+        "changes": [[17, 2]],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 24,
+      "fallS": 12.9,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 307,
+      "longestTaskAllMs": 1036,
+      "bands": {
+        "planet": {
+          "frames": 271,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 316.7,
+          "fps": 54.7,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 307,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 129,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 59.5,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 111,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "slime": {
+          "frames": 83,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 50,
+          "fps": 57.9,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "dish": {
+          "frames": 134,
+          "p50": 16.7,
+          "p95": 33.3,
+          "max": 50,
+          "fps": 54.3,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 52,
+          "gov": [1.5, 1.5]
+        }
+      },
+      "contexts": 3,
+      "totalS": 104.9
+    },
+    "r2-gpu-2-4b": {
+      "mode": "fall",
+      "gl": "gpu",
+      "dpr": 2,
+      "throttle": 4,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+        "w": 1660,
+        "h": 934
+      },
+      "rest": {
+        "seconds": 63.6,
+        "ratioAtArrival": 1.5,
+        "changes": [[17, 2]],
+        "p50": 16.7,
+        "p99": 16.8
+      },
+      "loadToPlayS": 24.2,
+      "fallS": 12.9,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 315,
+      "longestTaskAllMs": 1031,
+      "bands": {
+        "planet": {
+          "frames": 273,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 333.3,
+          "fps": 55.3,
+          "dcP50": 2,
+          "dcMax": 3,
+          "longMs": 315,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 130,
+          "p50": 16.7,
+          "p95": 16.7,
+          "max": 33.4,
+          "fps": 59.1,
+          "dcP50": 5,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 112,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 16.8,
+          "fps": 60,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "slime": {
+          "frames": 83,
+          "p50": 16.7,
+          "p95": 16.8,
+          "max": 33.4,
+          "fps": 58.6,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "dish": {
+          "frames": 133,
+          "p50": 16.7,
+          "p95": 33.4,
+          "max": 50,
+          "fps": 53.6,
+          "dcP50": 21,
+          "dcMax": 23,
+          "longMs": 55,
+          "gov": [1.5, 1.5]
+        }
+      },
+      "contexts": 3,
+      "totalS": 104.8
+    },
+    "r2-sw-1-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 1,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 830,
+        "h": 467
+      },
+      "rest": {
+        "seconds": 2.9,
+        "ratioAtArrival": 0.35,
+        "changes": [],
+        "p50": 83.2,
+        "p99": 233.3
+      },
+      "loadToPlayS": 9.3,
+      "fallS": 14.1,
+      "holdMs": 0,
+      "holdFrames": 0,
+      "longestTaskFallMs": 1500,
+      "longestTaskAllMs": 1500,
+      "bands": {
+        "planet": {
+          "frames": 11,
+          "p50": 316.6,
+          "p95": 1499.9,
+          "max": 1499.9,
+          "fps": 2.4,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 1500,
+          "gov": [0.35, 1]
+        },
+        "shore": {
+          "frames": 6,
+          "p50": 583.3,
+          "p95": 799.9,
+          "max": 799.9,
+          "fps": 2,
+          "dcP50": 5,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "kelp+drop": {
+          "frames": 10,
+          "p50": 100,
+          "p95": 816.6,
+          "max": 816.6,
+          "fps": 5.2,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [0.35, 0.35]
+        },
+        "slime": {
+          "frames": 13,
+          "p50": 83.4,
+          "p95": 316.6,
+          "max": 316.6,
+          "fps": 8.7,
+          "dcP50": 12,
+          "dcMax": 13,
+          "longMs": 319,
+          "gov": [0.35, 0.35]
+        },
+        "dish": {
+          "frames": 36,
+          "p50": 66.6,
+          "p95": 183.3,
+          "max": 683.4,
+          "fps": 11.6,
+          "dcP50": 23,
+          "dcMax": 23,
+          "longMs": 178,
+          "gov": [0.35, 0.35]
+        }
+      },
+      "contexts": 3,
+      "totalS": 28.7
+    },
+    "r2-sw-2-1": {
+      "mode": "fall",
+      "gl": "sw",
+      "dpr": 2,
+      "throttle": 1,
+      "W": 1280,
+      "H": 800,
+      "renderer": {
+        "r": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "w": 1660,
+        "h": 934
+      },
+      "rest": {
+        "seconds": 3,
+        "ratioAtArrival": 0.35,
+        "changes": [],
+        "p50": 933.4,
+        "p99": 2033.3
+      },
+      "loadToPlayS": 11.7,
+      "fallS": 25.9,
+      "holdMs": 233,
+      "holdFrames": 10,
+      "longestTaskFallMs": 2497,
+      "longestTaskAllMs": 2497,
+      "bands": {
+        "planet": {
+          "frames": 2,
+          "p50": 2499.9,
+          "p95": 2499.9,
+          "max": 2499.9,
+          "fps": 0.8,
+          "dcP50": 2,
+          "dcMax": 2,
+          "longMs": 2497,
+          "gov": [1.5, 1.5]
+        },
+        "shore": {
+          "frames": 22,
+          "p50": 16.7,
+          "p95": 2516.6,
+          "max": 12316.1,
+          "fps": 1.3,
+          "dcP50": 3,
+          "dcMax": 5,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "frames": 2,
+          "p50": 983.3,
+          "p95": 983.3,
+          "max": 983.3,
+          "fps": 1.1,
+          "dcP50": 6,
+          "dcMax": 6,
+          "longMs": 0,
+          "gov": [1.5, 1.5]
+        },
+        "dish": {
+          "frames": 2,
+          "p50": 2516.6,
+          "p95": 2516.6,
+          "max": 2516.6,
+          "fps": 0.4,
+          "dcP50": 23,
+          "dcMax": 23,
+          "longMs": 2014,
+          "gov": [0.35, 1.5]
+        }
+      },
+      "contexts": 3,
+      "totalS": 43.1
+    }
+  }
+}

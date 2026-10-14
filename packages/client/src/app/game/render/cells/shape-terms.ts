@@ -263,6 +263,6 @@ export function buildShapeTerms(input: ShapeTermsInput): ShapeTerms {
     bumps: assignBumpSlots(formBumps(input)),
   };
   const withHalo = maxReachRadii(terms, haloOuterRadii);
-  const maxRadii = reachWithFormAppendages(traits.form, withHalo, withHalo / haloOuterRadii);
+  const maxRadii = reachWithFormAppendages(traits, withHalo, withHalo / haloOuterRadii);
   return { ...terms, haloOuterRadii, maxRadii, isSprinting };
 }

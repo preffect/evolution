@@ -2,7 +2,7 @@
 // pixel ratio, the dark field as the clear colour, sized to the host. The one file that creates
 // a Pixi `Application`; the ticker is the frame source, the orchestrator does the rest.
 
-import { Application, RenderTexture, Texture } from 'pixi.js';
+import { Application, RenderTexture, Texture, type Container } from 'pixi.js';
 import { BG_DEEP, RENDER_WARM_UP_TARGET_PX } from './constants';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
@@ -17,6 +17,11 @@ export interface PixiAppOptions {
   readonly fixedSize?: { readonly width: number; readonly height: number };
   /** Keeps the back buffer readable (`canvas.toDataURL` in the smoke); a copy per frame, so dev builds only. */
   readonly shouldPreserveDrawingBuffer: boolean;
+  /**
+   * Clears to transparent instead of the dark field, so what the page draws under the canvas shows through: the
+   * opening dive's upper bands (docs/rendering/opening-dive.md §1).
+   */
+  readonly isTransparent?: boolean;
 }
 
 export interface PixiAppHandle {
@@ -31,6 +36,11 @@ export interface PixiAppHandle {
    */
   resize(sizePx: { readonly width: number; readonly height: number }): void;
   /**
+   * Renders at `resolution` device px per CSS px from the next frame, the CSS size kept: the opening dive's resolution
+   * governor (docs/rendering/opening-dive.md §6). The back buffer is made again, so a caller changes it rarely.
+   */
+  setResolution(resolution: number): void;
+  /**
    * Points the shaders Pixi keeps for the app's lifetime back at a built-in texture. The particle pipe's one shader
    * still holds the last `ParticleContainer`'s texture after the container is gone, so destroying that texture
    * first logs `[BindGroup] a 'textureSource' was destroyed while still bound` (ticket #503). Runs before a bundle
@@ -40,6 +50,11 @@ export interface PixiAppHandle {
   unbindTextures(): void;
   /** Uploads a texture source and renders a container off screen: a staged renderer's warm-up (ticket #603). */
   readonly warmUp: RendererWarmUpSeam;
+  /**
+   * Draws `container` into `target`, cleared first: a layer rendered at its own resolution, as the opening dive's
+   * planet is (docs/rendering/opening-dive.md §4).
+   */
+  renderToTexture(container: Container, target: RenderTexture): void;
   destroy(): void;
 }
 
@@ -66,6 +81,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
   const app = new Application();
   await app.init({
     background: BG_DEEP,
+    backgroundAlpha: options.isTransparent === true ? 0 : 1,
     resolution: options.devicePixelRatio,
     autoDensity: true,
     antialias: false,
@@ -85,10 +101,16 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     resize: (sizePx) => {
       app.renderer.resize(sizePx.width, sizePx.height);
     },
+    setResolution: (resolution) => {
+      app.renderer.resolution = resolution;
+    },
     unbindTextures: () => {
       app.renderer.renderPipes.particle.defaultShader.resources['uTexture'] = Texture.WHITE.source;
     },
     warmUp: createWarmUpSeam(app),
+    renderToTexture: (container, target) => {
+      app.renderer.render({ container, target, clear: true });
+    },
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

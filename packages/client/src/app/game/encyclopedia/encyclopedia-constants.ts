@@ -48,6 +48,16 @@ export const ENCYCLOPEDIA_LENS_DIAMETER_PX = 300;
 /** The lens to the title column. */
 export const ENCYCLOPEDIA_LENS_GAP_PX = 32;
 
+/**
+ * The narrowest the title column may be beside the lens (§11.4, #854). Where the content column cannot give it this
+ * much — under `ENCYCLOPEDIA_LENS_DIAMETER_PX` + `ENCYCLOPEDIA_LENS_GAP_PX` + this, 692 units, which a viewport under
+ * 1024 × 640 is — the title column wraps under the lens and takes the content column's full width. The widest facts
+ * table beside a lens needs 340 since #858, its effect marks included (Amoeba Pseudopods' Effects by tier; it was
+ * Mass and size's 343 at #854), and the column is 370 at the reference sizes, so this sits between the two: every
+ * reference layout keeps the lens beside the title.
+ */
+export const ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX = 360;
+
 /** The lens rim, in `PANEL_RIM`; the eyepiece wears it whether or not a scene is under it. */
 export const ENCYCLOPEDIA_LENS_RIM_PX = 6;
 
@@ -132,20 +142,27 @@ export const ENCYCLOPEDIA_CRUMB_SEPARATOR = '›';
 /** The sticky title bar of a scrolled entry: the breadcrumb over the title (§11.4, *Long entries scroll*). */
 export const ENCYCLOPEDIA_STICKY_TITLE_HEIGHT_PX = 48;
 
+/** The accent rule down the left of the real-life note (§11.4): the one block on the page drawn as a field note. */
+export const ENCYCLOPEDIA_REAL_LIFE_RULE_PX = 3;
+
 /** The prose measure: about 90 characters of `body` (§11.4). */
 export const ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX = 640;
 
 /**
- * A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). The height holds the well, the one-line
- * title and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines: a fact reads `<name>: <value>`, and at one line
- * the name spent the characters the value needed, cutting 30 of 78 tiles mid-value (#462).
+ * A landing tile, and the well it leads with (docs/ui/encyclopedia.md §11.3). The height holds the well, a title of up
+ * to `ENCYCLOPEDIA_TILE_TITLE_LINES` lines and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines: a fact reads
+ * `<name>: <value>`, and at one line the name spent the characters the value needed, cutting 30 of 78 tiles mid-value
+ * (#462); a one-line title cut `Photosynthetic bacterium` at every size (#847).
  */
 export const ENCYCLOPEDIA_TILE_WIDTH_PX = 168;
-export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 152;
+export const ENCYCLOPEDIA_TILE_HEIGHT_PX = 172;
 export const ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX = 96;
-/** The lines a tile's fact may wrap to before it ends in an ellipsis, and the line height it wraps at. */
+/** The lines a tile's title may wrap to before it ends in an ellipsis. */
+export const ENCYCLOPEDIA_TILE_TITLE_LINES = 2;
+/** The lines a tile's fact may wrap to before it ends in an ellipsis. */
 export const ENCYCLOPEDIA_TILE_FACT_LINES = 2;
-export const ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT = 1.2;
+/** The line height the caption's title and fact wrap at. */
+export const ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT = 1.2;
 
 /** The callout-backing scrim behind the panel in a round: the dish keeps running, faintly, under it. */
 export const ENCYCLOPEDIA_SCRIM_ALPHA = 0.8;
@@ -178,6 +195,10 @@ export const ENCYCLOPEDIA_FACTS_TABLE_LABEL = 'Facts';
 /** The See also header, over the link chips (§11.4). */
 export const ENCYCLOPEDIA_SEE_ALSO_LABEL = 'See also';
 
+/** The real-life note's header, and the word before the real size inside it (§11.4). */
+export const ENCYCLOPEDIA_REAL_LIFE_LABEL = 'In real life';
+export const ENCYCLOPEDIA_REAL_SIZE_LABEL = 'Real size';
+
 /** `You own II`: the caption over the noun column of the Effects by tier table, before the owned tier's numeral. */
 export const ENCYCLOPEDIA_TIER_CAPTION_PREFIX = 'You own ';
 
@@ -187,6 +208,10 @@ export const ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR = ' · ';
 
 /** What a tier column shows where that tier leaves the row's modifier at identity (§11.4). */
 export const ENCYCLOPEDIA_TIER_IDENTITY_TEXT = '—';
+
+/** `In sunlight (mass / s)`: around the unit a tier row's name carries for its bare figures (§11.4, #858). */
+export const ENCYCLOPEDIA_TIER_UNIT_OPEN = ' (';
+export const ENCYCLOPEDIA_TIER_UNIT_CLOSE = ')';
 
 /** The list header while a search is running, where no one category is selected (§11.5). */
 export const ENCYCLOPEDIA_RESULTS_LABEL = 'Results';

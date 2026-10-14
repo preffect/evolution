@@ -17,6 +17,8 @@ export const RANDOM_STREAM = {
   wildCells: 'wild_cells',
   /** Spit-out rolls: one draw per tick per wrapped or sealed prey whose `spitOutChancePerSecond` > 0 (ecology/absorption.md §6.1). */
   engulf: 'engulf',
+  /** Giant cells: born masses, placement candidates, wander headings and turn rolls (ecology/giants.md §3.5.9). */
+  giants: 'giants',
   /** Client only, never on the server: wobble and particles. */
   cosmetic: 'cosmetic',
 } as const;
@@ -48,6 +50,8 @@ export const COSMETIC_SUB_STREAM = {
   bench: 'bench',
   /** The encyclopedia preview scenes' specs: the seeded mote and fragment clusters (docs/architecture/encyclopedia.md §12.7, #363). */
   preview: 'preview',
+  /** The opening dive's dish scene: its seeded bacteria and motes (docs/rendering/opening-dive.md §4, #797). */
+  dive: 'dive',
 } as const;
 
 export type RandomStreamLabel = (typeof RANDOM_STREAM)[keyof typeof RANDOM_STREAM];
@@ -69,6 +73,7 @@ export const SERVER_RANDOM_STREAM_LABELS: readonly ServerRandomStreamLabel[] = [
   RANDOM_STREAM.moteMotion,
   RANDOM_STREAM.wildCells,
   RANDOM_STREAM.engulf,
+  RANDOM_STREAM.giants,
 ];
 
 /** Every label in declared order: the server streams, then the client's `cosmetic` stream. */

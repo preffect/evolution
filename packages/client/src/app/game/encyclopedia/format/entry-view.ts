@@ -1,9 +1,18 @@
-// The entry page's view model (docs/ui/encyclopedia.md §11.4), pure: the title column's chips, the two facts tables
-// and the prose's paragraphs. Every number it shows is already formatted — a `ResolvedEntry` holds text, not values
-// (architecture/encyclopedia.md §12.2) — so nothing here calls `formatQuantity` except on the one figure the page
-// owns itself, the tier numeral, which §11.4 names as a `formatQuantity` call.
+// The entry page's view model (docs/ui/encyclopedia.md §11.4), pure: the title column's chips, the facts table (the
+// Effects by tier table is `tier-table.ts`'s, from the sections and numerals here) and the prose's paragraphs. Every
+// number it shows is already formatted — a `ResolvedEntry` holds text, not values (architecture/encyclopedia.md
+// §12.2) — so nothing here calls `formatQuantity` except on the one figure the page owns itself, the tier numeral,
+// which §11.4 names as a `formatQuantity` call.
 
-import type { OwnedTrait, TraitRarity, TraitTier } from '@evolution/shared';
+import {
+  GIANT_ROLE,
+  GIANT_ROLE_BY_SPECIES,
+  type GiantRole,
+  type GiantSpecies,
+  type OwnedTrait,
+  type TraitRarity,
+  type TraitTier,
+} from '@evolution/shared';
 import { UI_CHIP_TONE, type UiChipTone } from '../../../ui-kit/ui-chip.component';
 import type { UiFactRow } from '../../../ui-kit/ui-facts-table.component';
 import type { ModifierEffect } from '../../quantities/modifier-labels';
@@ -16,12 +25,11 @@ import {
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR,
   ENCYCLOPEDIA_PREVIEW_REPLAY_LABEL,
-  ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
-  ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
 } from '../encyclopedia-constants';
 import type { PreviewActionScene, PreviewScene, PreviewSpec } from '../../render/preview/preview-spec';
 import type { EntryLink, ProseSegment, ResolvedFact, ResolvedSection, ResolvedSubject } from '../model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, entryIdOf, type EntryId } from '../model/entry-id';
+import { GIANT_ROLE_LABEL } from '../model/giant-roles';
 import { PROSE_TOKEN } from '../model/prose';
 
 /** The registry's title of an entry, passed in so this file stays pure (`facts/resolve-fact.ts`'s `TitleOf`). */
@@ -32,6 +40,13 @@ const CHIP_TONE_BY_RARITY: Readonly<Record<TraitRarity, UiChipTone>> = {
   common: UI_CHIP_TONE.muted,
   uncommon: UI_CHIP_TONE.strong,
   rare: UI_CHIP_TONE.dna,
+};
+
+/** A giant's role chip (§11.4): the hunter, the one that eats you, in the danger tone; the other two neutral. */
+const CHIP_TONE_BY_GIANT_ROLE: Readonly<Record<GiantRole, UiChipTone>> = {
+  [GIANT_ROLE.hunter]: UI_CHIP_TONE.danger,
+  [GIANT_ROLE.grazer]: UI_CHIP_TONE.neutral,
+  [GIANT_ROLE.drifter]: UI_CHIP_TONE.neutral,
 };
 
 /** A title-column chip (§11.4): sized to its text, wrapping within the column. */
@@ -55,6 +70,11 @@ export function ownedTierOf(ownedTraits: readonly OwnedTrait[], subject: Resolve
   return ownedTraits.find((owned) => owned.traitId === subject.traitId)?.tier ?? null;
 }
 
+/** A chip with no dot: every chip but a DNA tag's. */
+function plainChip(key: string, text: string, tone: UiChipTone = UI_CHIP_TONE.neutral): EncyclopediaChip {
+  return { key, text, tone, dotColour: null };
+}
+
 function traitChips(
   subject: Extract<ResolvedSubject, { kind: typeof ENTRY_SUBJECT.trait }>,
   titleOf: TitleOf,
@@ -66,41 +86,34 @@ function traitChips(
     dotColour: DNA_TAG_COLOR[tag],
   }));
   return [
-    { key: subject.rarity, text: subject.rarity, tone: CHIP_TONE_BY_RARITY[subject.rarity], dotColour: null },
+    plainChip(subject.rarity, subject.rarity, CHIP_TONE_BY_RARITY[subject.rarity]),
     ...tags,
-    {
-      key: subject.stage,
-      text: titleOf(entryIdOf(ENTRY_SUBJECT.stage, subject.stage)),
-      tone: UI_CHIP_TONE.neutral,
-      dotColour: null,
-    },
+    plainChip(subject.stage, titleOf(entryIdOf(ENTRY_SUBJECT.stage, subject.stage))),
   ];
+}
+
+/** The kind chip every subject but a trait wears, and a giant's role beside it. */
+function subjectChips(subject: Exclude<ResolvedSubject, { kind: typeof ENTRY_SUBJECT.trait }>): EncyclopediaChip[] {
+  const kindChip = plainChip(subject.kind, ENTRY_SUBJECT_LABEL[subject.kind]);
+  if (subject.kind !== ENTRY_SUBJECT.giant) return [kindChip];
+  const role = GIANT_ROLE_BY_SPECIES[subject.codeId as GiantSpecies];
+  return [kindChip, plainChip(role, GIANT_ROLE_LABEL[role], CHIP_TONE_BY_GIANT_ROLE[role])];
 }
 
 /**
  * The chips under the title (§11.4): a trait's rarity, its DNA tags and its stage, then `OWNED · II` in level gold
  * while a round has it. Every other subject wears the one kind chip, which is what keeps its page from opening on a
- * title with nothing under it.
+ * title with nothing under it, and a giant its role beside it (`Hunter`, `Grazer`, `Drifter`).
  */
 export function entryChips(
   subject: ResolvedSubject,
   ownedTier: TraitTier | null,
   titleOf: TitleOf,
 ): readonly EncyclopediaChip[] {
-  const chips =
-    subject.kind === ENTRY_SUBJECT.trait
-      ? traitChips(subject, titleOf)
-      : [
-          {
-            key: subject.kind,
-            text: ENTRY_SUBJECT_LABEL[subject.kind],
-            tone: UI_CHIP_TONE.neutral,
-            dotColour: null,
-          },
-        ];
+  const chips = subject.kind === ENTRY_SUBJECT.trait ? traitChips(subject, titleOf) : subjectChips(subject);
   if (ownedTier === null) return chips;
   const text = `${ENCYCLOPEDIA_OWNED_CHIP_LABEL}${ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR}${tierNumeral(ownedTier)}`;
-  return [...chips, { key: ENCYCLOPEDIA_OWNED_CHIP_LABEL, text, tone: UI_CHIP_TONE.gold, dotColour: null }];
+  return [...chips, plainChip(ENCYCLOPEDIA_OWNED_CHIP_LABEL, text, UI_CHIP_TONE.gold)];
 }
 
 /** A facts row with the links its value is made of; the kit draws them through `ng-template[uiFactValue]`. */
@@ -112,7 +125,7 @@ export interface EncyclopediaFactRow extends UiFactRow {
 }
 
 /** Shared by every plain value row, so a row's identity does not change with each rebuild. */
-const NO_FACT_LINKS: readonly EntryLink[] = [];
+export const NO_FACT_LINKS: readonly EntryLink[] = [];
 
 function factRowOf(run: readonly ResolvedFact[], rowId: string): EncyclopediaFactRow {
   const [first] = run;
@@ -140,42 +153,13 @@ export function factRowsFor(facts: readonly ResolvedFact[]): readonly Encycloped
   return rows;
 }
 
-/** The Effects by tier table (§11.4): one column per `tier_n` section, one row per modifier key any of them sets. */
-export interface EncyclopediaTierTable {
-  /** `You own II`, or empty outside a round: the header cell over the noun column. */
-  readonly caption: string;
-  /** The tier numerals, in tier order. */
-  readonly columns: readonly string[];
-  /** Plain value rows: a tier's effect is a figure, never a link, so every row's `links` is empty. */
-  readonly rows: readonly EncyclopediaFactRow[];
-  /** The owned tier's column, tinted accent; `null` when the round does not have the trait. */
-  readonly highlightColumn: number | null;
-}
-
-/**
- * A modifier's noun as the tier table writes it: §11.4's `Mass decay`, from the `mass decay` the trait cards read
- * inside a sentence (`+15 % speed`). One place, so the two never drift into two spellings of one effect.
- */
-export function factNameFromNoun(noun: string): string {
-  return `${noun.slice(0, 1).toUpperCase()}${noun.slice(1)}`;
-}
-
-/** The union of the modifier keys the tier sections carry, in the order the sections first name each one. */
-function modifierKeysOf(sections: readonly ResolvedSection[]): readonly ResolvedFact[] {
-  const byKey = new Map<string, ResolvedFact>();
-  for (const section of sections) {
-    for (const fact of section.facts) if (!byKey.has(fact.key)) byKey.set(fact.key, fact);
-  }
-  return [...byKey.values()];
-}
-
 /** A tier section with the tier its key names: the shape both the tier table and the lens's tier switch are built of. */
-interface TierSection {
+export interface TierSection {
   readonly section: ResolvedSection;
   readonly tier: TraitTier;
 }
 
-function tierSectionsOf(sections: readonly ResolvedSection[]): readonly TierSection[] {
+export function tierSectionsOf(sections: readonly ResolvedSection[]): readonly TierSection[] {
   return sections
     .map((section) => ({ section, tier: tierOfSectionKey(section.key) }))
     .filter((column): column is TierSection => column.tier !== null);
@@ -212,35 +196,6 @@ export function tierSwitchFor(
   return {
     segments: tiers.map(({ section, tier }) => ({ tier, numeral: tierNumeral(tier), preview: section.preview })),
     defaultTier: (owned ?? firstTier).tier,
-  };
-}
-
-/**
- * The tier table, or `null` for an entry with no tier section — which is every entry but a trait, and a trait whose
- * tiers all sit at identity, where §11.4 says a table with no rows is left out rather than drawn empty.
- */
-export function tierTableFor(
-  sections: readonly ResolvedSection[],
-  ownedTier: TraitTier | null,
-): EncyclopediaTierTable | null {
-  const tiers = tierSectionsOf(sections);
-  const rows: EncyclopediaFactRow[] = modifierKeysOf(tiers.map((column) => column.section)).map((fact) => ({
-    rowId: fact.key,
-    name: factNameFromNoun(fact.label),
-    values: tiers.map(
-      (column) =>
-        column.section.facts.find((tierFact) => tierFact.key === fact.key)?.text ?? ENCYCLOPEDIA_TIER_IDENTITY_TEXT,
-    ),
-    effects: tiers.map((column) => column.section.facts.find((tierFact) => tierFact.key === fact.key)?.effect ?? null),
-    links: NO_FACT_LINKS,
-  }));
-  if (rows.length === 0) return null;
-  const ownedColumn = tiers.findIndex((column) => column.tier === ownedTier);
-  return {
-    caption: ownedTier === null ? '' : `${ENCYCLOPEDIA_TIER_CAPTION_PREFIX}${tierNumeral(ownedTier)}`,
-    columns: tiers.map((column) => tierNumeral(column.tier)),
-    rows,
-    highlightColumn: ownedColumn < 0 ? null : ownedColumn,
   };
 }
 

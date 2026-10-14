@@ -14,6 +14,7 @@ import {
   searchEntries,
   type SearchableEntry,
 } from './search';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const EVOLUTIONS: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.evolutions;
 const ENTITIES: EncyclopediaCategory = ENCYCLOPEDIA_CATEGORY.entities;
@@ -44,6 +45,10 @@ describe('foldForSearch', () => {
     // `œ` survives on purpose: NFD decomposes accents but not ligatures or stroked letters, so `œ`, `æ`, `ß` and `ø`
     // stay as typed and `oeil` will not find `Œil`. A stated limit, not an accident — see `foldForSearch`.
     expect(foldForSearch('Über Ångström œil')).toBe('uber angstrom œil');
+  });
+
+  it('reads the no-break space inside a formatted quantity as the space a query is typed with (#858)', () => {
+    expect(foldForSearch(unbroken('20 mass'))).toBe(foldForSearch('20 mass'));
   });
 });
 

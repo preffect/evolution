@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, FOOD_KIND, TICK_HZ, distanceBetween } from '@evolution/shared';
 import { cellOf, foodCount, fragmentCount, type EvolutionView } from '../gameplay/evolution-views.js';
-import { withoutWildSeats } from '../gameplay/evolution-adapter.js';
+import { withoutSeatedCells } from '../gameplay/evolution-adapter.js';
 import { player } from '../gameplay/index.js';
 import { foodSpawnedSince, holdPopulationsAtZero, seededSolo } from './shared-setups.js';
 import { RUNS_PER_ROW, countWindow, createWindowCounts } from './wild-setups.js';
@@ -17,15 +17,23 @@ const SOLO_FRAGMENT_CAP = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_C
 /** E2 and E14 count over 610 ticks so that no count lands on the final tick. */
 const COUNT_WINDOW_TICKS = 610;
 /**
- * E14 on the pinned seed: since ticket #772 (the drag changes how the seats' engulfs end) a wild cell eats the idle
- * player on tick 29 367, and the last 44 ticks of the window (29 367–29 410) are its spectate, which takes the
- * per-player rates off the budget: food 106.75 − 44 / 60 × 1 × 1.5 = 105.65 → "between 105 and 109", fragments
- * 8.13 − 44 / 60 × 0.1 × 2 = 7.99 → 7. From #710 (nothing rides past the rim) to #772 no death in the window: 106–110
- * and 8. From #677 to #710 one (tick 29 023, the whole 182-tick spectate inside): 102–106 and 7; before #677 none.
+ * E14 on the pinned seed: since ticket #819 (the kept grab's seal and the carried prey's settle; the band did not move)
+ * a wild cell eats the idle player on tick 28 856, its whole 182-tick spectate inside the window: food
+ * 106.75 − 182 / 60 × 1 × 1.5 = 102.2 → "between 102 and 106", fragments 8.13 − 182 / 60 × 0.1 × 2 = 7.53 → 7; one
+ * death counted in the window. From ticket #830 (the three giants are seated before the wild seats, which moves every
+ * wild centre) to #819 the same counts, the death on tick 29 122 (the one before it, on tick 28 383, ended its
+ * spectate before the window opened). From ticket #738 (a wild hunter charges in, holds over its prey, gives up a hunt not landed in 5 s and then rests 15 s) to #830
+ * wild cells ate the idle player on tick 28 771, the last 152 ticks of whose spectate
+ * (28 801–28 952) fall inside the window, and on tick 29 158, its whole 182-tick spectate inside; each takes the
+ * per-player rates off the budget: food 106.75 − (152 + 182) / 60 × 1 × 1.5 = 98.4 → 98–102, fragments
+ * 8.13 − 334 / 60 × 0.1 × 2 = 7.02 → 7. From #772 (the drag changes how the seats'
+ * engulfs end) to #738 one death, on tick 29 367, 44 spectate ticks inside: 105–109 and 7. From #710 (nothing rides past the rim) to #772 no death in the
+ * window: 106–110 and 8. From #677 to #710 one (tick 29 023, the whole 182-tick spectate inside): 102–106 and 7; before
+ * #677 none.
  */
 const E14_DEATHS_IN_WINDOW = 1;
-const E14_SPAWNED_LOW = 105;
-const E14_SPAWNED_HIGH = 109;
+const E14_SPAWNED_LOW = 102;
+const E14_SPAWNED_HIGH = 106;
 const E14_FRAGMENTS_SPAWNED = 7;
 
 function algaeShare(view: EvolutionView): number {
@@ -90,7 +98,7 @@ describe('ecology/acceptance.md §8: the spawn model on the seeded world', () =>
     // The wild cells graze since #551 and hold the food at 446 of 700 on this seed; E3 is a spawner row, so it
     // removes the seats at tick 0 (docs/ecology/acceptance.md §8 E3), and the grazing cost is the playtest's to judge.
     await seededSolo('E3')
-      .place(withoutWildSeats)
+      .place(withoutSeatedCells)
       .advance(3000)
       .expect('food count', foodCount)
       .atEnd()

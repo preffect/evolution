@@ -66,6 +66,9 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `WILD_CELL_SIGHT_VIEW_MULTIPLE`            | 1.0                     | × `viewHalfHeightFor`             |
 | `WILD_CELL_SPRINT_FLEE_RADII`              | 4                       | own radii                         |
 | `WILD_CELL_SPRINT_HUNT_RADII`              | 3                       | own radii                         |
+| `WILD_CELL_HUNT_CHARGE_RADII`              | 2                       | own radii past the prey           |
+| `WILD_CELL_HUNT_GIVE_UP_SECONDS`           | 5                       | s                                 |
+| `WILD_CELL_HUNT_REST_SECONDS`              | 15                      | s                                 |
 | `WILD_CELL_CARRYING_CAPACITY_MULTIPLE`     | 1.5                     | × `WILD_CELL_COUNT` × `worldMass` |
 | `WILD_CELL_STARVATION_FRACTION_PER_SECOND` | 0.1                     | of full size per second           |
 | `WILD_CELL_FEAST_MASS_FRACTION`            | 0.8                     | of the burst cell's mass          |
@@ -76,6 +79,29 @@ Home: `packages/shared/src/constants/<domain>.ts`.
 | `WILD_CELL_FLEE_RANGE_RADII`               | 8                       | own radii                         |
 | `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`       | `endosymbiosis`         | `CellStage`                       |
 | `WILD_CELL_TURN_CHANCE`                    | 0.25                    | per decision                      |
+
+### `giants.ts` (§3.5, [`giants.md`](./giants.md); records keyed by `GiantSpecies`: amoeba, paramecium, diatom)
+
+| Constant                                  | Value                                                                     | Unit                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `GIANT_SPECIES_IN_DISH`                   | amoeba, paramecium, diatom (since the giants-on slice, giants.md §3.5.17) | species, one seat each, read at world creation                |
+| `GIANT_ROLE_BY_SPECIES`                   | hunter, grazer, drifter                                                   | `GiantRole` (a plain constant, not a balance leaf)            |
+| `GIANT_BORN_MASS_MIN_BY_SPECIES`          | 900, 900, 1000                                                            | mass                                                          |
+| `GIANT_BORN_MASS_MAX_BY_SPECIES`          | 1500, 1300, 1500                                                          | mass                                                          |
+| `GIANT_MASS_CEILING`                      | 1500                                                                      | mass                                                          |
+| `GIANT_DECAY_MULTIPLIER`                  | 0.25                                                                      | × the player's decay                                          |
+| `GIANT_BUILDS_BY_SPECIES`                 | the three builds of giants.md §3.5.4                                      | trait ids and tiers                                           |
+| `GIANT_SPEED_MULTIPLIER_BY_SPECIES`       | 0.7, 0.85, 0.6                                                            | × the traits' speed                                           |
+| `GIANT_TURN_CHANCE_BY_SPECIES`            | 0.25, 0.1, 0.05                                                           | per wander decision                                           |
+| `GIANT_HUNT_MIN_PREY_MASS_FRACTION`       | 0.25                                                                      | × the hunter's mass; gates the hunt target, never the swallow |
+| `GIANT_HUNT_GIVE_UP_SECONDS`              | 8                                                                         | s                                                             |
+| `GIANT_GRAZER_FORWARD_HALF_ANGLE_DEGREES` | 60                                                                        | degrees either side of ahead                                  |
+| `GIANT_GRAZER_APPETITE_MASS`              | 100                                                                       | mass of growth                                                |
+| `GIANT_DNA_BONUS`                         | 200                                                                       | DNA                                                           |
+| `GIANT_RESPAWN_SECONDS`                   | 90                                                                        | s                                                             |
+| `GIANT_MIN_PLAYER_DISTANCE_WU`            | 1500                                                                      | wu                                                            |
+| `GIANT_MIN_GIANT_DISTANCE_WU`             | 1500                                                                      | wu                                                            |
+| `GIANT_MIN_CELL_DISTANCE_WU`              | 450                                                                       | wu                                                            |
 
 ### `absorption.ts`
 
@@ -92,28 +118,30 @@ that live their own lives (#517, #544) replace `WILD_CELL_MASS_SPREAD`, `WORLD_O
 defaults live in `absorption-derived.ts`): patch a phase second, not them (#367, architecture/constants-files-tests.md
 §9).
 
-| Constant                                                                                         | Value            | Unit                                                                                                  |
-| ------------------------------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| `ENGULF_MASS_RATIO`                                                                              | 1.25             | ×                                                                                                     |
-| `ENGULF_RELEASE_RATIO`                                                                           | 1.10             | ×                                                                                                     |
-| `ENGULF_PROGRESS_EPSILON`                                                                        | 1e-6             | progress                                                                                              |
-| `ENGULF_COVERAGE_FRACTION`                                                                       | 0.5              | prey radii                                                                                            |
-| `ENGULF_COVER_SECONDS`                                                                           | 0.2              | s                                                                                                     |
-| `ENGULF_WRAP_SECONDS`                                                                            | 0.4              | s                                                                                                     |
-| `ENGULF_ABSORB_SECONDS`                                                                          | 0.6              | s                                                                                                     |
-| `ENGULF_BASE_DURATION_SECONDS`                                                                   | 1.2              | s (derived: the three phase seconds summed; sheet 03's 1.2 s)                                         |
-| `ENGULF_WRAP_START_PROGRESS` / `ENGULF_SEAL_PROGRESS`                                            | 1/6 / 0.5        | progress (derived from the phase seconds, never a fourth literal)                                     |
-| `ENGULF_MIN_DURATION_FACTOR`                                                                     | 0.5              | ×                                                                                                     |
-| `ENGULF_ESCAPE_DECAY_MULTIPLIER`                                                                 | 2                | × (cover and wrap out of contact; released at 0, #634)                                                |
-| `ENGULF_ARM_PULL_RADII_PER_SECOND`                                                               | 1.5              | predator radii / s (the amoeba's arm draws a prey it holds outside body contact in, #735)             |
-| `ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE`                                                           | 0.5              | × the held prey's speed cap this tick (the pull never outruns the prey, #735)                         |
-| `ENGULF_DRAG_SHARE`                                                                              | 1                | × the gap the predator's own move opened from its prey this tick, closed again before the seal (#772) |
-| `ENGULF_ARM_REGRAB_COOLDOWN_SECONDS`                                                             | 0.75             | s (after a prey escapes an amoeba, no arm grab of it by that amoeba; the body still catches it, #735) |
-| `ENGULF_STRUGGLE_SLOWDOWN` / `ENGULF_STRUGGLE_SLOWDOWN_CAP`                                      | 0.5 / 0.9        | ratio of the phase rate                                                                               |
-| `ENGULF_PREDATOR_SPEED_FACTOR` / `ENGULF_PREDATOR_SPEED_FACTOR_SEALED`                           | 1.0 / 1.0        | × (cover and wrap / absorb; holding costs no speed, #634)                                             |
-| `ENGULF_PREY_SPEED_FACTOR_COVER` / `ENGULF_PREY_SPEED_FACTOR` / `ENGULF_PREY_SPEED_FACTOR_FLOOR` | 0.85 / 0.8 / 0.3 | × (the grab in cover, #634 / wrap / the floor of both; absorb is 0)                                   |
-| `ENGULF_SWALLOWED_TOXIN_MULTIPLIER`                                                              | 8                | × on the prey's toxin fraction, read against the prey's mass (#154), wrap and absorb                  |
-| `ENGULF_SPIT_OUT_REFRACTORY_SECONDS`                                                             | 1.0              | s (per spat-out prey: the predator keeps one entry per prey)                                          |
-| `ENGULF_MASS_YIELD`                                                                              | 0.8              | ratio                                                                                                 |
-| `ENGULF_DNA_BASE` / `ENGULF_DNA_SHARE`                                                           | 30 / 0.2         | DNA / ratio                                                                                           |
-| `ENGULF_TAG_SHARE` / `ENGULF_PREDATORY_TAG_POINTS`                                               | 0.5 / 10         | ratio / points                                                                                        |
+| Constant                                                                                         | Value            | Unit                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENGULF_MASS_RATIO`                                                                              | 1.25             | ×                                                                                                                                                         |
+| `ENGULF_RELEASE_RATIO`                                                                           | 1.10             | ×                                                                                                                                                         |
+| `ENGULF_PROGRESS_EPSILON`                                                                        | 1e-6             | progress                                                                                                                                                  |
+| `ENGULF_COVERAGE_FRACTION`                                                                       | 0.5              | prey radii                                                                                                                                                |
+| `ENGULF_HOLD_COVERAGE_FRACTION`                                                                  | −1               | prey radii (the kept grab, #819: a started engulf holds and seals the prey while it touches the predator; a sprinting prey by `ENGULF_COVERAGE_FRACTION`) |
+| `ENGULF_CARRY_SETTLE_PREY_RADII_PER_SECOND`                                                      | 9                | prey radii/s (#819: a carried prey's offset eases inside `predator.radius − prey.radius × ENGULF_COVERAGE_FRACTION`)                                      |
+| `ENGULF_COVER_SECONDS`                                                                           | 0.2              | s                                                                                                                                                         |
+| `ENGULF_WRAP_SECONDS`                                                                            | 0.4              | s                                                                                                                                                         |
+| `ENGULF_ABSORB_SECONDS`                                                                          | 0.6              | s                                                                                                                                                         |
+| `ENGULF_BASE_DURATION_SECONDS`                                                                   | 1.2              | s (derived: the three phase seconds summed; sheet 03's 1.2 s)                                                                                             |
+| `ENGULF_WRAP_START_PROGRESS` / `ENGULF_SEAL_PROGRESS`                                            | 1/6 / 0.5        | progress (derived from the phase seconds, never a fourth literal)                                                                                         |
+| `ENGULF_MIN_DURATION_FACTOR`                                                                     | 0.5              | ×                                                                                                                                                         |
+| `ENGULF_ESCAPE_DECAY_MULTIPLIER`                                                                 | 2                | × (cover and wrap out of contact; released at 0, #634)                                                                                                    |
+| `ENGULF_ARM_PULL_RADII_PER_SECOND`                                                               | 1.5              | predator radii / s (the amoeba's arm draws a prey it holds outside body contact in, #735)                                                                 |
+| `ENGULF_ARM_PULL_MAX_PREY_SPEED_SHARE`                                                           | 0.5              | × the held prey's speed cap this tick (the pull never outruns the prey, #735)                                                                             |
+| `ENGULF_DRAG_SHARE`                                                                              | 1                | × the gap the predator's own move opened from its prey this tick, closed again before the seal (#772)                                                     |
+| `ENGULF_ARM_REGRAB_COOLDOWN_SECONDS`                                                             | 0.75             | s (after a prey escapes an amoeba, no arm grab of it by that amoeba; the body still catches it, #735)                                                     |
+| `ENGULF_STRUGGLE_SLOWDOWN` / `ENGULF_STRUGGLE_SLOWDOWN_CAP`                                      | 0.5 / 0.9        | ratio of the phase rate                                                                                                                                   |
+| `ENGULF_PREDATOR_SPEED_FACTOR` / `ENGULF_PREDATOR_SPEED_FACTOR_SEALED`                           | 1.0 / 1.0        | × (cover and wrap / absorb; holding costs no speed, #634)                                                                                                 |
+| `ENGULF_PREY_SPEED_FACTOR_COVER` / `ENGULF_PREY_SPEED_FACTOR` / `ENGULF_PREY_SPEED_FACTOR_FLOOR` | 0.85 / 0.8 / 0.3 | × (the grab in cover, #634 / wrap / the floor of both; absorb is 0)                                                                                       |
+| `ENGULF_SWALLOWED_TOXIN_MULTIPLIER`                                                              | 8                | × on the prey's toxin fraction, read against the prey's mass (#154), wrap and absorb                                                                      |
+| `ENGULF_SPIT_OUT_REFRACTORY_SECONDS`                                                             | 1.0              | s (per spat-out prey: the predator keeps one entry per prey)                                                                                              |
+| `ENGULF_MASS_YIELD`                                                                              | 0.8              | ratio                                                                                                                                                     |
+| `ENGULF_DNA_BASE` / `ENGULF_DNA_SHARE`                                                           | 30 / 0.2         | DNA / ratio                                                                                                                                               |
+| `ENGULF_TAG_SHARE` / `ENGULF_PREDATORY_TAG_POINTS`                                               | 0.5 / 10         | ratio / points                                                                                                                                            |

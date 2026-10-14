@@ -36,8 +36,13 @@ const STEP_WU = PREDATOR_SPEED * TICK_INTERVAL_S;
 const DRAG_LEAF = 'ENGULF_DRAG_SHARE';
 const HALF_DRAG = 0.5;
 const DISTANCE_DIGITS = 9;
-/** Enough ticks for E9's engulf to have sealed, or for A at 3 wu a tick to have left its 31 wu reach and drained. */
+/** Enough ticks for E9's engulf to have sealed. */
 const PAST_THE_SEAL_TICKS = 20;
+/**
+ * Enough ticks for A at 3 wu a tick to leave the kept grab's 58 wu reach (#819: B stays held while it still touches A),
+ * on tick 16, and for the progress short of the seal to drain out.
+ */
+const PAST_THE_KEPT_GRAB_TICKS = 40;
 
 const AMOEBA_I = [{ traitId: 'amoeba_pseudopods', tier: 1 }] as const;
 /** Inside A's body reach by this much before A moves, so A's 3 wu move leaves B to the arm alone (wu). */
@@ -156,7 +161,7 @@ describe('the drag in the engulf step (#772)', () => {
 
   it('without the drag the same predator coasts off the prey and the engulf drains', () => {
     const fixture = withDrag(createEngulfFixture(), 0);
-    for (let tick = 0; tick < PAST_THE_SEAL_TICKS; tick += 1) {
+    for (let tick = 0; tick < PAST_THE_KEPT_GRAB_TICKS; tick += 1) {
       movePredator(fixture, -PREDATOR_SPEED);
       stepEngulf(fixture);
     }

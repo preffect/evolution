@@ -13,7 +13,8 @@
 # only a listener from before the start (one that ignored the stop) holds the port; the watcher is not in
 # .game.pid, survives the restart a deploy runs and is never started twice; --stop stops it but not
 # another checkout's watcher behind a stale PID file; the client gets CLIENT_PORT and a proxy to PORT;
-# run.env records the run; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
+# run.env records the run; the client starts without live reload and HMR unless --live-reload asks (#792),
+# and run.env records that choice; a one-shot scripts/deploy-main.sh of a stack without a watcher leaves one;
 # a checkout without node_modules or a shared build is installed and built before the start, and a ready
 # one is neither (#329); that setup runs before the cleanup, so a failed install leaves the running stack
 # serving; a deploy whose setup has work completes while another checkout holds the machine-wide gate lock;
@@ -220,10 +221,14 @@ check "the port kill stops this checkout's stale listener that lsof cannot see" 
 check "the prebundle cache is cleared after the stop and before the start" $(( ! $(holds test -e "$stack/packages/client/.angular/cache") && $(line_of 'Cleaning up old processes') < $(line_of 'Cleared the Angular prebundle') && $(line_of 'Cleared the Angular prebundle') < $(line_of 'Starting game server') ))
 check "the client is served on CLIENT_PORT with a proxy to PORT" $(( $(holds grep -qF "dev:client --port $STACK_CLIENT_PORT --proxy-config $stack/.game-logs/proxy.conf.json" "$pnpm_args") && $(holds grep -q "localhost:$STACK_SERVER_PORT" "$stack/.game-logs/proxy.conf.json") ))
 check "run.env records the ports and the mode" $(( $(holds grep -qx "PORT=$STACK_SERVER_PORT" "$stack/.game-logs/run.env") && $(holds grep -qx 'RUN_MODE=' "$stack/.game-logs/run.env") ))
+check "the client starts without live reload and HMR by default, and run.env records none" $(( $(holds grep -qE -- "^dev:client .* --live-reload=false --hmr=false\$" "$pnpm_args") && $(holds grep -qx 'RUN_LIVE_RELOAD=' "$stack/.game-logs/run.env") ))
 first_watcher="$(watcher_pid)"
 check "./run.sh starts the deploy watcher, and its PID is not in .game.pid" $(( $(holds alive "$first_watcher") && ! $(holds grep -qx "$first_watcher" "$stack/.game.pid") ))
 check "the watcher runs the script at a checkout path containing a space, as one argument" $(( $(holds runs_script "$first_watcher" "$stack/scripts/deploy-main.sh") && $(holds runs_script "$first_watcher" --watch) ))
 
+: > "$pnpm_args"
+run_stack --no-deploy-watch --live-reload
+check "--live-reload starts the client with live reload and HMR, and run.env records it (rc $rc)" $(( rc == 0 && $(holds grep -qE -- "^dev:client .* --live-reload=true --hmr=true\$" "$pnpm_args") && $(holds grep -qx 'RUN_LIVE_RELOAD=--live-reload' "$stack/.game-logs/run.env") ))
 run_stack --no-deploy-watch --wait-ready
 check "the restart a deploy's watcher runs leaves that watcher alone" $(( rc == 0 && $(holds alive "$first_watcher") && $(holds test "$(watcher_pid)" = "$first_watcher") ))
 run_stack --wait-ready

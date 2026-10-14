@@ -61,6 +61,8 @@ export interface CellFrameContext {
   readonly relationRings?: ReadonlyMap<EntityId, RelationRing>;
   /** The mass a starving wild cell bursts at this frame (`starvedOutMassAt`): what its wither climbs toward. */
   readonly starvedOutMass: number;
+  /** `false` never draws the far dot (`RenderInputs.isFarDotShown`); drawn when absent. */
+  readonly isFarDotShown?: boolean;
 }
 
 export const NO_ABSORBED_SEALS: ReadonlyMap<EntityId, PredatorSeal> = new Map();
@@ -244,7 +246,7 @@ export class CellRenderState {
       deformation,
       wither,
     });
-    const lod = cellLodFor(view.radius * context.zoom);
+    const lod = cellLodFor(view.radius * context.zoom, context.isFarDotShown ?? true);
     const organelles = lod.isFarDot ? [] : this.placeOrganelles(terms, speedRatio, context.timeSeconds);
     const instance = buildCellInstance({
       view,

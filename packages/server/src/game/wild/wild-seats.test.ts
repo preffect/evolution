@@ -12,11 +12,12 @@ import {
   playerId,
   distanceBetween,
 } from '@evolution/shared';
+import { wildSeatCellsOf } from '../../testing/wild-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import { isInsideAnyCell } from '../simulation/spawn-point.js';
 import { worldReferenceAt } from '../simulation/round-clock.js';
 import { createWorld } from '../world/create-world.js';
-import { isPlayerCell, type CellRecord } from '../world/entities.js';
+import { isPlayerCell } from '../world/entities.js';
 import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
 import { createWildSeatRecord, placeWildCell, seatWildCell, wildSpawnClearance } from './wild-seats.js';
 import { wildSizeFactor } from './wild-settle.js';
@@ -36,21 +37,18 @@ function seededWorld() {
   });
 }
 
-function wildCellsOf(cells: readonly CellRecord[]): CellRecord[] {
-  return cells.filter((cell) => cell.kind === CELL_KIND.wild);
-}
-
 describe('createWildSeats (W2)', () => {
   const world = seededWorld();
-  const wild = wildCellsOf(world.cells);
+  const wild = wildSeatCellsOf(world.cells);
 
-  it('seats exactly WILD_CELL_COUNT wild protocells, each its own organism, after the player', () => {
+  it('seats exactly WILD_CELL_COUNT wild protocells, each its own organism, after the player and the giants', () => {
     expect(world.wildSeats).toHaveLength(wildCells.WILD_CELL_COUNT);
     expect(wild).toHaveLength(wildCells.WILD_CELL_COUNT);
     expect(world.wildSeats.map((seat) => seat.seatNumber)).toEqual(wild.map((_unused, index) => index));
     expect(world.wildSeats.map((seat) => seat.cellId)).toEqual(wild.map((cell) => cell.id));
-    expect(world.cells.findIndex((cell) => cell.kind === CELL_KIND.wild)).toBe(1);
+    expect(world.cells.indexOf(wild[0]!)).toBe(world.players.length + world.giantSeats.length);
     for (const cell of wild) {
+      expect(cell.kind).toBe(CELL_KIND.wild);
       expect(cell.playerId).toBeNull();
       expect(cell.organismId).toBe(cell.id);
       expect(cell.level).toBe(FIRST_LEVEL);

@@ -76,6 +76,8 @@ export interface CellInstance {
   readonly wrinkleAmplitude: number;
   /** The form trait's tier (1–3, `CellTraitSummary.formTier`): the slipper's aspect (`cell-shader-slipper.ts`). */
   readonly formTier: number;
+  /** `GIANT_SPECIES_ID` of a giant, `NO_GIANT_SPECIES_ID` otherwise: the detail its form gains at giant size (`cell-shader-giants.ts`). */
+  readonly giantSpeciesId: number;
   readonly bumps: readonly ShapeBump[];
 }
 
@@ -95,8 +97,9 @@ const SCALAR_TEXELS: readonly (readonly CellInstanceScalar[])[] = [
   ['rimDash', 'ciliaPhase', 'nucleusDiscRadii', 'speckleSeed'],
   // #295: the ten texels above were full, so the sprint ring grew the row to seventeen; #538's relation ring fills it.
   ['selfRingFill', 'selfRingBrightness', 'relationRingPx', 'relationRingLines'],
-  // #635: the eleventh was full, so a starving cell's wither and wrinkle take a twelfth; #193's form tier a third channel.
-  ['wither', 'wrinkleAmplitude', 'formTier'],
+  // #635: the eleventh was full, so a starving cell's wither and wrinkle take a twelfth; #193's form tier a third channel,
+  // #828's giant species the fourth.
+  ['wither', 'wrinkleAmplitude', 'formTier', 'giantSpeciesId'],
 ];
 
 /** One RGBA texel holds four floats; a bump slot is its three channels in this order. */

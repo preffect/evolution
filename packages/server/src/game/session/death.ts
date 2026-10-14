@@ -136,6 +136,7 @@ export function absorbCell(world: WorldState, context: StepContext, absorption: 
     predatorCellId: predator.id,
     predatorMassGained: predatorGain.massGained,
     predatorDnaGained: predatorGain.dnaGained,
+    preyGiantSpecies: prey.giantSpecies,
   });
   dissolveCell(world, prey, context.streams[RANDOM_STREAM.spawner]);
   if (isPlayerCell(prey)) {

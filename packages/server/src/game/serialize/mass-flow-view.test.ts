@@ -89,6 +89,7 @@ describe('toEffectView', () => {
       cellId: entityId('c2'),
       playerId: playerId('p2'),
       predatorCellId: entityId('c1'),
+      preyGiantSpecies: null,
       predatorMassGained: massGained,
       predatorDnaGained: dnaGained,
     };

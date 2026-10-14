@@ -1,6 +1,6 @@
 # Evolution — UI: HUD, overlays and onboarding: trait pick, death, results, menu and notices
 
-§3.2–§3.7 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
+§3.2–§3.8 of the split [`UI.md`](../UI.md), which keeps the shared context and the file list.
 
 ### 3.2 Trait pick overlay (`ownProgress.offer !== null`)
 
@@ -98,8 +98,10 @@ without copy fails the gate instead of rendering `undefined`.
 
 The camera follows the killer (game-design/controls-and-scope.md §7), so the overlay keeps the centre clear: a 30 % dim and a text
 block at top-centre from y 96, 480 wide: `ENGULFED BY AMOEBOID` (`title` role, danger, one line; name from
-`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters, `ENGULFED BY A WILD CELL` for a wild killer
-(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature), `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
+`players[cells[spectatingCellId].playerId].playerName`, cut like the leaderboard's to 12 characters; for a wild killer
+(`cells[spectatingCellId].kind === 'wild'`, ecology/wild-cells.md §3.3; its stage names a ladder step, not a creature) `A` and
+the name `cellDisplayName` gives it, upper-cased: `ENGULFED BY A WILD CELL`, or `ENGULFED BY A GIANT AMOEBA` for a giant
+(ecology/giants.md §3.5.11); `ENGULFED` alone if the killer has left), `Respawning in 3` (`value`
 role, `ceil(respawnInTicks / TICK_HZ)`, never below 1, `aria-live="polite"`), `Level 4 and 3 traits kept · 40 DNA lost` (`body`
 muted; `Level 1 kept` without traits). Traits kept = `ownProgress.ownedTraits.length`, which also counts a pick made while spectating. A
 spectating player has no cell, so DNA lost comes from the `lastAliveOwnProgress` signal (§7: the own progress of the
@@ -138,9 +140,11 @@ Escape closes the topmost open overlay (the full leaderboard, then the encyclope
    up (an open offer, a threat or an engulf, encyclopedia.md §11.1) the alert strip sits full width between this line
    and the buttons, `UI_SPACE_L_PX` above them, and pushes them down by its height (`esc-menu-alert-1280x800.png`); the
    offer strip carries its seconds in `figure` and the `1` `2` `3` key hints at its trailing end.
-2. Three full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
+2. Four full-width kit buttons, `UI_SPACE_S_PX` apart. **`Return to game`** (primary, autofocus, `ESC` key hint)
    closes the menu. **`Encyclopedia`** (secondary, `H` key hint; `H` acts while the menu is open, §4) replaces the menu
-   with the encyclopedia, whose Escape comes back here. **`Exit game`** (danger) asks once
+   with the encyclopedia, whose Escape comes back here. **`Mouse lock: On`** / **`Off`** (secondary, a `role="switch"`
+   with `aria-checked`) toggles the mouse lock (input-and-onboarding.md §4.1) and leaves the menu open; the next click
+   on the dish locks when it is on. **`Exit game`** (danger) asks once
    (`esc-menu-confirm-1280x800.png`): its row, keeping its size and danger rim, becomes `Leave this round?` (`body`) on
    the left with two compact buttons on the right, `Exit` (danger) and then `Cancel` (secondary, focused) at the
    trailing end, where a quick second click on the right half of `Exit game` lands. `Exit` calls `leave()` and the
@@ -171,7 +175,7 @@ keeps its timer and `1` `2` `3` still pick, and the alert strip shows the offer 
 covers part of the card band; otherwise a player who opened the menu during an offer would silently get the server's
 pick.
 
-**Coverage.** The menu is about 18 % of the viewport at 1280 × 800 with three traits, inside input-and-onboarding.md §6's overlay bar.
+**Coverage.** The menu is about 20 % of the viewport at 1280 × 800 with three traits (18 % before the `Mouse lock` row), inside input-and-onboarding.md §6's overlay bar.
 
 **With the other overlays.** Layer order, top down: the notices (§3.6), the encyclopedia, the menu, the results and
 respawn overlays, the trait picker, the chrome. The chrome stays visible under the menu's scrim and hides while the
@@ -195,7 +199,7 @@ encyclopedia is open (encyclopedia.md §11.1).
 | `MENU_SCRIM_ALPHA`          | 0.5   | ×    | The callout-backing scrim behind the menu; the encyclopedia's is darker (§11.7). |
 
 Home `hud/hud-constants.ts`, published as `--hud-menu-…` like §3.2's. Test ids: `menu-overlay` (`role="dialog"`,
-`aria-modal="true"`, labelled by its title), `menu-resume`, `menu-encyclopedia`, `menu-exit` (was `menu-leave`),
+`aria-modal="true"`, labelled by its title), `menu-resume`, `menu-encyclopedia`, `menu-mouse-lock`, `menu-exit` (was `menu-leave`),
 `menu-exit-confirm`, `menu-exit-cancel`, `menu-alert` (with `data-alert-kind`), `menu-traits`, `menu-trait-<traitId>`.
 
 ### 3.6 Notices: toasts and connection states
@@ -213,7 +217,8 @@ full stop.
 | `stage`                 | `ownProgress.stage` climbs a rung (`STAGE_ORDER`)                                                     | per rung, below                                              |
 
 The `stage` line per rung climbed to: `You are a prokaryote`, `Endosymbiosis · an organelle lives inside you`,
-`You are a eukaryote`, `You are a specialised cell`. A rematch returns every cell to a protocell (game-design/session.md
+`You are a eukaryote`. The climb to the specialised rung has no toast: gaining a form is that climb, and the form
+popup (§3.8) announces it, so two lines never say the same thing at the same moment. A rematch returns every cell to a protocell (game-design/session.md
 §5.4), which is no climb and fires nothing. The level, the DNA and the organelle's name are the facts of the moment,
 never typed. The bloom has no toast: its coach beat (input-and-onboarding.md §5) and the clock's `BLOOM · FOOD ×1.5 ·
 DNA DROPS ×2` caption (hud.md §3.1.1) already announce it, and a third line would say the same thing at the same moment.
@@ -298,7 +303,7 @@ roundClock, tick, roundStartTick, roundDurationSeconds, masses, foodGainPerSecon
 | `HERE`   | `Warm vent · decay ×1.5 · orange rods` (the whole zone pill in `body`); `Open broth` has no row                                                                                                                                                 | `ZONE_CUE` dot                        | `ownCellIndicators.zone`, `hud/format/zone-pill.ts`                                                                                                                                                                                                                                                                                                                                                                                                             | `affecting-zone`                  |
 |          | `Bloom · 1:48 · food ×1.5 · DNA drops ×2` (in `body`, for the same reason), only in bloom                                                                                                                                                       | `LEVEL_GOLD` dot                      | `roundClockStateFor`, `FOOD_BLOOM_SPAWN_MULTIPLIER`, `DNA_FRAGMENT_BLOOM_SPAWN_MULTIPLIER`                                                                                                                                                                                                                                                                                                                                                                      | `affecting-bloom`                 |
 | `SIZE`   | `You eat · ≤ 249.6`                                                                                                                                                                                                                             | `GAIN` ring                           | `ownCell.mass` / `ENGULF_MASS_RATIO` **floored** to one decimal, never rounded (at mass 312.1 rounding would show 249.7, which needs 312.125), with `≤` because `canEngulf` admits equality: the largest plain cell the own cell can take (a Cell Wall prey needs more; the ring on it says so)                                                                                                                                                                 | `affecting-prey-below`            |
-|          | `Eats you · ≥ 390`                                                                                                                                                                                                                              | `DANGER` ring                         | `ownCell.mass` × (`ENGULF_MASS_RATIO` + `ownCell.membraneRatioBonus`), the mass a cell needs for `canEngulf(it, ownCell)`                                                                                                                                                                                                                                                                                                                                       | `affecting-threat-above`          |
+|          | `Eats you · ≥ 390`                                                                                                                                                                                                                              | `DANGER` ring                         | `ownCell.mass` × (`ENGULF_MASS_RATIO` + `ownCell.membraneRatioBonus`), the mass a cell eater (a player, a wild cell or the giant amoeba: the paramecium and the diatom eat no cell, ecology/giants.md §3.5.11) needs for `canEngulf(it, ownCell)`                                                                                                                                                                                                               | `affecting-threat-above`          |
 | `TRAITS` | `Mitochondrion I · −15 % mass decay`, one row per owned trait, catalog order                                                                                                                                                                    | the trait glyph (#312) in `TRAIT_CUE` | `ownCell.traits`, the catalog, the first line of `describeTierModifiers` (§3.2)                                                                                                                                                                                                                                                                                                                                                                                 | `affecting-trait-<traitId>`       |
 |          | `World · ahead` / `level` / `behind`                                                                                                                                                                                                            | ring in the text colour               | `standingAgainstWorld(level, mass, worldReference(worldElapsedSeconds(…)), balance)` (shared `simulation/world-clock.ts`; `with` reads `level`)                                                                                                                                                                                                                                                                                                                 | `affecting-world`                 |
 
@@ -325,7 +330,7 @@ engulf`), and beside a long name such as `Simple Flagellum I` it does not fit on
 `UI_SCALE_MIN` floor the four-trait cell of Cell Wall, Mitochondrion, Simple Flagellum and Food Vacuole cut its values
 at the panel edge (`+5 % spee`). So the trait table alone opts into the kit's `shouldWrapValues` (§10.2): the names
 keep one line and the value wraps under itself, right-aligned, growing its row downwards. A wrap never splits a
-number from its unit (the value is bound like a trait card's, `bindQuantities`, #446), and the effect mark and the
+number from its unit (`formatQuantity` joins them with no-break spaces, #858), and the effect mark and the
 value's first word are held on one line, so the mark is never left at the end of the line above. The other sections'
 figures stay one line, as above. `e2e/affecting-panel-traits.spec.ts` stages that cell at 1024 × 640 and 1280 × 800
 and fails when any trait value or mark crosses the panel's edge.
@@ -366,3 +371,117 @@ The toxin row names the **nearest cell whose folded `toxinDrainFractionPerSecond
 own `toxic` predicate — rather than `relationsFor`, which #385's relation-ring slice has not built yet; the reach
 rule stays on the server and is never re-derived on the client, and the rate itself is always the wire's. When no
 such cell is on the snapshot the row still shows its rate, without a name.
+
+### 3.8 Upgrade and form popups (#783)
+
+The human's request (2026-09-29): a pick should teach what it just did. Every trait the own cell gains, and every
+tier up, raises a popup above the cell with the trait's name and tier and its effects; gaining a form is the bigger
+moment and gets a bigger popup with one real-life line.
+
+| Popup     | Test id         | Fires when                                                                           | Life                                                   |
+| --------- | --------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `upgrade` | `upgrade-popup` | a trait not held before, or a higher tier of one held, including a form's tier up    | `UPGRADE_POPUP_DURATION_SECONDS` (2.5 s) of room ticks |
+| `form`    | `form-popup`    | a form (the specialised rung's gates, `STAGE_GATE_TRAITS`) not held before           | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
+| `giant`   | `giant-popup`   | a `cell_absorbed` whose predator is the own cell and whose `preyGiantSpecies` is set | `FORM_POPUP_DURATION_SECONDS` (6 s) of room ticks      |
+
+The trait popups carry `data-trait-id`; the giant popup carries `data-giant-species` (below). **Text.** The title
+is the catalog's name and the tier numeral (`Paramecium Cilia II`), under it the tier row's effect lines, each after
+its `ui-effect-mark` (▲ gain, ▼ drawback): the picker card's own record (`traitCardViewFor`, §3.2), so the numbers
+are the live balance's and never typed, and a card and its popup always agree. A form popup adds its one real-life
+line, in the coach pill's style (no full stop), from `hud/format/form-facts.ts` (`FORM_REAL_LIFE_LINES`):
+
+| Form              | Real-life line                                             |
+| ----------------- | ---------------------------------------------------------- |
+| Amoeba Pseudopods | `Real amoebae crawl and engulf food with pseudopods`       |
+| Paramecium Cilia  | `Real paramecia swim with thousands of beating cilia`      |
+| Euglena Eyespot   | `Real euglenas use a red eyespot to swim toward light`     |
+| Diatom Shell      | `Real diatoms live in glass shells made of silica`         |
+| Stentor Trumpet   | `Real stentors can regrow a whole cell from a small piece` |
+
+Ordinary traits have no real-life line; a later ticket may add them if the human wants them.
+
+**The giant popup** (ecology/giants.md §3.5.8, ticket #829) is the form popup's moment for swallowing a giant, and is
+drawn as one (`.form`: the same size, overshoot, glow, ring and life): the kicker `GIANT ENGULFED`, the giant's name
+from `GIANT_DISPLAY_NAME_BY_SPECIES` as the title, one benefit line with the DNA the payout added
+(`predatorDnaGained` through `formatQuantity`: `+200 DNA` with no Nucleoid, `+210 DNA` with Nucleoid I), and the
+giant's real-life line from `GIANT_REAL_LIFE_LINES` (`giants/giant-facts.ts`, read by the encyclopedia too). It carries
+`data-giant-species` and no `data-trait-id`. A giant eaten by any other cell shows nothing.
+
+| Giant        | Real-life line                                                  |
+| ------------ | --------------------------------------------------------------- |
+| Giant amoeba | `Real giant amoebae can grow almost a millimetre across`        |
+| Paramecium   | `Real paramecia sweep food into a groove that works as a mouth` |
+| Giant diatom | `Real diatoms make at least a fifth of Earth’s oxygen`          |
+
+**Place.** Centred horizontally, in the slot `upgradePopupSlotFor` answers (`hud/format/upgrade-popup-slot.ts`,
+ticket #840), bound as `data-placement` and `--popup-offset` on the host. The host is the popup and, on a form or giant
+popup, its resting glow's reach (`FORM_POPUP_GLOW_PX`) on both sides; its height is measured, not assumed. Alive, the
+host never comes nearer the centre than `--hud-picker-band-offset`, the mirror of the picker band's top edge (§3.2),
+so it clears the exclusion box and the cap orbit exactly as the band does (layout.md §1), and it keeps `CUE_GAP_PX`
+off the own cell's cues (hud.md §3.1.5) at the cell's on-screen size under the settled Z1 camera:
+
+1. **Above the cell** (`above-cell`), its bottom edge `max(band offset, rateTagColumnTopPx(r_px, RATE_TAG_ROWS_MAX) +
+CUE_GAP_PX)` above the centre, wherever the whole host then fits under the top edge. The full rate-tag column is
+   reserved whether or not its tags are up, so a tag that comes up mid-popup never meets it and the popup never moves.
+2. **Below the cell** (`below-cell`) where it does not fit above: its top edge `max(band offset,
+zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, grown from its top edge and sinking
+   rather than rising as it fades. Never while the picker is open: the band is there.
+3. **Pinned** where neither fits (the picker open over a big cell): above, its top edge just under the toast row
+   (`toastRowBottomPx`: `HUD_MARGIN_PX`, the toast's padding and one `body` line, scaled; y 41.8 at 1024 × 640 and
+   y 52.3 at 1280 × 800), so a toast up with it (a giant's unlock, raised by the same swallow whose payout opened the
+   picker) never covers its kicker; and never into the exclusion box. Between the two it may come nearer than the band
+   offset. Only here may it meet the cues, over the rate-tag column the picker's dim greys, and by more than its glow:
+   at mass about 1,250 with one tag the tallest form popup's box sits on the tag's top edge at 1024 × 640; at the mass
+   cap there a giant popup hides the top half of the DECAY tag and the Amoeba form popup hides it whole; with all
+   three tag rows up the box covers two rows even at mass 1,250. Main pinned lower and covered more; the fix is
+   ticket #863. A notice row, when up, still drops the toast over its top (§3.6).
+
+A popup takes its slot afresh each frame, so it moves when the slot changes under it: most visibly, a popup below the
+cell jumps to the pinned slot when an offer opens the picker during its life. It does not animate the move.
+
+At 1024 × 640 a form popup's host is about 176 px (138 px and two 19.2 px glow margins), and a full column over even
+a starting cell tops out 151 px above the centre, so form and giant popups hang below the cell there; an upgrade popup
+up to 123 px tall at scale 1 (it has no glow) fits above at every size. At 1280 × 800 a form popup still fits above a cell up to about mass 100, and at
+1920 × 1080 above one up to at least mass 1,250 (`qa/evidence/pr-852/`). The cue column's own label pushes (a threat
+label above the chip lifts it) and the camera's zoom easing after a sudden growth are not reserved. It paints over
+the picker's dim. **While the player is dead or spectating** the box does not apply and the death text (§3.3) must
+stay readable, so the popups hang under it instead: their top edge at `RESPAWN_TEXT_TOP_PX + RESPAWN_TEXT_HEIGHT_PX +
+UPGRADE_POPUP_DEATH_TEXT_GAP_PX` (scaled), over the killer's side of the dish (`upgradePopupSlotFor`,
+`data-placement` on the host). An upgrade popup is at most `UPGRADE_POPUP_MAX_WIDTH_PX` (a card's width) wide: title
+in `cardName`, effect lines in `body`, one per row, on the callout backing. A form popup is at most
+`FORM_POPUP_MAX_WIDTH_PX` wide: a `NEW FORM` kicker in `label` capitals in the seat's rim colour
+(`paletteFor(avatarIndex).rim`), the name at `FORM_POPUP_TITLE_SCALE` × `headline` (a display size for this moment,
+not a new type role), the effect lines along one wrapping row, the real-life line under them in muted italic `body`,
+with a `FORM_POPUP_RIM_PX` rim and a `FORM_POPUP_GLOW_PX` glow in the seat colour. The tallest, Amoeba Pseudopods (the catalog's
+four effect lines on two rows), measures 174 px at 1280 × 800 and 138 px at 1024 × 640. Hung above a cell, a
+popup can reach above the notice stack's lowest edge, so a notice row or a toast up at that moment paints over its
+top (both come later in the HUD). While dead it starts at y 216 and y 173,
+under the death text's last line at y 173 and y 139 (`qa/evidence/pr-789/`).
+
+**Motion.** An upgrade popup pops in from `UPGRADE_POPUP_FROM_SCALE` over `UPGRADE_POPUP_IN_MS`, holds, and rises
+`UPGRADE_POPUP_RISE_PX` as it fades over the last `UPGRADE_POPUP_OUT_MS` of its life. A form popup enters in two
+beats about its bottom edge: it grows from `FORM_POPUP_FROM_SCALE` to `FORM_POPUP_OVERSHOOT_SCALE` over
+`FORM_POPUP_IN_MS` while its glow flares to `FORM_POPUP_GLOW_FLARE` × its rest, then settles to full size and the
+resting glow over `FORM_POPUP_SETTLE_MS`; as it settles, one ring in the seat colour expands from its rim about its
+centre to `FORM_POPUP_RING_SCALE` and fades over `FORM_POPUP_RING_MS`, behind it, staying inside the glow's margin.
+The flare is the only paint that reaches past that margin toward the cell, for well under a second. It holds about five seconds and fades
+over the last `FORM_POPUP_OUT_MS`. Under `prefers-reduced-motion` both only fade, with the same timings: no scale,
+rise, flare or ring (the kicker and the name's size still carry the moment).
+
+**Queue.** One popup at a time. Popups fired together (two picks close together, or two gains in one snapshot, in
+the snapshot's trait order) queue: each starts when the one before it ends, and one fired with nothing up starts at
+once. The life is counted in room ticks, like a toast's, and the CSS fade is timed to end with it.
+
+**Trigger.** A change between two snapshots of the same seat, like the toasts (§3.6): the first snapshot of a seat
+only remembers, so a late joiner's traits and a reconnect fire nothing; a rematch empties the traits, which gains
+nothing; the clock going back or a new seat starts the memory over. A snapshot before the live balance only
+remembers. A form popup replaces the `stage` toast of the specialised rung (§3.6). A trait gained is a change, which
+the newest snapshot still shows, so two gains whose snapshots land before one refresh both fire. The giant popup is an
+event, which the newest snapshot alone would lose then, so the service takes the swallow from the `GameEventBus`
+(architecture/client.md §6), which hears every snapshot in order, and keeps it until folded
+(`hud/format/giant-popups.ts`). A fold fires each swallow of the seat after the last folded tick, so a recomputation
+never fires it twice and the first snapshot of a seat only remembers; it queues ahead of a trait popup fired by the
+same fold. After each fold the service drops the kept swallows of another seat or after the folded tick, and all of
+them when there is no snapshot: only a fold that starts the memory over leaves any to drop, and those would fire
+again when the clock came back to them. The step is pure (`hud/format/upgrade-popups.ts`), `hud/upgrade-popup.service.ts` carries it and `hud/upgrade-popup.component.ts`
+binds it, in a polite live region (`aria-live="polite"`); it is read, never pressed: no pointer, no focus.

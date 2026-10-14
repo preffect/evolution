@@ -9,7 +9,8 @@
 // The chrome is the leaderboard and the round clock (docs/ui/hud.md §3.1.1), plus the own cell's status
 // mirror (§3.1.4), which carries no pixels of its own, the trait picker (docs/ui/overlays.md §3.2, #188) and the
 // onboarding hint pill (docs/ui/input-and-onboarding.md §5, #530), the death overlay (docs/ui/overlays.md §3.3, #189),
-// the round results (§3.4, #637) and the toasts (§3.6, #190).
+// the round results (§3.4, #637), the toasts (§3.6, #190), the upgrade popups (§3.8, #783) and the mouse lock's
+// in-game cursor (docs/ui/input-and-onboarding.md §4.1, #794).
 
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, type OnInit } from '@angular/core';
 import { ROUND_PHASE } from '@evolution/shared';
@@ -28,11 +29,14 @@ import { ResultsOverlayComponent } from './results-overlay.component';
 import { RoundTimerComponent } from './round-timer.component';
 import { ToastComponent } from './toast.component';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
+import { UpgradePopupComponent } from './upgrade-popup.component';
+import { VirtualCursorComponent } from './virtual-cursor.component';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
 import { ElementSizeTracker } from '../../ui-kit/element-size';
+import type { ViewportPx } from '../render/camera';
 import { AffectingPanelComponent } from './affecting-panel.component';
 import { EncyclopediaOverlayComponent } from './encyclopedia-overlay.component';
 import { HUD_OVERLAY } from './hud-state.service';
@@ -55,6 +59,8 @@ import { HUD_OVERLAY } from './hud-state.service';
     ServerErrorNoticeComponent,
     ToastComponent,
     TraitOfferOverlayComponent,
+    UpgradePopupComponent,
+    VirtualCursorComponent,
   ],
   template: `
     @if (isRoundPlaying()) {
@@ -62,6 +68,9 @@ import { HUD_OVERLAY } from './hud-state.service';
       <app-respawn-overlay />
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
+      <!-- Over the picker's dim, clear of the own cell's cues (docs/ui/overlays.md §3.8); its service keeps stepping
+           between rounds, and a rematch gains nothing, so a round's last popup never shows in the next. -->
+      <app-upgrade-popup [viewport]="viewport()" />
       <!-- The board and the clock stand down under the encyclopedia (docs/ui/encyclopedia.md §11.1): the panel would
            cut both into slivers, and what a reader must not miss is on its alert strip instead. -->
       @if (!isEncyclopediaOpen()) {
@@ -106,6 +115,9 @@ import { HUD_OVERLAY } from './hud-state.service';
       <app-connection-banner />
       <app-server-error-notice />
     </div>
+    <!-- The in-game cursor while the pointer is locked (docs/ui/input-and-onboarding.md §4.1): above everything, since
+         it stands in for the system cursor; it draws nothing while the pointer is free. -->
+    <app-virtual-cursor />
   `,
   host: {
     '[attr.data-testid]': 'testId.hud',
@@ -184,17 +196,21 @@ export class HudComponent implements OnInit {
    */
   protected readonly isConnectionLost = computed(() => this.gameState.connectionState() !== CONNECTION_STATE.connected);
 
+  /** The HUD's box: the viewport every centre-relative element is placed in (docs/ui/layout.md §1). */
+  protected readonly viewport = computed<ViewportPx>(() => ({
+    width: this.sizeTracker.size().widthPx,
+    height: this.sizeTracker.size().heightPx,
+  }));
+
   /** `--ui-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
-  protected readonly scale = computed(() =>
-    uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
-  );
+  protected readonly scale = computed(() => uiScaleFor(this.viewport().width, this.viewport().height));
 
   /** The scale plus every constant the child stylesheets read — the kit's and the HUD's — as one style map. */
   protected readonly styleVariables = computed(() => ({
     ...this.kitTokens,
     ...uiScaleVariable(this.scale()),
     ...hudStyleVariables(),
-    ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
+    ...pickerBandVariables(this.viewport()),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
   }));
 

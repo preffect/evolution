@@ -25,6 +25,8 @@ export interface CellLayerFrame {
   readonly ownCellRing: OwnCellRing;
   /** The relation rings by cell id (`relationRingsOf`); absent rings no cell. */
   readonly relationRings?: ReadonlyMap<EntityId, RelationRing>;
+  /** `false` never draws the far dot (`RenderInputs.isFarDotShown`); drawn when absent. */
+  readonly isFarDotShown?: boolean;
 }
 
 export interface CellLayerOutputs {

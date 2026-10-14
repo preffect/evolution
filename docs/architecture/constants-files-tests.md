@@ -7,8 +7,9 @@
 `packages/shared/src/constants/<domain>.ts` is the **source of truth** for every tunable, named
 exactly as the design tables name it (`game-design/constants-and-acceptance.md §12`, `ecology/constants.md §7`, `PROGRESSION.md §6`,
 `traits/constants-and-acceptance.md §5`). `packages/shared/src/constants/balance.ts` assembles them into one
-`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, absorption, progression, traits }`
-(the domain modules spread into plain records; `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
+`DEFAULT_BALANCE = { world, session, worldClock, controls, ladder, ecology, growth, wildCells, giants, absorption, progression, traits }`
+(the domain modules spread into plain records; `giants` leaves out `GIANT_ROLE_BY_SPECIES`, a plain constant of
+`giants.ts` because a role is what a species is and no patch may change it (ecology/giants.md §3.5.14); `ladder` leaves out `ENDOSYMBIOSIS_BACTERIA_REQUIRED`, which reaches a
 room only as the endosymbionts' `unlockedBy.count` in `traits.TRAIT_CATALOG`, the number the draft gate and the
 ladder orbit read, so there is one copy on the wire, #286; being catalog structure inside an array, it is not
 `debug_set_balance`-patchable, so the count is a build-time constant and retuning the endosymbiosis trip is a code
@@ -40,6 +41,11 @@ constants modules only, never the `constants/index.ts` barrel, so loading the co
 of the design tables (a row whose later cell reads `(derived …`) are exactly the list, so a new derived constant cannot
 reach the balance untagged. The `(derived` marker in a constants-table row is reserved for constants derived from
 balance leaves; any other derived value (`TICK_INTERVAL_MS` beside `TICK_HZ`, say) says so in prose.
+**Giant records are keyed by species (ecology/giants.md §3.5.14).** The `giants` domain's number records
+(`GIANT_BORN_MASS_MIN_BY_SPECIES.giant_amoeba`, …) are patchable leaves; `GIANT_SPECIES_IN_DISH` and
+`GIANT_BUILDS_BY_SPECIES` are arrays, so structure, refused by a patch as `WILD_CELL_BUILDS` is (a test or fixture
+balance sets them). `debug_set_balance` refuses a patch whose result breaks a rule `giantBalanceProblems`
+(`simulation/giant-balance.ts`) checks; `constants/giants.test.ts` pins the same rules on `DEFAULT_BALANCE` (G14).
 `constants/camera.ts` is not a balance domain, yet the wild cells' sight reads its zoom curve through
 `viewHalfHeightFor` (ecology/wild-cells.md §3.3.3): a zoom change is a simulation change, and the patchable sight
 knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
@@ -49,7 +55,7 @@ knob is `wildCells.WILD_CELL_SIGHT_VIEW_MULTIPLE` (server-simulation.md §3.4).
 ```text
 packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
-  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,absorption,progression,traits}.ts
+  constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,giants,absorption,progression,traits}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig, DERIVED_BALANCE_CONSTANTS
   constants/absorption-derived.ts                               the engulf base duration and progress bands at the defaults, derived from absorption.ts; not in balance (§9)
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
@@ -63,9 +69,11 @@ packages/shared/src/
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
-  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
+  simulation/{world-clock,stage-of,entry-rule,bacterium-variant-weights,trait-tiers,giant-balance,ladder-check}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
-                                                                engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (ecology/absorption.md §6.1)
+                                                                engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption), isCellEaterSpecies (ecology/absorption.md §6.1, ecology/giants.md §3.5.6) and engulfStartMass(prey, balance.absorption), canEngulf's bound as a figure (the encyclopedia's giant pages, #831)
+                                                                giant-balance: giantBalanceProblems(balance), the giant rules the balance test pins and debug_set_balance refuses on (ecology/giants.md §3.5.14), and giantBuildOf(species, balance), a build as owned traits, which the server seats a giant with and the encyclopedia quotes and previews
+                                                                ladder-check: ladderProblem(build, balance), the one valid-ladder rule (stage, requires, exclusion groups) the wild builds' test and giantBalanceProblems share (ecology/wild-cells.md §3.3), and its per-pick part traitPickProblem(trait, before, balance), which the server's draft asks of every card, an upgrade after the other owned ids (PROGRESSION §3)
                                                                 vector-math: distanceBetween(origin, target) over Vec2 (the bots' and the simulation's one distance)
   audio/{sound-events,audio-manifest}.ts                        catalogue lookups and layering; the manifest shape + parseAudioManifest (AUDIO.md §4)
   net/snapshot-acknowledger.ts                                  tells the room which tick a client has applied (wire-contract.md §4, #266); the client's RenderSession and the server's socket tests share it so they cannot drift (#664)
@@ -75,17 +83,20 @@ packages/server/src/
   lobby/viewer-snapshots.ts, ws/snapshot-frame.ts                what each connection is sent (the policy) and the splice that closes one shared stringify per viewer (§4)
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
-  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
+  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-diet,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; cell-diet: what a wild cell and each giant eats, read by step 4 and the seat's graze (ecology/giants.md §3.5.7, #827); engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
-  game/wild/{wild-seats,wild-build,wild-settle,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176, #517): placement by the safe-spawn rule plus the wild spacing (with the size factor, the first heading and the decision countdown), a seat's build up to a level, the step-1 settle (`settleWildMass`, `wildSizeFactor`: growth, the growth ceiling, recovery; server-simulation.md §3.4), the step-9 respawn
-  game/wild/{wild-strategy,wild-perception,wild-wander}.ts     the wild minds (#176, #517): the step-1 decisions (flee, hunt, graze, wander, and the sprint flag) over the #15 strategies through an entity-id perception filtered to the seat's sight (`wildSightRange` over the shared `viewHalfHeightFor`), the wander heading rule
+  game/wild/{wild-seats,wild-build,wild-settle,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176, #517): placement by the safe-spawn rule plus the wild spacing (with the size factor, the first heading and the decision countdown), a seat's build up to a level, the step-1 settle (`settleWildMass`, `wildSizeFactor`: growth, the growth ceiling, recovery; server-simulation.md §3.4), the step-9 respawn (`runSeatRespawns`, shared with the giants)
+  game/wild/seat-mind.ts                                         what a wild and a giant seat share (#826): the `SeatMindRecord` at rest and the birth of a seat's cell
+  game/wild/seat-profile.ts                                      the seat profile (ecology/giants.md §3.5.15, #827): a wild seat's and each giant's rules order, diet, hunt window, give-up and rest, players-as-prey stage, turn chance, random stream, growth ceiling and respawn, read by the settle, the decision, the give-up, the wander and the respawn
+  game/wild/{giant-seats,giant-build,giant-settle,giant-respawn}.ts   the giant seats (ecology/giants.md §3.5, #826): seats by species order, the giant clearance and the `giants` stream's draws, the fixed build with the species speed multiplier's one home (`applyGiantBuild`), the step-1 settle on the born mass under `GIANT_MASS_CEILING` with the quartered decay, the step-9 respawn
+  game/wild/{wild-strategy,seat-decision,seat-graze,wild-perception,wild-wander}.ts     the seats' minds (#176, #517, #827): the step-1 cadence, wild seats then giant seats, and one decision by the seat's profile (escape, then its rules of flee, hunt and graze, else wander, and the sprint flag) over the #15 strategies through an entity-id perception filtered to the seat's sight (`wildSightRange` over the shared `viewHalfHeightFor`) and its hunt window, the grazer's forward cone, the wander heading rule
   game/progression/{levels,ladder,draft,offers,dna,modifiers}.ts   levels applies level-ups; the cost formula is shared simulation/level-costs.ts; ladder: the shared stageOf over owned traits
   game/session/{players,membership,entry,death,respawn,leaderboard}.ts   entry: entryState (PROGRESSION §5) composing the shared entryMass / entryDnaFloor for late join and respawn
   game/serialize/{serialize,quantize,food-delta-tracker}.ts   quantize: the wire rounding and its exact twin (wire-contract.md §4)
   game/serialize/{viewer-state,viewer-cameras,interest-area}.ts  per-viewer members: the culled food delta and fragments over each viewer's camera and area (wire-contract.md §4.2 lever 1)
   game/serialize/viewer-snapshot-keys.ts                      which members the broadcast carries and which each viewer is sent apart; read by both sides so neither imports the other (wire-contract.md §4, #399)
   game/replay/{replay-format,replay-recorder,recorded-step,replay-runner,index-by-tick}.ts
-  game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,balance-patch,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations
+  game/debug/{simulation-debug-handle,evolution-debug-handle,debug-operations,debug-giant-spawn,balance-patch,debug-request-error}.ts   the seam, the Evolution handle (Required<SimulationDebugHandle>) and the recorded debug mutations (debug-giant-spawn: `debug_spawn('giant')`, #826)
   game/bots/{bot-strategy,perception,strategy-catalog,strategy-constants}.ts   the strategy seam (ScriptContext, PlayerCommand, BotStrategy), BotPerception (+ ownCellOf, CellLocation), the name → factory catalogue and its constants (#15)
   game/bots/{bot-identity,bot-pilot,bot-binding,in-process-bots}.ts          who a bot is (wire `bot_` / in-process `sim_bot_` prefixes), one bot's brain, BotWorldBinding (+ echo binding, toWireInput), the roster a module drives
   game/bots/{evolution-binding,evolution-bots}.ts                            the Evolution binding over wire snapshots and the roster the Evolution module drives

@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  CELL_KIND,
   DEFAULT_BALANCE,
+  GIANT_SPECIES,
   canEngulf,
   createTestPlayerProgressView,
   entityId,
@@ -13,6 +15,7 @@ import {
 import { createTestCellView } from '../../../../testing/builders';
 import type { CameraExtent } from '../../render/camera';
 import { LEADERBOARD_NAME_MAX_CHARS } from '../hud-constants';
+import { GIANT_DISPLAY_NAME_BY_SPECIES } from '../../giants/giant-facts';
 import { WILD_CELL_THREAT_NAME, cellDisplayName, threatsFor } from './threats-for';
 
 const ON_SCREEN: CameraExtent = { minX: -1000, minY: -1000, maxX: 1000, maxY: 1000 };
@@ -130,5 +133,29 @@ describe('cellDisplayName', () => {
   it('leaves a short name and the wild stand-in alone', () => {
     expect(cellDisplayName(namedCell('p-1'), { 'p-1': { playerId: playerId('p-1'), playerName: 'Nib' } })).toBe('Nib');
     expect(cellDisplayName(createTestCellView({ playerId: null }), {})).toBe(WILD_CELL_THREAT_NAME);
+  });
+
+  it('names a giant by its species, never as a wild cell (docs/ecology/giants.md §3.5.11)', () => {
+    for (const species of Object.values(GIANT_SPECIES)) {
+      const giant = createTestCellView({ kind: CELL_KIND.wild, playerId: null, giantSpecies: species });
+      expect(cellDisplayName(giant, {})).toBe(GIANT_DISPLAY_NAME_BY_SPECIES[species]);
+    }
+  });
+});
+
+describe('threatsFor and the giants (docs/ecology/giants.md §3.5.6)', () => {
+  function giantAt(id: string, species: CellView['giantSpecies']): CellView {
+    return predatorAt(id, 50, 0, { kind: CELL_KIND.wild, playerId: null, giantSpecies: species });
+  }
+
+  it('names the giant amoeba as a threat, and never the paramecium or the diatom, however heavy', () => {
+    const cells = [
+      giantAt('amoeba', GIANT_SPECIES.amoeba),
+      giantAt('paramecium', GIANT_SPECIES.paramecium),
+      giantAt('diatom', GIANT_SPECIES.diatom),
+    ];
+    expect(threatsFor(inputWith(cells)).map((threat) => threat.name)).toEqual([
+      GIANT_DISPLAY_NAME_BY_SPECIES[GIANT_SPECIES.amoeba],
+    ]);
   });
 });

@@ -7,3 +7,5 @@ pnpm-lock.yaml
 ha-router/
 # agent worktrees (scripts/agent.sh --branch) are other checkouts
 .worktrees/
+# The opening dive's coastlines (Natural Earth rings), data kept as it is (docs/rendering/opening-dive.md §4)
+packages/client/src/assets/dive/

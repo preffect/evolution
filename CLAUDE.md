@@ -68,18 +68,25 @@ worktree, command).
 ./run.sh --logs         # tail the server, client and deploy logs
 ./run.sh --install      # run pnpm install before starting
 ./run.sh --no-deploy-watch   # start without the deploy watcher (below)
+./run.sh --live-reload  # serve the client with live reload + HMR (off by default, #792)
 scripts/deploy-main.sh  # redeploy the MAIN checkout (/workspace, the human's game) from origin/main once, even when run from a worktree
 ```
 
 `./run.sh` also starts `scripts/deploy-main.sh --watch` for its own checkout: it polls `origin/main`
 every 60 s and redeploys on every merge — fast-forward, the workspace setup (`pnpm install` when
-`node_modules` does not match the lockfile, the shared build when stale), then `./run.sh --clear-prebundle --wait-ready` in the mode and ports the stack was started
+`node_modules` does not match the lockfile, the shared build when stale), then `./run.sh --clear-prebundle --wait-ready` in the mode, live-reload choice and ports the stack was started
 with (the Angular prebundle is deleted between stop and start, since a stale one breaks new shared
 exports; the deploy counts only once the server and client listen again). A one-shot
 `scripts/deploy-main.sh` restarts the same way and starts the watcher if none is running. Hard-refresh
 the browser afterwards. Only a checkout on `main` tracking `origin/main`, without tracked changes, that
 can fast-forward is deployed (a watcher anywhere else stops); every step goes to
 `.game-logs/deploy.log`; `./run.sh --stop` stops the watcher.
+
+The client is served without live reload and HMR unless `./run.sh --live-reload` asks for them: with
+either on, a dropped dev-server socket (an idle timeout or a blip through the router) reloads the page
+and the player loses the game. Source edits still rebuild; refresh the browser to see them. A deploy
+keeps the choice (`RUN_LIVE_RELOAD` in `.game-logs/run.env`); a stack started before #792 comes back
+without live reload.
 
 ### Headless bots (`docs/testing/bots-and-design-tables.md` §8.3)
 

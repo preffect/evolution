@@ -124,6 +124,16 @@ describe('hunter strategy', () => {
   });
 });
 
+describe('hunter strategy: onHunt (#738)', () => {
+  it('is told the prey each decision hunts, and nothing when there is none', () => {
+    const hunted: string[] = [];
+    const strategy = createHunterStrategy(perception, { onHunt: (prey) => hunted.push(prey.id) })();
+    strategy.decide(contextWith([self, smallPrey, biggerPrey]));
+    strategy.decide(contextWith([self, tooBig]));
+    expect(hunted).toEqual([biggerPrey.id]);
+  });
+});
+
 describe('huntTargetFrom', () => {
   it('aims the given number of own radii past the prey, along the line from its own centre through the prey', () => {
     expect(huntTargetFrom(self, { x: 300, y: 0 }, 2)).toEqual({ x: 320, y: 0 });

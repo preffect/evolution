@@ -4,7 +4,8 @@
 //
 // Every trigger is a change between two snapshots of the same seat, so the first snapshot of a room only remembers:
 // a late joiner hears no toast for a stage it arrived at. The one toast the first snapshot can fire is `late_join`,
-// which is about that snapshot. The bloom has no toast: its coach pill and the clock's caption already announce it.
+// which is about that snapshot. The bloom has no toast: its coach pill and the clock's caption already announce it,
+// and neither has the climb to a form's rung: the form popup (`upgrade-popups.ts`, §3.8) announces that moment.
 // The lines are written as the coach pill's are: facts joined by ` · `, no full stop.
 
 import {
@@ -18,6 +19,7 @@ import {
   type ValueOf,
 } from '@evolution/shared';
 import { TOAST_DURATION_SECONDS } from '../hud-constants';
+import { FORM_STAGE } from './form-facts';
 
 export const TOAST_KIND = {
   lateJoin: 'late_join',
@@ -37,17 +39,23 @@ export interface Toast {
 /** The coach pill's separator (docs/ui/input-and-onboarding.md §5): a toast reads as one of its lines. */
 const TOAST_FACT_SEPARATOR = ' · ';
 
+/** The stages a climb to announces with a toast: every one but the form's rung, whose popup says it instead. */
+type ToastedStage = Exclude<CellStage, typeof FORM_STAGE>;
+
 /**
  * The `stage` toast per rung climbed to. A protocell is where every cell starts and a rematch returns to, and the
  * toast fires only on a climb, so its line is never shown.
  */
-export const STAGE_TOAST_TEXT: Readonly<Record<CellStage, string>> = {
+export const STAGE_TOAST_TEXT: Readonly<Record<ToastedStage, string>> = {
   protocell: 'You are a protocell',
   prokaryote: 'You are a prokaryote',
   endosymbiosis: ['Endosymbiosis', 'an organelle lives inside you'].join(TOAST_FACT_SEPARATOR),
   eukaryote: 'You are a eukaryote',
-  specialised: 'You are a specialised cell',
 };
+
+function isToastedStage(stage: CellStage): stage is ToastedStage {
+  return stage !== FORM_STAGE;
+}
 
 export function lateJoinToastText(level: number, catchUpDna: number): string {
   return ['Joined late', `level ${level}`, `${Math.round(catchUpDna)} DNA catch-up`, 'pick your traits'].join(
@@ -116,8 +124,9 @@ function firedToasts(previous: ToastMemory, sample: ToastSample, ownProgress: Ow
   }
   const fired: Toast[] = [];
   // A climb only: a rematch puts every cell back to a protocell (game-design/session.md §5.4), which is no news.
-  if (previous.stage !== null && stageIndex(ownProgress.stage) > stageIndex(previous.stage)) {
-    fired.push(toastAt(TOAST_KIND.stage, STAGE_TOAST_TEXT[ownProgress.stage]));
+  const climbedTo = ownProgress.stage;
+  if (previous.stage !== null && stageIndex(climbedTo) > stageIndex(previous.stage) && isToastedStage(climbedTo)) {
+    fired.push(toastAt(TOAST_KIND.stage, STAGE_TOAST_TEXT[climbedTo]));
   }
   const unlocked = unlockedEndosymbiont(previous.bacteriaEatenByVariant, ownProgress);
   if (unlocked !== null) {

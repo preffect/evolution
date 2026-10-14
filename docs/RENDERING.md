@@ -25,3 +25,4 @@ This document is split into topic files (#306). Read only the file a ticket or b
 | [`rendering/budget.md`](./rendering/budget.md)                           | §6–§7    | Batching plan and frame budget                |
 | [`rendering/files-and-tests.md`](./rendering/files-and-tests.md)         | §8–§9    | File plan and test plan                       |
 | [`rendering/own-cell-indicators.md`](./rendering/own-cell-indicators.md) | §10      | Own-cell indicators and world-anchored labels |
+| [`rendering/opening-dive.md`](./rendering/opening-dive.md)               | §1–§7    | The opening dive on the lobby (#797)          |

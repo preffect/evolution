@@ -107,32 +107,38 @@ describe('traits/constants-and-acceptance.md §6: the engulf rows grip and movem
     );
   });
 
-  it('T14: a Cytoskeleton Lattice III prey steering away from tick 16 slows the wrap enough to break free', async () => {
+  it('T14: a Cytoskeleton Lattice III prey steering away from tick 14 slows the wrap enough to break free', async () => {
     const lattice = { prey: topTier('cytoskeleton') };
-    await expectEscape('T14 steering from 16', lattice, steersAwayFrom(16), 37);
+    // Since ticket #819 the kept grab holds and seals B until it is clear of A: from tick 16 (the row's input before)
+    // it is sealed on tick 30, so the row steers from 14, the last tick that still gets out.
+    await expectEscape('T14 steering from 14', lattice, steersAwayFrom(14), 45);
     await expectAbsorbed(
-      'T14 plain prey steering from 16',
+      'T14 plain prey steering from 14',
       {},
-      { input: steersAwayFrom(16), sealTick: 21, payoutTick: 39 },
+      { input: steersAwayFrom(14), sealTick: 23, payoutTick: 41 },
     ).runDeterministic();
-    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 28);
+    await expectEscape('T14 steering from 10', lattice, steersAwayFrom(10), 39);
   });
 
-  it('T15: a Cilia Fringe III prey slips the grip and escapes from tick 12', async () => {
-    await expectEscape('T15 steering from 12', { prey: topTier('cilia') }, steersAwayFrom(12), 32);
+  it('T15: a Cilia Fringe III prey slips the grip and escapes from tick 8', async () => {
+    // Since ticket #819 the kept grab holds and seals B until it is clear of A: from tick 12 (the row's input before)
+    // it is sealed on tick 25 as a plain prey is, so the row steers from 8, the last tick that still gets out.
+    await expectEscape('T15 steering from 8', { prey: topTier('cilia') }, steersAwayFrom(8), 37);
     await expectAbsorbed(
-      'T15 plain prey steering from 12',
+      'T15 plain prey steering from 8',
       {},
-      { input: steersAwayFrom(12), sealTick: 25, payoutTick: 43 },
+      { input: steersAwayFrom(8), sealTick: 29, payoutTick: 47 },
     ).runDeterministic();
   });
 
-  it('T16: Paramecium Cilia III with Cilia Fringe I escapes from tick 15, where a plain prey is absorbed', async () => {
+  it('T16: Paramecium Cilia III with Cilia Fringe I escapes from tick 13, where a plain prey is absorbed', async () => {
     const paramecium = { prey: { traits: [{ traitId: 'paramecium_cilia', tier: TOP_TIER }, 'cilia'] } };
-    await expectEscape('T16 steering from 15', paramecium, steersAwayFrom(15), 34);
-    await steersAwayFrom(15)(engulfPairOf('T16 plain prey steering from 15'))
+    // Since ticket #819 the kept grab holds and seals B until it is clear of A: from tick 15 (the row's input before)
+    // it is sealed on tick 28, so the row steers from 13, the last tick that still gets out.
+    await expectEscape('T16 steering from 13', paramecium, steersAwayFrom(13), 40);
+    await steersAwayFrom(13)(engulfPairOf('T16 plain prey steering from 13'))
       .advance(ROW_TICKS)
-      .expect('a plain prey is absorbed: its window closed at tick 10', absorptionsOfPredator)
+      .expect('a plain prey is absorbed: steering gets it out only from tick 4 or earlier (E11)', absorptionsOfPredator)
       .atEnd()
       .toBe(1)
       .runDeterministic();

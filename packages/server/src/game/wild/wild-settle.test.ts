@@ -18,6 +18,7 @@ import {
   wildSizeFactor,
   type WildSettleInput,
 } from './wild-settle.js';
+import { wildSeatProfile } from './seat-profile.js';
 
 const { growth, worldClock } = DEFAULT_BALANCE;
 /** W11's tolerances: ± 0.001 on a settle, ± 0.01 on the recovery curve, ± 0.001 on a size factor. */
@@ -35,7 +36,8 @@ const EIGHTEEN_SECONDS_TICKS = 1080;
 type SettleRow = readonly [number, number, number, number, number, number];
 
 function settle([mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass]: SettleRow) {
-  const input: WildSettleInput = { mass, fullMass, grownMass, decayPerSecond, baseMass, worldMass };
+  const growthCeiling = wildSeatProfile(DEFAULT_BALANCE).growthCeiling(worldMass);
+  const input: WildSettleInput = { mass, fullMass, grownMass, decayPerSecond, baseMass, growthCeiling };
   return settleWildMass(input, DEFAULT_BALANCE);
 }
 

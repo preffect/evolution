@@ -75,6 +75,30 @@ export type PlayerLifeState = ValueOf<typeof PLAYER_LIFE_STATE>;
 export const CELL_KIND = { player: 'player', wild: 'wild' } as const;
 export type CellKind = ValueOf<typeof CELL_KIND>;
 
+/**
+ * The giant cells (docs/ecology/giants.md §3.5.1): a giant is a wild cell with a species, the discriminator its view
+ * carries (`CellView.giantSpecies`); the records of `constants/giants.ts` are keyed by it.
+ */
+export const GIANT_SPECIES = {
+  amoeba: 'giant_amoeba',
+  paramecium: 'giant_paramecium',
+  diatom: 'giant_diatom',
+} as const;
+export type GiantSpecies = ValueOf<typeof GIANT_SPECIES>;
+/**
+ * The fixed species order (docs/ecology/giants.md §3.5.9): giant seats are numbered `WILD_CELL_COUNT` + the index here,
+ * whatever order `GIANT_SPECIES_IN_DISH` lists them in.
+ */
+export const GIANT_SPECIES_ORDER: readonly GiantSpecies[] = [
+  GIANT_SPECIES.amoeba,
+  GIANT_SPECIES.paramecium,
+  GIANT_SPECIES.diatom,
+];
+
+/** What a giant species does (docs/ecology/giants.md §3.5.6): only the hunter eats cells. */
+export const GIANT_ROLE = { hunter: 'hunter', grazer: 'grazer', drifter: 'drifter' } as const;
+export type GiantRole = ValueOf<typeof GIANT_ROLE>;
+
 /** A player's standing against the world clock's average cell (docs/ecology/food-and-spawn.md §3.1, `standingAgainstWorld`). */
 export const WORLD_STANDING = { ahead: 'ahead', with: 'with', behind: 'behind' } as const;
 export type WorldStanding = ValueOf<typeof WORLD_STANDING>;
@@ -125,6 +149,8 @@ export interface CellView {
   sprintCooldownRemainingTicks: number;
   /** A wild cell the die-off is starving (docs/ecology/wild-cells.md §3.3.6); always false for a player cell. */
   isStarving: boolean;
+  /** The giant's species (docs/ecology/giants.md §3.5.15); null for a player cell and a plain wild cell. */
+  giantSpecies: GiantSpecies | null;
 }
 
 export interface MotePositionView {

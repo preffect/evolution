@@ -73,7 +73,8 @@ function victimEffects(inputs: BenchEffectInputs, tick: number): GameEffect[] {
     const base = { tick, x: view.x, y: view.y, cellId: view.id };
     if (isAbsorbTick) {
       const predatorCellId = predator?.id ?? view.id;
-      return [{ kind: EFFECT_KIND.cellAbsorbed, ...base, playerId: view.playerId, predatorCellId, ...NO_BENCH_PAYOUT }];
+      const prey = { playerId: view.playerId, preyGiantSpecies: view.giantSpecies };
+      return [{ kind: EFFECT_KIND.cellAbsorbed, ...base, ...prey, predatorCellId, ...NO_BENCH_PAYOUT }];
     }
     return view.playerId === null ? [] : [{ kind: EFFECT_KIND.respawn, ...base, playerId: view.playerId }];
   });

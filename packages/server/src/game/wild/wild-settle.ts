@@ -23,6 +23,7 @@ import { worldReferenceAt } from '../simulation/round-clock.js';
 import type { CellRecord, WildSeatRecord } from '../world/entities.js';
 import { seatedWildCells } from '../world/lookups.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
+import { wildSeatProfile, type SeatProfile } from './seat-profile.js';
 import { wildOwnedTraits } from './wild-build.js';
 import { burstStarvedCell, chooseWildStarver, isStarvedOut, starveSettled } from './wild-die-off.js';
 
@@ -35,9 +36,10 @@ export interface WildSettleInput {
   readonly grownMass: number;
   /** §4's decay for this cell at `mass`, zone and trait multipliers included (mass/s); taken from the growth alone. */
   readonly decayPerSecond: number;
-  /** This tick's base size, `worldMass × sizeFactor`. */
+  /** This tick's base size: `worldMass × sizeFactor` for a wild cell, the born mass for a giant. */
   readonly baseMass: number;
-  readonly worldMass: number;
+  /** The mass growth stops at: the seat profile's `growthCeiling`, 3 × `worldMass` or `GIANT_MASS_CEILING`. */
+  readonly growthCeiling: number;
 }
 
 /** What one settle writes: the cell's mass and the seat's growth and full size. */
@@ -53,18 +55,17 @@ export function wildRecoveryFactorPerTick(balance: BalanceConfig): number {
 }
 
 /** `min(baseMass + grownMass, max(baseMass, ceiling))`: growth stops at the ceiling, a base above it is kept whole. */
-function fullMassOf(baseMass: number, grownMass: number, worldMass: number, balance: BalanceConfig): number {
-  const growthCeiling = balance.wildCells.WILD_CELL_MAX_WORLD_MASS_MULTIPLE * worldMass;
+function fullMassOf(baseMass: number, grownMass: number, growthCeiling: number): number {
   return Math.min(baseMass + grownMass, Math.max(baseMass, growthCeiling));
 }
 
-/** The settle's pure core (docs/ecology/wild-cells.md §3.3.1). */
+/** The settle's pure core (docs/ecology/wild-cells.md §3.3.1), a giant's too (docs/ecology/giants.md §3.5.3). */
 export function settleWildMass(input: WildSettleInput, balance: BalanceConfig): WildSettleResult {
   const offset = input.mass - input.fullMass;
   const grownWithMeal = input.grownMass + Math.max(0, offset);
   const wound = Math.min(0, offset) * wildRecoveryFactorPerTick(balance);
   const grownAfterDecay = Math.max(0, grownWithMeal - input.decayPerSecond * TICK_INTERVAL_S);
-  const fullMass = fullMassOf(input.baseMass, grownAfterDecay, input.worldMass, balance);
+  const fullMass = fullMassOf(input.baseMass, grownAfterDecay, input.growthCeiling);
   const floor = Math.min(balance.growth.CELL_STARTING_MASS, input.baseMass);
   return { mass: Math.max(floor, fullMass + wound), grownMass: fullMass - input.baseMass, fullMass };
 }
@@ -91,15 +92,16 @@ export function applyWorldLadder(
   refreshCellDerivedStateFromTraits(cell, wildOwnedTraits(seat.seatNumber, cell.level, balance), balance);
 }
 
-/** What every settle of one tick reads: the world reference and the live balance. */
+/** What every settle of one tick reads: the world reference, the live balance and the wild seats' profile. */
 interface SettleContext {
   readonly reference: WorldReference;
   readonly balance: BalanceConfig;
+  readonly profile: SeatProfile<WildSeatRecord>;
 }
 
 /** The settle, then one tick of starvation when the seat is starving (§3.3.6), written back to the seat. */
 function settledMassOf(world: WorldState, seat: WildSeatRecord, cell: CellRecord, context: SettleContext): number {
-  const { reference, balance } = context;
+  const { reference, balance, profile } = context;
   const settled = settleWildMass(
     {
       mass: cell.mass,
@@ -107,7 +109,7 @@ function settledMassOf(world: WorldState, seat: WildSeatRecord, cell: CellRecord
       grownMass: seat.grownMass,
       decayPerSecond: decayPerSecond(metabolismInputOf(cell, world, balance), balance),
       baseMass: wildBaseMass(seat, reference),
-      worldMass: reference.worldMass,
+      growthCeiling: profile.growthCeiling(reference.worldMass),
     },
     balance,
   );
@@ -147,7 +149,12 @@ function settleWildCell(
  */
 export function settleWildCells(world: WorldState, context: StepContext): void {
   const reference = worldReferenceAt(world, world.tick);
-  const settleContext = { reference, balance: context.balance, spawner: context.streams[RANDOM_STREAM.spawner] };
+  const settleContext = {
+    reference,
+    balance: context.balance,
+    profile: wildSeatProfile(context.balance),
+    spawner: context.streams[RANDOM_STREAM.spawner],
+  };
   // A burst removes only the settling seat's own cell, so the list stays true for the seats after it.
   const seated = seatedWildCells(world);
   chooseWildStarver(seated, reference.worldMass, context.balance);

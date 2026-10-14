@@ -21,6 +21,7 @@ import { injectDevelopmentRouteComponent } from './development-route/development
 import { EncyclopediaComponent } from './game/encyclopedia/encyclopedia.component';
 import { EncyclopediaStateService } from './game/encyclopedia/encyclopedia-state.service';
 import { ENCYCLOPEDIA_TEST_ID } from './game/encyclopedia/test-ids';
+import { DivePanelComponent } from './game/dive/dive-panel.component';
 import { GameHostComponent } from './game/game-host.component';
 import { HudComponent } from './game/hud/hud.component';
 import { SERVER_ERROR_CAPTION } from './game/hud/server-error-notice.component';
@@ -49,6 +50,7 @@ export const LOBBY_NOTICE_TEXT: Readonly<Record<LobbyNotice, string>> = {
   selector: 'app-root',
   standalone: true,
   imports: [
+    DivePanelComponent,
     EncyclopediaComponent,
     UiButtonComponent,
     UiSurfaceDirective,

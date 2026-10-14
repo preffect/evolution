@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { RANDOM_STREAM, createSeededRandom } from '@evolution/shared';
 import { createFakeBakeCanvasFactory, fakeContextOf } from '../../../../testing/fake-bake-canvas';
 import {
+  DIGESTIVE_VACUOLE_BASE,
+  FOOD_MOTE,
+  GIANT_DIGESTIVE_VACUOLE,
   MITO_BASE,
   ORGANELLE_ATLAS_MAX_DPR,
   ORGANELLE_ATLAS_PX_PER_R,
@@ -54,6 +57,20 @@ describe('bakeOrganelleAtlas', () => {
     const fill = fakeContextOf(atlas[ORGANELLE_KIND.foodVacuole].canvas).gradients[1]!.stops;
     expect(fill[0]!.colour).toBe(hexWithAlpha(VAC_BASE, VACUOLE_FILL_ALPHA.inner));
     expect(fill.at(-1)!.colour).toBe(hexWithAlpha(VAC_BASE, VACUOLE_FILL_ALPHA.outer));
+  });
+
+  it('bakes the giant amoeba’s digestive vacuole as the mockup draws it: a dark pool, faintly ringed in green', () => {
+    const context = fakeContextOf(atlas[ORGANELLE_KIND.digestiveVacuole].canvas);
+    expect(haloColour(ORGANELLE_KIND.digestiveVacuole)).toBe(hexWithAlpha(FOOD_MOTE, ORGANELLE_HALO_ALPHA));
+    const fill = context.gradients[1]!.stops;
+    expect(fill[0]!.colour).toBe(hexWithAlpha(DIGESTIVE_VACUOLE_BASE, GIANT_DIGESTIVE_VACUOLE.fillAlpha.inner));
+    expect(fill.at(-1)!.colour).toBe(hexWithAlpha(DIGESTIVE_VACUOLE_BASE, GIANT_DIGESTIVE_VACUOLE.fillAlpha.outer));
+    expect(GIANT_DIGESTIVE_VACUOLE.fillAlpha.inner).toBeGreaterThan(GIANT_DIGESTIVE_VACUOLE.fillAlpha.outer);
+    expect(context.strokeStyle).toBe(hexWithAlpha(FOOD_MOTE, GIANT_DIGESTIVE_VACUOLE.rimAlpha));
+    const motes = GIANT_DIGESTIVE_VACUOLE.motes.length;
+    expect(paints(ORGANELLE_KIND.digestiveVacuole)).toBe(paints(ORGANELLE_KIND.foodVacuole) + motes);
+    expect(context.ops.at(-1)).toBe('fill');
+    expect(context.count('ellipse')).toBe(1);
   });
 
   it('scales the bake with the device pixel ratio up to the cap', () => {

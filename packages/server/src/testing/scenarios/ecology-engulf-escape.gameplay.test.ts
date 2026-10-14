@@ -4,7 +4,7 @@
 
 import { describe, it } from 'vitest';
 import { ENGULF_RELEASE_REASON, ENGULF_SEAL_PROGRESS, PLAYER_LIFE_STATE } from '@evolution/shared';
-import { distanceBetweenCells, speedOf } from '../gameplay/evolution-views.js';
+import { cellOf, distanceBetweenCells, speedOf, type EvolutionView } from '../gameplay/evolution-views.js';
 import { player } from '../gameplay/index.js';
 import {
   CENTRE_DISTANCE_WU,
@@ -14,7 +14,10 @@ import {
   E9_SEAL_TICK,
   E11_LATE_RELEASE_TICK,
   E11_LATE_SPRINT_TICK,
-  E11_NO_SPRINT_RELEASE_TICK,
+  E11_LAST_STEERING_ESCAPE_TICK,
+  E11_LAST_STEERING_RELEASE_TICK,
+  E11_NO_SPRINT_PAYOUT_TICK,
+  E11_NO_SPRINT_SEAL_TICK,
   E11_RELEASE_TICK,
   E11_SPRINT_TICK,
   E11_TOO_LATE_END_TICK,
@@ -22,6 +25,7 @@ import {
   E11_TOO_LATE_SPRINT_TICK,
   PREY_MASS,
   PROGRESS_TOLERANCE,
+  absorption,
   absorptionsOfPredator,
   awayFromPredator,
   engulfPair,
@@ -35,6 +39,17 @@ import {
   statesOfPrey,
 } from './engulf-setups.js';
 import { MASS_TOLERANCE, SPEED_TOLERANCE_WU_PER_SECOND } from './shared-setups.js';
+
+/** B's centre past A's half-covered bound (docs/ecology/absorption.md §6.1), where only the kept grab holds it (#819). */
+function isPastHalfCover(view: EvolutionView): boolean | undefined {
+  const predator = cellOf(view, 0);
+  const prey = cellOf(view, 1);
+  const distance = distanceBetweenCells(view, 0, 1);
+  if (predator === undefined || prey === undefined || distance === undefined) {
+    return undefined;
+  }
+  return distance > predator.radius - prey.radius * absorption.ENGULF_COVERAGE_FRACTION;
+}
 
 describe('ecology/acceptance.md §8: getting away from an engulf, and being carried past the chance', () => {
   it('E11: sprinting away from tick 10 breaks contact and the wrap decays until B is released', async () => {
@@ -119,9 +134,26 @@ describe('ecology/acceptance.md §8: getting away from an engulf, and being carr
 
     await engulfPair('E11 steering away from 10 without sprint')
       .from(E11_SPRINT_TICK, player(1).does(awayFromPredator))
-      .advance(E11_TOO_LATE_END_TICK)
-      .expect('released on tick 34', releaseReasons)
-      .atTick(E11_NO_SPRINT_RELEASE_TICK)
+      .advance(E11_NO_SPRINT_PAYOUT_TICK)
+      .expect(`not sealed on tick ${E11_NO_SPRINT_SEAL_TICK - 1}`, progressOfPrey)
+      .atTick(E11_NO_SPRINT_SEAL_TICK - 1)
+      .toBeLessThan(ENGULF_SEAL_PROGRESS)
+      .expect('past the half-covered bound when sealed: the kept grab seals it (#819)', isPastHalfCover)
+      .atTick(E11_NO_SPRINT_SEAL_TICK)
+      .toBe(true)
+      .expect(`sealed on tick ${E11_NO_SPRINT_SEAL_TICK}`, progressOfPrey)
+      .atTick(E11_NO_SPRINT_SEAL_TICK)
+      .toBeGreaterThan(ENGULF_SEAL_PROGRESS)
+      .expect(`absorbed on tick ${E11_NO_SPRINT_PAYOUT_TICK}`, absorptionsOfPredator)
+      .atTick(E11_NO_SPRINT_PAYOUT_TICK)
+      .toBe(1)
+      .runDeterministic();
+
+    await engulfPair('E11 steering away from 4 without sprint')
+      .from(E11_LAST_STEERING_ESCAPE_TICK, player(1).does(awayFromPredator))
+      .advance(E11_LAST_STEERING_RELEASE_TICK)
+      .expect(`released on tick ${E11_LAST_STEERING_RELEASE_TICK}`, releaseReasons)
+      .atTick(E11_LAST_STEERING_RELEASE_TICK)
       .toEqual([ENGULF_RELEASE_REASON.escaped])
       .runDeterministic();
   });

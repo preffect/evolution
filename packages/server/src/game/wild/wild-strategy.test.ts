@@ -29,7 +29,7 @@ import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import { findCell } from '../world/lookups.js';
 import type { StepContext } from '../world/world-state.js';
 import { wildSightRange } from './wild-perception.js';
-import { decideWildTargets, decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
+import { decideSeatTargets, decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
 import { pointAlongHeading } from './wild-wander.js';
 
 const { wildCells, controls, growth } = DEFAULT_BALANCE;
@@ -49,7 +49,7 @@ describe('ticksUntilDecision', () => {
   });
 });
 
-describe('decideWildTargets: cadence', () => {
+describe('decideSeatTargets: cadence', () => {
   it('leaves a fresh seat 0 without a target through 29 ticks and latches one on the 30th, restarting the countdown', () => {
     const world = createTestWorld({ hasWildSeats: true });
     const context = createTestStepContext(world);
@@ -58,11 +58,11 @@ describe('decideWildTargets: cadence', () => {
     expect(seat.decideInTicks).toBe(INTERVAL_TICKS);
     for (let tick = 1; tick < INTERVAL_TICKS; tick += 1) {
       world.tick = tick;
-      decideWildTargets(world, context);
+      decideSeatTargets(world, context);
     }
     expect(targetOf(cell)).toEqual({ x: null, y: null });
     world.tick = INTERVAL_TICKS;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(cell.targetX).not.toBeNull();
     expect(seat.decideInTicks).toBe(INTERVAL_TICKS);
   });
@@ -70,7 +70,7 @@ describe('decideWildTargets: cadence', () => {
   it('staggers by seat: seat 1 decides on tick 1', () => {
     const world = createTestWorld({ hasWildSeats: true });
     world.tick = 1;
-    decideWildTargets(world, createTestStepContext(world));
+    decideSeatTargets(world, createTestStepContext(world));
     expect(findCell(world, world.wildSeats[1]!.cellId!)!.targetX).not.toBeNull();
     expect(findCell(world, world.wildSeats[0]!.cellId!)!.targetX).toBeNull();
   });
@@ -80,22 +80,22 @@ describe('decideWildTargets: cadence', () => {
     const seat = world.wildSeats[0]!;
     seat.cellId = null;
     seat.decideInTicks = 1;
-    decideWildTargets(world, createTestStepContext(world));
+    decideSeatTargets(world, createTestStepContext(world));
     expect(seat.decideInTicks).toBe(1);
   });
 });
 
-describe('decideWildTargets: flee (W7)', () => {
+describe('decideSeatTargets: flee (W7)', () => {
   it('flees a player that can engulf it within WILD_CELL_FLEE_RANGE_RADII: STEER_FULL_THROTTLE_RADII radii straight away', () => {
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: 5 });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: -controls.STEER_FULL_THROTTLE_RADII * wild.radius, y: 0 });
   });
 
   it('does not flee the same player one radius past the range: it wanders instead', () => {
     const outside = wildCells.WILD_CELL_FLEE_RANGE_RADII + 1;
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: outside });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual(pointAlongHeading(world.wildSeats[0]!, wild, world.balance));
     expect(targetOf(wild)).not.toEqual({ x: -controls.STEER_FULL_THROTTLE_RADII * wild.radius, y: 0 });
   });
@@ -112,12 +112,12 @@ describe('decideWildTargets: flee (W7)', () => {
     setCellMass(threat, THREAT_MASS * 2, world.balance);
     threat.x = 0;
     threat.y = -wild.radius * 5;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: 0, y: controls.STEER_FULL_THROTTLE_RADII * wild.radius });
   });
 });
 
-describe('decideWildTargets: hunt (W6)', () => {
+describe('decideSeatTargets: hunt (W6)', () => {
   it('hunts a player it can engulf in sight from the hunting stage on: the target is its centre, no sprint at 5 radii', () => {
     const { world, context, wild, player } = arena({
       wildMass: THREAT_MASS,
@@ -125,7 +125,7 @@ describe('decideWildTargets: hunt (W6)', () => {
       playerAtRadii: 5,
       tick: HUNTING_TICK,
     });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: player.x, y: player.y });
     expect(wild.sprintRemainingTicks).toBe(0);
     expect(wild.sprintCooldownRemainingTicks).toBe(0);
@@ -133,22 +133,22 @@ describe('decideWildTargets: hunt (W6)', () => {
 
   it('does not hunt the same player before the hunting stage, nor one just out of sight', () => {
     const early = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: 5, tick: PROTOCELL_TICK });
-    decideWildTargets(early.world, early.context);
+    decideSeatTargets(early.world, early.context);
     expect(targetOf(early.wild)).not.toEqual({ x: early.player.x, y: early.player.y });
     const threatRadius = radiusForMass(THREAT_MASS, growth);
     const outside = wildSightRange(threatRadius, DEFAULT_BALANCE) / threatRadius + JUST_PAST_RADII;
     const far = arena({ wildMass: THREAT_MASS, playerMass: LUNCH_MASS, playerAtRadii: outside, tick: HUNTING_TICK });
-    decideWildTargets(far.world, far.context);
+    decideSeatTargets(far.world, far.context);
     expect(targetOf(far.wild)).not.toEqual({ x: far.player.x, y: far.player.y });
     expect(targetOf(far.wild)).toEqual(pointAlongHeading(far.world.wildSeats[0]!, far.wild, far.world.balance));
   });
 });
 
-describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
+describe('decideSeatTargets: wild prey and grazing (W7, W13)', () => {
   it('hunts a wild cell it can engulf from tick 0, before the players are prey', () => {
     const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
     const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 5, y: 0 }, mass: LUNCH_MASS }).cell;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: lunch.x, y: lunch.y });
   });
 
@@ -157,7 +157,7 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     const near = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 5, y: 0 }, mass: LUNCH_MASS }).cell;
     seatTestWildCell(world, { seatNumber: 2, at: { x: wild.radius * 7, y: 0 }, mass: THREAT_MASS });
     const next = seatTestWildCell(world, { seatNumber: 3, at: { x: 0, y: wild.radius * 6 }, mass: LUNCH_MASS }).cell;
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).not.toEqual({ x: near.x, y: near.y });
     expect(targetOf(wild)).toEqual({ x: next.x, y: next.y });
   });
@@ -166,7 +166,7 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: LUNCH_MASS, playerAtRadii: 20 });
     spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: BACTERIUM_VARIANT.plain, at: { x: 50, y: 0 } });
     const algae = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 0, y: 120 } });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual({ x: algae.x, y: algae.y });
   });
 
@@ -174,12 +174,12 @@ describe('decideWildTargets: wild prey and grazing (W7, W13)', () => {
     const { world, context, wild } = arena({ wildMass: LUNCH_MASS, playerMass: LUNCH_MASS, playerAtRadii: 20 });
     const sight = wildSightRange(wild.radius, DEFAULT_BALANCE);
     spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 0, y: sight + JUST_PAST_WU } });
-    decideWildTargets(world, context);
+    decideSeatTargets(world, context);
     expect(targetOf(wild)).toEqual(pointAlongHeading(world.wildSeats[0]!, wild, world.balance));
   });
 });
 
-describe('decideWildTargets: randomness', () => {
+describe('decideSeatTargets: randomness', () => {
   function streamPositions(context: StepContext): Record<string, number> {
     return Object.fromEntries(
       SERVER_RANDOM_STREAM_LABELS.map((label) => [label, context.streams[label].getState().position]),
@@ -189,14 +189,52 @@ describe('decideWildTargets: randomness', () => {
   it('a flee draws nothing; a wander draws from the wildCells stream and no other', () => {
     const fleeing = arena({ wildMass: LUNCH_MASS, playerMass: THREAT_MASS, playerAtRadii: 5 });
     const before = streamPositions(fleeing.context);
-    decideWildTargets(fleeing.world, fleeing.context);
+    decideSeatTargets(fleeing.world, fleeing.context);
     expect(streamPositions(fleeing.context)).toEqual(before);
 
     const wandering = arena({ wildMass: LUNCH_MASS, playerMass: LUNCH_MASS, playerAtRadii: 5 });
     const untouched = streamPositions(wandering.context);
-    decideWildTargets(wandering.world, wandering.context);
+    decideSeatTargets(wandering.world, wandering.context);
     const after = streamPositions(wandering.context);
     expect(after[RANDOM_STREAM.wildCells]).toBe(untouched[RANDOM_STREAM.wildCells]! + 1);
     expect({ ...after, [RANDOM_STREAM.wildCells]: untouched[RANDOM_STREAM.wildCells] }).toEqual(untouched);
+  });
+});
+
+describe('decideSeatTargets: a seat resting after a give-up (ticket #738)', () => {
+  /** Keeps seat 0 resting through the decision under test. */
+  const rest = (world: ReturnType<typeof arena>['world']) => {
+    world.wildSeats[0]!.huntRestUntilTick = world.tick + INTERVAL_TICKS;
+  };
+
+  it('grazes the mote rather than hunt the nearer lunch, and hunts the lunch once rested', () => {
+    const { world, context, wild } = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
+    const lunch = seatTestWildCell(world, { seatNumber: 1, at: { x: wild.radius * 3, y: 0 }, mass: LUNCH_MASS }).cell;
+    const algae = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: 0, y: wild.radius * 5 } });
+    rest(world);
+    decideSeatTargets(world, context);
+    expect(targetOf(wild)).toEqual({ x: algae.x, y: algae.y });
+    const rested = arena({ wildMass: THREAT_MASS, playerMass: THREAT_MASS, playerAtRadii: 20 });
+    const later = seatTestWildCell(rested.world, { seatNumber: 1, at: { x: lunch.x, y: 0 }, mass: LUNCH_MASS }).cell;
+    decideSeatTargets(rested.world, rested.context);
+    expect(targetOf(rested.wild)).toEqual({ x: later.x, y: later.y });
+  });
+
+  it('still flees a threat in range', () => {
+    const { world, context, wild } = arena({
+      wildMass: THREAT_MASS,
+      playerMass: LUNCH_MASS,
+      playerAtRadii: 3,
+      tick: HUNTING_TICK,
+      players: [TEST_PLAYER, SECOND_PLAYER],
+    });
+    const threat = world.cells[1]!;
+    setCellMass(threat, THREAT_MASS * 2, world.balance);
+    threat.x = 0;
+    threat.y = -wild.radius * 5;
+    spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: { x: wild.radius * 2, y: 0 } });
+    rest(world);
+    decideSeatTargets(world, context);
+    expect(targetOf(wild)).toEqual({ x: 0, y: controls.STEER_FULL_THROTTLE_RADII * wild.radius });
   });
 });

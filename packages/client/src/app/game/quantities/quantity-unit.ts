@@ -15,6 +15,8 @@ export const QUANTITY_UNIT = {
   massPerSecond: 'mass_per_second',
   /** A 0..1 ratio, shown as a percent. */
   share: 'share',
+  /** A 0..1 share of the subject's own mass, as a percent of it: `25 % of its mass`. */
+  shareOfItsMass: 'share_of_its_mass',
   sharePerSecond: 'share_per_second',
   multiplier: 'multiplier',
   radii: 'radii',
@@ -52,6 +54,8 @@ export const QUANTITY_ROUNDING = {
   nearest: 'nearest',
   /** Where a reading must never claim more than is there (the DNA percent, the round clock). */
   floor: 'floor',
+  /** Where a reading must never claim less than is needed (the mass that swallows a giant). */
+  ceil: 'ceil',
 } as const;
 export type QuantityRounding = ValueOf<typeof QUANTITY_ROUNDING>;
 
@@ -97,9 +101,9 @@ const WHOLE = 0;
 const UNSCALED = 1;
 
 export interface UnitFormat {
-  /** Written before the figure, separator included (`Level 5`). */
+  /** Written before the figure, separator included and non-breaking (`Level 5`). */
   readonly prefix: string;
-  /** Written after the figure, separator included (`0.5 s`, `1.5×`). */
+  /** Written after the figure, separator included and non-breaking (`0.5 s`, `1.5×`). */
   readonly suffix: string;
   /** The suffix when the shown magnitude is exactly one; the plural suffix where the unit has no singular. */
   readonly singularSuffix: string;
@@ -111,8 +115,21 @@ export interface UnitFormat {
   readonly form: QuantityForm;
 }
 
+/**
+ * The space inside a quantity: a number and its unit are one reading, so a line never breaks between them — `5000`
+ * over `mass`, `+0.3 mass` over `/ s` (#858). The table below writes plain spaces for legibility; `unitFormat` swaps.
+ */
+export const NO_BREAK_SPACE = '\u00A0';
+/** The plain space a no-break space stands in for: what the table writes, and what a search query is typed with. */
+export const BREAKING_SPACE = ' ';
+
+/** `text` with every space made non-breaking. */
+function unbreakable(text: string): string {
+  return text.replaceAll(BREAKING_SPACE, NO_BREAK_SPACE);
+}
+
 function unitFormat(suffix: string, overrides: Partial<UnitFormat> = {}): UnitFormat {
-  return {
+  const format: UnitFormat = {
     prefix: '',
     suffix,
     singularSuffix: suffix,
@@ -121,6 +138,12 @@ function unitFormat(suffix: string, overrides: Partial<UnitFormat> = {}): UnitFo
     rounding: QUANTITY_ROUNDING.nearest,
     form: QUANTITY_FORM.figure,
     ...overrides,
+  };
+  return {
+    ...format,
+    prefix: unbreakable(format.prefix),
+    suffix: unbreakable(format.suffix),
+    singularSuffix: unbreakable(format.singularSuffix),
   };
 }
 
@@ -140,6 +163,7 @@ export const QUANTITY_UNIT_FORMAT: Readonly<Record<QuantityUnit, UnitFormat>> = 
   }),
   [QUANTITY_UNIT.massPerSecond]: unitFormat(' mass / s'),
   [QUANTITY_UNIT.share]: unitFormat(' %', WHOLE_PERCENT),
+  [QUANTITY_UNIT.shareOfItsMass]: unitFormat(' % of its mass', WHOLE_PERCENT),
   [QUANTITY_UNIT.sharePerSecond]: unitFormat(' % / s', WHOLE_PERCENT),
   [QUANTITY_UNIT.multiplier]: unitFormat(MULTIPLIER_SIGN),
   [QUANTITY_UNIT.radii]: unitFormat(' radii', { singularSuffix: ' radius' }),

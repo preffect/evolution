@@ -22,9 +22,12 @@ export interface CellLod {
   readonly isFarDot: boolean;
 }
 
-/** `screenRadiusPx` is `r × zoom` in CSS px; `resolution` never moves the thresholds. */
-export function cellLodFor(screenRadiusPx: number): CellLod {
-  const isFarDot = screenRadiusPx < CELL_LOD_FAR_MAX_PX;
+/**
+ * `screenRadiusPx` is `r × zoom` in CSS px; `resolution` never moves the thresholds. `isFarDotShown` `false` keeps a
+ * small cell at mid instead of the far dot (the opening dive, where the far dot's halo is no legibility aid).
+ */
+export function cellLodFor(screenRadiusPx: number, isFarDotShown = true): CellLod {
+  const isFarDot = isFarDotShown && screenRadiusPx < CELL_LOD_FAR_MAX_PX;
   const level = screenRadiusPx >= CELL_LOD_FULL_MIN_PX ? LOD_LEVEL.full : isFarDot ? LOD_LEVEL.far : LOD_LEVEL.mid;
   const interiorBlend = clamp01((screenRadiusPx - (CELL_LOD_FULL_MIN_PX - LOD_FADE_BAND_PX)) / LOD_FADE_BAND_PX);
   return { level, screenRadiusPx, interiorBlend, hasTells: !isFarDot, nucleusBlend: isFarDot ? 0 : 1, isFarDot };

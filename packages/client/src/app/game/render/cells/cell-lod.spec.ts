@@ -32,4 +32,12 @@ describe('cellLodFor', () => {
     expect(far.nucleusBlend).toBe(0);
     expect(cellLodFor(CELL_LOD_FAR_MAX_PX).nucleusBlend).toBe(1);
   });
+
+  it('keeps a small cell at mid, with no far dot, when the far dot is off (the opening dive)', () => {
+    const small = cellLodFor(CELL_LOD_FAR_MAX_PX - 4, false);
+    expect(small.level).toBe(LOD_LEVEL.mid);
+    expect(small.isFarDot).toBe(false);
+    expect(small.nucleusBlend).toBe(1);
+    expect(cellLodFor(CELL_LOD_FAR_MAX_PX - 4, true).isFarDot).toBe(true);
+  });
 });

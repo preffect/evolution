@@ -2,7 +2,7 @@
 // prey within its duration is not taken, nor one whose cost would leave the hunter under the engulf ratio, nor one at
 // a prey it already covers; and the flee sprint mirrored: taken only when the threat's own sprint could reach.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, radiusForMass } from '@evolution/shared';
+import { DEFAULT_BALANCE, GIANT_SPECIES, radiusForMass } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import type { CellRecord } from '../world/entities.js';
@@ -58,6 +58,14 @@ describe('isHuntSprintWorthwhile', () => {
 
   it('does not sprint at a prey it already covers: the engulf starts this tick', () => {
     const { world, hunter, prey } = chase(0.25);
+    expect(isHuntSprintWorthwhile(hunter, prey, world, DEFAULT_BALANCE)).toBe(false);
+  });
+
+  it('keeps the hunter species through the paid mass: a giant that eats no cell never sprints to hunt one', () => {
+    const { world, hunter, prey } = chase(2);
+    hunter.giantSpecies = GIANT_SPECIES.amoeba;
+    expect(isHuntSprintWorthwhile(hunter, prey, world, DEFAULT_BALANCE)).toBe(true);
+    hunter.giantSpecies = GIANT_SPECIES.paramecium;
     expect(isHuntSprintWorthwhile(hunter, prey, world, DEFAULT_BALANCE)).toBe(false);
   });
 });

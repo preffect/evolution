@@ -67,13 +67,14 @@ const instance: CellInstance = {
   wither: 0.6,
   wrinkleAmplitude: 0.027,
   formTier: 3,
+  giantSpeciesId: 2,
   bumps: [{ amplitude: 0.62, centre: 0.52, sigma: 0.28 }],
 };
 
 /**
  * The §2.3 row: twelve scalar texels plus the six bump texels. It grew from sixteen for the sprint ring (#295), whose
  * texel the relation ring (#538) filled, and to eighteen for a starving cell's wither and wrinkle (#635), whose texel
- * the form tier (#193) shares.
+ * the form tier (#193) and the giant species (#828) share, filling it.
  */
 const INSTANCE_ROW_TEXELS = 18;
 const INSTANCE_ROW_BYTES_PER_CELL = INSTANCE_ROW_TEXELS * TEXEL_FLOATS * Float32Array.BYTES_PER_ELEMENT;
@@ -108,6 +109,7 @@ describe('packCellInstance', () => {
     expect(channelOf(row, 'wither')).toBeCloseTo(0.6, 6);
     expect(channelOf(row, 'wrinkleAmplitude')).toBeCloseTo(0.027, 6);
     expect(channelOf(row, 'formTier')).toBe(3);
+    expect(channelOf(row, 'giantSpeciesId')).toBe(2);
     const bumpBase = BUMP_TEXEL_START * TEXEL_FLOATS;
     expect([...row.subarray(bumpBase, bumpBase + 3)].map((value) => Math.round(value * 100) / 100)).toEqual([
       0.62, 0.52, 0.28,
@@ -137,6 +139,7 @@ describe('packCellInstance', () => {
     expect(instanceFieldLocation('relationRingLines')).toEqual([BUMP_TEXEL_START - 2, 3]);
     expect(instanceFieldLocation('wither')).toEqual([BUMP_TEXEL_START - 1, 0]);
     expect(instanceFieldLocation('wrinkleAmplitude')).toEqual([BUMP_TEXEL_START - 1, 1]);
+    expect(instanceFieldLocation('giantSpeciesId')).toEqual([BUMP_TEXEL_START - 1, 3]);
   });
 
   it('locates every scalar field in a distinct channel and rejects an unknown one', () => {

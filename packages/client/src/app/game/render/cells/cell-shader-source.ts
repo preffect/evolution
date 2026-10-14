@@ -65,6 +65,8 @@ export const CELL_UNIFORM = {
   danger: 'uDanger',
   gain: 'uGain',
   sallow: 'uSallow',
+  vacuole: 'uVacuole',
+  vacuoleRim: 'uVacuoleRim',
 } as const;
 
 /** The uniform group the mesh's frame values and colours live in. */

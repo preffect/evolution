@@ -11,6 +11,7 @@ import type {
   EntityId,
   FoodMoteView,
   GameInput,
+  GiantSpecies,
   PlayerId,
   PlayerProgressView,
   SteerCommand,
@@ -88,24 +89,48 @@ export function isPlayerCell(cell: CellRecord): cell is PlayerCellRecord {
 }
 
 /**
- * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the whole of a wild cell's
- * memory. Filled at world creation (`wild/wild-seats.ts`); `cellId` is null while the seat waits out
- * `respawnInTicks`. The base size is `worldMass × sizeFactor`; `grownMass` is the permanent growth above it and
- * `fullMass` the last settle's full size, so the wound is `cell.mass − fullMass` and is never stored
- * (`wild/wild-settle.ts`). The heading and `decideInTicks` rest at 0 until the wild strategy drives them.
+ * What every seat's mind reads (docs/architecture/entity-model.md §2, docs/ecology/giants.md §3.5.15): the base of the
+ * wild seat and the giant seat. `cellId` is null while the seat waits out `respawnInTicks`. `grownMass` is the growth
+ * above the seat's base size and `fullMass` the last settle's full size, so the wound is `cell.mass − fullMass` and is
+ * never stored (`wild/wild-settle.ts`). The heading and `decideInTicks` rest at 0 until a mind drives them.
  */
-export interface WildSeatRecord {
+export interface SeatMindRecord {
   seatNumber: number;
   cellId: EntityId | null;
-  sizeFactor: number;
   grownMass: number;
   fullMass: number;
-  /** The die-off's starver (docs/ecology/wild-cells.md §3.3.6): committed until its cell dies. */
-  isStarving: boolean;
   respawnInTicks: number;
   headingX: number;
   headingY: number;
   decideInTicks: number;
+  /** The cell the last decision hunts, re-aimed at every tick (`wild/wild-hunt-aim.ts`); `null` for any other rule. */
+  huntPreyId: EntityId | null;
+  /** The tick the hunt on `huntPreyId` began (`wild/wild-hunt-give-up.ts`); meaningless while it is `null`. */
+  huntStartTick: number;
+  /** The last prey this seat gave up on, left out of its hunts until it gives up on another; `null` for none. */
+  givenUpPreyId: EntityId | null;
+  /** The seat hunts nothing before this tick: the rest after a give-up (`wild/wild-hunt-give-up.ts`). */
+  huntRestUntilTick: number;
+}
+
+/**
+ * A wild seat (docs/ecology/wild-cells.md §3.3, docs/architecture/entity-model.md §2): the whole of a wild cell's
+ * memory, filled at world creation (`wild/wild-seats.ts`). The base size is `worldMass × sizeFactor`.
+ */
+export interface WildSeatRecord extends SeatMindRecord {
+  sizeFactor: number;
+  /** The die-off's starver (docs/ecology/wild-cells.md §3.3.6): committed until its cell dies. */
+  isStarving: boolean;
+}
+
+/**
+ * A giant seat (docs/ecology/giants.md §3.5.9, §3.5.15): one per species, numbered `WILD_CELL_COUNT` + the species'
+ * place in `GIANT_SPECIES_ORDER` (`wild/giant-seats.ts`). The base size is `bornMass`, drawn once per life; a giant is
+ * outside the die-off (§3.5.10), so it has no size factor and never starves.
+ */
+export interface GiantSeatRecord extends SeatMindRecord {
+  species: GiantSpecies;
+  bornMass: number;
 }
 
 export interface TraitOffer extends TraitOfferView {

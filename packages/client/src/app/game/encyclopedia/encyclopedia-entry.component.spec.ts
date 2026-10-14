@@ -24,10 +24,12 @@ import {
   ENCYCLOPEDIA_LADDER_TABLE_LABEL,
   ENCYCLOPEDIA_OWNED_CHIP_LABEL,
   ENCYCLOPEDIA_PREVIEW_SETTLE_MS,
+  ENCYCLOPEDIA_REAL_LIFE_LABEL,
+  ENCYCLOPEDIA_REAL_SIZE_LABEL,
   ENCYCLOPEDIA_SEE_ALSO_LABEL,
   ENCYCLOPEDIA_TIER_CAPTION_PREFIX,
 } from './encyclopedia-constants';
-import { factNameFromNoun } from './format/entry-view';
+import { tierRowName } from './format/tier-table';
 import { ENCYCLOPEDIA_CATEGORY_LABEL } from './model/categories';
 import type { ResolvedEntry } from './model/entry';
 import { ENTRY_SUBJECT, ENTRY_SUBJECT_LABEL, type EntryId } from './model/entry-id';
@@ -38,6 +40,7 @@ import { ENCYCLOPEDIA_TEST_ID, encyclopediaLinkTestId, encyclopediaTierTestId } 
 const MITOCHONDRION = 'trait:mitochondrion' as EntryId;
 const PROTOCELL = 'stage:protocell' as EntryId;
 const ENGULF = 'action:engulf' as EntryId;
+const GIANT_DIATOM = 'giant:giant_diatom' as EntryId;
 const SECOND_TIER = 2 as TraitTier;
 /** Where the spec puts the scroll column's top edge, in viewport px. */
 const STICKY_EDGE_TOP = 120;
@@ -156,7 +159,7 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
       ENCYCLOPEDIA_EFFECTS_TABLE_LABEL,
       ENCYCLOPEDIA_LADDER_TABLE_LABEL,
     ]);
-    expect(drawn[0]?.names).toEqual(entry.sections[0]?.facts.map((fact) => factNameFromNoun(fact.label)));
+    expect(drawn[0]?.names).toEqual(entry.sections[0]?.facts.map(tierRowName));
     expect(drawn[1]?.names.length).toBeGreaterThan(0);
   });
 
@@ -176,6 +179,19 @@ describe('EncyclopediaEntryComponent (docs/ui/encyclopedia.md §11.4)', () => {
     for (const link of entry.seeAlso) {
       expect(queryByTestId(seeAlso!, encyclopediaLinkTestId(link.entryId))).not.toBeNull();
     }
+  });
+
+  it('draws a giant’s real-life note under its prose, its line and its real size, and none on another entry', () => {
+    expect(queryByTestId(root(), ENCYCLOPEDIA_TEST_ID.realLife)).toBeNull();
+    show(resolve(GIANT_DIATOM));
+    const note = expectTestId(root(), ENCYCLOPEDIA_TEST_ID.realLife);
+    expect(note.querySelector('.heading')?.textContent?.trim()).toBe(ENCYCLOPEDIA_REAL_LIFE_LABEL);
+    expect(note.querySelector('.line')?.textContent?.trim()).toBe(entry.realLife?.line);
+    expect(note.querySelector('.size')?.textContent).toContain(ENCYCLOPEDIA_REAL_SIZE_LABEL);
+    expect(note.querySelector('.size')?.textContent).toContain(entry.realLife?.size);
+    expect(root().querySelector('app-encyclopedia-prose')?.compareDocumentPosition(note)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it('opens the lens on a trait’s first tier, and on a plain entry’s own preview', async () => {

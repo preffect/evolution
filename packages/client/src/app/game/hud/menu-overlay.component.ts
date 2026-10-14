@@ -1,6 +1,7 @@
 // The Escape menu (docs/ui/overlays.md §3.5): the kit's modal panel over a light scrim, in a focus trap, on its own
 // `[uiSurface]` layer. `Menu` over `The dish keeps running.` (the sim never pauses), the alert strip while an alert is
-// up, `Return to game` (autofocus), `Encyclopedia`, `Exit game` with its one confirm, and `Your traits`.
+// up, `Return to game` (autofocus), `Encyclopedia`, the `Mouse lock` toggle, `Exit game` with its one confirm, and
+// `Your traits`.
 //
 // The trait keys stay live underneath (input-and-onboarding.md §4's modal gate lets `1` `2` `3` through), which is why
 // the alert strip carries an open offer and its seconds. Closing returns focus to the canvas host; coming back from the
@@ -19,6 +20,7 @@ import { MENU_SCRIM_ALPHA } from './hud-constants';
 import { HudStateService } from './hud-state.service';
 import { MenuExitComponent } from './menu-exit.component';
 import { MenuTraitsComponent } from './menu-traits.component';
+import { MouseLockService } from './mouse-lock.service';
 import { OverlayAlertComponent } from './overlay-alert.component';
 import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
 
@@ -77,6 +79,18 @@ import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-te
             >
               Encyclopedia
             </button>
+            <button
+              type="button"
+              class="action"
+              uiButton
+              variant="secondary"
+              role="switch"
+              [attr.aria-checked]="isMouseLockOn()"
+              [testId]="testId.menuMouseLock"
+              (click)="toggleMouseLock()"
+            >
+              Mouse lock: {{ isMouseLockOn() ? 'On' : 'Off' }}
+            </button>
             <app-menu-exit (exited)="exitGame()" />
           </div>
         </div>
@@ -90,6 +104,7 @@ export class MenuOverlayComponent {
   private readonly hudState = inject(HudStateService);
   private readonly gameState = inject(GameStateService);
   private readonly multiplayer = inject(MultiplayerService);
+  private readonly mouseLock = inject(MouseLockService);
   private readonly host: HTMLElement = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   protected readonly testId = HUD_TEST_ID;
@@ -105,6 +120,9 @@ export class MenuOverlayComponent {
     menuTraitRowsFor(this.gameState.ownProgress()?.ownedTraits ?? [], this.gameState.balance()?.traits ?? null),
   );
 
+  /** The mouse lock's toggle (docs/ui/input-and-onboarding.md §4.1); the next click on the dish locks when it is on. */
+  protected readonly isMouseLockOn = this.mouseLock.isEnabled;
+
   constructor() {
     // After the trap's autofocus: back from the encyclopedia, the control that opened it takes focus instead.
     afterNextRender(() => this.focusReturnTarget());
@@ -112,6 +130,10 @@ export class MenuOverlayComponent {
 
   protected returnToGame(): void {
     this.hudState.closeOverlays();
+  }
+
+  protected toggleMouseLock(): void {
+    this.mouseLock.toggle();
   }
 
   protected openEncyclopedia(): void {

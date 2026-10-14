@@ -16,6 +16,7 @@ import { GameHostComponent } from './game/game-host.component';
 import { HUD_TEST_ID } from './game/test-ids/hud-test-ids';
 import { IS_BENCH_ROUTE } from './game/render/bench/bench-route';
 import { MultiplayerService, type LobbyNotice } from './services/multiplayer.service';
+import { provideRecordingDive } from '../testing/fake-dive-handle';
 
 /**
  * Stands in for the game host, which would try to create a WebGL Pixi app under jsdom. It counts its
@@ -72,6 +73,8 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
+        // The lobby's opening dive would build a Pixi app under jsdom (docs/rendering/opening-dive.md §5).
+        provideRecordingDive().provider,
         { provide: MultiplayerService, useValue: multiplayer },
         { provide: IS_BENCH_ROUTE, useFactory: () => isBenchRoute.value },
         {

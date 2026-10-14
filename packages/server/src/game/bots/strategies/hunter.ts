@@ -9,7 +9,8 @@
 // The catalogue's `hunter` is `createGrazingHunterStrategy`: the same hunt, grazing like `grazer` while nothing is
 // engulfable (#376), so a bot spawned small grows into a predator instead of waiting for a bigger respawn, and aims
 // `HUNTER_AIM_PAST_PREY_RADII` own radii past its prey so it arrives at full throttle (#698). The wild strategy
-// composes the bare hunter, which aims at the prey's centre, with its own rules.
+// composes the bare hunter, which aims at the prey's centre, with its own rules, and takes the prey from `onHunt` to
+// re-aim at it every tick (#738).
 
 import { distanceBetween, unitVectorToward, type PlayerId, type Vec2 } from '@evolution/shared';
 import {
@@ -40,6 +41,8 @@ export interface HunterOptions {
   readonly preference?: HuntPreference;
   /** How far past the prey's centre it aims, along its line of approach, in own radii; 0 (the centre) by default. */
   readonly aimPastRadii?: number;
+  /** Told the prey each decision hunts, so a caller can keep aiming at it between decisions (the wild hunt, #738). */
+  readonly onHunt?: (prey: BotCellView) => void;
 }
 
 /** Which cells count as prey and which of them a fresh hunter takes; shared by every instance of one factory. */
@@ -115,6 +118,7 @@ export function createHunterStrategy<Snapshot, ActorId = PlayerId>(
         if (prey === undefined) {
           return null;
         }
+        options.onHunt?.(prey);
         const isSprinting =
           distanceBetween(self, prey) <= self.radius * sprintWithinRadii && isSprintWorthwhile(self, prey);
         const target = huntTargetFrom(self, prey, aimPastRadii);

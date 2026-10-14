@@ -26,6 +26,8 @@ export * from './simulation/cell-modifiers.js';
 export * from './simulation/engulf-eligibility.js';
 export * from './simulation/engulf-pace.js';
 export * from './simulation/entry-rule.js';
+export * from './simulation/giant-balance.js';
+export * from './simulation/ladder-check.js';
 export * from './simulation/level-costs.js';
 export * from './simulation/mass-curves.js';
 export * from './simulation/movement-kernel.js';

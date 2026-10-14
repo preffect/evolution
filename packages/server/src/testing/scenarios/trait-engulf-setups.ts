@@ -19,6 +19,8 @@ import { engulfMassYieldOf } from '../../game/simulation/engulf-payout.js';
 const { growth, ecology, absorption } = DEFAULT_BALANCE;
 /** An idle held pair: the prey never steers away. */
 const NO_AWAY_EFFORT = 0;
+/** The trait rows' predators are player cells, never a giant. */
+const PLAIN_PREDATOR_SPECIES = null;
 
 /** The prey a dose is read against (#154): its start-of-span mass, decaying in the broth, and its fraction. */
 export interface PreyDose {
@@ -110,7 +112,7 @@ export function modelHeldPair(input: HeldPairModelInput): HeldPairOutcome {
   const state: HeldPairState = { predatorMass: input.predatorMass, preyMass: input.preyMass, progress: null };
   for (let tick = 1; tick <= input.maxTicks; tick += 1) {
     metabolisePair(state, input);
-    const predatorView = { mass: state.predatorMass };
+    const predatorView = { mass: state.predatorMass, giantSpecies: PLAIN_PREDATOR_SPECIES };
     const preyView = { mass: state.preyMass, membraneRatioBonus: input.prey.membraneRatioBonus };
     if (state.progress === null) {
       if (!canEngulf(predatorView, preyView, absorption)) continue;

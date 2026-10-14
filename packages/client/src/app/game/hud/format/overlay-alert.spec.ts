@@ -13,6 +13,7 @@ import { createTestCellView } from '../../../../testing/builders';
 import { UI_ALERT_TONE } from '../../../ui-kit/ui-alert-pill.component';
 import { ESCAPE_LABEL, ownCellIndicatorsFor, type OwnCellIndicators } from '../../state/own-cell-indicators';
 import { OVERLAY_ALERT_KIND, overlayAlertFor, type OverlayAlertInput } from './overlay-alert';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;
@@ -59,7 +60,7 @@ describe('overlayAlertFor', () => {
     expect(overlayAlertFor(inputWith({ progress: progressWith({ offer: OFFER }) }))).toEqual({
       kind: OVERLAY_ALERT_KIND.offer,
       text: 'LEVEL 5 · CHOOSE A TRAIT ·',
-      figure: '6.5 s',
+      figure: unbroken('6.5 s'),
       tone: UI_ALERT_TONE.gold,
       keyHints: ['1', '2', '3'],
     });

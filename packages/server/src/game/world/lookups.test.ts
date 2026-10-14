@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { entityId, playerId } from '@evolution/shared';
-import { seatTestWildCell } from '../../testing/wild-builders.js';
+import { entityId, GIANT_SPECIES, playerId } from '@evolution/shared';
+import { seatTestGiantCell, seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestWorld, TEST_PLAYER } from '../../testing/world-builders.js';
 import {
   cellOfSeat,
   findCell,
   findCellOfPlayer,
   findPlayer,
+  giantSeatOfCell,
   indexCellsById,
   removeFromArray,
   requireCellOfPlayer,
@@ -78,5 +79,15 @@ describe('lookups', () => {
     expect(cellOfSeat(world, seat)).toBe(cell);
     seat.cellId = null;
     expect(cellOfSeat(world, seat)).toBeUndefined();
+  });
+
+  it("giantSeatOfCell answers a giant cell's seat, and undefined for any other cell", () => {
+    const world = createTestWorld();
+    const wild = seatTestWildCell(world, { seatNumber: 0, at: { x: 500, y: 0 } });
+    const giant = seatTestGiantCell(world, { species: GIANT_SPECIES.paramecium, at: { x: -500, y: 0 }, bornMass: 80 });
+    expect(giantSeatOfCell(world, giant.cell.id)).toBe(giant.seat);
+    expect(giantSeatOfCell(world, wild.cell.id)).toBeUndefined();
+    giant.seat.cellId = null;
+    expect(giantSeatOfCell(world, giant.cell.id)).toBeUndefined();
   });
 });

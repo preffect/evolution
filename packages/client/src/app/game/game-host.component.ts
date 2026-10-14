@@ -9,9 +9,11 @@ import { AudioHooks } from './audio/audio-hooks';
 import { CLOCK } from './clock-provider';
 import { GameStateService } from './state/game-state.service';
 import { HudStateService } from './hud/hud-state.service';
+import { MouseLockService } from './hud/mouse-lock.service';
 import { OnboardingService } from './hud/onboarding.service';
 import { MultiplayerService } from '../services/multiplayer.service';
 import { setupGame, type GameTeardown } from './game-setup';
+import type { PointerLockSeam } from './input/pointer-lock-input';
 import { CREATE_PIXI_APP } from './render/pixi-app-provider';
 import { HUD_TEST_ID } from './test-ids/hud-test-ids';
 
@@ -47,6 +49,7 @@ export class GameHostComponent implements OnInit, OnDestroy {
   private readonly hudState = inject(HudStateService);
   private readonly gameState = inject(GameStateService);
   private readonly onboarding = inject(OnboardingService);
+  private readonly mouseLock = inject(MouseLockService);
   /** Injected rather than imported, so a spec can mount this component without a WebGL context (#449's review). */
   private readonly createPixiApp = inject(CREATE_PIXI_APP);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
@@ -85,8 +88,22 @@ export class GameHostComponent implements OnInit, OnDestroy {
         onTraitCardPickReady: (pick) => this.hudState.setTraitCardPick(pick),
         // The one render-side fact the HUD reads (docs/ui/components-and-constants.md §7): what is on screen right now.
         onCameraExtent: (extent) => this.gameState.setCameraExtent(extent),
+        pointerLock: this.pointerLockSeam(),
       },
     );
+  }
+
+  /**
+   * The mouse lock (docs/ui/input-and-onboarding.md §4.1): the menu's toggle, the overlays that hand the lock back,
+   * the Escape that leaves it opening the menu, and the in-game cursor.
+   */
+  private pointerLockSeam(): PointerLockSeam {
+    return {
+      isEnabled: () => this.mouseLock.isEnabled(),
+      isCursorNeeded: () => this.mouseLock.isCursorNeeded(),
+      onUserExit: () => this.mouseLock.exitedByUser(),
+      onCursorMoved: (point) => this.mouseLock.setCursorPoint(point),
+    };
   }
 
   ngOnDestroy(): void {

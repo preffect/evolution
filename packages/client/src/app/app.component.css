@@ -36,6 +36,61 @@
   padding: calc(var(--ui-space-l) * var(--ui-scale));
 }
 
+/*
+ * From 1024 px wide, two columns (docs/ui/layout.md §2.1, ticket #805): the forms on the left, the opening dive on the
+ * right, both in view without scrolling. Every left-hand row is its own area, so a notice or an error that is absent
+ * takes no room; the dive spans them all and the last, flexible row takes whatever of its height they leave, so the
+ * forms never spread apart to match it. It stays in view while a long games list scrolls the page.
+ */
+@media (min-width: 1024px) {
+  .column {
+    display: grid;
+    max-width: 1440px;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto 1fr;
+    grid-template-areas:
+      'header header'
+      'notice dive'
+      'error dive'
+      'connection dive'
+      'create dive'
+      'games dive'
+      '. dive';
+    column-gap: calc(var(--ui-space-l) * var(--ui-scale));
+  }
+
+  .app-header {
+    grid-area: header;
+  }
+
+  .notice {
+    grid-area: notice;
+  }
+
+  .error {
+    grid-area: error;
+  }
+
+  .connection {
+    grid-area: connection;
+  }
+
+  .create {
+    grid-area: create;
+  }
+
+  .games-panel {
+    grid-area: games;
+  }
+
+  .dive {
+    grid-area: dive;
+    align-self: start;
+    position: sticky;
+    top: 0;
+  }
+}
+
 .app-header {
   display: flex;
   align-items: baseline;

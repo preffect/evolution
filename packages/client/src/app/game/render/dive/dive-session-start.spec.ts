@@ -1,0 +1,120 @@
+// The dive session's start and its surroundings (docs/rendering/opening-dive.md §1, §5): a start where either half
+// fails gives the other back and answers false; an off-screen report that comes before the app is kept; reduced
+// motion asked for mid-fall ends the fall; the lobby's autoplay waits for the bands' bakes.
+
+import { describe, expect, it } from 'vitest';
+import { diveSessionHarness as harness, startedDiveSession as started } from '../../../../testing/dive-session-harness';
+import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../testing/dive-test-timeouts';
+import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
+import { SHORE_LOD } from '../constants/dive-shore';
+import { DIVE_FIRST_PHASE, diveFallMs } from './dive-controls';
+
+/** The held case's coarser step (ms): the floor's hold is timed, not counted in frames, so ten frames a second is enough. */
+const HELD_FRAME_MS = 100;
+/** The held case steps this many falls' worth of time, well past the fall, so a hold that gives up early is caught. */
+const HELD_FALLS = 2;
+
+describe('DiveSession.start when a half fails', () => {
+  it('destroys the app it made when the upper bands fail (a missing coastline), and answers false', async () => {
+    const { subject, apps } = harness({ loadUpperBands: () => Promise.reject(new Error('404')) });
+    expect(await subject.start()).toBe(false);
+    expect(apps[0]!.lifecycle.isDestroyed).toBe(true);
+    subject.destroy();
+  });
+
+  it('makes no band when the app fails (no WebGL), and answers false', async () => {
+    const { subject, shore, kelp, slime } = harness({ createPixiApp: () => Promise.reject(new Error('no WebGL')) });
+    expect(await subject.start()).toBe(false);
+    expect([shore.bands, kelp.bands, slime.bands]).toEqual([[], [], []]);
+    subject.destroy();
+  });
+
+  it('answers false, holding nothing, when both fail', async () => {
+    const { subject } = harness({
+      createPixiApp: () => Promise.reject(new Error('no WebGL')),
+      loadUpperBands: () => Promise.reject(new Error('404')),
+    });
+    await expect(subject.start()).resolves.toBe(false);
+    subject.destroy();
+  });
+
+  it('gives back the half that arrives after destroy when the other failed', async () => {
+    const { subject, apps } = harness({ loadUpperBands: () => Promise.reject(new Error('404')) });
+    const start = subject.start();
+    subject.destroy();
+    expect(await start).toBe(false);
+    expect(apps[0]!.lifecycle.isDestroyed).toBe(true);
+  });
+});
+
+// The floor's case steps a started dive through a whole fall frame by frame: the dive's heavy timeout.
+describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TIMEOUT_MS }, () => {
+  it('keeps an off-screen report that came before the app, and starts with the ticker stopped', async () => {
+    const parts = harness();
+    parts.subject.setIsVisible(false);
+    expect(await parts.subject.start()).toBe(true);
+    expect(parts.apps[0]!.ticking.isRunning).toBe(false);
+    parts.subject.destroy();
+  });
+
+  it('jumps a playing opening to its stop when reduced motion is asked for mid-fall', async () => {
+    const { subject, app, clock, motion } = await started();
+    subject.controls.playPhase(DIVE_FIRST_PHASE, clock.nowMilliseconds(), false);
+    clock.advanceMilliseconds(DIVE_PLAY_HOLD_MS + 2000);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    motion.isReduced = true;
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    expect(subject.controls.zoom).toBe(DIVE_FIRST_PHASE.zoom);
+    subject.destroy();
+  });
+
+  it('holds the autoplay until the slime’s bakes have landed', async () => {
+    const { subject, app, clock, slime } = await started();
+    slime.bakes.isBaked = false;
+    clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS * 3);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    slime.bakes.isBaked = true;
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    subject.destroy();
+  });
+
+  it('holds the autoplay until the shore’s tiles and its top level have baked', async () => {
+    const { subject, app, clock, shore } = await started();
+    const band = shore.bands[0]!;
+    band.isReady = false;
+    clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS * 3);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    band.isReady = true;
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    subject.destroy();
+  });
+
+  it('holds the fall above the shore’s floor while its levels bake, then lets it go on', async () => {
+    const { subject, app, clock, shore } = await started();
+    const band = shore.bands[0]!;
+    const floor = SHORE_LOD.topZoom;
+    band.fallFloorZoom = floor;
+    clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    // Twice as long as the whole fall would take: held, it is still above the floor and still playing.
+    const heldFrames = Math.ceil((HELD_FALLS * (DIVE_PLAY_HOLD_MS + diveFallMs(DIVE_FIRST_PHASE))) / HELD_FRAME_MS);
+    for (let frame = 0; frame < heldFrames; frame += 1) {
+      clock.advanceMilliseconds(HELD_FRAME_MS);
+      app.tick();
+    }
+    expect(subject.controls.zoom).toBeGreaterThan(floor);
+    expect(subject.controls.isPlaying).toBe(true);
+    band.fallFloorZoom = Number.NEGATIVE_INFINITY;
+    clock.advanceMilliseconds(500);
+    app.tick();
+    expect(subject.controls.zoom).toBeLessThan(floor);
+    subject.destroy();
+  });
+});

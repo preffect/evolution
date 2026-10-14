@@ -2,20 +2,28 @@
 // perception over the live `WorldState`, keyed by the seat's cell id instead of a player id (a wild cell has no
 // player), built per decision around the deciding cell. It sees only what lies within its sight,
 // `WILD_CELL_SIGHT_VIEW_MULTIPLE × viewHalfHeightFor(radius)` (what a player of its size sees from the middle of the
-// screen to the top edge): every cell, player or wild, whose centre is in range, and the algae and detritus motes in
-// range (bacteria and fragments are the players'). One linear pass over the cells and the motes, no spatial query.
-// The hunt rule's view drops player cells before `WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`, and every prey that another
-// cell in sight could also swallow from strictly closer (ticket #737: two near-equal hunters no longer shove each other
-// over one prey); the flee rule sees them all.
+// screen to the top edge): every cell, player or wild, whose centre is in range, and the motes in range of the kinds
+// its diet eats now (`simulation/cell-diet.ts`: algae and detritus for a wild cell; fragments are the players'). One
+// linear pass over the cells and the motes, no spatial query. The hunt rule's view drops player cells before the
+// seat's profile makes them prey (`WILD_CELL_HUNTS_PLAYERS_FROM_STAGE`; a giant's from tick 0), every cell under its
+// hunt window (a giant hunter's `GIANT_HUNT_MIN_PREY_MASS_FRACTION` × its mass, docs/ecology/giants.md §3.5.6), and
+// every prey that another cell in sight could also swallow from strictly closer (ticket #737: two near-equal hunters
+// no longer shove each other over one prey); the flee rule sees them all.
 // `canEngulf` is the shared predicate over the live balance, as for every bot. A `CellRecord` mirrors
 // `membraneRatioBonus` at step 1, so it satisfies the strategies' `BotCellView` as is.
 
-import { canEngulf, distanceBetween, viewHalfHeightFor, type BalanceConfig, type EntityId } from '@evolution/shared';
+import {
+  canEngulf,
+  distanceBetween,
+  viewHalfHeightFor,
+  type BalanceConfig,
+  type EntityId,
+  type FoodKind,
+} from '@evolution/shared';
 import type { BotPerception } from '../bots/perception.js';
 import { isPlayerCell, type CellRecord, type FoodMoteRecord } from '../world/entities.js';
 import { findCell } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
-import { isWildFood } from '../simulation/eating.js';
 
 export type WildPerception = BotPerception<WorldState, EntityId>;
 
@@ -30,14 +38,19 @@ export interface WildSight {
   readonly motes: readonly FoodMoteRecord[];
 }
 
-/** One pass over the world: every centre within `wildSightRange` of `viewer`, the boundary included. */
-export function wildSightOf(world: WorldState, viewer: CellRecord, balance: BalanceConfig): WildSight {
+/** One pass over the world: every centre within `wildSightRange` of `viewer`, the boundary included; motes of `foodKinds`. */
+export function wildSightOf(
+  world: WorldState,
+  viewer: CellRecord,
+  balance: BalanceConfig,
+  foodKinds: readonly FoodKind[],
+): WildSight {
   const range = wildSightRange(viewer.radius, balance);
   const isInSight = (entity: { readonly x: number; readonly y: number }): boolean =>
     distanceBetween(viewer, entity) <= range;
   return {
     cells: world.cells.filter(isInSight),
-    motes: world.food.filter((mote) => isWildFood(mote) && isInSight(mote)),
+    motes: world.food.filter((mote) => foodKinds.includes(mote.kind) && isInSight(mote)),
   };
 }
 
@@ -69,15 +82,40 @@ export function hasCloserRival(
   );
 }
 
-/** The hunt's view for `hunter`: `createWildPerception`'s prey without those a closer rival could swallow. */
+/** Which cells a hunter may pick from its seat's profile: players or not yet, and the hunt window. */
+export interface WildHuntFilter {
+  readonly isPlayerPrey: boolean;
+  /** A target weighs at least this × the hunter's mass; 0 for a wild seat. */
+  readonly minPreyMassFraction: number;
+}
+
+/** Whether `prey` lies in `hunter`'s hunt window: at least `minPreyMassFraction` × its mass (the window's top is `canEngulf`). */
+export function isInHuntWindow(hunter: CellRecord, prey: CellRecord, minPreyMassFraction: number): boolean {
+  return prey.mass >= minPreyMassFraction * hunter.mass;
+}
+
+/**
+ * The hunt's view for `hunter`: `createWildPerception`'s prey in its era, without those under its hunt window or a
+ * closer rival could swallow.
+ */
 export function createWildHuntPerception(
   sight: WildSight,
   balance: BalanceConfig,
   hunter: CellRecord,
-  isPlayerPrey: boolean,
+  filter: WildHuntFilter,
 ): WildPerception {
-  const cells = cellsInEra(sight, isPlayerPrey).filter((cell) => !hasCloserRival(sight, hunter, cell, balance));
+  const cells = cellsInEra(sight, filter.isPlayerPrey).filter(
+    (cell) => isInHuntWindow(hunter, cell, filter.minPreyMassFraction) && !hasCloserRival(sight, hunter, cell, balance),
+  );
   return perceptionOver(sight, cells, balance);
+}
+
+/** `perception` without the prey the hunter last gave up on (`wild-hunt-give-up.ts`); unchanged for none. */
+export function withoutGivenUpPrey(perception: WildPerception, givenUpPreyId: EntityId | null): WildPerception {
+  if (givenUpPreyId === null) {
+    return perception;
+  }
+  return { ...perception, cellsOf: (world) => perception.cellsOf(world).filter((cell) => cell.id !== givenUpPreyId) };
 }
 
 function perceptionOver(sight: WildSight, cells: readonly CellRecord[], balance: BalanceConfig): WildPerception {

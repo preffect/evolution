@@ -81,6 +81,7 @@ uniform vec3 uSilicaLight;
 uniform vec3 uDanger;
 uniform vec3 uGain;
 uniform vec3 uSallow;
+uniform vec3 uVacuole; uniform vec3 uVacuoleRim;
 
 flat in int vInstance;
 in vec2 vLocal;
@@ -97,7 +98,7 @@ struct Instance {
   float tintMix; float warningRingPx; float formId; float passBAlpha;
   float rimDash; float ciliaPhase; float nucleusDiscRadii; float speckleSeed;
   float selfRingFill; float selfRingBrightness; float relationRingPx; float relationRingLines;
-  float wither; float wrinkleAmplitude; float formTier;
+  float wither; float wrinkleAmplitude; float formTier; float giantSpeciesId;
 };
 
 Instance readInstance() {
@@ -126,7 +127,7 @@ Instance readInstance() {
   inst.selfRingFill = ${instanceRead('selfRingFill')}; inst.selfRingBrightness = ${instanceRead('selfRingBrightness')};
   inst.relationRingPx = ${instanceRead('relationRingPx')}; inst.relationRingLines = ${instanceRead('relationRingLines')};
   inst.wither = ${instanceRead('wither')}; inst.wrinkleAmplitude = ${instanceRead('wrinkleAmplitude')};
-  inst.formTier = ${instanceRead('formTier')};
+  inst.formTier = ${instanceRead('formTier')}; inst.giantSpeciesId = ${instanceRead('giantSpeciesId')};
   return inst;
 }
 

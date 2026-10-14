@@ -22,6 +22,7 @@ import { MultiplayerService } from '../../services/multiplayer.service';
 import { HudStateService } from './hud-state.service';
 import { HUD_TEST_ID, testIdSelector, traitCardPickTestId, traitCardTestId } from '../test-ids/hud-test-ids';
 import { TraitOfferOverlayComponent } from './trait-offer-overlay.component';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;
@@ -101,7 +102,7 @@ describe('TraitOfferOverlayComponent', () => {
     expect(band.getAttribute('role')).toBe('dialog');
     expect(band.getAttribute('aria-label')).toBe('Choose a trait');
     expect(band.textContent).toContain('LEVEL 2 · CHOOSE A TRAIT');
-    expect(query(HUD_TEST_ID.traitOfferTimer)!.textContent!.trim()).toBe('6.5 s');
+    expect(query(HUD_TEST_ID.traitOfferTimer)!.textContent!.trim()).toBe(unbroken('6.5 s'));
     expect(offer.cards.map((_card, index) => query(traitCardTestId(index)))).not.toContain(null);
     expect(band.textContent).toContain('At 0 s the dish picks for you');
   });

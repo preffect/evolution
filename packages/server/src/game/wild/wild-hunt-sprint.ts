@@ -70,7 +70,7 @@ export function isHuntSprintWorthwhile(
   balance: BalanceConfig,
 ): boolean {
   return (
-    canEngulf({ mass: massAfterHuntSprint(hunter, balance) }, prey, balance.absorption) &&
+    canEngulf({ ...hunter, mass: massAfterHuntSprint(hunter, balance) }, prey, balance.absorption) &&
     engulfContactGap(hunter, prey, balance) > 0 &&
     doesHuntSprintReachPrey(hunter, prey, world, balance)
   );

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CELL_KIND,
   CELL_STAGE,
+  GIANT_SPECIES,
   PLAYER_LIFE_STATE,
   TICK_HZ,
   createTestCellView,
@@ -12,6 +13,7 @@ import {
   type OwnProgressView,
 } from '@evolution/shared';
 import { respawnLinesFor, type RespawnInput } from './respawn-lines';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const KILLER_CELL_ID = entityId('c9');
 const KILLER_PLAYER_ID = playerId('p9');
@@ -54,6 +56,16 @@ describe('respawnLinesFor', () => {
     }
   });
 
+  it('names a giant killer by its species, built from the name the threat label speaks', () => {
+    const amoeba = createTestCellView({
+      id: KILLER_CELL_ID,
+      kind: CELL_KIND.wild,
+      playerId: null,
+      giantSpecies: GIANT_SPECIES.amoeba,
+    });
+    expect(respawnLinesFor(input({ cells: [amoeba] })).killer).toBe('ENGULFED BY A GIANT AMOEBA');
+  });
+
   it('cuts a long killer name the way the leaderboard does, so the title stays on one line', () => {
     const players = { [KILLER_PLAYER_ID]: { playerId: KILLER_PLAYER_ID, playerName: 'Amoeboid Supreme Ruler' } };
     expect(respawnLinesFor(input({ players })).killer).toBe('ENGULFED BY AMOEBOID SU…');
@@ -82,25 +94,33 @@ describe('respawnLinesFor', () => {
   });
 
   it('says the level and traits kept and the DNA lost since the last alive snapshot', () => {
-    expect(respawnLinesFor(input()).kept).toBe('Level 4 and 3 traits kept · 40 DNA lost');
+    expect(respawnLinesFor(input()).kept).toBe(`${unbroken('Level 4')} and 3 traits kept · ${unbroken('40 DNA')} lost`);
   });
 
   it('counts one trait in the singular', () => {
     const ownProgress = spectating({ ownedTraits: [{ traitId: 'nucleoid', tier: 1 }] });
-    expect(respawnLinesFor(input({ ownProgress })).kept).toBe('Level 4 and 1 trait kept · 40 DNA lost');
+    expect(respawnLinesFor(input({ ownProgress })).kept).toBe(
+      `${unbroken('Level 4')} and 1 trait kept · ${unbroken('40 DNA')} lost`,
+    );
   });
 
   it('says only the level when there are no traits to keep', () => {
     const ownProgress = spectating({ ownedTraits: [] });
-    expect(respawnLinesFor(input({ ownProgress })).kept).toBe('Level 4 kept · 40 DNA lost');
+    expect(respawnLinesFor(input({ ownProgress })).kept).toBe(
+      `${unbroken('Level 4')} kept · ${unbroken('40 DNA')} lost`,
+    );
   });
 
   it('leaves the loss out when this client never saw the player alive', () => {
-    expect(respawnLinesFor(input({ lastAliveOwnProgress: null })).kept).toBe('Level 4 and 3 traits kept');
+    expect(respawnLinesFor(input({ lastAliveOwnProgress: null })).kept).toBe(
+      `${unbroken('Level 4')} and 3 traits kept`,
+    );
   });
 
   it('never reads a gain as a negative loss', () => {
     const lastAliveOwnProgress = createTestPlayerProgressView({ dnaTowardNextLevel: 10 });
-    expect(respawnLinesFor(input({ lastAliveOwnProgress })).kept).toBe('Level 4 and 3 traits kept · 0 DNA lost');
+    expect(respawnLinesFor(input({ lastAliveOwnProgress })).kept).toBe(
+      `${unbroken('Level 4')} and 3 traits kept · ${unbroken('0 DNA')} lost`,
+    );
   });
 });

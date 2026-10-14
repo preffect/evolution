@@ -1,0 +1,840 @@
+{
+  "main-gpu": {
+    "renderer": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+    "arrivedS": 8.098,
+    "webglContexts": [
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "onPageCanvases": [
+      {
+        "type": "2d",
+        "onPage": true,
+        "testid": null,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "zooms": [
+      {
+        "zoom": -1.9,
+        "frames": 8,
+        "upperBandsMs": 0.01,
+        "slimeMs": null,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.05,
+        "draws": 2,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 2
+      },
+      {
+        "zoom": -2,
+        "frames": 8,
+        "upperBandsMs": 1.87,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0.1,
+        "draws": 2,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 23
+      },
+      {
+        "zoom": -2.1,
+        "frames": 8,
+        "upperBandsMs": 2.32,
+        "slimeMs": null,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.13,
+        "draws": 2,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 47.1
+      },
+      {
+        "zoom": -2.3,
+        "frames": 8,
+        "upperBandsMs": 3.3,
+        "slimeMs": null,
+        "kelpMs": 0.05,
+        "dishMs": 0,
+        "submitMs": 0.23,
+        "draws": 2,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 54.9
+      },
+      {
+        "zoom": -2.5,
+        "frames": 8,
+        "upperBandsMs": 2.34,
+        "slimeMs": null,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.11,
+        "draws": 1,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 85.2
+      },
+      {
+        "zoom": -2.8,
+        "frames": 8,
+        "upperBandsMs": 7.98,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0.11,
+        "draws": 1,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 161,
+        "fps": 53.67,
+        "flushedMedianMs": 123.6
+      },
+      {
+        "zoom": -3,
+        "frames": 8,
+        "upperBandsMs": 6.17,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 177,
+        "fps": 59,
+        "flushedMedianMs": 95.4
+      },
+      {
+        "zoom": -3.3,
+        "frames": 8,
+        "upperBandsMs": 2.77,
+        "slimeMs": null,
+        "kelpMs": 0.05,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 84.7
+      },
+      {
+        "zoom": -3.6,
+        "frames": 8,
+        "upperBandsMs": 9.3,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 178,
+        "fps": 59.33,
+        "flushedMedianMs": 94.7
+      },
+      {
+        "zoom": -3.9,
+        "frames": 8,
+        "upperBandsMs": 2.5,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 1.11,
+        "submitMs": 0.49,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 127
+      },
+      {
+        "zoom": -4.1,
+        "frames": 8,
+        "upperBandsMs": 1.41,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0.99,
+        "submitMs": 0.36,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 121.9
+      },
+      {
+        "zoom": -4.3,
+        "frames": 8,
+        "upperBandsMs": 0.91,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 0.98,
+        "submitMs": 0.46,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 59.3
+      }
+    ]
+  },
+  "branch-gpu": {
+    "renderer": "ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA NVIDIA GeForce GTX 1080 Ti (0x00001B06)), NVIDIA)",
+    "arrivedS": 7.667,
+    "webglContexts": [
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "onPageCanvases": [
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "zooms": [
+      {
+        "zoom": -1.9,
+        "frames": 8,
+        "upperBandsMs": 0.01,
+        "slimeMs": 0.03,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.06,
+        "draws": 2,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 2
+      },
+      {
+        "zoom": -2,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.25,
+        "kelpMs": 0.02,
+        "dishMs": 0,
+        "submitMs": 0.22,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 2.7
+      },
+      {
+        "zoom": -2.1,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.19,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0.15,
+        "draws": 13,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 2.6
+      },
+      {
+        "zoom": -2.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.23,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.17,
+        "draws": 13,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 3
+      },
+      {
+        "zoom": -2.5,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.39,
+        "kelpMs": 0.02,
+        "dishMs": 0,
+        "submitMs": 0.2,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 2.9
+      },
+      {
+        "zoom": -2.8,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.5,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.21,
+        "draws": 13,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 4.7
+      },
+      {
+        "zoom": -3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.29,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0.15,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 5
+      },
+      {
+        "zoom": -3.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.36,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.34,
+        "draws": 12,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 6.8
+      },
+      {
+        "zoom": -3.6,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.01,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.11,
+        "draws": 9,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 4.4
+      },
+      {
+        "zoom": -3.9,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.06,
+        "kelpMs": 0.05,
+        "dishMs": 1.04,
+        "submitMs": 0.54,
+        "draws": 23,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 181,
+        "fps": 60.33,
+        "flushedMedianMs": 7.7
+      },
+      {
+        "zoom": -4.1,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.04,
+        "kelpMs": 0.04,
+        "dishMs": 0.85,
+        "submitMs": 0.56,
+        "draws": 23,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 6.3
+      },
+      {
+        "zoom": -4.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.05,
+        "kelpMs": 0.03,
+        "dishMs": 0.91,
+        "submitMs": 0.41,
+        "draws": 21,
+        "heldGapMedianMs": 16.7,
+        "heldFrames": 180,
+        "fps": 60,
+        "flushedMedianMs": 6.5
+      }
+    ]
+  },
+  "main-sw": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "arrivedS": 187.672,
+    "webglContexts": [
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "onPageCanvases": [
+      {
+        "type": "2d",
+        "onPage": true,
+        "testid": null,
+        "w": 1,
+        "h": 1
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "zooms": [
+      {
+        "zoom": -1.9,
+        "frames": 8,
+        "upperBandsMs": 0.01,
+        "slimeMs": null,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.05,
+        "draws": 2,
+        "heldGapMedianMs": 116.6,
+        "heldFrames": 27,
+        "fps": 9,
+        "flushedMedianMs": 115.2
+      },
+      {
+        "zoom": -2,
+        "frames": 8,
+        "upperBandsMs": 1.94,
+        "slimeMs": null,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.06,
+        "draws": 2,
+        "heldGapMedianMs": 133.3,
+        "heldFrames": 23,
+        "fps": 7.67,
+        "flushedMedianMs": 122.1
+      },
+      {
+        "zoom": -2.1,
+        "frames": 8,
+        "upperBandsMs": 2.66,
+        "slimeMs": null,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0.11,
+        "draws": 2,
+        "heldGapMedianMs": 166.5,
+        "heldFrames": 19,
+        "fps": 6.33,
+        "flushedMedianMs": 153.7
+      },
+      {
+        "zoom": -2.3,
+        "frames": 8,
+        "upperBandsMs": 3.15,
+        "slimeMs": null,
+        "kelpMs": 0.05,
+        "dishMs": 0,
+        "submitMs": 0.07,
+        "draws": 2,
+        "heldGapMedianMs": 183.3,
+        "heldFrames": 17,
+        "fps": 5.67,
+        "flushedMedianMs": 174.9
+      },
+      {
+        "zoom": -2.5,
+        "frames": 8,
+        "upperBandsMs": 2.26,
+        "slimeMs": null,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0.09,
+        "draws": 1,
+        "heldGapMedianMs": 83.3,
+        "heldFrames": 37,
+        "fps": 12.33,
+        "flushedMedianMs": 83.1
+      },
+      {
+        "zoom": -2.8,
+        "frames": 8,
+        "upperBandsMs": 7.59,
+        "slimeMs": null,
+        "kelpMs": 0.07,
+        "dishMs": 0,
+        "submitMs": 0.1,
+        "draws": 1,
+        "heldGapMedianMs": 116.7,
+        "heldFrames": 25,
+        "fps": 8.33,
+        "flushedMedianMs": 116.8
+      },
+      {
+        "zoom": -3,
+        "frames": 8,
+        "upperBandsMs": 97.66,
+        "slimeMs": null,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 99.9,
+        "heldFrames": 33,
+        "fps": 11,
+        "flushedMedianMs": 92.8
+      },
+      {
+        "zoom": -3.3,
+        "frames": 8,
+        "upperBandsMs": 1.34,
+        "slimeMs": null,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 83.3,
+        "heldFrames": 38,
+        "fps": 12.67,
+        "flushedMedianMs": 77.4
+      },
+      {
+        "zoom": -3.6,
+        "frames": 8,
+        "upperBandsMs": 107.65,
+        "slimeMs": null,
+        "kelpMs": 0.03,
+        "dishMs": 0,
+        "submitMs": 0,
+        "draws": 0,
+        "heldGapMedianMs": 83.4,
+        "heldFrames": 34,
+        "fps": 11.33,
+        "flushedMedianMs": 92.8
+      },
+      {
+        "zoom": -3.9,
+        "frames": 8,
+        "upperBandsMs": 3.58,
+        "slimeMs": null,
+        "kelpMs": 0.04,
+        "dishMs": 1.96,
+        "submitMs": 0.83,
+        "draws": 12,
+        "heldGapMedianMs": 216.7,
+        "heldFrames": 14,
+        "fps": 4.67,
+        "flushedMedianMs": 219.1
+      },
+      {
+        "zoom": -4.1,
+        "frames": 8,
+        "upperBandsMs": 1.51,
+        "slimeMs": null,
+        "kelpMs": 0.01,
+        "dishMs": 1.16,
+        "submitMs": 0.5,
+        "draws": 12,
+        "heldGapMedianMs": 316.7,
+        "heldFrames": 10,
+        "fps": 3.33,
+        "flushedMedianMs": 312.1
+      },
+      {
+        "zoom": -4.3,
+        "frames": 8,
+        "upperBandsMs": 0.99,
+        "slimeMs": null,
+        "kelpMs": 0.01,
+        "dishMs": 1.13,
+        "submitMs": 0.49,
+        "draws": 12,
+        "heldGapMedianMs": 433.3,
+        "heldFrames": 7,
+        "fps": 2.33,
+        "flushedMedianMs": 434.2
+      }
+    ]
+  },
+  "branch-sw": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "arrivedS": 184.194,
+    "webglContexts": [
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl",
+        "onPage": false,
+        "testid": null,
+        "w": 0,
+        "h": 0
+      },
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "onPageCanvases": [
+      {
+        "type": "webgl2",
+        "onPage": true,
+        "testid": "dive-canvas",
+        "w": 830,
+        "h": 467
+      }
+    ],
+    "zooms": [
+      {
+        "zoom": -1.9,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.01,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0.04,
+        "draws": 2,
+        "heldGapMedianMs": 116.7,
+        "heldFrames": 27,
+        "fps": 9,
+        "flushedMedianMs": 112.9
+      },
+      {
+        "zoom": -2,
+        "frames": 8,
+        "upperBandsMs": 0.01,
+        "slimeMs": 0.45,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0.46,
+        "draws": 12,
+        "heldGapMedianMs": 133.4,
+        "heldFrames": 22,
+        "fps": 7.33,
+        "flushedMedianMs": 135.6
+      },
+      {
+        "zoom": -2.1,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.26,
+        "kelpMs": 0.73,
+        "dishMs": 0,
+        "submitMs": 0.24,
+        "draws": 13,
+        "heldGapMedianMs": 166.6,
+        "heldFrames": 19,
+        "fps": 6.33,
+        "flushedMedianMs": 195.2
+      },
+      {
+        "zoom": -2.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.33,
+        "kelpMs": 0.06,
+        "dishMs": 0,
+        "submitMs": 0.34,
+        "draws": 13,
+        "heldGapMedianMs": 166.7,
+        "heldFrames": 18,
+        "fps": 6,
+        "flushedMedianMs": 161.8
+      },
+      {
+        "zoom": -2.5,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.45,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 1.04,
+        "draws": 12,
+        "heldGapMedianMs": 66.7,
+        "heldFrames": 46,
+        "fps": 15.33,
+        "flushedMedianMs": 58.3
+      },
+      {
+        "zoom": -2.8,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.46,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0.16,
+        "draws": 13,
+        "heldGapMedianMs": 100,
+        "heldFrames": 30,
+        "fps": 10,
+        "flushedMedianMs": 84.4
+      },
+      {
+        "zoom": -3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.45,
+        "kelpMs": 0.01,
+        "dishMs": 0,
+        "submitMs": 0.19,
+        "draws": 12,
+        "heldGapMedianMs": 83.3,
+        "heldFrames": 37,
+        "fps": 12.33,
+        "flushedMedianMs": 76.2
+      },
+      {
+        "zoom": -3.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.25,
+        "kelpMs": 0.04,
+        "dishMs": 0,
+        "submitMs": 0.18,
+        "draws": 12,
+        "heldGapMedianMs": 83.3,
+        "heldFrames": 37,
+        "fps": 12.33,
+        "flushedMedianMs": 74.5
+      },
+      {
+        "zoom": -3.6,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.06,
+        "kelpMs": 0,
+        "dishMs": 0,
+        "submitMs": 0.2,
+        "draws": 9,
+        "heldGapMedianMs": 83.4,
+        "heldFrames": 35,
+        "fps": 11.67,
+        "flushedMedianMs": 83.6
+      },
+      {
+        "zoom": -3.9,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.07,
+        "kelpMs": 0.01,
+        "dishMs": 1.35,
+        "submitMs": 0.82,
+        "draws": 23,
+        "heldGapMedianMs": 233.3,
+        "heldFrames": 13,
+        "fps": 4.33,
+        "flushedMedianMs": 227.9
+      },
+      {
+        "zoom": -4.1,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.11,
+        "kelpMs": 0.04,
+        "dishMs": 1.35,
+        "submitMs": 0.81,
+        "draws": 23,
+        "heldGapMedianMs": 299.9,
+        "heldFrames": 11,
+        "fps": 3.67,
+        "flushedMedianMs": 338.1
+      },
+      {
+        "zoom": -4.3,
+        "frames": 8,
+        "upperBandsMs": 0,
+        "slimeMs": 0.12,
+        "kelpMs": 0.03,
+        "dishMs": 1.84,
+        "submitMs": 0.69,
+        "draws": 21,
+        "heldGapMedianMs": 450,
+        "heldFrames": 7,
+        "fps": 2.33,
+        "flushedMedianMs": 464.8
+      }
+    ]
+  }
+}

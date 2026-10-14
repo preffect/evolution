@@ -69,8 +69,10 @@ export class PreviewAppPool {
       canvas: handle.canvas,
       textures: handle.textures,
       resize: (sizePx) => handle.resize(sizePx),
+      setResolution: (resolution) => handle.setResolution(resolution),
       unbindTextures: () => handle.unbindTextures(),
       warmUp: handle.warmUp,
+      renderToTexture: (container, target) => handle.renderToTexture(container, target),
       destroy: () => {
         if (isReleased) return;
         isReleased = true;

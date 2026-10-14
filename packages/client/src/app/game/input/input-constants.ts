@@ -75,3 +75,35 @@ export const FOCUSABLE_OVERLAY_TEST_IDS: readonly string[] = [
 
 /** The only pointer button that sprints: a left click or a tap (docs/ui/input-and-onboarding.md §4). */
 export const PRIMARY_POINTER_BUTTON = 0;
+
+// ---- mouse lock (docs/ui/input-and-onboarding.md §4.1, #794) ----
+
+/** The only `PointerEvent.pointerType` the mouse lock takes: a touch or a pen is never locked. */
+export const MOUSE_POINTER_TYPE = 'mouse';
+
+/**
+ * Canvas px the virtual pointer moves per px of `movementX/Y`. 1 keeps a locked pointer where the real one would
+ * have gone, so the steer offset, the dead zone and full throttle feel as they do unlocked.
+ */
+export const POINTER_LOCK_MOVEMENT_SCALE = 1;
+
+/**
+ * Asks the browser for raw mouse movement (no OS acceleration) where it supports it; a browser that refuses the
+ * option is asked again without it (docs/ui/input-and-onboarding.md §4.1).
+ */
+export const SHOULD_REQUEST_UNADJUSTED_MOVEMENT = true;
+
+/**
+ * After the player leaves the lock with Escape, or a request fails, no new request is made for this long: Chrome
+ * rejects a re-lock for about a second after a user exit, and asking sooner only logs an error.
+ */
+export const POINTER_LOCK_RETRY_COOLDOWN_MS = 1250;
+
+/** A request the browser has answered neither way within this long counts as failed. */
+export const POINTER_LOCK_REQUEST_TIMEOUT_MS = 1000;
+
+/** Consecutive failed requests after which the lock gives up for the room and a click sprints as it does unlocked. */
+export const POINTER_LOCK_MAX_FAILED_REQUESTS = 3;
+
+/** The `DOMException.name` of a request whose `unadjustedMovement` option this platform cannot honour. */
+export const POINTER_LOCK_UNSUPPORTED_OPTION_ERROR = 'NotSupportedError';

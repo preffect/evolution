@@ -61,5 +61,23 @@ export const WILD_CELL_CARRYING_CAPACITY_MULTIPLE = 1.5;
 export const WILD_CELL_STARVATION_FRACTION_PER_SECOND = 0.1;
 /** A starved wild cell bursts into a feast: this share of its mass as detritus (a normal death drops 0.2). */
 export const WILD_CELL_FEAST_MASS_FRACTION = 0.8;
+/**
+ * The charge (ticket #738, docs/ecology/wild-cells.md §3.3.3): while a hunting wild cell touches its prey, engulfs
+ * nothing and does not cover the prey's centre, it aims this many own radii past the prey's centre: the steer kernel's
+ * full-throttle distance, so it keeps moving in at full throttle to start the engulf instead of riding alongside.
+ * Part throttle (0.72 was tried) brings the riding alongside back, so the danger is tuned with the give-up below.
+ */
+export const WILD_CELL_HUNT_CHARGE_RADII = 2;
+/**
+ * A wild cell gives up a hunt that has not started an engulf after this long (s), and leaves that prey alone until it
+ * gives up on another (ticket #738, `wild/wild-hunt-give-up.ts`): option B's "give up sooner", which brings the wild
+ * swallows down to the danger the human chose without weakening the charge.
+ */
+export const WILD_CELL_HUNT_GIVE_UP_SECONDS = 5;
+/**
+ * After giving up a hunt, a wild cell hunts nothing for this long (s) (ticket #738, `wild/wild-hunt-give-up.ts`), so a
+ * hunter that drops a wild cell does not turn straight to the next prey in sight, often a player.
+ */
+export const WILD_CELL_HUNT_REST_SECONDS = 15;
 /** Wild cells hunt players from this stage on (they hunt each other from tick 0). */
 export const WILD_CELL_HUNTS_PLAYERS_FROM_STAGE: CellStage = CELL_STAGE.endosymbiosis;

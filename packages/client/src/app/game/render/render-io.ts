@@ -13,6 +13,13 @@ export interface RenderInputs {
   readonly ownCellIndicators: OwnCellIndicators | null;
   /** How much own-cell chrome to draw; the game's full HUD when absent, the preview lens's `lens` (#505). */
   readonly ownCellChrome?: OwnCellChrome;
+  /**
+   * The opening dive's scripted dish (docs/rendering/opening-dive.md §4) turns two play-zoom rules off: the vent
+   * sprite under its focus, and the far dot (a cell under `CELL_LOD_FAR_MAX_PX` drawn as a rim dot with a ×3 halo).
+   * Both are on when absent.
+   */
+  readonly isVentShown?: boolean;
+  readonly isFarDotShown?: boolean;
 }
 
 export interface RenderOutputs {
@@ -34,4 +41,13 @@ export const NO_HUD_INPUTS: RenderInputs = { previewTraitId: null, reticle: NO_R
 /** Nothing drawn yet (the first frames had no viewport height, ticket #245): the parked camera's extent, no zoom. */
 export function outputsBeforeAnyFrame(extent: CameraExtent): RenderOutputs {
   return { cameraExtent: extent, zoom: 0, visibleCells: 0, visibleMotes: 0, fragments: 0, effectSprites: 0 };
+}
+
+/** What the HUD and a scripted scene hand the cell layer: the previewed trait, the relation rings, the far dot. */
+export function cellCrossingsOf(inputs: RenderInputs) {
+  return {
+    previewTraitId: inputs.previewTraitId,
+    relationRings: inputs.ownCellIndicators?.relationRings,
+    isFarDotShown: inputs.isFarDotShown,
+  };
 }

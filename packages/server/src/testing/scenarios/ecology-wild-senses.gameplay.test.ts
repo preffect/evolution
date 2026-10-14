@@ -8,6 +8,7 @@ import { describe, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
   DNA_TAGS,
+  ENGULF_RELEASE_REASON,
   ENGULF_SEAL_PROGRESS,
   FOOD_KIND,
   radiusForMass,
@@ -19,7 +20,7 @@ import type { EvolutionView } from '../gameplay/evolution-views.js';
 import { player, targetPoint, type PlayerScript } from '../gameplay/index.js';
 import { BROTH_POINT } from '../gameplay/placement.js';
 import { wildRecoveryFactorPerTick } from '../../game/wild/wild-settle.js';
-import { PROGRESS_TOLERANCE, detritusInDish } from './engulf-setups.js';
+import { PROGRESS_TOLERANCE, detritusInDish, releaseReasons } from './engulf-setups.js';
 import { placedSolo } from './shared-setups.js';
 import { PLACED_SEAT, WILD_RESPAWN_TICKS, absorbedThisTick, worldMassAtTick } from './wild-setups.js';
 
@@ -38,6 +39,12 @@ const W12_PREDATOR_SEAT = 1;
 const W12_PREDATOR_SIZE = 2;
 const W12_PREY_EAST_WU = 10;
 const W12_SEAL_TICK = 23;
+/**
+ * Seat 1 covers seat 0 on tick 1, so its hunt holds (ticket #738, wild-hunt-aim.ts): the 10 wu gap over the 0.25 s
+ * steer time is 40 wu/s, 18.2 % of its ≈ 219.8 wu/s cap, which the steer ramp places 0.5 + 1.5 × 0.182 = 0.773 radii
+ * (19.56 wu) east of its centre.
+ */
+const W12_HOLD_TARGET_EAST_WU = 19.557;
 const W12_PAYOUT_TICK = 45;
 /** "Seat 1's mass = 41.50 + 0.8 × 20.75 = 58.10 (± 0.01)"; after 46, growth 16.5987 (± 0.0001), full 58.132 (± 0.001). */
 const W12_MASS_AT_PAYOUT = 58.1;
@@ -48,13 +55,18 @@ const W12_DETRITUS_MASS = 4;
 const W13_IN_SIGHT_WU = 290;
 const W13_OUT_OF_SIGHT_WU = 310;
 const W13_DECISION_TICK = 30;
-/** W14: A at 400, seat 0 at size 10.0 100 wu east; A charges it through tick 30; the sprint costs 5 % of 205.00. */
+/**
+ * W14: A at 400, seat 0 at size 10.0 110 wu east; A charges it through tick 30, grabbing it on tick 28, and seat 0's
+ * sprint breaks the grab; the sprint costs 5 % of 205.00. 100 wu until ticket #819's seal: A grabbed it on tick 25, its
+ * sprint ended a tick before the progress drained, and the kept grab then sealed it as it swam.
+ */
 const W14_PLAYER_MASS = 400;
 const W14_SEAT_SIZE = 10;
-const W14_SEAT_EAST_WU = 100;
+const W14_SEAT_EAST_WU = 110;
 /** W14's variant: A idle at the row's old 200 wu, whose own sprint cannot reach seat 0: no flee sprint. */
 const W14_IDLE_THREAT_EAST_WU = 200;
 const W14_DECISION_TICK = 30;
+const W14_SPRINT_RELEASE_TICK = 51;
 const W14_MASS_AFTER_SPRINT = 194.75;
 const W14_SPENT = 10.25;
 /** q = 1 − 1/360: the share of a wound still missing one tick later. */
@@ -120,12 +132,18 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       )
       .atTick(ONE_TICK)
       .toBeCloseTo(1 / W12_PAYOUT_TICK, PROGRESS_TOLERANCE)
-      .expect("seat 1's hunt targets seat 0's centre on tick 1 and does not sprint", (view) => [
-        seatTarget(W12_PREDATOR_SEAT)(view),
-        seatCell(W12_PREDATOR_SEAT)(view)?.sprintRemainingTicks,
-      ])
+      .expect("seat 1's hunt holds over seat 0 on tick 1 and does not sprint", (view) => ({
+        target: seatTarget(W12_PREDATOR_SEAT)(view),
+        sprintTicks: seatCell(W12_PREDATOR_SEAT)(view)?.sprintRemainingTicks,
+      }))
       .atTick(ONE_TICK)
-      .toEqual([preyAt, 0])
+      .toSatisfy(
+        ({ target, sprintTicks }) =>
+          sprintTicks === 0 &&
+          target?.y === BROTH_POINT.y &&
+          Math.abs((target.x ?? Number.NaN) - (BROTH_POINT.x + W12_HOLD_TARGET_EAST_WU)) <= OFFSET_TOLERANCE_WU,
+        `[(${BROTH_POINT.x + W12_HOLD_TARGET_EAST_WU}, 0), 0]`,
+      )
       .expect('seat 0 sealed on tick 23', (view) => seatCell(PLACED_SEAT)(view)?.engulfProgress)
       .atTick(W12_SEAL_TICK)
       .toBeAtLeast(ENGULF_SEAL_PROGRESS)
@@ -222,6 +240,9 @@ describe('ecology/acceptance.md §8.1: what a wild cell notices', () => {
       .expect('mass 205.00 − 5 % = 194.75', seatMass)
       .atTick(W14_DECISION_TICK)
       .toBeCloseTo(W14_MASS_AFTER_SPRINT, MASS_TOLERANCE)
+      .expect("A's grab from tick 28 broken by the sprint", releaseReasons)
+      .atTick(W14_SPRINT_RELEASE_TICK)
+      .toEqual([ENGULF_RELEASE_REASON.escaped])
       .expect('deficit 10.25 × q^60 = 8.67 after tick 90: the cost below the base recovers like a wound', deficit)
       .atTick(W14_READ_TICK)
       .toBeCloseTo(W14_SPENT * recoveryPerTick ** (W14_READ_TICK - W14_DECISION_TICK), MASS_TOLERANCE)

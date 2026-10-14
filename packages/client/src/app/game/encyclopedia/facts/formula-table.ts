@@ -6,13 +6,17 @@
 import {
   FIRST_LEVEL,
   engulfPhaseSpanSeconds,
+  engulfStartMass,
+  foldModifiers,
   gelSpeedFactor,
+  giantBuildOf,
   levelUpCost,
   radiusForMass,
   worldReference,
   worldWholeLevel,
   type BalanceConfig,
   type EngulfPhase,
+  type GiantSpecies,
   type ValueOf,
 } from '@evolution/shared';
 
@@ -28,6 +32,10 @@ export type LevelSelector = ValueOf<typeof LEVEL_SELECTOR>;
 export const ROUND_MOMENT = { defaultRoundEnd: 'default_round_end' } as const;
 export type RoundMoment = ValueOf<typeof ROUND_MOMENT>;
 
+/** A giant's mass the balance bounds: the least it is born at, and the ceiling no giant grows past. */
+export const GIANT_MASS = { smallestBorn: 'smallest_born', ceiling: 'ceiling' } as const;
+export type GiantMass = ValueOf<typeof GIANT_MASS>;
+
 export const FACT_FORMULA = {
   /** `radiusForMass(massOf(argument), balance.growth)`. */
   radiusAtMass: 'radius_at_mass',
@@ -41,6 +49,11 @@ export const FACT_FORMULA = {
   worldMassAt: 'world_mass_at',
   /** `engulfPhaseSpanSeconds(argument.phase, balance.absorption)`: an uncontested engulf's time in one phase. */
   engulfPhaseSpan: 'engulf_phase_span',
+  /**
+   * `engulfStartMass` of a giant of `argument.species` at `giantMassOf(argument)`, wearing its build's folded Cell Wall
+   * bonus (`foldModifiers`): the mass that swallows it.
+   */
+  giantSwallowMass: 'giant_swallow_mass',
 } as const;
 export type FactFormulaId = ValueOf<typeof FACT_FORMULA>;
 
@@ -52,6 +65,7 @@ export interface FactFormulaArguments {
   [FACT_FORMULA.worldLevelAt]: { readonly moment: RoundMoment };
   [FACT_FORMULA.worldMassAt]: { readonly moment: RoundMoment };
   [FACT_FORMULA.engulfPhaseSpan]: { readonly phase: EngulfPhase };
+  [FACT_FORMULA.giantSwallowMass]: { readonly species: GiantSpecies; readonly mass: GiantMass };
 }
 
 export type FactFormulaCall = {
@@ -79,6 +93,21 @@ function secondsOf(balance: BalanceConfig, moment: RoundMoment): number {
   }
 }
 
+function giantMassOf(balance: BalanceConfig, species: GiantSpecies, mass: GiantMass): number {
+  return mass === GIANT_MASS.smallestBorn
+    ? balance.giants.GIANT_BORN_MASS_MIN_BY_SPECIES[species]
+    : balance.giants.GIANT_MASS_CEILING;
+}
+
+/** What a player must weigh to start engulfing the giant, with the Cell Wall bonus its build gives it (giants.md §3.5.4). */
+function giantSwallowMass(balance: BalanceConfig, species: GiantSpecies, mass: GiantMass): number {
+  const folded = foldModifiers(giantBuildOf(species, balance), balance.traits.TRAIT_TIERS);
+  return engulfStartMass(
+    { mass: giantMassOf(balance, species, mass), membraneRatioBonus: folded.membraneRatioBonus },
+    balance.absorption,
+  );
+}
+
 export const FACT_FORMULAS: {
   readonly [Id in FactFormulaId]: (balance: BalanceConfig, argument: FactFormulaArguments[Id]) => number;
 } = {
@@ -96,6 +125,7 @@ export const FACT_FORMULAS: {
   [FACT_FORMULA.worldMassAt]: (balance, argument) =>
     worldReference(secondsOf(balance, argument.moment), balance).worldMass,
   [FACT_FORMULA.engulfPhaseSpan]: (balance, argument) => engulfPhaseSpanSeconds(argument.phase, balance.absorption),
+  [FACT_FORMULA.giantSwallowMass]: (balance, argument) => giantSwallowMass(balance, argument.species, argument.mass),
 };
 
 export function evaluateFormula(balance: BalanceConfig, call: FactFormulaCall): number {

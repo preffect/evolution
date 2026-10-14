@@ -5,6 +5,7 @@
 // subclass's; the loop, the gate and the report plumbing are written once here.
 
 import type { Clock } from '@evolution/shared';
+import type { Application, Container } from 'pixi.js';
 import { FrameGate, loopDebugMembers, type EvolutionDebugApi } from '../debug/evolution-debug';
 import type { RenderFrame } from '../net/world-store';
 import { FrameInstrumentation } from './bench/frame-instrumentation';
@@ -75,12 +76,21 @@ export abstract class FrameLoopSession {
     this.animationFrameListener = listener;
   }
 
+  /**
+   * The container a renderer builds its layers into: the app's stage, unless a session composes the renderer with
+   * layers of its own (the opening dive puts it over its upper bands, docs/rendering/opening-dive.md §3).
+   */
+  protected rendererStage(app: Application): Container {
+    return app.stage;
+  }
+
   /** Builds the renderer over textures baked from `options` on the adopted app; `null` before one is adopted. */
   protected buildRenderer(options: Omit<RenderTextureOptions, 'baker'>): GameRenderer | null {
     if (this.pixi === null) return null;
     this.lastRenderedTickValue = null;
     const { app, textures } = this.pixi;
-    return this.slot.build(app.stage, app.screen, { ...options, baker: textures }, this.instrumentation.timer);
+    const stage = this.rendererStage(app);
+    return this.slot.build(stage, app.screen, { ...options, baker: textures }, this.instrumentation.timer);
   }
 
   /**
@@ -93,7 +103,12 @@ export abstract class FrameLoopSession {
   protected buildRendererAcrossFrames(options: Omit<RenderTextureOptions, 'baker'>): Promise<GameRenderer | null> {
     if (this.pixi === null) return Promise.resolve(null);
     const { app, textures } = this.pixi;
-    const staged = this.slot.beginBuild(app.stage, app.screen, { ...options, baker: textures }, this.stagedStages);
+    const staged = this.slot.beginBuild(
+      this.rendererStage(app),
+      app.screen,
+      { ...options, baker: textures },
+      this.stagedStages,
+    );
     const build = new WarmedRendererBuild(staged, this.pixi.warmUp, (renderer) => this.warmUpDraw(renderer));
     return new Promise((resolve, reject) => {
       this.pendingBuild = { build, resolve, reject };

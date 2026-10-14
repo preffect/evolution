@@ -1,10 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, type CellModifiers } from '@evolution/shared';
+import { unbroken } from '../../../testing/unbroken-quantity';
 import {
   MODIFIER_BETTER_WHEN,
   MODIFIER_EFFECT,
   MODIFIER_LABELS,
+  formatModifierParts,
+  formatModifierValue,
   modifierEffect,
   modifierLine,
   modifierLineEffects,
@@ -23,45 +26,114 @@ describe('MODIFIER_LABELS', () => {
 
   it('gives every modifier a noun with no figure in it, and a value that is a figure', () => {
     for (const key of KEYS) {
-      const { noun, formatValue } = MODIFIER_LABELS[key];
+      const { noun } = MODIFIER_LABELS[key];
       expect(noun, key).toMatch(/^[A-Za-z][A-Za-z -]*$/);
-      expect(formatValue(0.5), key).toMatch(/\d/);
-      expect(formatValue(0.5), key).not.toContain(noun);
+      expect(formatModifierValue(key, 0.5), key).toMatch(/\d/);
+      expect(formatModifierValue(key, 0.5), key).not.toContain(noun);
     }
   });
 
   it('keeps the value beside its noun for the encyclopedia’s fact table', () => {
     expect(MODIFIER_LABELS.decayMultiplier.noun).toBe('mass decay');
-    expect(MODIFIER_LABELS.decayMultiplier.formatValue(0.85)).toBe('−15 %');
+    expect(formatModifierValue('decayMultiplier', 0.85)).toBe(unbroken('−15 %'));
     expect(MODIFIER_LABELS.toxinAuraRangeInRadii.noun).toBe('toxin reach');
-    expect(MODIFIER_LABELS.toxinAuraRangeInRadii.formatValue(1.5)).toBe('1.5 radii');
+    expect(formatModifierValue('toxinAuraRangeInRadii', 1.5)).toBe(unbroken('1.5 radii'));
+  });
+});
+
+/**
+ * Every modifier's unit as the tier table's row name carries it (docs/ui/encyclopedia.md §11.4, #858), written out:
+ * a multiplier read as a change is a share, and a unit with a singular still heads its row in the plural.
+ */
+const EXPECTED_UNIT_HEADER: Readonly<Record<keyof CellModifiers, string>> = {
+  speedMultiplier: '%',
+  accelerationSecondsMultiplier: '%',
+  sprintSpeedMultiplierBonus: '%',
+  sprintCooldownSecondsDelta: 's',
+  membraneRatioBonus: '%',
+  absorbDurationMultiplierAsPrey: '%',
+  wrapDurationMultiplierAsPredator: '%',
+  absorbDurationMultiplierAsPredator: '%',
+  gripStrengthBonus: '%',
+  gripResistanceBonus: '%',
+  struggleSlowdownBonus: '%',
+  spitOutChancePerSecond: '% / s',
+  engulfMassYieldBonus: '%',
+  digestionFactorBonus: '%',
+  decayMultiplier: '%',
+  photosynthesisMassPerSecond: 'mass / s',
+  spikeDrainFractionPerSecond: '% / s',
+  toxinDrainFractionPerSecond: '% / s',
+  toxinAuraRangeInRadii: 'radii',
+  attractRangeInRadii: 'radii',
+  attractSpeed: 'u/s',
+  dnaGainMultiplier: '%',
+  dnaKeptOnDeathFraction: '%',
+  gelSpeedFactorFloor: '%',
+  armGrabReachRadii: 'radii',
+};
+/** A bare figure: an optional sign and a number, no unit. */
+const BARE_FIGURE = /^[+−]?\d+(\.\d+)?$/;
+/** Every value any trait's tier table sets, per modifier: the values the encyclopedia actually splits. */
+const TIER_VALUES = Object.values(DEFAULT_BALANCE.traits.TRAIT_TIERS).flatMap((tiers) =>
+  tiers.flatMap((tierRow) => Object.entries(tierRow) as [keyof CellModifiers, number][]),
+);
+
+describe('formatModifierParts, the tier table’s split', () => {
+  it('heads every modifier’s row with its unit, written out for each', () => {
+    expect(Object.keys(EXPECTED_UNIT_HEADER).sort()).toEqual([...KEYS].sort());
+    for (const key of KEYS) expect(formatModifierParts(key, 0.5).unit, key).toBe(unbroken(EXPECTED_UNIT_HEADER[key]));
+  });
+
+  it('gives every tier of one row the same unit, a tier of one radius included, so one header is true of them all', () => {
+    expect(formatModifierParts('toxinAuraRangeInRadii', 1).unit).toBe(
+      formatModifierParts('toxinAuraRangeInRadii', 2).unit,
+    );
+    for (const [key, value] of TIER_VALUES) {
+      expect(formatModifierParts(key, value).unit, `${key} ${value}`).toBe(unbroken(EXPECTED_UNIT_HEADER[key]));
+    }
+  });
+
+  it('puts the signed figure alone in the cell, the same figure the card reads beside its unit', () => {
+    expect(TIER_VALUES.length).toBeGreaterThan(0);
+    for (const [key, value] of TIER_VALUES) {
+      const { figure } = formatModifierParts(key, value);
+      expect(figure, `${key} ${value}`).toMatch(BARE_FIGURE);
+      expect(formatModifierValue(key, value).startsWith(figure), `${key} ${value}`).toBe(true);
+    }
+    expect(formatModifierParts('photosynthesisMassPerSecond', 0.3)).toEqual({
+      figure: '+0.3',
+      unit: unbroken('mass / s'),
+    });
+    expect(formatModifierParts('decayMultiplier', 0.85)).toEqual({ figure: '−15', unit: '%' });
+    expect(formatModifierParts('armGrabReachRadii', 0.62)).toEqual({ figure: '0.62', unit: 'radii' });
   });
 });
 
 describe('modifierLine', () => {
   it('reads a range of one in the singular and every other range in the plural', () => {
-    expect(modifierLine('toxinAuraRangeInRadii', 1)).toBe('Toxin reaches 1 radius');
-    expect(modifierLine('toxinAuraRangeInRadii', 1.5)).toBe('Toxin reaches 1.5 radii');
-    expect(modifierLine('attractRangeInRadii', 1)).toBe('Pulls food from 1 radius');
-    expect(modifierLine('attractRangeInRadii', 3)).toBe('Pulls food from 3 radii');
+    expect(modifierLine('toxinAuraRangeInRadii', 1)).toBe(`Toxin reaches ${unbroken('1 radius')}`);
+    expect(modifierLine('toxinAuraRangeInRadii', 1.5)).toBe(`Toxin reaches ${unbroken('1.5 radii')}`);
+    expect(modifierLine('attractRangeInRadii', 1)).toBe(`Pulls food from ${unbroken('1 radius')}`);
+    expect(modifierLine('attractRangeInRadii', 3)).toBe(`Pulls food from ${unbroken('3 radii')}`);
   });
 
   it('joins the value and the noun: a shorter duration as its rate, a multiplier as its change, a delta with its unit', () => {
-    expect(modifierLine('wrapDurationMultiplierAsPredator', 0.5)).toBe('+100 % wrap speed');
-    expect(modifierLine('absorbDurationMultiplierAsPredator', 0.8)).toBe('+25 % absorb speed');
-    expect(modifierLine('speedMultiplier', 0.9)).toBe('−10 % speed');
-    expect(modifierLine('sprintCooldownSecondsDelta', -0.5)).toBe('−0.5 s sprint cooldown');
-    expect(modifierLine('photosynthesisMassPerSecond', 0.3)).toBe('+0.3 mass / s in sunlight');
-    expect(modifierLine('spitOutChancePerSecond', 0.05)).toBe('5 % / s spit-out chance');
+    expect(modifierLine('wrapDurationMultiplierAsPredator', 0.5)).toBe(`${unbroken('+100 %')} wrap speed`);
+    expect(modifierLine('absorbDurationMultiplierAsPredator', 0.8)).toBe(`${unbroken('+25 %')} absorb speed`);
+    expect(modifierLine('speedMultiplier', 0.9)).toBe(`${unbroken('−10 %')} speed`);
+    expect(modifierLine('sprintCooldownSecondsDelta', -0.5)).toBe(`${unbroken('−0.5 s')} sprint cooldown`);
+    expect(modifierLine('photosynthesisMassPerSecond', 0.3)).toBe(`${unbroken('+0.3 mass / s')} in sunlight`);
+    expect(modifierLine('spitOutChancePerSecond', 0.05)).toBe(`${unbroken('5 % / s')} spit-out chance`);
   });
 
   it('reads a sentence-shaped row through its own line', () => {
-    expect(modifierLine('attractSpeed', 40)).toBe('Food drifts in at 40 u/s');
-    expect(modifierLine('spikeDrainFractionPerSecond', 0.02)).toBe('Spines drain 2 % / s');
-    expect(modifierLine('dnaKeptOnDeathFraction', 0.75)).toBe('Keeps 75 % DNA on death');
-    expect(modifierLine('gelSpeedFactorFloor', 0.6)).toBe('Gel slows you to no less than 60 %');
+    expect(modifierLine('attractSpeed', 40)).toBe(`Food drifts in at ${unbroken('40 u/s')}`);
+    expect(modifierLine('spikeDrainFractionPerSecond', 0.02)).toBe(`Spines drain ${unbroken('2 % / s')}`);
+    expect(modifierLine('dnaKeptOnDeathFraction', 0.75)).toBe(`Keeps ${unbroken('75 %')} DNA on death`);
+    expect(modifierLine('gelSpeedFactorFloor', 0.6)).toBe(`Gel slows you to no less than ${unbroken('60 %')}`);
     expect(modifierLine('gelSpeedFactorFloor', 1)).toBe('Gel no longer slows you');
-    expect(modifierLine('armGrabReachRadii', 0.6)).toBe('Arms grab 0.6 radii past the body');
+    expect(modifierLine('armGrabReachRadii', 0.6)).toBe(`Arms grab ${unbroken('0.6 radii')} past the body`);
   });
 });
 
@@ -74,12 +146,16 @@ describe('modifierLines', () => {
         ['spitOutChancePerSecond', 0.4],
         ['speedMultiplier', 0.97],
       ]),
-    ).toEqual(['+40 % time to absorb you', 'Spines drain 2 % / s, spit out 40 % / s', '−3 % speed']);
+    ).toEqual([
+      `${unbroken('+40 %')} time to absorb you`,
+      `Spines drain ${unbroken('2 % / s')}, spit out ${unbroken('40 % / s')}`,
+      `${unbroken('−3 %')} speed`,
+    ]);
   });
 
   it('leaves either half of a pair as its own line when the other is not in the row', () => {
-    expect(modifierLines([['spikeDrainFractionPerSecond', 0.02]])).toEqual(['Spines drain 2 % / s']);
-    expect(modifierLines([['spitOutChancePerSecond', 0.4]])).toEqual(['40 % / s spit-out chance']);
+    expect(modifierLines([['spikeDrainFractionPerSecond', 0.02]])).toEqual([`Spines drain ${unbroken('2 % / s')}`]);
+    expect(modifierLines([['spitOutChancePerSecond', 0.4]])).toEqual([`${unbroken('40 % / s')} spit-out chance`]);
   });
 });
 

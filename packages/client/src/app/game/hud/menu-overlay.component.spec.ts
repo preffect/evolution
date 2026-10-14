@@ -17,6 +17,7 @@ import { OVERLAY_ALERT_KIND } from './format/overlay-alert';
 import { ENCYCLOPEDIA_RETURN, HUD_OVERLAY, HudStateService } from './hud-state.service';
 import { MenuOverlayComponent } from './menu-overlay.component';
 import { HUD_TEST_ID, menuTraitTestId, testIdSelector } from '../test-ids/hud-test-ids';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const SNAPSHOT_TICK = 5000;
@@ -205,7 +206,7 @@ describe('MenuOverlayComponent', () => {
     mountMenu();
     const strip = query(HUD_TEST_ID.menuAlert)!;
     expect(strip.getAttribute('data-alert-kind')).toBe(OVERLAY_ALERT_KIND.offer);
-    expect(strip.textContent).toContain('6.5 s');
+    expect(strip.textContent).toContain(unbroken('6.5 s'));
 
     activate(HUD_TEST_ID.menuAlert);
     expect(hudState.openOverlay()).toBe(HUD_OVERLAY.none);
@@ -214,5 +215,21 @@ describe('MenuOverlayComponent', () => {
   it('shows no alert strip while nothing is up', () => {
     mountMenu();
     expect(query(HUD_TEST_ID.menuAlert)).toBeNull();
+  });
+
+  it('toggles the mouse lock, on by default, as a switch that says its state and keeps the menu open', () => {
+    localStorage.clear();
+    const menu = mountMenu();
+    const toggle = query(HUD_TEST_ID.menuMouseLock)!;
+    expect(toggle.getAttribute('role')).toBe('switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    expect(toggle.textContent).toContain('Mouse lock: On');
+
+    activate(HUD_TEST_ID.menuMouseLock);
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(toggle.textContent).toContain('Mouse lock: Off');
+    expect(hudState.openOverlay()).toBe(HUD_OVERLAY.menu);
+    menu.destroy();
+    localStorage.clear();
   });
 });

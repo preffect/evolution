@@ -12,6 +12,7 @@ import { createTestCellView } from '../../../testing/builders';
 import { MultiplayerService } from '../../services/multiplayer.service';
 import { RespawnOverlayComponent } from './respawn-overlay.component';
 import { HUD_TEST_ID, testIdSelector } from '../test-ids/hud-test-ids';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const KILLER_PLAYER_ID = playerId('player-killer');
@@ -78,7 +79,9 @@ describe('RespawnOverlayComponent', () => {
     expect(byTestId(HUD_TEST_ID.respawnOverlay)).not.toBeNull();
     expect(byTestId(HUD_TEST_ID.respawnKiller)?.textContent?.trim()).toBe('ENGULFED BY AMOEBOID');
     expect(byTestId(HUD_TEST_ID.respawnCountdown)?.textContent?.trim()).toBe('Respawning in 3');
-    expect(byTestId(HUD_TEST_ID.respawnKept)?.textContent?.trim()).toBe('Level 3 and 1 trait kept · 25 DNA lost');
+    expect(byTestId(HUD_TEST_ID.respawnKept)?.textContent?.trim()).toBe(
+      `${unbroken('Level 3')} and 1 trait kept · ${unbroken('25 DNA')} lost`,
+    );
   });
 
   it('announces the countdown politely as it ticks', () => {

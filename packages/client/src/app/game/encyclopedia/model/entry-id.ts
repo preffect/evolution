@@ -10,6 +10,7 @@ import type {
   DnaTag,
   ENTITY_KIND,
   FoodKind,
+  GiantSpecies,
   TraitId,
   ValueOf,
   ZoneId,
@@ -22,6 +23,8 @@ import type { WorldTopicId } from './world-topics';
 
 export const ENTRY_SUBJECT = {
   cellKind: 'cell_kind',
+  /** The giant cells, one page per `GiantSpecies` (docs/ecology/giants.md §3.5). */
+  giant: 'giant',
   food: 'food',
   bacterium: 'bacterium',
   /** `ENTITY_KIND` members with no subject of their own (`dna_fragment`), via `ENTRY_BY_ENTITY_KIND`. */
@@ -48,6 +51,7 @@ export type EntrySubject = ValueOf<typeof ENTRY_SUBJECT>;
  */
 export const ENTRY_SUBJECT_LABEL: Readonly<Record<EntrySubject, string>> = {
   [ENTRY_SUBJECT.cellKind]: 'Cell',
+  [ENTRY_SUBJECT.giant]: 'Giant cell',
   [ENTRY_SUBJECT.food]: 'Food',
   [ENTRY_SUBJECT.bacterium]: 'Bacterium',
   [ENTRY_SUBJECT.entity]: 'Object',
@@ -65,6 +69,7 @@ export const ENTRY_SUBJECT_LABEL: Readonly<Record<EntrySubject, string>> = {
 /** The code id each subject documents: the one table the `EntryId` union is derived from. */
 export interface CodeIdBySubject {
   [ENTRY_SUBJECT.cellKind]: CellKind;
+  [ENTRY_SUBJECT.giant]: GiantSpecies;
   [ENTRY_SUBJECT.food]: FoodKind;
   [ENTRY_SUBJECT.bacterium]: BacteriumVariant;
   [ENTRY_SUBJECT.entity]: typeof ENTITY_KIND.dnaFragment;

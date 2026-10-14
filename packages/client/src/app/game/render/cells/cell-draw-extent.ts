@@ -65,7 +65,7 @@ export function appendageReachRadii(
   pulse: number,
 ): number {
   const hairReach = traits.ciliaCount > 0 ? membrane.widestRadii + CILIA_REACH_RADII : NO_APPENDAGE_REACH;
-  const formAppendageReach = reachWithFormAppendages(traits.form, hairReach, membrane.widestRadii);
+  const formAppendageReach = reachWithFormAppendages(traits, hairReach, membrane.widestRadii);
   const flagellumTier = traits.tierOf(FLAGELLUM_TRAIT);
   if (flagellumTier === 0) return formAppendageReach;
   const alongRadii = membrane.rearRadii + FLAGELLUM_LENGTH_RADII * pulse;

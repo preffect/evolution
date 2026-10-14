@@ -10,7 +10,13 @@ import {
   type TraitTierModifiers,
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { MODIFIER_LABELS, modifierEffect, nonIdentityModifiers } from '../../quantities/modifier-labels';
+import {
+  MODIFIER_LABELS,
+  formatModifierParts,
+  formatModifierValue,
+  modifierEffect,
+  nonIdentityModifiers,
+} from '../../quantities/modifier-labels';
 import type { EntryLink, ResolvedFact } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
 import { FACT_SOURCE, isLinkFact, type FactContext, type FactDefinition, type ValueFactSource } from '../model/fact';
@@ -43,7 +49,10 @@ function resolveFact(definition: FactDefinition, context: FactContext, titleOf: 
   }
   const value = valueOfSource(definition.source, context.balance);
   if (value === null) return [];
-  const text = formatQuantity(value, definition.unit, { presentation: definition.presentation });
+  const text = formatQuantity(value, definition.unit, {
+    presentation: definition.presentation,
+    rounding: definition.rounding,
+  });
   return [{ key: definition.key, label: definition.label, text, link: null }];
 }
 
@@ -66,9 +75,10 @@ function modifierFact(key: keyof CellModifiers, value: number, identity: CellMod
   return {
     key,
     label: MODIFIER_LABELS[key].noun,
-    text: MODIFIER_LABELS[key].formatValue(value),
+    text: formatModifierValue(key, value),
     link: null,
     effect: modifierEffect(key, value, identity[key]),
+    parts: formatModifierParts(key, value),
   };
 }
 

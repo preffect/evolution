@@ -261,19 +261,22 @@ Worst case, at cap with 8 players in the eukaryote era (ecology/food-and-spawn.m
 `FOOD_CAP_BASE + 8 × FOOD_CAP_PER_PLAYER` = 1 400 motes, of which the bacterium share
 (`FOOD_KIND_WEIGHTS_BY_WORLD_STAGE`: 0.25 in the protocell era, 0.5 from the eukaryote era) is up to
 700 moving every tick; 110 fragments, all drifting; 8 player cells plus `WILD_CELL_COUNT` = 24 wild
-cells, ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON at the §4 wire precision.
-The bytes per item are measured (#331, #341, below) except the wild cells', which do not exist
-yet; the counts are the worst case.
+cells and the 3 giants (ecology/giants.md §3.5, seated in every round since the giants-on slice, ticket #830),
+ordinary `CellView`s with traits, states and engulf fields. Sizes are JSON at the §4 wire precision.
+The bytes per item are measured (#331, #341, below) except the wild cells' and the giants', which do not exist
+yet; the counts are the worst case. Every cell carries `giantSpecies` (ticket #825): `"giantSpecies":null` is 20 B,
+about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about 15 B more.
 
 | Snapshot part (20 Hz)                                                          | Count × bytes                            | Per snapshot       |
 | ------------------------------------------------------------------------------ | ---------------------------------------- | ------------------ |
 | `food.moved` (bacteria `{ id, x, y }`)                                         | 700 × ~36.5                              | ~25.6 KB           |
 | `dnaFragments` (full)                                                          | 110 × ~53                                | ~5.8 KB            |
-| `cells`: player cells (11 traits; states, engulf fields; moving and grown)     | 8 × ~765                                 | ~6.1 KB            |
-| `cells`: wild cells (#176; estimated, not measurable yet)                      | 24 × ~250 bare, ~600 with a 7-pick build | ~6–14.4 KB         |
+| `cells`: player cells (11 traits; states, engulf fields; moving and grown)     | 8 × ~785                                 | ~6.3 KB            |
+| `cells`: wild cells (#176; estimated, not measurable yet)                      | 24 × ~270 bare, ~620 with a 7-pick build | ~6.5–14.9 KB       |
+| `cells`: giants (giants.md §3.5; estimated, a 5-trait build and the species)   | 3 × ~535                                 | ~1.6 KB            |
 | `players` (8 roster rows) + `ownProgress` + `leaderboard`                      | 468 + ~840–1 010 + ~690                  | ~2–2.2 KB          |
 | `appliedInputSequenceByPlayer`, effects, `food.spawned` / `removedIds`, header |                                          | ~0.7 KB            |
-| **total, uncut**                                                               |                                          | **≈ 46.3–54.8 KB** |
+| **total, uncut**                                                               |                                          | **≈ 48.5–57.0 KB** |
 | **total with lever 1** (measured below; by the viewer's zoom and place)        | ~2.3–21.8 + ~0.5–4.6 + …                 | **≈ 18–50 KB**     |
 
 Until #331 every client was sent every player's whole `PlayerProgressView` (#330's review: 471 B with no owned traits,

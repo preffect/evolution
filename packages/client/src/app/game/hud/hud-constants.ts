@@ -250,3 +250,21 @@ export const AFFECTING_SPARKLINE_HEIGHT_PX = 20;
 export const AFFECTING_SPARKLINE_STROKE_PX = 1.5;
 /** Between the mass numeral, its trend glyph, its rate and the sparkline. */
 export const AFFECTING_MASS_ROW_GAP_PX = 8;
+
+// ---- the mouse lock (docs/ui/input-and-onboarding.md §4.1, #794) ----
+
+/** Where this browser remembers that the player turned the lock off; absent means on, the default. */
+export const MOUSE_LOCK_STORAGE_KEY = 'evolution.mouseLock.off';
+/** The value stored under `MOUSE_LOCK_STORAGE_KEY` while the lock is off. */
+export const MOUSE_LOCK_OFF_FLAG = '1';
+/**
+ * The in-game cursor's ring, in real px: a cursor is a pointer, not chrome, so it keeps its size at every
+ * `--ui-scale`, as the system cursor it stands in for does.
+ */
+export const VIRTUAL_CURSOR_RING_RADIUS_PX = 7;
+/** The ring's stroke in the text colour. */
+export const VIRTUAL_CURSOR_RING_STROKE_PX = 2;
+/** The dark halo under the ring and the dot, so the cursor reads over a bright vent as well as the dark dish. */
+export const VIRTUAL_CURSOR_HALO_STROKE_PX = 4;
+/** The centre dot: the exact point that steers. */
+export const VIRTUAL_CURSOR_DOT_RADIUS_PX = 1.5;

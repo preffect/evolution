@@ -3,7 +3,7 @@
 // cell away through the shared kernel, a hunt target appears on the first decision at the hunting stage and not
 // one interval earlier, and a wild cell never sprints.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, RADIANS_PER_FULL_TURN, secondsToTicks } from '@evolution/shared';
+import { DEFAULT_BALANCE, DEGREES_PER_FULL_TURN, RADIANS_PER_FULL_TURN, secondsToTicks } from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { runStep } from '../simulation/step.js';
@@ -15,7 +15,6 @@ import { decisionIntervalTicks, ticksUntilDecision } from './wild-strategy.js';
 const { controls } = DEFAULT_BALANCE;
 const INTERVAL_TICKS = decisionIntervalTicks(DEFAULT_BALANCE);
 const HUNTING_TICK = 21_600;
-const DEGREES_PER_FULL_TURN = 360;
 const HEADING_TOLERANCE_DEGREES = 5;
 
 function step(world: WorldState, ticks = 1): void {

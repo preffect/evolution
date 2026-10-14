@@ -43,11 +43,13 @@ describe('FixtureScheduler', () => {
     expect(scheduler.placeMote({ moteKind: 'algae', eastOfFirstCellWu: 10 })).toBe('builder');
     expect(scheduler.placeFragment({ tag: 'sensory', at: insideCellOf(1) })).toBe('builder');
     expect(scheduler.placeWildCell({ seat: 0, sizeFactor: 5, eastOfFirstCellWu: 10 })).toBe('builder');
+    expect(scheduler.placeGiant({ species: 'giant_amoeba', bornMass: 1000, at: insideCellOf(0) })).toBe('builder');
     expect(registered.map((entry) => [entry.tick, entry.fixture.kind, entry.fixture.at])).toEqual([
       [3, PLACED_KIND.cell, ZONE.broth],
       [3, PLACED_KIND.mote, eastOfCellOf(0, 10)],
       [3, PLACED_KIND.fragment, insideCellOf(1)],
       [3, PLACED_KIND.wildCell, eastOfCellOf(0, 10)],
+      [3, PLACED_KIND.giant, insideCellOf(0)],
     ]);
   });
 

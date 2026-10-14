@@ -43,6 +43,10 @@ export const HUD_TEST_ID = {
   menuResume: 'menu-resume',
   /** `Encyclopedia`: the menu gives way to the encyclopedia. */
   menuEncyclopedia: 'menu-encyclopedia',
+  /** `Mouse lock: On` / `Off`, the lock's toggle (docs/ui/input-and-onboarding.md §4.1, #794). */
+  menuMouseLock: 'menu-mouse-lock',
+  /** The in-game cursor drawn while the pointer is locked (docs/ui/input-and-onboarding.md §4.1). */
+  virtualCursor: 'virtual-cursor',
   /** `Exit game`, which asks once. */
   menuExit: 'menu-exit',
   /** The confirm row's `Exit`: leaves the room. */
@@ -79,6 +83,12 @@ export const HUD_TEST_ID = {
   hint: 'hint',
   /** The toast, top-centre, with `data-toast-kind` (docs/ui/overlays.md §3.6, #190). */
   toast: 'toast',
+  /** A trait gained or a tier up, above the own cell, with `data-trait-id` (docs/ui/overlays.md §3.8, #783). */
+  upgradePopup: 'upgrade-popup',
+  /** A form gained (rung 5): the larger popup with its real-life line, with `data-trait-id`. */
+  formPopup: 'form-popup',
+  /** A giant the own cell swallowed (docs/ecology/giants.md §3.5.8): drawn as a form popup, with `data-giant-species`. */
+  giantPopup: 'giant-popup',
   /** The picker's extra footer line while the `offer` onboarding beat is up. */
   traitOfferOnboarding: 'trait-offer-onboarding',
   /** The hold-Tab "affecting you" panel, beside the full board (docs/ui/overlays.md §3.7, #387). */

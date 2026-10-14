@@ -6,12 +6,12 @@
 // The steps are cut where the bakes are: the indicator atlas and its fonts, the mote atlas, the glow atlas, each
 // radial bake, the dish field, the vent, the noise tile and the organelle atlas are each one step.
 
-import { PLAYER_PALETTE_COUNT, RANDOM_STREAM, createSeededRandom, type RandomSource } from '@evolution/shared';
+import { RANDOM_STREAM, createSeededRandom, type RandomSource } from '@evolution/shared';
 import type { Texture, TextureSource } from 'pixi.js';
 import { NOISE_STRIP_ROWS, NOISE_STRIP_WIDTH, PALETTE_SHADE_COUNT, type OrganelleKind } from './constants';
 import { buildNoiseStrip, type NoiseStrip } from './noise/noise-strip';
 import { buildNoiseTile } from './noise/noise-tile';
-import { bakePaletteTextureBytes } from './palette';
+import { PALETTE_ROWS, bakePaletteTextureBytes } from './palette';
 import type {
   OrganelleSpriteTexture,
   RenderTextureOptions,
@@ -46,7 +46,7 @@ function organelleTextures(
 function paletteTexture(): TextureSource {
   return byteDataTexture(bakePaletteTextureBytes(), {
     width: PALETTE_SHADE_COUNT,
-    height: PLAYER_PALETTE_COUNT,
+    height: PALETTE_ROWS.length,
     isFiltered: false,
     isRepeating: false,
     hasMipmaps: false,
@@ -151,7 +151,7 @@ export function stageSeededRenderTextures(options: RenderTextureOptions): Staged
   const cosmetic = createSeededRandom(options.seed).fork(RANDOM_STREAM.cosmetic);
   const parts: SeededParts = {};
   const steps = [
-    () => (parts.dishField = bakeDishField(baker, options.gelPatches, cosmetic)),
+    () => (parts.dishField = bakeDishField(baker, options.gelPatches, cosmetic, options.isVentTinted ?? true)),
     () => (parts.vent = bakeVentSprite(baker, cosmetic)),
     () => {
       parts.strip = buildNoiseStrip(cosmetic);

@@ -84,7 +84,7 @@ player's words and in no more than a line.
 | Order | Category     | Label        | Groups (`ENTRY_GROUP`), in order                                                      | What a player finds there                                                                                                                                                                                                                                                                                 |
 | ----- | ------------ | ------------ | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | `basics`     | Basics       | Rules (`rules`) · Reading the screen (`reading_the_screen`)                           | Mass and size (bigger is wider, never slower), mass decay, who can engulf whom, DNA and levels, score, where you stand against the world; how to read each HUD element (`HUD_TOPIC`): the DNA ring, the level numeral, the ladder orbit, the self ring, the threat ring, the leaderboard, the round clock |
-| 2     | `entities`   | Cells & food | Cells (`cells`) · Food (`food`)                                                       | The player cell and the wild cell; the food overview, algae, the bacteria and their variants, detritus, the DNA fragment                                                                                                                                                                                  |
+| 2     | `entities`   | Cells & food | Cells (`cells`) · Giant cells (`giants`) · Food (`food`)                              | The player cell and the wild cell; the giant amoeba, the paramecium and the giant diatom (#831); the food overview, algae, the bacteria and their variants, detritus, the DNA fragment                                                                                                                    |
 | 3     | `evolutions` | Evolution    | Stages (`stages`) · one per `TRAIT_CATEGORY` in catalog order · DNA tags (`dna_tags`) | The five ladder stages, every trait (its tiers are sections of its page, not entries), the DNA tags                                                                                                                                                                                                       |
 | 4     | `abilities`  | Abilities    | none                                                                                  | What traits grant, one page per `ABILITY` (§12.4): movement, sprint, photosynthesis, toxin, spines, food attraction and the rest, each listing the traits that grant it                                                                                                                                   |
 | 5     | `actions`    | Actions      | none                                                                                  | One page per `ACTION` (§12.4): steer, sprint, eat, engulf (its `ENGULF_PHASE`s cover, wrap, absorb), escape, pick a trait, level up, respawn                                                                                                                                                              |
@@ -95,7 +95,7 @@ Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_
 `game/test-ids/hud-test-ids.ts`, so the encyclopedia never imports `hud/`.
 
 **Ids** are §12.2's `<subject>:<codeId>`, with `#` for a section inside a page: `trait:mitochondrion`,
-`trait:mitochondrion#tier_2`, `stage:endosymbiosis`, `bacterium:aerobic`, `food:algae`, `entity:dna_fragment`,
+`trait:mitochondrion#tier_2`, `stage:endosymbiosis`, `bacterium:aerobic`, `giant:giant_amoeba`, `food:algae`, `entity:dna_fragment`,
 `cell_kind:wild`, `zone:warm_vent`, `world:bloom`, `action:sprint`, `ability:toxin`, `concept:mass_decay`,
 `concept:world_standing#ahead`, `hud:leaderboard`. The subject is the code kind, not the category, so regrouping never renames an id. The
 id is the deep link, the `data-entry-id` and the test-id suffix (`testIdSelector` quotes the attribute, so `:` and `#`
@@ -116,8 +116,10 @@ score `concept:score`; the leaderboard's columns `hud:leaderboard`.
 `ENCYCLOPEDIA_MAX_WIDTH_PX` × `ENCYCLOPEDIA_MAX_HEIGHT_PX`, every length × `--ui-scale`. Worked examples: at 1280 × 800
 (scale 1) the panel is 1216 × 736 at (32, 32); at 1920 × 1080 (scale 1.35) it is 1834 × 994 at (43, 43), both sides
 held by the inset (the width cap, 1836, is 2 px wider). Below the `UI_SCALE_MIN` viewport (1024 × 640) the panel
-keeps the inset and the detail column narrows; that is under the smallest viewport the game targets, so it is
-recorded rather than solved, as layout.md §1 records the leaderboard's.
+keeps the inset and the detail column narrows; that is under the smallest viewport the game targets, so the frame is
+recorded rather than solved, as layout.md §1 records the leaderboard's. What sits in the detail column still reads in
+full at 800 × 600: the landing's tiles wrap to fewer per row, and the entry page drops its title column under the
+lens (§11.4, #854).
 
 **Header** (`ENCYCLOPEDIA_HEADER_HEIGHT_PX`, a 1 px panel-rim rule under it, never scrolls), left to right: `Back`
 (kit icon button, disabled while the history is empty), `Encyclopedia` (`title`), the kit search field
@@ -132,21 +134,26 @@ recorded rather than solved, as layout.md §1 records the leaderboard's.
   `ENCYCLOPEDIA_RESULTS_LABEL` and the number of matches while a query runs — then the category's groups, each a kit list
   section over kit list rows (`UI_ROW_HEIGHT_PX`). A row leads with a **glyph medallion**, `UI_ROW_MEDALLION_PX` square: a trait's glyph (`<app-trait-glyph [traitId] lod="list" still>`, #312), otherwise the subject's code-drawn
   glyph (`<app-subject-glyph [entryId] lod="list" still>`, #391: a small drawing of the cell, mote, rod, fragment,
-  zone or topic, visual-style/ui-type.md §7.2). Then the title
+  zone or topic, visual-style/ui-type.md §7.2); a giant cell wears its form's trait glyph (`giant:giant_diatom` the
+  Diatom Shell's, `giants/giant-forms.ts`), since the giant is that form drawn large, recoloured in the giant's own
+  palette so the row matches its preview (`<app-giant-glyph [species] lod="list" still>`, #846, ui-type.md §7.2). Then the title
   (`body`, one line, ending in an ellipsis when it does not fit) and, in a round, a level-gold tier chip on owned
   traits.
 - **Detail** (the rest): the entry page (§11.4) when an entry is selected, else the category landing: the breadcrumb,
   the label (`headline`), the category's one-line summary (`body`, label colour) and a grid of entry tiles
   (`ENCYCLOPEDIA_TILE_WIDTH_PX` × `ENCYCLOPEDIA_TILE_HEIGHT_PX`, `UI_SPACE_M_PX` gaps): a
   `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX` well on the dish field with the glyph medallion at the picker's
-  `PICKER_CARD_MEDALLION_PX`, the title in `body` on one line ending in an ellipsis (the full title is the tile's
-  accessible name), and under it the entry's `facts[0]` in `label` size, mixed case, wrapping at its spaces to at most
-  `ENCYCLOPEDIA_TILE_FACT_LINES` lines at `ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT`. The caption is top-aligned, so titles
-  line up across a row whether their fact takes one line or two. The fact is drawn as `<name>: <text>`: a value alone
+  `PICKER_CARD_MEDALLION_PX`, the title in `body` wrapping at its spaces to at most `ENCYCLOPEDIA_TILE_TITLE_LINES`
+  lines and ending in an ellipsis past them (the full title is the tile's accessible name), and under it the entry's
+  `facts[0]` in `label` size, mixed case, wrapping at its spaces to at most `ENCYCLOPEDIA_TILE_FACT_LINES` lines. Both
+  wrap at `ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT`. The caption is top-aligned and the tile's height holds both line
+  budgets, so titles line up across a row whether their fact takes one line or two, and a title that wraps moves only
+  its own fact: every tile in the grid keeps one size. At one line the title cut `Photosynthetic bacterium` at every
+  size (#847). The fact is drawn as `<name>: <text>`: a value alone
   says nothing of what it measures (`Mass decay` over `20 mass`), and a link's text alone is another entry's title, so
   the tile would read as two titles. At one line the name spent the characters the value needed, and 30 of 78 tiles
   were cut mid-value. At two lines every tile reads in full at 1280 × 800, 1920 × 1080, 1024 × 640 and 800 × 600
-  (#462). A tile is a link to its entry.
+  (#462), and `e2e/encyclopedia-tile-fit.spec.ts` holds every landing to it. A tile is a link to its entry.
 
 The landing's blocks stack from the panel body's own box, each on its own line height: the breadcrumb and the
 heading on their cap height, the summary on the body's. The reference frame is drawn baseline by baseline
@@ -166,6 +173,27 @@ around it. Its top is two columns: the **lens column** on the left
 and the **title column** beside it, `ENCYCLOPEDIA_LENS_GAP_PX` apart; below both, prose and See also run across the
 content column. Each part names the `ResolvedEntry` field (§12.2) it reads.
 
+**Narrow columns stack** (#854). The title column is never narrower than `ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX`
+beside the lens: where the content column is under the lens, the gap and that floor (692 units), the title column
+wraps under the lens column, `UI_SPACE_L_PX` below the lens control, and runs the content column's full width; the
+lens keeps its place and its size at the content column's left. The reference sizes never stack (their content
+column is 702), and 800 × 600 always does (about 421 units at scale 0.8). Squeezed beside the lens there, the title column
+was 78 px: the breadcrumb wrapped, the title broke over two lines and the facts ran out through the panel's right
+edge, names and values both, on 69 of the 81 entries. Shrinking the lens instead was weighed and rejected: a 337 px
+content column leaves a title column of at most about 200 px beside any lens worth looking at, still too narrow for
+Chloroplast's tier table or Mass and size's facts, and the lens's diameter is also its preview canvas's side
+(§12.7), so a lens that changed size per viewport would re-bake every scene. Stacked, the page scrolls a little
+further, which it already does on a long entry. The floor is set between the widest title column any entry needs
+and the 370 the reference sizes give it: 343 when #854 set it (Mass and size, its values free to wrap). Since #858 no
+value wraps, the effect mark included, and the widest facts tables beside a lens, measured whole with their marks, are
+Amoeba Pseudopods' Effects by tier at 340, Mass and size's facts at 336 and Chloroplast's Effects by tier at 331. Two
+names were shortened to get there: Mass and size's last fact, `DNA per mass gained at the largest mass`, is `DNA per
+mass past the largest mass` (with an unbreakable `5000 mass` the old name needed 375), and Chloroplast's tier row is
+`In sunlight (mass / s)` (as `Photosynthesis (mass / s)` it needed 364, past the floor, and between 1017 and 1019 px
+wide its effect marks broke off above their figures). `e2e/encyclopedia-entry-fit.spec.ts` holds every entry to it at
+the four sizes of §11.3 and at 1017 × 640, the narrowest viewport that keeps the title column beside the lens
+(§11.4's facts rules below).
+
 **Geometry**, every length × `--ui-scale`:
 
 | Viewport (UI scale) | Detail inner width | Content column | Lens               | Title column | Lens top-left (viewport px) |
@@ -178,8 +206,8 @@ Widths are scale-1 units (px in brackets). Detail inner width is the panel less 
 built page measures (521, 113) at 1280 × 800, which is the content box's own top — the inset, the header, its rule and
 `UI_PANEL_PADDING_PX` — and the lens shares it with the title column beside it, so the 4 units are the mockup's and
 not a layout error (#465). At the `UI_SCALE_MIN` viewport
-(1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 372; narrower viewports are below the
-target and recorded, not solved (§11.3).
+(1024 × 640, scale 0.8) the units are 1280 × 800's, so the title column keeps its 370; narrower viewports stack the
+title column under the lens (above).
 
 **The lens column** (`preview` not `null`):
 
@@ -245,7 +273,9 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
    a round `OWNED · II` in level gold, its numeral `formatQuantity(tier, QUANTITY_UNIT.tier)` in `numeral` presentation.
    An entry that is **not** a trait has one chip, `ENTRY_SUBJECT_LABEL[subject.kind]` (`Stage`, `DNA tag`), in the
    neutral tone: it has no rarity, tags or stage of its own, and a page that opened on a title with nothing under it
-   read as unfinished (#465). **It repeats the breadcrumb's group crumb for the two subjects whose list group is their
+   read as unfinished (#465). A **giant cell** adds its role beside it (`Hunter`, `Grazer`, `Drifter`,
+   `GIANT_ROLE_LABEL` over `GIANT_ROLE_BY_SPECIES`), the hunter's in the danger tone, since it is the one that eats you
+   (#831). **It repeats the breadcrumb's group crumb for the two subjects whose list group is their
    subject** — `EVOLUTION › STAGES` over `STAGE` — and is kept anyway: the alternative is those two pages losing their
    chip row, which is the defect the chip was added for, and the crumb is a quieter line the eye passes on its way to
    the title while the chip sits in the reader's eye-line under it. Where the two differ they differ usefully, and a
@@ -254,27 +284,40 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
    header — `ENCYCLOPEDIA_EFFECTS_TABLE_LABEL`, `ENCYCLOPEDIA_LADDER_TABLE_LABEL` and, for an entry that is not a
    trait, `ENCYCLOPEDIA_FACTS_TABLE_LABEL`.
    - A trait's first table, **Effects by tier**: the columns are the `tier_n` sections, the rows the union of the
-     modifier keys their `facts` carry (`label` is the noun, `Mass decay`; `text` the value, `−15 %`, in `figure`),
-     `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` where a tier leaves that key at identity, each value led by the effect mark
-     (up for a benefit, down for a drawback) by its effect on the owner (docs/ui/hud.md §3.1.5, #453); the owned tier's column is tinted
-     accent under `You own II` (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier
-     column is its widest value plus `UI_SPACE_S_PX` at each end, and the noun column takes the rest.
-   - **When the columns do not fit, the values wrap; the table never widens** (#465). The sizing rule above assumes
-     every value fits on one line, and three tier columns of `+0.3 mass / s` do not fit the 370 unit title column
-     however little the noun column keeps. So both tables ask the kit for `shouldWrapValues`
-     (components-and-constants.md §10.2): a value breaks at its spaces, a tier column takes its widest resulting
-     **line**, the noun column takes what is left, and the row grows downwards. The nouns themselves keep one line —
-     a noun column that may wrap is one the table's auto layout can squeeze, which broke `Reached by` over two lines
-     to widen a value column that had room to spare. Nothing ever crosses the content
-     column. Two alternatives were weighed and rejected: shrinking the noun column alone cannot fit Chloroplast's
-     three tiers at any width, and moving the tier table out to the full content column would re-lay the page around
-     the lens and split the facts across two measures for the sake of one trait. A wrapped tier value keeps the
-     comparison the table exists for — I over II over III, aligned — which is what a clipped one loses.
+     modifier keys their `facts` carry. **The unit is in the row's name, the cells hold bare figures** (#858): the
+     name is the noun and the unit after it in brackets (`In sunlight (mass / s)`, `Mass decay (%)`,
+     `Arm grab reach (radii)`), and each cell the signed figure alone (`+0.3`, `−15`, `0.62`), in `figure`. Both
+     halves come from one split at the modifier-label formatter (`formatModifierParts`, quantities/modifier-labels.ts): a
+     modifier's unit is its own, so every tier of a row shares it, and the unit's header form is its plural suffix
+     (`radii`, never `radius` for a tier of 1); a multiplier read as a change is a share, so `%`. A unit with no suffix
+     falls back to its prefix (`Level`, `Tier`; no modifier has one today), and a unit with neither, a count, adds
+     nothing to the name. `ENCYCLOPEDIA_TIER_IDENTITY_TEXT` stands where a tier leaves that key at identity, each
+     figure is led by the effect mark (up for a benefit, down for a drawback) by its effect on the owner
+     (docs/ui/hud.md §3.1.5, #453), the mark and the figure one reading that never breaks (a plain value is
+     `white-space: nowrap`), and the owned tier's column is tinted accent under `You own II`
+     (`ENCYCLOPEDIA_TIER_CAPTION_PREFIX` and the numeral). A tier column is its widest figure plus `UI_SPACE_S_PX` at
+     each end, and the noun column takes the rest. The trait cards and the HUD keep the unit beside each figure
+     (`+0.3 mass / s in sunlight`, the noun after the value): the split is the tier table's alone.
+   - **A number and its unit never part** (#858). `formatQuantity` joins a figure to its unit with no-break spaces
+     (`5000 mass`, `+0.3 mass / s`, `Level 4`), so no line, in either table or anywhere else, breaks inside a reading.
+     That made the old rule (#465), where a tier value broke at its spaces to fit, impossible: three unbreakable
+     `+0.3 mass / s` columns need 488 units beside the noun, against a title column of 370 beside the lens and 421
+     stacked at 800 × 600, and Amoeba Pseudopods' three `0.62 radii` need 415. Under it, every tier cell with a unit
+     of two words broke at every size, `+0.3 mass` over `/ s`. Writing the unit once per row is the data-table
+     convention and makes each tier a number to compare, I over II over III; it leaves Chloroplast's table 331 units
+     wide, its marks included. Two alternatives were weighed and rejected: the noun on its own line above the three values (351 of
+     370, with nothing to spare, and every trait's table taller), and keeping the break inside the pair. Both tables
+     still ask the kit for `shouldWrapValues` (components-and-constants.md §10.2), for the second table's lists of
+     links; a bare figure has nothing to break at. The nouns keep one line — a noun column that may wrap is one the
+     table's auto layout can squeeze, which broke `Reached by` over two lines to widen a value column that had room
+     to spare. Nothing ever crosses the content column, and `e2e/encyclopedia-entry-fit.spec.ts` holds every entry at
+     the four sizes of §11.3 and 1017 × 640 to all three: no cell past the column, no table wider than its column, no
+     value on more than one line (its effect mark counted as one of its boxes).
    - The next table, **Unlock and ladder** for a trait, and the only table for other entries: `facts`, `label` on the
      left and `text` on the right; a fact whose `link` is set renders its text as a link to that entry. Consecutive
      facts sharing a `key` are one row: the label once, the texts as links joined by `, ` (a link with several targets
-     arrives as one fact per target, architecture/encyclopedia.md §12.3). A value of several links is one of the two
-     cases the wrapping rule above exists for: `Opens` on a stage page is three entry titles in one cell.
+     arrives as one fact per target, architecture/encyclopedia.md §12.3). A value of several links is what the table's
+     wrapping is for: `Opens` on a stage page is three entry titles in one cell, and it wraps between them.
    - A table with no rows is left out, never drawn empty.
 
 **Below both columns**, from `UI_SPACE_XL_PX` under whichever of the lens control and the title column ends lower:
@@ -282,8 +325,16 @@ pauses it or moves on. The dish behind the panel still moves under the preferenc
 1. **Prose**: `summary`'s segments (§12.6): `text` in `body`, `value` in `body` with tabular digits, `link` as accent
    text with an underline; at most `ENCYCLOPEDIA_PROSE_MAX_WIDTH_PX` wide, paragraphs `UI_SPACE_S_PX` apart,
    `text-wrap: pretty` so no line ends on a lone word.
-2. **See also**, `UI_SPACE_S_PX` under the prose: a `label` header and a kit link chip per `seeAlso` link, sized to its
-   title, wrapping across the content column.
+2. **The real-life note** (`realLife`, only on an entry about a real organism: the giant cells, #831),
+   `UI_SPACE_L_PX` under the prose, at the prose's measure: a field note on the kit well with an
+   `ENCYCLOPEDIA_REAL_LIFE_RULE_PX` accent rule down its left edge and `UI_SPACE_M_PX` padding. Its header
+   `ENCYCLOPEDIA_REAL_LIFE_LABEL` in the `label` style and the accent; the true line (`GIANT_REAL_LIFE_LINES`, the same
+   line the giant popup teaches, overlays.md §3.8) in `body` and white; under it `UI_SPACE_S_PX`, `ENCYCLOPEDIA_REAL_SIZE_LABEL`
+   in the muted `label` style and the real size in words (`GIANT_REAL_SIZES`, `body`) on its baseline. It is the one block
+   about the world outside the dish, so it is drawn apart from the page's own text, after the rules a player came for and
+   before the links away. Copy, no digit: a real size is no tunable, and §12.6's prose rule covers both lines.
+3. **See also**, `UI_SPACE_S_PX` under the prose (`UI_SPACE_L_PX` under a real-life note): a `label` header and a kit
+   link chip per `seeAlso` link, sized to its title, wrapping across the content column.
 
 **Long entries scroll** (`encyclopedia-b-long-trait-1280x800.png`, Diatom Shell: three effect rows, five facts with a
 `Requires`, four paragraphs). The detail column is one kit scroll area; the lens, both columns, the prose and See also
@@ -360,7 +411,7 @@ pattern of `HUD_TEST_ID`; `input/input-constants.ts` imports the panel id from i
 `encyclopedia-crumb-<category>` (a breadcrumb crumb that goes somewhere; the crumb naming the page already shown is
 text and carries none),
 `encyclopedia-entry` (with `data-entry-id`), `encyclopedia-preview` (with `data-preview-state`),
-`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-preview-replay`, `encyclopedia-preview-motion` (the reduced-motion toggle, with `data-motion`), `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
+`encyclopedia-tier-<n>` (one per tier section), `encyclopedia-real-life` (the real-life note, §11.4), `encyclopedia-preview-replay`, `encyclopedia-preview-motion` (the reduced-motion toggle, with `data-motion`), `encyclopedia-sticky-title` (present only while a scrolled entry shows the bar), `encyclopedia-facts`,
 `encyclopedia-link-<entryId>` (every link to that entry; a test takes the first), and in the lobby
 `lobby-encyclopedia`.
 
@@ -377,12 +428,13 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `encyclopedia-rail.component.ts`, `encyclopedia-list.component.ts`                                                                                                                                                                              | The category rail and the grouped entry list or search results, on the kit rail and list                                                                             |
 | `encyclopedia-list-rows.component.ts`                                                                                                                                                                                                           | One run of entry rows, so a section's rows and a headerless group's are written once                                                                                 |
 | `encyclopedia-breadcrumb.component.ts`                                                                                                                                                                                                          | The trail over a landing and an entry page; a crumb with a target is a link to that category's landing                                                               |
-| `encyclopedia-glyph.component.ts`                                                                                                                                                                                                               | The medallion a row and a tile lead with: a trait's glyph (#312) or the subject's (#391), over `format/glyph-subject.ts`                                             |
+| `encyclopedia-glyph.component.ts`                                                                                                                                                                                                               | The medallion a row and a tile lead with: a trait's glyph (#312), a giant's (#846) or the subject's (#391), over `format/glyph-subject.ts`                           |
 | `encyclopedia-icons.ts`, `encyclopedia-icon.component.ts`                                                                                                                                                                                       | The six 16 px rail marks and the header's Back and Close, as shape tables and their one renderer, in `currentColor`                                                  |
 | `encyclopedia-landing.component.ts`, `encyclopedia-entry.component.ts`                                                                                                                                                                          | The category landing and the entry page (§11.4); the entry page lends the lens's stage element to the handle                                                         |
 | `encyclopedia-lens.component.ts`                                                                                                                                                                                                                | The lens (§11.4): the square stage the preview's canvas is lent to, its circular clip, its four states and the rim, reticle and vignette overlay                     |
 | `encyclopedia-lens-control.component.ts`                                                                                                                                                                                                        | The control under the lens (§11.4): a trait's tier switch                                                                                                            |
 | `encyclopedia-preview.service.ts`                                                                                                                                                                                                               | The one `PreviewHandle` an open panel has: the panel provides it, the entry page says what to show, the lens borrows its canvas (architecture §12.7)                 |
+| `encyclopedia-real-life.component.ts`                                                                                                                                                                                                           | The real-life note under a real organism's prose (§11.4)                                                                                                             |
 | `encyclopedia-facts.component.ts`, `encyclopedia-prose.component.ts`                                                                                                                                                                            | The facts tables and the prose segments with their links                                                                                                             |
 | `encyclopedia-state.service.ts`                                                                                                                                                                                                                 | §11.5's state                                                                                                                                                        |
 | `format/navigation.ts`, `format/search.ts`, `format/panel-keys.ts`, `format/rail-view.ts`, `format/list-view.ts`, `format/landing-view.ts`, `format/panel-view.ts`, `format/glyph-subject.ts`, `format/entry-view.ts`, `format/lens-overlay.ts` | Pure: the transitions, the match and its order, the panel's key rules, the page's view model (tier columns, chips, crumbs, the tier switch), the eyepiece's geometry |
@@ -402,6 +454,7 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_CONTENT_MAX_WIDTH_PX`                                  | 848                                                                  | px   | The content column's widest. The panel's own width cap already holds the detail column there; this is the page's measure, so a wider panel later never stretches the prose and the tables with it.                                                                                                                                                                          |
 | `ENCYCLOPEDIA_LENS_DIAMETER_PX`                                      | 300                                                                  | px   | The lens, and the side of its square preview canvas.                                                                                                                                                                                                                                                                                                                        |
 | `ENCYCLOPEDIA_LENS_GAP_PX`                                           | 32                                                                   | px   | The lens to the title column.                                                                                                                                                                                                                                                                                                                                               |
+| `ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX`                             | 360                                                                  | px   | The title column's floor beside the lens; under it the title column wraps below the lens at full width (§11.4, #854). Between the widest any entry needs (340, #858) and the reference sizes' 370.                                                                                                                                                                          |
 | `ENCYCLOPEDIA_LENS_RIM_PX`                                           | 6                                                                    | px   | The lens rim, in `PANEL_RIM`.                                                                                                                                                                                                                                                                                                                                               |
 | `ENCYCLOPEDIA_LENS_INNER_RING_ALPHA`                                 | 0.35                                                                 | ×    | The 1 px `LIGHT_ACCENT` ring inside the rim.                                                                                                                                                                                                                                                                                                                                |
 | `ENCYCLOPEDIA_LENS_TICK_COUNT`                                       | 24                                                                   | —    | Reticle ticks around the lens.                                                                                                                                                                                                                                                                                                                                              |
@@ -420,14 +473,19 @@ components sit at the root of `packages/client/src/app/game/encyclopedia/`, besi
 | `ENCYCLOPEDIA_LADDER_TABLE_LABEL`                                    | `Unlock and ladder`                                                  | —    | The header over a trait's second table.                                                                                                                                                                                                                                                                                                                                     |
 | `ENCYCLOPEDIA_FACTS_TABLE_LABEL`                                     | `Facts`                                                              | —    | The header over the one table of an entry that is not a trait, which has no unlock and no ladder of its own.                                                                                                                                                                                                                                                                |
 | `ENCYCLOPEDIA_SEE_ALSO_LABEL`                                        | `See also`                                                           | —    | The header over the link chips (§11.4).                                                                                                                                                                                                                                                                                                                                     |
+| `ENCYCLOPEDIA_REAL_LIFE_LABEL`, `ENCYCLOPEDIA_REAL_SIZE_LABEL`       | `In real life`, `Real size`                                          | —    | The real-life note's header, and the word before the real size inside it (§11.4).                                                                                                                                                                                                                                                                                           |
+| `ENCYCLOPEDIA_REAL_LIFE_RULE_PX`                                     | 3                                                                    | px   | The accent rule down the real-life note's left edge: the one block on the page drawn as a field note.                                                                                                                                                                                                                                                                       |
 | `ENCYCLOPEDIA_TIER_CAPTION_PREFIX`                                   | `You own `                                                           | —    | Before the owned tier's numeral, as the caption over the tier table's noun column.                                                                                                                                                                                                                                                                                          |
 | `ENCYCLOPEDIA_OWNED_CHIP_LABEL`, `ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR` | `OWNED`, `·`                                                         | —    | The level-gold chip a round adds, around the tier's numeral: `OWNED · II`.                                                                                                                                                                                                                                                                                                  |
 | `ENCYCLOPEDIA_TIER_IDENTITY_TEXT`                                    | `—`                                                                  | —    | What a tier column shows where that tier leaves the row's modifier at identity.                                                                                                                                                                                                                                                                                             |
+| `ENCYCLOPEDIA_TIER_UNIT_OPEN`                                        | ` (`                                                                 | —    | Before the unit a tier row's name carries for its bare figures: `In sunlight (mass / s)` (#858).                                                                                                                                                                                                                                                                            |
+| `ENCYCLOPEDIA_TIER_UNIT_CLOSE`                                       | `)`                                                                  | —    | After that unit.                                                                                                                                                                                                                                                                                                                                                            |
 | `ENCYCLOPEDIA_TILE_WIDTH_PX`                                         | 168                                                                  | px   | A landing tile; three to a row at 1280 × 800 and four at 1920 × 1080. The grid wraps to whatever the column fits.                                                                                                                                                                                                                                                           |
-| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 152                                                                  | px   | A landing tile: the well, the one-line title and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines (#462).                                                                                                                                                                                                                                                               |
+| `ENCYCLOPEDIA_TILE_HEIGHT_PX`                                        | 172                                                                  | px   | A landing tile: the well, a title of up to `ENCYCLOPEDIA_TILE_TITLE_LINES` lines (#847) and a fact of up to `ENCYCLOPEDIA_TILE_FACT_LINES` lines (#462).                                                                                                                                                                                                                    |
 | `ENCYCLOPEDIA_TILE_PREVIEW_HEIGHT_PX`                                | 96                                                                   | px   | The tile's well.                                                                                                                                                                                                                                                                                                                                                            |
+| `ENCYCLOPEDIA_TILE_TITLE_LINES`                                      | 2                                                                    | —    | The lines a tile's title wraps to before it ends in an ellipsis.                                                                                                                                                                                                                                                                                                            |
 | `ENCYCLOPEDIA_TILE_FACT_LINES`                                       | 2                                                                    | —    | The lines a tile's fact wraps to before it ends in an ellipsis.                                                                                                                                                                                                                                                                                                             |
-| `ENCYCLOPEDIA_TILE_FACT_LINE_HEIGHT`                                 | 1.2                                                                  | —    | The line height the fact wraps at.                                                                                                                                                                                                                                                                                                                                          |
+| `ENCYCLOPEDIA_TILE_CAPTION_LINE_HEIGHT`                              | 1.2                                                                  | —    | The line height a tile's title and fact wrap at.                                                                                                                                                                                                                                                                                                                            |
 | `ENCYCLOPEDIA_SCRIM_ALPHA`                                           | 0.8                                                                  | ×    | The callout-backing scrim behind the panel in a round.                                                                                                                                                                                                                                                                                                                      |
 | `ENCYCLOPEDIA_LOBBY_SCRIM_ALPHA`                                     | 1                                                                    | ×    | The same scrim outside a round, where no dish runs behind the panel: it covers completely, so the lobby's own header never ghosts through. Which one applies is the host's answer (`isOverDish`), never the panel's.                                                                                                                                                        |
 | `ENCYCLOPEDIA_HISTORY_MAX`                                           | 50                                                                   | —    | Back-stack depth; the oldest location drops first.                                                                                                                                                                                                                                                                                                                          |

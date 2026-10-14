@@ -12,7 +12,7 @@ import {
   resetSpawnerAccumulators,
   TABLE_SEED,
   withoutGelPatches,
-  withoutWildSeats,
+  withoutSeatedCells,
   createLazyScenarioSnapshot,
   type EvolutionScenarioModule,
 } from './evolution-adapter.js';
@@ -124,7 +124,7 @@ describe('evolutionAdapter', () => {
     applyEvolutionFixture(world, clearFood, context);
     expect(world.food).toEqual([]);
     expect(world.wildSeats).not.toEqual([]);
-    applyEvolutionFixture(world, withoutWildSeats, context);
+    applyEvolutionFixture(world, withoutSeatedCells, context);
     expect(world.wildSeats).toEqual([]);
     expect(world.cells.every((cell) => cell.playerId !== null)).toBe(true);
     expect(world.spawners.food.isEnabled).toBe(true);

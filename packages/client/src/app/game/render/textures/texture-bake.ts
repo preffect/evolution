@@ -81,15 +81,25 @@ export function createPxCanvas(
 
 const MIN_CANVAS_PX = 1;
 
+/** A detached `<canvas>` at least a pixel each way, rounded up, and its 2D context made with `attributes`. */
+export function createDetachedCanvas(
+  documentReference: Document,
+  size: { readonly width: number; readonly height: number },
+  attributes?: CanvasRenderingContext2DSettings,
+): { readonly element: HTMLCanvasElement; readonly context: CanvasRenderingContext2D } {
+  const element = documentReference.createElement('canvas');
+  element.width = Math.max(MIN_CANVAS_PX, Math.ceil(size.width));
+  element.height = Math.max(MIN_CANVAS_PX, Math.ceil(size.height));
+  const context = element.getContext('2d', attributes);
+  if (context === null) throw new Error('Canvas 2D is unavailable: the texture bake cannot run.');
+  return { element, context };
+}
+
 /** The browser factory: one `<canvas>` per bake, never attached to the document. */
 export function createDomBakeCanvasFactory(documentReference: Document): BakeCanvasFactory {
   return {
     create(width, height) {
-      const element = documentReference.createElement('canvas');
-      element.width = Math.max(MIN_CANVAS_PX, Math.ceil(width));
-      element.height = Math.max(MIN_CANVAS_PX, Math.ceil(height));
-      const context = element.getContext('2d');
-      if (context === null) throw new Error('Canvas 2D is unavailable: the texture bake cannot run.');
+      const { element, context } = createDetachedCanvas(documentReference, { width, height });
       return { width: element.width, height: element.height, context, element };
     },
   };
