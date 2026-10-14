@@ -68,7 +68,7 @@ export const DIVE_PLANET_RELIEF_EXAGGERATION = { near: 3.4, far: 4.2 } as const;
  */
 export const DIVE_PLANET_REGION_DETAIL_MASK = {
   roundness: 3,
-  fullWithin: 0.62,
+  fullWithin: 0.76,
   goneFrom: 0.96,
   edgeWarp: 0.14,
   warpDegrees: { broad: 1.4, fine: 0.5 },

@@ -6,9 +6,16 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DIVE_FOCUS_DEGREES, DIVE_SALISH_RINGS_URL } from '../../constants';
+import { smoothstep } from '../../geometry';
 import { repoPath } from '../../../../../testing/repo-document';
 import { diveRegionBox, type DiveCoastRing, type DiveRegionBox } from './dive-planet-bakes';
-import { DIVE_REGION_DETAIL_MASK_SOURCE, diveRegionDetailMask } from './dive-planet-region-mask';
+import {
+  DIVE_REGION_DETAIL_MASK_EXPRESSION,
+  DIVE_REGION_DETAIL_MASK_SOURCE,
+  GLSL_ARITHMETIC,
+  NUMBER_ARITHMETIC,
+  diveRegionDetailMask,
+} from './dive-planet-region-mask';
 import { DIVE_PLANET_FRAGMENT_SOURCE } from './dive-planet-shader';
 
 /** The edge noise at its two extremes and between. */
@@ -65,6 +72,48 @@ describe('the region detail mask', () => {
   it('lets the noise move its edge, so the edge is ragged', () => {
     const edge: [number, number] = [unitOf(0.8), unitOf(0)];
     expect(diveRegionDetailMask(edge, 0) - diveRegionDetailMask(edge, 1)).toBeGreaterThan(0.25);
+  });
+
+  it('is the shader’s own mask: its regionDetailMask returns the expression the numbers above come from', () => {
+    const body = /float regionDetailMask\(vec2 ru, vec2 ld\) \{([^}]*)\}/.exec(DIVE_PLANET_FRAGMENT_SOURCE)?.[1] ?? '';
+    const returns = [...body.matchAll(/return ([^;]+);/g)].map((match) => match[1]);
+    expect(returns).toEqual([DIVE_REGION_DETAIL_MASK_EXPRESSION]);
+    expect(DIVE_REGION_DETAIL_MASK_EXPRESSION).toMatch(/^smoothFall\(.*\bru\.x\b.*\bru\.y\b.*\bwarp\b/);
+  });
+
+  it('writes each operation in GLSL as the numbers compute it', () => {
+    const [left, right, third] = [3, 0.5, 0.75];
+    const cases: readonly [string, number, string][] = [
+      ['add', NUMBER_ARITHMETIC.add(left, right), GLSL_ARITHMETIC.add('a', 'b')],
+      ['subtract', NUMBER_ARITHMETIC.subtract(left, right), GLSL_ARITHMETIC.subtract('a', 'b')],
+      ['multiply', NUMBER_ARITHMETIC.multiply(left, right), GLSL_ARITHMETIC.multiply('a', 'b')],
+      ['divide', NUMBER_ARITHMETIC.divide(left, right), GLSL_ARITHMETIC.divide('a', 'b')],
+      ['absolute', NUMBER_ARITHMETIC.absolute(-left), GLSL_ARITHMETIC.absolute('a')],
+      ['power', NUMBER_ARITHMETIC.power(left, right), GLSL_ARITHMETIC.power('a', 'b')],
+      ['smoothFall', NUMBER_ARITHMETIC.smoothFall(1, right, third), GLSL_ARITHMETIC.smoothFall('a', 'b', 'c')],
+    ];
+    expect(cases.map(([name, , glsl]) => [name, glsl])).toEqual([
+      ['add', '(a + b)'],
+      ['subtract', '(a - b)'],
+      ['multiply', '(a * b)'],
+      ['divide', '(a / b)'],
+      ['absolute', 'abs(a)'],
+      ['power', 'pow(a, b)'],
+      ['smoothFall', 'smoothFall(a, b, c)'],
+    ]);
+    expect(cases.map(([, value]) => value)).toEqual([
+      left + right,
+      left - right,
+      left * right,
+      left / right,
+      left,
+      Math.pow(left, right),
+      1 - smoothstep(right, 1, third),
+    ]);
+    expect(GLSL_ARITHMETIC.constant(left)).toBe('3.0');
+    expect(DIVE_PLANET_FRAGMENT_SOURCE).toContain(
+      'float smoothFall(float from, float to, float x) { return 1. - smoothstep(to, from, x); }',
+    );
   });
 
   it('is what the planet shader weighs the region’s land by, apart from its coast', () => {
