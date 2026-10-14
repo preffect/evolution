@@ -14,7 +14,8 @@
 
 > **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.3–§15.5).**
 > Specks (algae, detritus, DNA fragments) are absorbed by every cell; a bacterium passes under a protocell, is
-> latched by an archaeon's arms and paid on the bond, and is swallowed only by a eukaryote.
+> latched by an archaeon's arms and paid on the bond, and is swallowed only by a cell with the inner skeleton (the
+> Cytoskeleton Lattice, ticket #947).
 
 - **Eating rule.** A mote is eaten the tick its centre lies within the cell's radius. Any player cell can
   eat any mote; no minimum size. A wild cell eats algae and detritus only and passes over bacteria and
