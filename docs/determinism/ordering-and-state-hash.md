@@ -42,7 +42,10 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   section's presence is unambiguous: it is there or the walk has ended, #907), then, only once the world has left the
   dish, the era it moved into (`TRAILING_WORLD_HASHED_FIELDS`: `eraMovedInto`, architecture/server-simulation.md §3;
   a world in the dish, every world while the eras are off, hashes as before the eras, #931; the era opens with a
-  string's tag where the held lists open with an array's, so either section's presence reads from its first byte);
+  string's tag where the held lists open with an array's, so either section's presence reads from its first byte). This
+  section is the home of the eras' own hashed state: the pool's surge, the copepod and the move's grace (ticket #868)
+  are walked inside it, after `eraMovedInto` and under the same gate, never in a third trailing section, so the
+  pre-eras hash stays byte for byte and the sections' boundaries stay unambiguous;
   each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
   (so `0`, `false`, `""` and `null` differ); numbers hash by their IEEE-754 bits (one shared
