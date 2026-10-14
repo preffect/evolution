@@ -211,8 +211,9 @@ in the dive's submit, and no second WebGL context:
   (as `ImageBitmap`s), then asks for one level at a time; a newer ask replaces the one under way between two steps.
   A bake `ShoreLevels` drops (the camera turned away, or the stage changed) is ended with `return()`, and a level's
   wait that ends before its level lands posts a `cancel` for its id, so the worker stops baking it and sends nothing
-  (ticket #811); a level that landed and was never taken, or lands after its cancel, is closed. The worker sends each tile as it bakes, copied into a page canvas for the kelp band and the live sea, and each
-  level as `ImageBitmap`s and its data's buffers, all transferred. A level's bake on the page is then a generator
+  (ticket #811); a level that landed and was never taken, or lands after its cancel, is closed. The worker sends
+  each tile as it bakes, copied into a page canvas for the kelp band and the live sea, and each level as
+  `ImageBitmap`s and its data's buffers, all transferred. A level's bake on the page is then a generator
   that yields `SHORE_BAKE_WAITING` until its level lands, so `ShoreLevels` and its drafts, order and stand-ins are
   unchanged and the slices only poll. Upload stays on the page: a bitmap becomes an `ImageSource`, closed when the
   level is given back. Without `OffscreenCanvas` 2D, or once the worker fails (it says so, or its script throws),

@@ -100,6 +100,7 @@ export class ShoreLevels<Level> extends SteppedQueue {
 
   /** Lets the bake under way go, ended (`return()`) so a worker's bake of it is cancelled too (ticket #811). */
   private dropJob(): void {
+    // widened to `Iterator`, whose `return` takes no argument: `Generator.return` wants a `ShoreSnapshot` to end with
     const bake: Iterator<ShoreBakeStep, ShoreSnapshot> | undefined = this.job?.bake;
     bake?.return?.();
     this.job = null;

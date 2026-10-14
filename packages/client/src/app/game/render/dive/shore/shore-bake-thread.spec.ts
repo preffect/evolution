@@ -151,6 +151,20 @@ describe('ShoreBakeThread', () => {
     expect(listener.onLevel).not.toHaveBeenCalled();
   });
 
+  it('lands the newer level when an older bake is dropped after it was replaced, cancelling only the older', () => {
+    const { subject, port } = thread();
+    const older = subject.bakeLevel(VIEW, sources());
+    older.next();
+    const newer = subject.bakeLevel(VIEW, sources());
+    newer.next();
+    drop(older);
+    const landed = snapshotOf();
+    port.send({ type: SHORE_BAKE_MESSAGE.level, id: 2, snapshot: landed });
+    expect(newer.next()).toEqual({ done: true, value: landed });
+    expect(isClosed(landed.colour.image)).toBe(false);
+    expect(cancelIds(port)).toEqual([1]);
+  });
+
   it('cancels nothing for a level that landed: taken, or dropped untaken and closed (ticket #811)', () => {
     const { subject, port } = thread();
     const taken = subject.bakeLevel(VIEW, sources());
