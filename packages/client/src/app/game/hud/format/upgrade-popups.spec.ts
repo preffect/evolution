@@ -30,6 +30,8 @@ const START_TICK = 600;
 const UPGRADE_TICKS = UPGRADE_POPUP_DURATION_SECONDS * TICK_HZ;
 const FORM_TICKS = FORM_POPUP_DURATION_SECONDS * TICK_HZ;
 const TRAITS = DEFAULT_BALANCE.traits;
+/** How long a popup is held in the hold tests: any span inside its life. */
+const HELD_TICKS = 90;
 
 /** The own cell swallowed the giant amoeba on `tick`, as the bus reported it to `seatKey`. */
 function amoebaSwallowedOn(tick: number, seatKey: string = SEAT): GiantSwallow[] {
@@ -46,13 +48,18 @@ function progress(ownedTraits: OwnedTrait[], overrides: Partial<OwnProgressView>
   return createTestPlayerProgressView({ stage: CELL_STAGE.eukaryote, ownedTraits, ...overrides });
 }
 
-function sample(tick: number, ownedTraits: OwnedTrait[], overrides: Partial<UpgradePopupSample> = {}) {
+function sample(
+  tick: number,
+  ownedTraits: OwnedTrait[],
+  overrides: Partial<UpgradePopupSample> = {},
+): UpgradePopupSample {
   return {
     seatKey: SEAT,
     tick,
     ownProgress: progress(ownedTraits),
     traits: TRAITS,
     giantSwallows: [],
+    isUpPopupHeld: false,
     ...overrides,
   };
 }
@@ -167,6 +174,54 @@ describe('upgradePopupStepFor: the queue (docs/ui/overlays.md §3.8)', () => {
   it('keys every popup apart, so the component replays its animation for each', () => {
     const memory = upgradePopupStepFor(seenOnce(), sample(START_TICK + 1, [FLAGELLUM, CILIA]));
     expect(new Set(memory.queue.map((popup) => popup.key)).size).toBe(memory.queue.length);
+  });
+});
+
+describe('upgradePopupStepFor: a held popup (docs/ui/overlays.md §3.8, ticket #863)', () => {
+  const firedTick = START_TICK + 1;
+
+  /** A form popup up from `firedTick`, an upgrade popup queued behind it. */
+  function formThenUpgrade(): UpgradePopupMemory {
+    return upgradePopupStepFor(seenOnce(), sample(firedTick, [PARAMECIUM, FLAGELLUM]));
+  }
+
+  it('stops the life of the popup up while it is held, and moves the queue behind it on as far', () => {
+    const fired = formThenUpgrade();
+    const held = upgradePopupStepFor(
+      fired,
+      sample(firedTick + HELD_TICKS, [PARAMECIUM, FLAGELLUM], { isUpPopupHeld: true }),
+    );
+    const formEnd = firedTick + FORM_TICKS + HELD_TICKS;
+    expect(held.queue.map((popup) => [popup.traitId, popup.startTick, popup.endTick])).toEqual([
+      [PARAMECIUM.traitId, firedTick, formEnd],
+      [FLAGELLUM.traitId, formEnd, formEnd + UPGRADE_TICKS],
+    ]);
+    // Keyed as fired, so the component keeps the element and its animation's place.
+    expect(held.queue.map((popup) => popup.key)).toEqual(fired.queue.map((popup) => popup.key));
+    // Its whole life still runs once the hold ends: up one tick before its moved end, the next one up at it.
+    const lastTick = upgradePopupStepFor(held, sample(formEnd - 1, [PARAMECIUM, FLAGELLUM]));
+    expect(upgradePopupUpAt(lastTick, formEnd - 1)?.traitId).toBe(PARAMECIUM.traitId);
+    const after = upgradePopupStepFor(lastTick, sample(formEnd, [PARAMECIUM, FLAGELLUM]));
+    expect(upgradePopupUpAt(after, formEnd)?.traitId).toBe(FLAGELLUM.traitId);
+  });
+
+  it('lets the life run while it is not held, and holds nothing with nothing up', () => {
+    const fired = formThenUpgrade();
+    const shown = upgradePopupStepFor(fired, sample(firedTick + HELD_TICKS, [PARAMECIUM, FLAGELLUM]));
+    expect(shown.queue.map((popup) => popup.endTick)).toEqual(fired.queue.map((popup) => popup.endTick));
+    const empty = upgradePopupStepFor(seenOnce(), sample(START_TICK + HELD_TICKS, [], { isUpPopupHeld: true }));
+    expect(empty.queue).toEqual([]);
+  });
+
+  it('holds a giant popup fired with the picker opening for as long as the pick takes', () => {
+    const fired = upgradePopupStepFor(
+      seenOnce(),
+      sample(firedTick, [], { giantSwallows: amoebaSwallowedOn(firedTick) }),
+    );
+    const longPickTick = firedTick + 2 * FORM_TICKS;
+    const held = upgradePopupStepFor(fired, sample(longPickTick, [], { isUpPopupHeld: true }));
+    expect(upgradePopupUpAt(held, longPickTick)?.kind).toBe(UPGRADE_POPUP_KIND.giant);
+    expect(held.queue[0]?.endTick).toBe(longPickTick + FORM_TICKS);
   });
 });
 

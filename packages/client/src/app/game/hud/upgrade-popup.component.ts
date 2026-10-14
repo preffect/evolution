@@ -1,7 +1,8 @@
 // The upgrade and form popups (docs/ui/overlays.md §3.8, #783): the trait just gained, its tier and its effect lines,
 // centred over the own cell, clear of the exclusion box, the cap orbit and the cell's cues (docs/ui/layout.md §1):
-// above them where it fits, below the cell where it does not (`upgradePopupSlotFor`, ticket #840); while dead, under
-// the death overlay's text instead. A popup whose slot changes while it is up fades across (`UpgradePopupSlotMove`,
+// above them where it fits, below the cell where it does not (`upgradePopupSlotFor`, ticket #840), held unseen with its
+// life and animations stopped while the picker's band is there (ticket #863); while dead, under the death overlay's
+// text instead. A popup whose slot changes while it is up fades across (`UpgradePopupSlotMove`,
 // ticket #861). An upgrade
 // popup pops in, holds and rises as it fades; a form popup is larger, under a `NEW FORM` kicker, overshoots in with a
 // flaring glow and one expanding ring in the seat colour, holds about five seconds and adds its real-life line.
@@ -30,14 +31,14 @@ import type { ViewportPx } from '../render/camera';
 import { paletteFor } from '../render/palette';
 import { GameStateService } from '../state/game-state.service';
 import { UPGRADE_POPUP_KIND, type UpgradePopupKind } from './format/upgrade-popup-kinds';
-import { upgradePopupSlotFor } from './format/upgrade-popup-slot';
+import { UPGRADE_POPUP_PLACEMENT, upgradePopupSlotFor } from './format/upgrade-popup-slot';
 import { UpgradePopupSlotMove } from './upgrade-popup-slot-move';
 import { UpgradePopupService } from './upgrade-popup.service';
 
 /** A seat the room has not assigned yet draws in the first seat's colour. */
 const UNASSIGNED_AVATAR_INDEX = 0;
 
-/** Before the HUD shell has measured its box: nothing fits on it, so the slot answers the pinned one. */
+/** Before the HUD shell has measured its box: nothing fits on it, so the slot answers the pinned or held one. */
 const UNMEASURED_VIEWPORT: ViewportPx = { width: 0, height: 0 };
 
 /** Each kind's test id: a giant popup is drawn as a form popup, but tested as itself. */
@@ -58,6 +59,7 @@ const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
     '[style.--popup-offset]': "shownSlot().offsetPx + 'px'",
     '[attr.data-placement]': 'shownSlot().placement',
     '[class.moving]': 'slotMove.isFadingOut()',
+    '[class.held]': 'isHeld()',
   },
   template: `
     <div class="live" role="status" aria-live="polite">
@@ -87,7 +89,8 @@ const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
 })
 export class UpgradePopupComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
-  private readonly current = inject(UpgradePopupService).current;
+  private readonly popups = inject(UpgradePopupService);
+  private readonly current = this.popups.current;
   /** The host's own box: its height is the popup's, with a form popup's glow margins, as laid out. */
   private readonly hostSize = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
   /** Holds the host in its old slot while it fades out of it, when the slot changes under a popup that is up. */
@@ -109,6 +112,8 @@ export class UpgradePopupComponent implements OnInit {
       isPickerOpen: (progress?.offer ?? null) !== null,
     });
   });
+  /** No slot clear of the cues while the picker is open: the popup waits, its life and animations stopped. */
+  protected readonly isHeld = computed(() => this.slot().placement === UPGRADE_POPUP_PLACEMENT.held);
   /** The slot the host is drawn in: the one answered now, or the old one while the host fades out of it. */
   protected readonly shownSlot = computed(() => this.slotMove.slotToShow(this.slot()));
   protected readonly shown = computed(() => {
@@ -129,7 +134,14 @@ export class UpgradePopupComponent implements OnInit {
       const slot = this.slot();
       untracked(() => this.slotMove.follow(popup, slot));
     });
-    inject(DestroyRef).onDestroy(() => this.slotMove.stop());
+    effect(() => {
+      const isHeld = this.isHeld();
+      untracked(() => this.popups.setUpPopupHeld(isHeld));
+    });
+    inject(DestroyRef).onDestroy(() => {
+      this.slotMove.stop();
+      this.popups.setUpPopupHeld(false);
+    });
   }
 
   ngOnInit(): void {

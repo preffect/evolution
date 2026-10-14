@@ -1,15 +1,16 @@
 // A popup's move to another slot while it is up (docs/ui/overlays.md §3.8, ticket #861). `upgradePopupSlotFor` answers
 // a slot afresh each frame, and its placement can change under a popup that is up: most visibly, the picker opens over
-// a big cell while a form popup hangs below it, and the popup has to go to the pinned slot near the top. Rather than
-// jump across the cell, the host is held where it was for `UPGRADE_POPUP_MOVE_HOLD_MS` while it fades out (the fade
-// and the frames by which it trails the hold, so it leaves at zero opacity), then takes the slot it should be in
-// by then and fades back in there. A slot answered during the hold changes only where it lands, never when. Within a placement the slot is followed at once: its offset
+// a big cell while a form popup hangs below it, and the popup is held unseen until the pick (ticket #863). Rather than
+// jump across the cell, the host is kept where it was for `UPGRADE_POPUP_MOVE_HOLD_MS` while it fades out (the fade
+// and the frames by which it trails the hold, so it leaves at zero opacity), then takes the slot it should be in by
+// then and fades back in there. A slot answered during the hold changes only where it lands, never when. Leaving the
+// held slot is at once: nothing is shown there to fade out. Within a placement the slot is followed at once: its offset
 // eases with the camera. A popup's entrance is exempt: it is still finding its slot from its measured height, and is
-// fading in anyway. The fades are the stylesheet's (`.moving`); this decides only where the host is held, and when.
+// fading in anyway. The fades are the stylesheet's (`.moving`); this decides only where the host is kept, and when.
 
 import { computed, signal } from '@angular/core';
 import type { CancelDeferredCall, Scheduler } from '@evolution/shared';
-import type { UpgradePopupSlot } from './format/upgrade-popup-slot';
+import { UPGRADE_POPUP_PLACEMENT, type UpgradePopupSlot } from './format/upgrade-popup-slot';
 import { UPGRADE_POPUP_KIND, type UpgradePopup } from './format/upgrade-popup-kinds';
 import { FORM_POPUP_IN_MS, UPGRADE_POPUP_IN_MS, UPGRADE_POPUP_MOVE_HOLD_MS } from './upgrade-popup-constants';
 
@@ -52,7 +53,7 @@ export class UpgradePopupSlotMove {
       return;
     }
     if (this.heldSlot() !== null) return;
-    if (popup === null || this.isEntering || slot.placement === this.shownSlot?.placement) {
+    if (popup === null || this.isEntering || this.takesAtOnce(slot)) {
       this.shownSlot = slot;
       return;
     }
@@ -64,6 +65,12 @@ export class UpgradePopupSlotMove {
   stop(): void {
     this.cancelPending?.();
     this.cancelPending = null;
+  }
+
+  /** True when the host needs no fade out to take `slot`: the same placement, or out of the held one, unseen. */
+  private takesAtOnce(slot: UpgradePopupSlot): boolean {
+    const placement = this.shownSlot?.placement;
+    return placement === slot.placement || placement === UPGRADE_POPUP_PLACEMENT.held;
   }
 
   private startOver(popup: UpgradePopup | null, slot: UpgradePopupSlot): void {

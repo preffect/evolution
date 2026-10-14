@@ -8,7 +8,8 @@
 // recomputation, however many snapshots landed since that fold.
 //
 // Popups queue rather than stack: one is up at a time, each for its kind's duration in room ticks, and a popup fired
-// while another is up or waiting starts when the last one ends. Every trigger is a change between two snapshots of the
+// while another is up or waiting starts when the last one ends. While the one up is held (the picker open over a big
+// cell, ticket #863) its life stops: it and every popup behind it end that much later. Every trigger is a change between two snapshots of the
 // same seat, like the toasts' (§3.6): the first snapshot of a seat only remembers, so a late joiner's traits and a
 // reconnect fire nothing, and a rematch, which empties the traits, gains nothing. `UpgradePopupService` carries the
 // memory; `upgrade-popup.component.ts` binds the popup that is up.
@@ -40,6 +41,8 @@ export interface UpgradePopupSample {
   readonly traits: TraitModifierTables | null;
   /** The own cell's giant swallows not yet past (`withGiantSwallow`); only those after the last fold fire. */
   readonly giantSwallows: readonly GiantSwallow[];
+  /** The popup up is held off screen (`UPGRADE_POPUP_PLACEMENT.held`): the ticks since the last fold do not count. */
+  readonly isUpPopupHeld: boolean;
 }
 
 /** What the last sample of this seat held, and the popups up or waiting, oldest first. */
@@ -108,6 +111,21 @@ function enqueue(queue: readonly UpgradePopup[], fired: readonly UpgradePopupCon
   return queued;
 }
 
+/**
+ * The queue with the popup up at `fromTick` held until `toTick`: its end, and every later popup's start and end, moved
+ * on by the ticks between, its start and key kept, so the component keeps its element and the animation's place.
+ */
+function heldQueue(queue: readonly UpgradePopup[], fromTick: number, toTick: number): readonly UpgradePopup[] {
+  const heldTicks = toTick - fromTick;
+  const upPopup = queue[0];
+  if (heldTicks <= 0 || upPopup === undefined || upPopup.startTick > fromTick) return queue;
+  return queue.map((popup, index) => ({
+    ...popup,
+    startTick: index === 0 ? popup.startTick : popup.startTick + heldTicks,
+    endTick: popup.endTick + heldTicks,
+  }));
+}
+
 /** The trait popups this sample fires against the last one of the same seat; none on its first. */
 function firedTraitPopups(
   previous: UpgradePopupMemory,
@@ -137,7 +155,9 @@ export function upgradePopupStepFor(previous: UpgradePopupMemory, sample: Upgrad
   const giants =
     carried.tick === null ? [] : giantPopupsIn(sample.giantSwallows, sample.seatKey, carried.tick, sample.tick);
   const fired = [...giants, ...(ownProgress === null ? [] : firedTraitPopups(carried, sample, ownProgress))];
-  const queue = enqueue(carried.queue, fired, sample.tick).filter((popup) => popup.endTick > sample.tick);
+  const carriedQueue =
+    sample.isUpPopupHeld && carried.tick !== null ? heldQueue(carried.queue, carried.tick, sample.tick) : carried.queue;
+  const queue = enqueue(carriedQueue, fired, sample.tick).filter((popup) => popup.endTick > sample.tick);
   return {
     seatKey: sample.seatKey,
     tick: sample.tick,

@@ -1,10 +1,12 @@
 // Where the upgrade, form and giant popups hang (docs/ui/overlays.md §3.8, ticket #840). Alive, the host (the popup
 // and a form popup's glow) keeps `CUE_GAP_PX` off the own cell's cues and never comes nearer the centre than the
 // picker band's mirror: above the cell, over the room a full rate-tag column takes at the cell's on-screen size, where
-// the whole host fits under the top edge; else below it, under the zone pill, unless the picker's band is there; else
-// above, pinned just under the toast row and never into the exclusion box. The column is reserved whole, so a tag
-// that comes up mid-popup never meets it and the popup never jumps. Pure: `upgrade-popup.component.ts` feeds it the viewport, the own cell's radius, the host's
-// measured height and whether the picker is open, and binds what it answers as `data-placement` and `--popup-offset`.
+// the whole host fits under the top edge; else below it, under the zone pill, unless the picker's band is there, when it
+// is held off screen until the pick closes the picker (ticket #863); else, the picker closed on a window too small for
+// either, above, pinned just under the toast row and never into the exclusion box. The column is reserved whole, so a
+// tag that comes up mid-popup never meets it and the popup never jumps. Pure: `upgrade-popup.component.ts` feeds it the
+// viewport, the own cell's radius, the host's measured height and whether the picker is open, and binds what it answers
+// as `data-placement` and `--popup-offset`.
 
 import { PLAYER_LIFE_STATE, type PlayerLifeState, type ValueOf } from '@evolution/shared';
 import type { ViewportPx } from '../../render/camera';
@@ -17,14 +19,16 @@ import { onScreenRadiusPx, pickerBandOffsetPx } from './picker-band';
 import { toastRowBottomPx } from './toast-row';
 
 /**
- * Above the own cell while it is alive, clear of its cues; below it when there is no room above; pinned under the toast
- * row when neither fits (the picker open over a big cell); under the death overlay's text while dead or spectating,
- * when the cell's cues are gone and the text must stay readable. A popup whose placement changes while it is up fades
- * across (`UpgradePopupSlotMove`, ticket #861).
+ * Above the own cell while it is alive, clear of its cues; below it when there is no room above; held, unseen and its
+ * life stopped, while the picker's band takes the room below (the picker open over a big cell, ticket #863); pinned under
+ * the toast row when neither fits with the picker closed (a window under the supported sizes, or not yet measured);
+ * under the death overlay's text while dead or spectating, when the cell's cues are gone and the text must stay
+ * readable. A popup whose placement changes while it is up fades across (`UpgradePopupSlotMove`, ticket #861).
  */
 export const UPGRADE_POPUP_PLACEMENT = {
   aboveCell: 'above-cell',
   belowCell: 'below-cell',
+  held: 'held',
   pinned: 'pinned',
   belowDeathText: 'below-death-text',
 } as const;
@@ -46,7 +50,8 @@ export interface UpgradePopupSlot {
   readonly placement: UpgradePopupPlacement;
   /**
    * Real px from the viewport centre to the host's edge nearest the cell: its bottom edge above the centre (above the
-   * cell or pinned), or its top edge below it. Unused under the death text, which places the host from the top.
+   * cell or pinned), or its top edge below it. Unused while held, and under the death text, which places the host from
+   * the top.
    */
   readonly offsetPx: number;
 }
@@ -69,9 +74,9 @@ function cueClearancesPx(room: UpgradePopupRoom): { readonly abovePx: number; re
 }
 
 /**
- * No room clear of the cues (the picker open over a big cell): the host's top edge just under the toast row, so a toast
- * up beside it (a giant's unlock) never covers its kicker, and never into the exclusion box. Between the two it may
- * come nearer than the band's mirror, its glow over the top of a full rate-tag column under the picker's dim.
+ * No room clear of the cues with the picker closed (a window under the supported sizes): the host's top edge just under
+ * the toast row, so a toast up beside it never covers its kicker, and never into the exclusion box. Between the two it
+ * may come nearer than the band's mirror and over the cues.
  */
 function pinnedOffsetPx(room: UpgradePopupRoom): number {
   const { width, height } = room.viewport;
@@ -85,8 +90,7 @@ export function upgradePopupSlotFor(room: UpgradePopupRoom): UpgradePopupSlot {
   }
   const { abovePx, belowPx } = cueClearancesPx(room);
   if (fitsOnScreen(abovePx, room)) return { placement: UPGRADE_POPUP_PLACEMENT.aboveCell, offsetPx: abovePx };
-  if (!room.isPickerOpen && fitsOnScreen(belowPx, room)) {
-    return { placement: UPGRADE_POPUP_PLACEMENT.belowCell, offsetPx: belowPx };
-  }
+  if (room.isPickerOpen) return { placement: UPGRADE_POPUP_PLACEMENT.held, offsetPx: UNUSED_OFFSET_PX };
+  if (fitsOnScreen(belowPx, room)) return { placement: UPGRADE_POPUP_PLACEMENT.belowCell, offsetPx: belowPx };
   return { placement: UPGRADE_POPUP_PLACEMENT.pinned, offsetPx: Math.min(abovePx, pinnedOffsetPx(room)) };
 }
