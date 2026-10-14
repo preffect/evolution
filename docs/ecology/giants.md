@@ -131,6 +131,10 @@ paramecium and the diatom level 6. No constant names a giant's level, so it cann
 | `giant_paramecium` | `nucleoid` I, `mitochondrion` I, `nuclear_envelope` I, `cilia` I, `paramecium_cilia` I              | Cilia I × Paramecium Cilia I = 1.21 speed, with the struggle and grip resistance of a ciliate, so a held paramecium slips a weak grip.                                       |
 | `giant_diatom`     | `nucleoid` I, `chloroplast` I, `nuclear_envelope` I, `cell_wall` I, `diatom_shell` I                | The armour, below. Its Chloroplast photosynthesises in the shallows (0.3 mass/s), less than its growth burns (0.44 mass/s at 1 000), so it never grows: light pays its keep. |
 
+> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.6).** The
+> diatom's build becomes `nucleoid`, `mitochondrion`, `nuclear_envelope`, `chloroplast`, `cell_wall`, `diatom_shell`
+> (level 7), since the chloroplast moves after the nucleus.
+
 **The amoeba's grip, under ticket #819's kept grab.** A started grab holds, and seals, while any of the
 prey is under the amoeba (centres within `R + r`), except while the prey's sprint runs, when the start's
 bound applies to both (centres within `R − 0.5 r`, absorption.md §6.1). Pseudopods II's grip (0.2) holds a

@@ -14,3 +14,4 @@ This document is split into topic files (#306). Read only the file a ticket or b
 | [`game-design/controls-and-scope.md`](./game-design/controls-and-scope.md)             | §6–§11   | Controls, camera, dish and scope                                                    |
 | [`game-design/constants-and-acceptance.md`](./game-design/constants-and-acceptance.md) | §12–§13  | Constants and acceptance                                                            |
 | [`game-design/phases.md`](./game-design/phases.md)                                     | §14      | The game in phases: the dish, the rock pool and the colonies (decided, ticket #864) |
+| [`game-design/early-life.md`](./game-design/early-life.md)                             | §15      | The early game true to life: absorbing, the latch, the swallow unlock (ticket #865) |

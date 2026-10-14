@@ -64,6 +64,10 @@ longer than `ROUND_DURATION_SECONDS` ([`game-design/session.md §5`](./game-desi
 
 ## 3. Draft pool and weights
 
+**Decided, not built yet (ticket #865, [`game-design/early-life.md`](./game-design/early-life.md) §15.6).** The
+chloroplast moves to the `eukaryote` stage and the endosymbiosis rung's only gate is the mitochondrion; P12–P14
+change with it (§15.8.5 there).
+
 On each level-up the server builds a draft of `TRAIT_DRAFT_SIZE` = 3 cards from the catalog:
 
 1. **Candidates.** A trait is a candidate when all of these hold:

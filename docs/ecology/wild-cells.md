@@ -132,6 +132,10 @@ A grown wild cell is simply a heavy cell of the world's level. It does not level
 A player that eats it gets the world's DNA share, no more. Eating a cell that owns an endosymbiont
 gives a wild cell nothing, because it has no counters.
 
+> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.6, §15.8.1).**
+> Build 1 takes `mitochondrion` in place of `chloroplast` (the chloroplast becomes a `eukaryote` trait), and wild cells
+> swallow nothing until the world reaches `eukaryote`.
+
 `WILD_CELL_BUILDS` (`constants/wild-cells.ts`): three lists, each a valid ladder (every entry's
 `stage` and `requires` are met by the entries before it, and no entry before it shares its exclusion group, so a build
 owns at most one body plan and one membrane). The rule has one home, `ladderProblem`

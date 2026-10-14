@@ -12,6 +12,10 @@ this section is the process those effects plug into.
 
 ### 6.1 Rules
 
+> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.5).**
+> `canEngulf` gains a predator test: its stage has reached `SWALLOW_FROM_STAGE` (`eukaryote` once the switch is on), so
+> no protocell or archaeon, player or wild, starts an engulf. The process below is unchanged.
+
 **Eligibility (mass only, one home).**
 
 ```
