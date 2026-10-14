@@ -41,7 +41,7 @@ def dish_icons(x, y):
 
 def pond_big(x, y):
     art.euglena(x + 60, y, 50, heading=-15)
-    art.rotifer(x + 150, y - 5, 80, heading=-100)
+    art.rotifer(x + 160, y + 12, 64, heading=-100)
     art.didinium(x + 230, y + 5, 14, heading=180)
 
 
@@ -109,7 +109,7 @@ art.emit(f'<ellipse cx="630" cy="{sy}" rx="60" ry="22" fill="url(#body-rose)" st
 art.text(630, sy + 48, 'Trichoplax: a crawling flat disc', 11, TEXT, 600, 'middle')
 art.chevron(725, sy)
 art.rotifer(800, sy, 80, heading=-90)
-art.text(800, sy + 48, 'a small animal', 11, TEXT, 600, 'middle')
+art.text(800, sy + 64, 'a small animal', 11, TEXT, 600, 'middle')
 art.lines(900, 940, [
     'Animals come from the collar flagellates (choanoflagellates), a sixth line that is none of our five forms:',
     'some of them make rosette colonies (King et al., Nature 2008). A fourth era would start from a new collar-cell form, with sponges',

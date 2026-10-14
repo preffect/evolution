@@ -41,44 +41,58 @@ def box_cell(cx, cy, w, h, rot=0.0, horns=False, horn_len=60):
     art.emit('</g>')
 
 
+# the six steps of phases.md §14.9.3: 1, 2, 4, 8, a 12-cell bristled chain, the 8-arm star
+
+
+def tubes(x, y0, y1, offsets=(-14, -5, 5, 14)):
+    """Skeletonema's rings of silica tubes joining two boxes."""
+    for sx in offsets:
+        art.emit(f'<line x1="{x + sx}" y1="{y0}" x2="{x + sx}" y2="{y1}" stroke="{SILICA_L}" stroke-width="1.2" opacity="0.8"/>')
+
+
 # 1 · one diatom: valve view (the round lid) and girdle view (the box)
-x = 150
-art.diatom(x - 30, Y - 60, 42, 12)
-box_cell(x + 10, Y + 80, 110, 60)
-art.text(x - 30, Y - 125, 'from above', 10.5, MUTED, 400, 'middle')
-art.text(x + 10, Y + 128, 'from the side', 10.5, MUTED, 400, 'middle')
-art.stage_label(x, 470, '1 · One glass box', ['1 cell · 20–200 µm', 'a lid and a base, like a dish', 'your form today'])
+x = 120
+art.diatom(x - 20, Y - 70, 40, 12)
+box_cell(x + 5, Y + 70, 100, 56)
+art.text(x - 20, Y - 132, 'from above', 10.5, MUTED, 400, 'middle')
+art.text(x + 5, Y + 116, 'from the side', 10.5, MUTED, 400, 'middle')
+art.stage_label(x, 470, '1 · One glass box', ['1 cell · 20–200 µm', 'a lid and a base', 'your diatom'])
 
-# 2 · division inside the box
-x = 430
-box_cell(x, Y - 45, 120, 58)
-box_cell(x, Y + 45, 108, 58)
-art.emit(f'<path d="M{x - 90} {Y} H{x + 90}" stroke="{PICK}" stroke-width="1.4" stroke-dasharray="5 4"/>')
-art.text(x + 96, Y + 4, 'new halves', 10.5, PICK, 600)
-art.stage_label(x, 470, '2 · Divide, and stay stuck', ['2 cells', 'each keeps one old half', 'the one with the base shrinks'], PICK)
+# 2 · a linked pair (Skeletonema)
+x = 320
+box_cell(x, Y - 42, 104, 54)
+box_cell(x, Y + 42, 98, 54)
+tubes(x, Y - 15, Y + 15)
+art.stage_label(x, 470, '2 · A linked pair', ['2 cells', 'Skeletonema: glass tubes', 'divide, and stay joined'], PICK)
 
-# 3 · a linked chain (Skeletonema)
-x = 730
-for k in range(5):
-    box_cell(x, Y - 150 + k * 72, 76, 52)
-    if k < 4:
-        for sx in (-18, -6, 6, 18):
-            art.emit(f'<line x1="{x + sx}" y1="{Y - 124 + k * 72}" x2="{x + sx}" y2="{Y - 98 + k * 72}" stroke="{SILICA_L}" stroke-width="1.2" opacity="0.8"/>')
-art.stage_label(x, 470, '3 · Linked chain', ['4–16 cells', 'Skeletonema: glass tubes', 'hard for small hunters'])
+# 3 · a chain of four (Skeletonema)
+x = 510
+for k in range(4):
+    box_cell(x, Y - 108 + k * 72, 76, 52)
+    if k < 3:
+        tubes(x, Y - 82 + k * 72, Y - 56 + k * 72)
+art.stage_label(x, 470, '3 · Chain of four', ['4 cells', 'Skeletonema', 'hard for small hunters'])
 
-# 4 · a horned chain (Chaetoceros), gently curved
-x = 1060
-for k in range(6):
-    t = k - 2.5
-    box_cell(x + t * 58, Y + 0.0025 * (t * 58) ** 2 - 20, 50, 40, rot=90 + t * 4, horns=True, horn_len=55)
-art.stage_label(x, 470, '4 · Horned chain', ['6–20 cells · up to ~0.5 mm', 'Chaetoceros: locked horns', 'a rotifer cannot swallow it'])
+# 4 · a chain of eight, seen lying down
+x = 740
+for k in range(8):
+    cx = x + (k - 3.5) * 30
+    box_cell(cx, Y, 40, 24, rot=90)
+art.stage_label(x, 470, '4 · Chain of eight', ['8 cells', 'Skeletonema, Thalassiosira', 'longer: safer, slower'])
 
-# 5 · the star (Asterionellopsis)
-x = 1480
+# 5 · a bristled chain (Chaetoceros), gently curved
+x = 1080
+for k in range(12):
+    t = k - 5.5
+    box_cell(x + t * 26, Y + 0.0018 * (t * 26) ** 2 - 20, 30, 22, rot=90 + t * 2, horns=True, horn_len=38)
+art.stage_label(x, 470, '5 · Bristled chain', ['12 cells · up to ~0.5 mm', 'Chaetoceros: locked setae', 'a rotifer cannot swallow it'])
+
+# 6 · the star (Asterionellopsis)
+x = 1560
 for k in range(8):
     a = 2 * math.pi * k / 8 + 0.2
     x1, y1 = x + 12 * math.cos(a), Y - 10 + 12 * math.sin(a)
-    x2, y2 = x + 130 * math.cos(a), Y - 10 + 130 * math.sin(a)
+    x2, y2 = x + 125 * math.cos(a), Y - 10 + 125 * math.sin(a)
     art.emit(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{SILICA_L}" stroke-width="16" opacity="0.12" '
              f'stroke-linecap="round" filter="url(#blur-3)"/>')
     art.emit(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="url(#body-silica)" stroke-width="11" stroke-linecap="round"/>')
@@ -87,22 +101,23 @@ for k in range(8):
         art.plastid(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, 9, 3.5, math.degrees(a))
     art.emit(f'<circle cx="{x1:.1f}" cy="{y1:.1f}" r="7" fill="{SILICA_L}" opacity="0.5"/>')
     art.emit(f'<circle cx="{x2:.1f}" cy="{y2:.1f}" r="7" fill="{SILICA_L}" opacity="0.35"/>')
-art.stage_label(x, 470, '5 · The star', ['8 arms · ~0.2 mm across', 'Asterionellopsis (sea)', 'stars and spirals; the apex'], GOOD)
-for cx in (290, 600, 880, 1270):
+art.stage_label(x, 470, '6 · The star', ['8 arms · ~0.2 mm across', 'Asterionellopsis (sea)', 'stars and spirals; the apex'], GOOD)
+for cx in (220, 415, 585, 875, 1320):
     art.chevron(cx, Y)
-art.text(1740, 200, 'Every cell still eats,', 12, TEXT, 600, 'middle')
-art.text(1740, 218, 'sees and divides alone:', 12, TEXT, 600, 'middle')
-art.text(1740, 236, 'no jobs. The chain is', 12, TEXT, 600, 'middle')
-art.text(1740, 254, 'armour, not a body.', 12, TEXT, 600, 'middle')
+art.text(1790, 210, 'Every cell still', 12, TEXT, 600, 'middle')
+art.text(1790, 228, 'eats, sees and', 12, TEXT, 600, 'middle')
+art.text(1790, 246, 'divides alone:', 12, TEXT, 600, 'middle')
+art.text(1790, 264, 'no jobs. The chain', 12, TEXT, 600, 'middle')
+art.text(1790, 282, 'is armour, not a body.', 12, TEXT, 600, 'middle')
 
 # ---------------------------------------------------------------- B · the trade-off: link or break
 art.panel(40, 580, 700, 460, 'B · HOW YOU PLAY IT: LINK OR BREAK', 'the chain follows its lead cell like a train; one key snaps it')
 # long chain vs small hunter
 for k in range(6):
     box_cell(140 + k * 44, 720, 38, 30, rot=90, horns=True, horn_len=34)
-art.didinium(84, 760, 16, heading=0)
+art.amoeba(84, 760, 16, arms=3, pal='amber')
 art.text(250, 812, 'LONG: small hunters can\'t swallow it', 11.5, GOOD, 700, 'middle')
-art.text(250, 830, 'Didinium, rotifers, amoebae give up', 10.5, MUTED, 400, 'middle', mono=True)
+art.text(250, 830, 'small hunters and young rotifers give up', 10.5, MUTED, 400, 'middle', mono=True)
 # broken chain vs a big sieve
 for k in range(6):
     box_cell(470 + (k % 3) * 70 + (k // 3) * 30, 690 + (k // 3) * 70 + (k % 2) * 16, 38, 30, rot=90 + k * 25)

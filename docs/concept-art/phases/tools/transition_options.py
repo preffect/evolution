@@ -80,7 +80,7 @@ close(XS[3], y, 4, 'fade in')
 
 # ---------------------------------------------------------------- C · seamless
 y = 730
-row_label(y, 'C', 'Seamless', ['you never stop playing: the', 'pool fades in around you and', 'the camera eases out by ten;', 'the shrinking dish ring makes', 'the jump readable (sheet P1b)'], GOOD)
+row_label(y, 'C', 'Seamless', ['you never stop playing: the', 'pool fades in around you and', 'the camera eases out about 6×', 'until the whole dish fits on', 'one screen (sheet P1b)'], GOOD)
 dish_close(XS[0], y)
 close(XS[0], y, 1, 'play on')
 for k, fade in ((1, 0.35), (2, 0.75)):

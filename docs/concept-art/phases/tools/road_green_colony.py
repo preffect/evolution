@@ -14,7 +14,7 @@ art = Sheet(1920, 1080, 7824, 'Evolution — phases concept R1: the light road, 
 art.header('concept R1 — THE LIGHT ROAD · one cell to a great ball (was the green road)',
            'For the euglena. Volvox and its whole family live in fresh water, so on the kelp shore the road is Phaeocystis, a sea-water colony. '
            'Drawn larger at each step, not to true scale.',
-           'decided: ticket #790 A · design: docs/game-design/phases.md §14.9.1', 'cell counts are game values · zero raster')
+           'decided: tickets #790 A, #901 A · design: docs/game-design/phases.md §14.9.1', 'cell counts are game values · zero raster')
 
 art.panel(40, 90, 1840, 470, 'A · THE LADDER — what you become, one level-up at a time', None)
 Y = 290

@@ -63,7 +63,8 @@ art.text(1310, 628, 'DIDINIUM · hunts ciliates', 11, WARN, 600, 'middle', mono=
 art.paramecium(1180, 700, 150, heading=160, pal='magenta')
 art.text(1180, 770, 'Mira', 12, PALETTES['magenta'][1], 700, 'middle')
 art.amoeba(620, 470, 46, arms=3, pal='amber')
-art.text(620, 540, 'wild foram', 10.5, MUTED, 500, 'middle')
+art.emit(f'<rect x="576" y="527" width="88" height="19" rx="9.5" fill="{PANEL}" fill-opacity="0.85"/>')
+art.text(620, 541, 'wild foram', 11, TEXT, 600, 'middle')
 
 # copepod lane warning: a lane across the top right, the giant's head in the corner
 art.emit(f'<polygon points="900,0 1240,0 1920,520 1920,860" fill="{WARN}" opacity="0.05"/>')

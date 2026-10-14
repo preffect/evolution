@@ -32,7 +32,7 @@ for i in range(14):
     art.chlamy(105 + rr * math.cos(ang), FLOOR - 40 + rr * math.sin(ang) * 0.8, 5, heading=math.degrees(ang) - 60)
 label(105, 'Green specks', 'food: Dunaliella swarms', '0.1×', GOOD)
 
-# the five forms, player cyan, all 1×; the third line names the sea-water cousin
+# the five forms, player cyan, all 1×; the third line names the sea-water cousin (forams: a counterpart, not a relative)
 art.amoeba(215, FLOOR - 50, 34, arms=4)
 label(215, 'Amoeba', 'you · 1×', 'forams')
 art.paramecium(320, FLOOR - 40, U * 1.1, heading=-15)
@@ -44,14 +44,14 @@ label(525, 'Diatom', 'you · 1×', 'Coscinodiscus')
 art.stentor(625, FLOOR - 118, U * 1.3, lean=0.05)
 label(625, 'Stentor', 'you · 1×', 'folliculinids')
 art.emit(f'<rect x="170" y="{FLOOR - 150}" width="505" height="150" rx="8" fill="none" stroke="{ACCENT}" stroke-opacity="0.35" stroke-dasharray="4 4"/>')
-art.text(422, FLOOR - 158, 'YOUR FIVE FORMS ON ARRIVAL · all 1× · named by their sea-water cousins', 11, ACCENT, 700, 'middle')
+art.text(422, FLOOR - 158, 'YOUR FIVE FORMS ON ARRIVAL · all 1× · named by their sea-water cousins and counterparts', 11, ACCENT, 700, 'middle')
 
 # Didinium, the ciliate hunter
 art.didinium(760, FLOOR - 55, 38, heading=180)
 label(760, 'Didinium', 'hunts ciliates only', '1.2×', WARN)
 
 # rotifer, a whole animal
-art.rotifer(915, FLOOR - 125, 230, heading=-90)
+art.rotifer(915, FLOOR - 150, 210, heading=-90)
 label(915, 'Rotifer', 'whirlpool · an animal', 'Brachionus · 2.8×', WARN)
 
 # Phaeocystis, the wild colony of the later era (golden-brown, a haptophyte)
@@ -65,7 +65,7 @@ label(1420, 'Nematode', 'thrasher · grazes the films', 'sea floor · 5× long',
 
 # algal thread: Cladophora, branched
 art.cladophora(1210, FLOOR - 170, 290, heading=-4, cell_len=36)
-art.text(1300, FLOOR - 262, 'Algal thread (Cladophora) · cover from hunters', 10.5, MUTED, 400, 'middle')
+art.text(1230, FLOOR - 300, 'Algal thread (Cladophora) · cover from hunters', 10.5, MUTED, 400, 'start')
 
 # the copepod, a giant cut off by the frame
 art.emit(f'<clipPath id="lineup-clip"><rect x="40" y="90" width="1840" height="560" rx="10"/></clipPath>')
@@ -114,7 +114,7 @@ for i, (name, a, b, pal) in enumerate(bars):
 art.panel(1060, 670, 820, 370, 'C · WHAT EACH DOES IN THE GAME — and the real fact behind it', 'every creature teaches one true thing the first time you meet it')
 rows = [
     ('Green specks', 'food, in swarms that follow the light', 'Dunaliella: its salt-loving cousin turns drying pools red'),
-    ('Didinium', 'hunts ciliates: paramecium players beware', 'the classic paramecium hunter; harpoons can\'t stop it'),
+    ('Didinium', 'hunts ciliates: paramecium players beware', 'the classic paramecium hunter; vs harpoons: to be checked'),
     ('Rotifer', 'a whirlpool that pulls small things in', 'an animal; fish farms raise Brachionus by the billion'),
     ('Nematode', 'thrashes through; knocks you aside', 'roundworms are the commonest animals of the sea floor'),
     ('Copepod', 'crosses in a lane; eats what fits its mouth', 'Tigriopus lives in the high rock pools of this very coast'),

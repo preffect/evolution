@@ -151,7 +151,7 @@ art.note_panel(1280, 580, 600, 460, 'D · THE REAL STORY — and honest caveats'
     '  the stalk that lifts the spores.',
     '§ Caveat for the encyclopedia',
     '• The game\'s amoeba never does this, nor do forams,',
-    '  its sea-water cousins. Its small cousins the social',
+    '  its sea-water counterparts. Its real cousins the social',
     '  amoebae do, on land: damp soil and leaf litter. So',
     '  the road ends out of the water, on the bank.',
     '~ Bonner, "The Social Amoebae", Princeton 2009',

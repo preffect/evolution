@@ -974,9 +974,9 @@
 <text x="40.0" y="760.0" fill="#8dff6a" font-size="16" font-weight="700" text-anchor="start">C · Seamless</text>
 <text x="40.0" y="786.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">you never stop playing: the</text>
 <text x="40.0" y="803.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">pool fades in around you and</text>
-<text x="40.0" y="820.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the camera eases out by ten;</text>
-<text x="40.0" y="837.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the shrinking dish ring makes</text>
-<text x="40.0" y="854.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the jump readable (sheet P1b)</text>
+<text x="40.0" y="820.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">the camera eases out about 6×</text>
+<text x="40.0" y="837.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">until the whole dish fits on</text>
+<text x="40.0" y="854.0" fill="#cfdbe6" font-size="11.5" font-weight="400" text-anchor="start">one screen (sheet P1b)</text>
 <clipPath id="frame14"><rect x="340" y="730" width="330" height="190" rx="8"/></clipPath>
 <g clip-path="url(#frame14)">
 <rect x="340" y="730" width="330" height="190" fill="url(#bg-field)"/>

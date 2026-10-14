@@ -1,7 +1,7 @@
 # Phase concepts (tickets #782, #864)
 
 Concept sheets for the game in phases: outgrowing the dish, the rock pool, and the roads to many-celled life. They
-were drawn for the decision tickets filed from ticket #782; **the human has decided** (2026-10-13), and the decided
+were drawn for the decision tickets filed from ticket #782; **the human has decided** (tickets #784 to #790 on 2026-10-13, tickets #901 and #902 on 2026-10-14), and the decided
 design is [`docs/game-design/phases.md`](../../game-design/phases.md) §14 (ticket #864, build epic #866):
 
 | Ticket      | Chosen | Sheets                                                                                                                                                         |
@@ -11,6 +11,8 @@ design is [`docs/game-design/phases.md`](../../game-design/phases.md) §14 (tick
 | ticket #786 | C      | `transition-options.png` (C marked chosen), `transition-seamless.png` (new); `transition-storyboard.png` is the pull-back, **not chosen**, kept for the record |
 | ticket #787 | A      | `road-ciliates.png`: the paramecium and the stentor stay one cell                                                                                              |
 | ticket #790 | A      | every sheet names the sea-water cast: the second world is a rock pool on the kelp shore, not a pond                                                            |
+| ticket #901 | A      | `road-green-colony.png`: the euglena's road is the light road, _Phaeocystis_ (answered 2026-10-14)                                                             |
+| ticket #902 | A      | no sheet: the opening dive stays as it is (answered 2026-10-14)                                                                                                |
 
 The sheets are concepts, not specs: game numbers on them are the tuning values of phases.md §14.14, and the
 polished look belongs to the build tickets. Where a sheet and phases.md disagree, phases.md wins.

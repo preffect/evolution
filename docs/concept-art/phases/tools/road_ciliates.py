@@ -27,7 +27,7 @@ for k in range(9):
              f'stroke-width="1.4" opacity="0.8"/>')
 art.amoeba(480, 250, 34, arms=3, pal='amber')
 art.text(px, 400, 'Trichocysts: fires a burst of tiny harpoons', 12, TEXT, 700, 'middle')
-art.text(px, 417, 'pushes a hunter off · never the Didinium, as in life', 10.5, MUTED, 400, 'middle', mono=True)
+art.text(px, 417, 'pushes a hunter off · vs the Didinium: source to be checked', 10.5, MUTED, 400, 'middle', mono=True)
 
 # paramecium conjugation pair
 cx, cy = 230, 540
@@ -89,7 +89,7 @@ art.stamp(1864, 422, False)
 art.note_panel(40, 710, 1840, 330, 'D · THE REAL STORY, AND WHY A WAS CHOSEN', [
     '§ True',
     '• Ciliates (paramecium, stentor) never evolved a many-celled body. Instead each is one of the most complex cells alive, with two kinds of nucleus.',
-    '• Paramecium fires trichocysts, tiny harpoons: in the lab they save it from the hunter Dileptus but not from Didinium (Harumoto and Miyake). It has sex by conjugation, swapping nuclei.',
+    '• Paramecium fires trichocysts, tiny harpoons: in the lab they save it from the hunter Dileptus (Harumoto and Miyake). Whether they fail against Didinium is to be checked (phases.md §14.10.1). Sex is by conjugation.',
     '• Stentor coeruleus (up to ~2 mm) can regrow a whole cell from a small piece (Tartar, "The Biology of Stentor", 1961), and anchored stentors that settle close together',
     '  feed better by pooling their currents (Shekhar et al., Current Biology 2023).',
     '• The paramecium even shaped multicellular life: a green alga hunted by paramecia evolved clusters in the lab (Herron et al., Scientific Reports 2019).',
