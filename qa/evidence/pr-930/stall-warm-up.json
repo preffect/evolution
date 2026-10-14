@@ -1,0 +1,145 @@
+{
+  "note": "The stall at the shore's arrival on main (canvas forced to 0.35 at 12 s, so not the resolution): the frame the autoplay starts on (33) is the first with every bake landed, so the kelp and the slime warm up on it: their textures uploaded (texImage2D from their bake canvases, 1-3.4 s each under SwiftShader) and every program drawn once into a 1x1 target. The next frame comes 6.8 s + 13.1 s later; the fall's clock ran on and the shore's level floor held the camera at 3.65.",
+  "slowCallsOnPlayFrame": [
+    {
+      "frame": 33,
+      "tMs": 21163,
+      "callMs": 1156.1,
+      "call": "texImage2D",
+      "args": "3553,0,32856,1024,1024,0,6408,5121,HTMLCanvasElement(1024x1024)"
+    },
+    {
+      "frame": 33,
+      "tMs": 22319,
+      "callMs": 1020.2,
+      "call": "texImage2D",
+      "args": "3553,0,32856,1024,1024,0,6408,5121,HTMLCanvasElement(1024x1024)"
+    },
+    {
+      "frame": 33,
+      "tMs": 23344,
+      "callMs": 3426.2,
+      "call": "texImage2D",
+      "args": "3553,0,32856,2048,2048,0,6408,5121,HTMLCanvasElement(2048x2048)"
+    },
+    {
+      "frame": 33,
+      "tMs": 26793,
+      "callMs": 1079.6,
+      "call": "texImage2D",
+      "args": "3553,0,32856,762,515,0,6408,5121,HTMLCanvasElement(762x515)"
+    }
+  ],
+  "warmUpDrawsOnPlayFrame": [
+    {
+      "frame": 33,
+      "tMs": 23344,
+      "call": "drawElements",
+      "args": "fs5100:uView|uFrame|uCells n=6 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 23344,
+      "call": "drawElements",
+      "args": "fs3268:uView|uFrame|uDrop n=84216 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26771,
+      "call": "drawElements",
+      "args": "fs4095:uView|uFrame|uDiatomAtlas n=3732 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26772,
+      "call": "drawElements",
+      "args": "fs5446:uView|uFrame|uPocket n=6 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26772,
+      "call": "drawElements",
+      "args": "fs3044:uView|uFrame|uDrop n=6 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26776,
+      "call": "drawElements",
+      "args": "fs3077:uView|uFrame|uBacteriaAtlas n=57684 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26776,
+      "call": "drawElements",
+      "args": "fs3077:uView|uFrame|uBacteriaAtlas n=648 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26776,
+      "call": "drawElements",
+      "args": "fs2981:uView|uFrame|uSkin n=6 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 26787,
+      "call": "drawElements",
+      "args": "fs2972:uTextures n=192 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 27883,
+      "call": "drawElements",
+      "args": "fs2972:uTextures n=192 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 27909,
+      "call": "drawElements",
+      "args": "fs2972:uTextures n=192 vp=0x0x1x1"
+    },
+    {
+      "frame": 33,
+      "tMs": 27936,
+      "call": "drawElements",
+      "args": "fs2972:uTextures n=30 vp=0x0x1x1"
+    }
+  ],
+  "framesAroundPlay": [
+    {
+      "tMs": 18739,
+      "gapMs": 2366,
+      "zoom": 7.4,
+      "canvasRatio": 0.35
+    },
+    {
+      "tMs": 20006,
+      "gapMs": 1267,
+      "zoom": 7.4,
+      "canvasRatio": 0.35
+    },
+    {
+      "tMs": 21139,
+      "gapMs": 1133,
+      "zoom": 7.4,
+      "canvasRatio": 0.35
+    },
+    {
+      "tMs": 27939,
+      "gapMs": 6800,
+      "zoom": 3.6500999999999997,
+      "canvasRatio": 0.35
+    },
+    {
+      "tMs": 41038,
+      "gapMs": 13100,
+      "zoom": 2.6001,
+      "canvasRatio": 0.35
+    },
+    {
+      "tMs": 41105,
+      "gapMs": 67,
+      "zoom": 2.6001,
+      "canvasRatio": 0.35
+    }
+  ]
+}

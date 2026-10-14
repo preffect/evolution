@@ -4,6 +4,7 @@
 
 import { Application, RenderTexture, Texture, type Container } from 'pixi.js';
 import { BG_DEEP, RENDER_WARM_UP_TARGET_PX } from './constants';
+import { fenceGpuWork, type GpuFenceContext, type GpuFenceCheck } from './gpu-fence';
 import { createPixiTextureBaker } from './pixi-texture-baker';
 import type { TextureBaker } from './render-textures';
 import type { RendererWarmUpSeam } from './renderer-warm-up';
@@ -55,6 +56,11 @@ export interface PixiAppHandle {
    * planet is (docs/rendering/opening-dive.md §4).
    */
   renderToTexture(container: Container, target: RenderTexture): void;
+  /**
+   * Fences the work handed to the GPU so far and answers a check, never blocking, of whether it is done (`gpu-fence.ts`):
+   * the opening dive's autoplay waits on its bands' warm-up (docs/rendering/opening-dive.md §6, ticket #814).
+   */
+  fenceGpuWork(): GpuFenceCheck;
   destroy(): void;
 }
 
@@ -73,6 +79,12 @@ function createWarmUpSeam(app: Application): RendererWarmUpSeam {
       }
     },
   };
+}
+
+/** The WebGL context the app renders through, or `null` on a renderer without one. */
+function rendererContext(app: Application): Partial<GpuFenceContext> | null {
+  const renderer: object = app.renderer;
+  return 'gl' in renderer ? (renderer.gl as Partial<GpuFenceContext>) : null;
 }
 
 export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHandle> {
@@ -98,9 +110,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     app,
     canvas,
     textures: createPixiTextureBaker(createDomBakeCanvasFactory(options.host.ownerDocument)),
-    resize: (sizePx) => {
-      app.renderer.resize(sizePx.width, sizePx.height);
-    },
+    resize: (sizePx) => app.renderer.resize(sizePx.width, sizePx.height),
     setResolution: (resolution) => {
       app.renderer.resolution = resolution;
     },
@@ -111,6 +121,7 @@ export async function createPixiApp(options: PixiAppOptions): Promise<PixiAppHan
     renderToTexture: (container, target) => {
       app.renderer.render({ container, target, clear: true });
     },
+    fenceGpuWork: () => fenceGpuWork(rendererContext(app)),
     destroy: () => {
       app.destroy({ removeView: true }, { children: true, texture: true });
     },

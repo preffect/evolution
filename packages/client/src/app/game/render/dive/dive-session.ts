@@ -29,6 +29,7 @@ import { openDiveHalves, openDiveUpperLayers } from './dive-session-open';
 import { DiveCanvasResolution } from './dive-canvas-resolution';
 import type { DiveUpperLayers } from './dive-upper-layers';
 import { diveViewAt, isSameViewport, type DiveView } from './dive-view';
+import { DiveWarmUpGate } from './dive-warm-up-gate';
 
 export interface DiveSessionDependencies {
   readonly host: HTMLElement;
@@ -65,6 +66,7 @@ export class DiveSession extends FrameLoopSession {
   private ambientSeconds = 0;
   private readonly globeIdle = new DiveGlobeIdle();
   private readonly canvasResolution: DiveCanvasResolution;
+  private readonly warmUpGate = new DiveWarmUpGate(() => this.nowMs());
   private isFrameRequested = true;
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
@@ -79,7 +81,7 @@ export class DiveSession extends FrameLoopSession {
       top: this.devicePixelRatio,
       clock: dependencies.clock,
       issueMs: () => this.frameTimes.lastFrameIssueMs,
-      isSettled: () => (this.upper?.isBaked ?? false) && !this.isBuildingRenderer,
+      isWarmingUp: () => this.isBuildingRenderer || this.warmUpGate.isWarmingUp,
       setResolution: (resolution) => this.pixi?.setResolution(resolution),
     });
   }
@@ -102,7 +104,7 @@ export class DiveSession extends FrameLoopSession {
     pixi.app.stage.addChild(this.gameRoot, this.dishClip);
     this.upper = openDiveUpperLayers(halves, {
       clock: dependencies.clock,
-      scheduler: dependencies.scheduler,
+      scheduler: this.canvasResolution.timedBakes(dependencies.scheduler),
       frameTimes: this.frameTimes,
       devicePixelRatio: this.devicePixelRatio,
       onBaked: () => this.requestFrame(),
@@ -222,11 +224,11 @@ export class DiveSession extends FrameLoopSession {
   }
 
   /**
-   * The lobby's autoplay once its time comes and the tiles have baked, and reduced motion asked for mid-fall: the
-   * opening jumps to its stop at once, paused or not.
+   * The lobby's autoplay once its time comes, the tiles have baked and the GPU is past the bands' warm-up
+   * (`DiveWarmUpGate`), and reduced motion asked for mid-fall: the opening jumps to its stop at once, paused or not.
    */
   private settleControls(nowMs: number, isMotionReduced: boolean): void {
-    this.controls.autoplay(nowMs, isMotionReduced, this.upper?.isBaked ?? false);
+    this.controls.autoplay(nowMs, isMotionReduced, this.warmUpGate.isOpen(this.upper?.isBaked ?? false));
     if (isMotionReduced) this.controls.finishPlay();
   }
 
@@ -281,6 +283,8 @@ export class DiveSession extends FrameLoopSession {
 
   private finishFrame(view: DiveView): void {
     this.frameTimes.endFrame();
+    const pixi = this.pixi;
+    if (pixi !== null) this.warmUpGate.afterFrame(this.upper?.isBaked ?? false, () => pixi.fenceGpuWork());
     this.dependencies.onView(view);
   }
 

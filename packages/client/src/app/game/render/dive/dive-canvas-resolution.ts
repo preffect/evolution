@@ -1,8 +1,9 @@
-// The dive canvas under the resolution governor (docs/rendering/opening-dive.md §6, ticket #804): the session's side of
-// `DiveResolutionGovernor`, which times each frame's own work and sets the canvas when the governor answers a new
-// resolution.
+// The dive canvas under the resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #814): the
+// session's side of `DiveResolutionGovernor`, which times each frame's own work and the upper bands' bake slices
+// between frames, and sets the canvas when the governor answers a new resolution.
 
-import type { Clock } from '@evolution/shared';
+import type { Clock, Scheduler } from '@evolution/shared';
+import { DiveBakeTime } from './dive-bake-time';
 import { DiveResolutionGovernor } from './dive-resolution-governor';
 import { upperBandsDevicePixelRatio } from './dive-view';
 
@@ -13,8 +14,11 @@ export interface DiveCanvasResolutionParts {
   readonly clock: Clock;
   /** The last frame's time handing work to the GPU (`DiveFrameTimes.lastFrameIssueMs`), which a GPU behind blocks. */
   readonly issueMs: () => number;
-  /** Every bake has landed and the renderer is built: until then the bakes' slices slow the frames, not the GPU. */
-  readonly isSettled: () => boolean;
+  /**
+   * The renderer is building, or the GPU is still on the bands' warm-up (`DiveWarmUpGate`): one-off work that slows
+   * the frames whatever the resolution.
+   */
+  readonly isWarmingUp: () => boolean;
   /** Sets the canvas's resolution (`PixiAppHandle.setResolution`). */
   readonly setResolution: (resolution: number) => void;
 }
@@ -38,10 +42,20 @@ export class DiveCanvasResolution {
   /** What the canvas renders at: it opens at the dive's ratio. */
   private applied: number;
   private frameWorkMs = 0;
+  /** The upper bands' bake slices, left out of the frames' gaps. */
+  private readonly bakeTime: DiveBakeTime;
+  /** The bake slices' time as of the last frame noted. */
+  private bakeMsNoted = 0;
 
   constructor(private readonly parts: DiveCanvasResolutionParts) {
     this.governor = new DiveResolutionGovernor(parts.top);
     this.applied = parts.top;
+    this.bakeTime = new DiveBakeTime(parts.clock);
+  }
+
+  /** The scheduler the upper bands bake on, each slice timed (`DiveBakeTime`). */
+  timedBakes(scheduler: Scheduler): Scheduler {
+    return this.bakeTime.timed(scheduler);
   }
 
   get resolution(): number {
@@ -60,12 +74,15 @@ export class DiveCanvasResolution {
   }
 
   noteFrame(frame: DiveCanvasFrame): void {
+    const bakeMs = this.bakeTime.totalMs;
     this.governor.noteFrame({
       nowMs: frame.nowMs,
       cpuMs: this.frameWorkMs,
       ceiling: upperBandsDevicePixelRatio(this.parts.top, frame.isMoving),
-      isJudged: frame.isDrawn && this.parts.isSettled(),
+      bakeMs: bakeMs - this.bakeMsNoted,
+      isJudged: frame.isDrawn && !this.parts.isWarmingUp(),
     });
+    this.bakeMsNoted = bakeMs;
     if (this.governor.resolution === this.applied) return;
     this.applied = this.governor.resolution;
     this.parts.setResolution(this.applied);

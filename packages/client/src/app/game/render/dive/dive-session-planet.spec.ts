@@ -129,6 +129,8 @@ describe('DiveSession’s planet', () => {
     app.tick();
     expect(subject.controls.isPlaying).toBe(false);
     (dependencies.scheduler as ManualScheduler).advanceMilliseconds(DIVE_BAKE_START_DELAY_MS);
+    // The frame after they land warms the bands up; the next one plays (ticket #814).
+    app.tick();
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
     subject.destroy();

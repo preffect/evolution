@@ -73,6 +73,7 @@ export class PreviewAppPool {
       unbindTextures: () => handle.unbindTextures(),
       warmUp: handle.warmUp,
       renderToTexture: (container, target) => handle.renderToTexture(container, target),
+      fenceGpuWork: () => handle.fenceGpuWork(),
       destroy: () => {
         if (isReleased) return;
         isReleased = true;

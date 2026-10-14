@@ -8,7 +8,13 @@ import { createFakeShoreCanvasFactory } from '../../../../../testing/fake-shore-
 import { TEST_SHORE_LAND, TEST_SHORE_STAGE, bakedTestTiles } from '../../../../../testing/shore-paint-builder';
 import { SHORE_LEVEL_COUNT, shoreLevelZoom } from './shore-lod';
 import { ShoreLevels } from './shore-levels';
-import { bakeOnly, quickLevels, uploaderOf, type Uploaded } from '../../../../../testing/shore-levels-builder';
+import {
+  awaitingLevels,
+  bakeOnly,
+  quickLevels,
+  uploaderOf,
+  type Uploaded,
+} from '../../../../../testing/shore-levels-builder';
 import type { ShoreView } from './shore-paint';
 import { bakeShoreSnapshot, type ShoreSnapshot } from './shore-snapshot';
 import { SHORE_BAKE_WAITING, type ShoreBakeStep } from './shore-pump';
@@ -174,24 +180,8 @@ describe('ShoreLevels', () => {
   });
 
   it('ends a bake it drops, when the camera turns away and when the stage changes, so a worker cancels it', () => {
-    const factory = createFakeShoreCanvasFactory();
     const ended: number[] = [];
-    function* awaitingBake(view: ShoreView): Generator<ShoreBakeStep, ShoreSnapshot> {
-      let hasLanded = false;
-      try {
-        yield SHORE_BAKE_WAITING;
-        hasLanded = true;
-        return { view } as unknown as ShoreSnapshot;
-      } finally {
-        if (!hasLanded) ended.push(view.zoom);
-      }
-    }
-    const subject = new ShoreLevels<Uploaded>(
-      { land: TEST_SHORE_LAND, tiles: bakedTestTiles(factory), factory },
-      uploaderOf([]),
-      awaitingBake,
-    );
-    subject.setStage(TEST_SHORE_STAGE, 1);
+    const subject = awaitingLevels(ended);
     subject.focus(shoreLevelZoom(10), 1);
     subject.pump(DIVE_BAKE_BUDGET_MS, counter());
     // the camera turns away from the level under way

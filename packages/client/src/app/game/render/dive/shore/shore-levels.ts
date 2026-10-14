@@ -98,6 +98,16 @@ export class ShoreLevels<Level> extends SteppedQueue {
     if (this.isJobDropped()) this.dropJob();
   }
 
+  /**
+   * The camera has left the band below its cut: nothing more is wanted, and the bake under way stops, so a worker's
+   * redraws of the levels it left never compete with the bands below for the cores (ticket #814). The levels baked are
+   * kept until the camera comes back (`focus`).
+   */
+  rest(): void {
+    this.wanted = [];
+    this.dropJob();
+  }
+
   /** Lets the bake under way go, ended (`return()`) so a worker's bake of it is cancelled too (ticket #811). */
   private dropJob(): void {
     // widened to `Iterator`, whose `return` takes no argument: `Generator.return` wants a `ShoreSnapshot` to end with

@@ -39,6 +39,11 @@ export interface FakePixiApp extends PixiAppHandle {
   readonly textureRenders: { readonly container: Container; readonly target: RenderTexture }[];
   /** What the staged build's warm-up asked for (ticket #603): each uploaded source, and each off-screen render. */
   readonly warmUpCalls: { readonly uploads: unknown[]; readonly offscreenRenders: Container[] };
+  /**
+   * The GPU's progress through the fences set (`fenceGpuWork`): how many were set, and whether the GPU is caught up
+   * (`true` by default: every fence has passed). A spec clears it to hold a fence, and sets it to let them all pass.
+   */
+  readonly gpu: { fences: number; isCaughtUp: boolean };
   /** Runs every ticker callback once: one frame. */
   tick(): void;
 }
@@ -173,6 +178,22 @@ function recordingWarmUp(): Pick<FakePixiApp, 'warmUp' | 'warmUpCalls'> {
 }
 
 /** Every resolution the app was set to render at, recorded (the dive's governor, ticket #804). */
+/** Fences that pass once the spec says the GPU has caught up, each asked after it was set. */
+function recordingFences(): Pick<FakePixiApp, 'gpu' | 'fenceGpuWork'> {
+  const gpu = { fences: 0, isCaughtUp: true };
+  return {
+    gpu,
+    fenceGpuWork: () => {
+      gpu.fences += 1;
+      let hasPassed = false;
+      return () => {
+        hasPassed ||= gpu.isCaughtUp;
+        return hasPassed;
+      };
+    },
+  };
+}
+
 function recordingResolution(): Pick<FakePixiApp, 'resolutions' | 'setResolution'> {
   const resolutions: number[] = [];
   return { resolutions, setResolution: (resolution) => resolutions.push(resolution) };
@@ -221,6 +242,7 @@ export function createFakePixiApp(screen = DEFAULT_SCREEN): FakePixiApp {
     bakedCanvases: baker.bakedCanvases,
     ...recordingLifecycle(),
     ...recordingWarmUp(),
+    ...recordingFences(),
     ticking,
     // A stopped Pixi ticker runs no callback at all; a `tick()` while stopped must draw nothing here either,
     // or a spec that pauses a session would still see frames and pass without the pause working.

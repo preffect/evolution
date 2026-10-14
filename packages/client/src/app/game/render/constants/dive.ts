@@ -59,6 +59,14 @@ export const DIVE_FLOOR_EASE = { timeConstantMs: 120, minGapZoom: 1e-4 } as cons
 export const DIVE_EASE_INVERSE_STEPS = 40;
 /** The lobby plays phase 1's opening on its own this long after it first draws, unless motion is reduced. */
 export const DIVE_AUTOPLAY_DELAY_MS = 900;
+/**
+ * The most the autoplay waits for the GPU to pass the bands' warm-up (`DiveWarmUpGate`, ticket #814), from the frame
+ * it was fenced on: past it the fall starts anyway. Under software GL at DPR 2 the warm-up took 7–13 s at load 1.6–6 on
+ * the 4-core evidence box, and 23 s at load 6–8; 20 s covers the first with margin, and under heavier load starts the
+ * fall with a few seconds of warm-up left (one gap of that, not the 11–17 s main showed). A fence that never signals
+ * (a driver's fault) holds the lobby no longer than this.
+ */
+export const DIVE_WARM_UP_MAX_WAIT_MS = 20_000;
 
 // ===== The bands (dive-bands.ts) =====
 

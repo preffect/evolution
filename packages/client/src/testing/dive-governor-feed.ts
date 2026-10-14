@@ -32,14 +32,22 @@ export class FrameFeed {
     private readonly ceiling: number,
   ) {}
 
-  /** `count` frames `gapMs` apart, each with `cpuMs` of CPU work; answers the resolution after them. */
-  frames(count: number, gap: FrameGap, options: { cpuMs?: number; ceiling?: number; isJudged?: boolean } = {}): number {
+  /**
+   * `count` frames `gapMs` apart, each with `cpuMs` of CPU work and `bakeMs` of bake slices in its gap; answers the
+   * resolution after them.
+   */
+  frames(
+    count: number,
+    gap: FrameGap,
+    options: { cpuMs?: number; bakeMs?: number; ceiling?: number; isJudged?: boolean } = {},
+  ): number {
     for (let frame = 0; frame < count; frame += 1) {
       this.nowMs += typeof gap === 'number' ? gap : gap(this.governor.resolution);
       const hasChanged = this.governor.noteFrame({
         nowMs: this.nowMs,
         cpuMs: options.cpuMs ?? 0,
         ceiling: options.ceiling ?? this.ceiling,
+        bakeMs: options.bakeMs ?? 0,
         isJudged: options.isJudged ?? true,
       });
       if (hasChanged) this.changes.push(this.governor.resolution);

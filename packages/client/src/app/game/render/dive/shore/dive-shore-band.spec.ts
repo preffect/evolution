@@ -18,6 +18,8 @@ import { ShoreBakeThread } from './shore-bake-thread';
 import { SHORE_TILE_NAMES, ShoreTiles } from './shore-tiles';
 
 const VIEWPORT = { width: 830, height: 467 };
+/** A zoom inside the shore band, between its fade and its cut. */
+const SHORE_IN_BAND_ZOOM = 2;
 
 function band(port: FakeShoreBakePort | null = null) {
   const pixi = createFakePixiApp(VIEWPORT);
@@ -148,6 +150,38 @@ describe('DiveShoreBand', () => {
       expect(subject.isReady).toBe(true);
       subject.destroy();
       expect(port.isTerminated).toBe(true);
+    });
+
+    it('stops baking its levels below the band, the worker’s bake cancelled, and starts again back in it', () => {
+      vi.stubGlobal('ImageBitmap', FakeBitmap);
+      const port = new FakeShoreBakePort();
+      const { subject } = band(port);
+      const scheduler = new ManualScheduler();
+      subject.bakeOn(
+        scheduler,
+        () => 0,
+        () => undefined,
+      );
+      subject.draw(view(SHORE_IN_BAND_ZOOM), true);
+      for (const name of SHORE_TILE_NAMES) {
+        port.send({ type: SHORE_BAKE_MESSAGE.tile, name, bitmap: fakeBitmap(), averageRgba: [0, 0, 0, 1] });
+      }
+      scheduler.advanceMilliseconds(DIVE_BAKE_START_DELAY_MS + DIVE_BAKE_INTERVAL_MS);
+      const request = lastRequest(port)!;
+      // The camera falls past the band's cut (ticket #814): the bake it was waiting on is cancelled, and the slices stop.
+      subject.draw(view(SHORE_LOD.cutZoom - 1), true);
+      expect(port.posted.map((posted) => posted.message)).toContainEqual({
+        type: SHORE_BAKE_MESSAGE.cancel,
+        id: request.id,
+      });
+      scheduler.advanceMilliseconds(DIVE_BAKE_INTERVAL_MS * 10);
+      expect(scheduler.pendingCallCount).toBe(0);
+      expect(lastRequest(port)).toBe(request);
+      // Back up in the band, the levels bake again.
+      subject.draw(view(SHORE_IN_BAND_ZOOM), true);
+      scheduler.advanceMilliseconds(DIVE_BAKE_INTERVAL_MS * 2);
+      expect(lastRequest(port)!.id).toBeGreaterThan(request.id);
+      subject.destroy();
     });
 
     it('bakes the tiles on the page once the worker fails', () => {
