@@ -16,6 +16,8 @@ import {
 
 const { windowFrames, minWindowFrames, windowMs, stepRatio, floorResolution, maxGapMs, leapRatio, sustainedMs } =
   DIVE_RESOLUTION_GOVERNOR;
+/** Software GL at DPR 2 a few frames behind: the wait before the next burst of frames (the evidence box's 1–2.5 s). */
+const BURST_WAIT_MS = 1500;
 
 describe('diveResolutionLadder', () => {
   it('steps from the dive’s ratio by the notch down to the floor, which ends it', () => {
@@ -146,6 +148,34 @@ describe('DiveResolutionGovernor', () => {
     // The same frames judged and within reach do move it.
     subject.frames(windowFrames + 1, gpuBound(SOFTWARE_LENS_MS));
     expect(subject.changes).toEqual([floorResolution]);
+  });
+
+  it('leaves the bake slices out of a frame’s gap: frames slow only by them never step (ticket #814)', () => {
+    const subject = feed(1);
+    subject.frames(100, SOFTWARE_LENS_MS, { bakeMs: SOFTWARE_LENS_MS - SMOOTH_MS });
+    expect(subject.changes).toEqual([]);
+    // Software GL's frames with a slice in each still leap: the rest of the gap is the GPU's.
+    subject.frames(windowFrames + 1, gpuBound(SOFTWARE_LENS_MS), { bakeMs: SLOW_MS });
+    expect(subject.changes).toEqual([floorResolution]);
+  });
+
+  it('leaps for a GPU seconds behind that hands its frames out in bursts, though their median is a vsync', () => {
+    const subject = feed(2);
+    // Software GL behind by seconds (ticket #814): a wait of a second or more, then a few frames a vsync apart.
+    const burstFrames = 3;
+    for (let burst = 0; burst < 6; burst += 1) {
+      subject.frames(1, gpuBound(BURST_WAIT_MS, 2));
+      subject.frames(burstFrames, SMOOTH_MS);
+    }
+    expect(subject.changes).toEqual([floorResolution]);
+  });
+
+  it('never moves for one wait of seconds among smooth frames (a bake landing, the bands’ warm-up)', () => {
+    const subject = feed(2);
+    subject.frames(60, SMOOTH_MS);
+    subject.frames(1, BURST_WAIT_MS);
+    subject.frames(600, SMOOTH_MS);
+    expect(subject.changes).toEqual([]);
   });
 
   it('breaks the window on an interrupt: frames either side never make one window', () => {

@@ -73,6 +73,8 @@ describe('createDiveHandle', () => {
   it('leaves the autoplay alone on a skip with nothing to skip', async () => {
     const { handle, app, clock, frames } = await opened();
     expect(handle.skip()).toBe(false);
+    // The first frame warms the bands up; the autoplay starts on one after it (ticket #814).
+    app.tick();
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
     app.tick();
     expect(frames.at(-1)!.isPlaying).toBe(true);

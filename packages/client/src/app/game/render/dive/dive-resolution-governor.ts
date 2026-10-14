@@ -16,8 +16,13 @@ export interface DiveGovernedFrame {
   /** The most it may render at this frame: the screen's ratio, or less while the dive falls. */
   readonly ceiling: number;
   /**
-   * Whether the frame is one to judge: drawn, and not while a bake runs on the page (the autoplay waits for them; their
-   * slices slow the frames whatever the resolution).
+   * The page's time in bake slices since the frame before (`DiveBakeTime`): a slice slows a frame whatever the
+   * resolution, so it is left out of the gap.
+   */
+  readonly bakeMs: number;
+  /**
+   * Whether the frame is one to judge: drawn, and not while the renderer builds (its steps run inside the frames, and
+   * its warm-up draws and uploads slow them whatever the resolution).
    */
   readonly isJudged: boolean;
 }
@@ -33,6 +38,8 @@ export function diveResolutionLadder(top: number): number[] {
 
 /** A frame gap over this is over budget. */
 const SLOW_FRAME_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.slowFrameRatio;
+/** A frame gap past this leaps: no page's own work explains it. */
+const LEAP_FRAME_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.leapRatio;
 
 /**
  * Whether a window's frames were over budget nearly all of them (`sustainedFastFrames` at most on time): a GPU behind
@@ -52,6 +59,42 @@ function medianOf(values: readonly number[]): number {
   return ((sorted[Math.floor(lastIndex * HALF)] ?? 0) + (sorted[Math.ceil(lastIndex * HALF)] ?? 0)) * HALF;
 }
 
+function sumOf(values: readonly number[]): number {
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function meanOf(values: readonly number[]): number {
+  return sumOf(values) / values.length;
+}
+
+/**
+ * Whether a window spanning `windowMs` or more drew its frames, on the whole, slower than `leapRatio` times the
+ * target: a GPU seconds behind (software GL) hands frames out in bursts, a few a vsync apart and then a wait of
+ * seconds, so their median can be on budget while the dive draws a frame a second (ticket #814). Its bake slices left
+ * out, no page's own work explains that rate over a whole window.
+ */
+function isFarBehind(gapsMs: readonly number[]): boolean {
+  const spanMs = sumOf(gapsMs);
+  return spanMs >= DIVE_RESOLUTION_GOVERNOR.windowMs && spanMs > gapsMs.length * LEAP_FRAME_MS;
+}
+
+/** A full window's typical frame and whether it was over budget throughout. */
+interface WindowVerdict {
+  readonly gapMs: number;
+  readonly cpuMs: number;
+  readonly isSustained: boolean;
+}
+
+/**
+ * A window far behind is judged by its mean frame, the GPU's rate through the bursts, and is over budget throughout;
+ * any other by its median, so one long task never moves it.
+ */
+function windowVerdict(gapsMs: readonly number[], cpusMs: readonly number[]): WindowVerdict {
+  const isBehind = isFarBehind(gapsMs);
+  const typicalOf = isBehind ? meanOf : medianOf;
+  return { gapMs: typicalOf(gapsMs), cpuMs: typicalOf(cpusMs), isSustained: isBehind || isSustainedOverBudget(gapsMs) };
+}
+
 /**
  * How many notches down a frame of `gapMs` (of which `cpuMs` is CPU work) goes: none when it fits or the CPU alone is
  * over budget (fewer pixels would not help); one when it is a little over; past `leapRatio` times the target, as many
@@ -61,7 +104,7 @@ export function diveNotchesDown(gapMs: number, cpuMs: number): number {
   const budgetMs = DIVE_TARGET_FRAME_MS - cpuMs;
   const gpuMs = gapMs - cpuMs;
   if (budgetMs <= 0 || gpuMs <= budgetMs) return 0;
-  if (gapMs < DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.leapRatio) return 1;
+  if (gapMs < LEAP_FRAME_MS) return 1;
   const pixelShare = budgetMs / gpuMs;
   // The scale shrinks both sides, so the pixels go by its square: a notch is stepRatio² of them.
   const { stepRatio } = DIVE_RESOLUTION_GOVERNOR;
@@ -122,7 +165,8 @@ export class DiveResolutionGovernor {
       this.ceiling = frame.ceiling;
       this.restartWindow();
     } else if (last !== null && frame.nowMs - last <= DIVE_RESOLUTION_GOVERNOR.maxGapMs) {
-      this.gapsMs.push(frame.nowMs - last);
+      // The slices ran between the two frames, on the same thread and clock: never more than the gap.
+      this.gapsMs.push(frame.nowMs - last - frame.bakeMs);
       this.cpusMs.push(frame.cpuMs);
       if (this.isWindowFull()) this.judge(frame.nowMs);
     } else if (last !== null) {
@@ -138,14 +182,12 @@ export class DiveResolutionGovernor {
     const { windowFrames, minWindowFrames, windowMs } = DIVE_RESOLUTION_GOVERNOR;
     const count = this.gapsMs.length;
     if (count >= windowFrames) return true;
-    return count >= minWindowFrames && this.gapsMs.reduce((total, gapMs) => total + gapMs, 0) >= windowMs;
+    return count >= minWindowFrames && sumOf(this.gapsMs) >= windowMs;
   }
 
   /** A full window: step down when over budget, else count the time on budget toward a notch up. */
   private judge(nowMs: number): void {
-    const gapMs = medianOf(this.gapsMs);
-    const cpuMs = medianOf(this.cpusMs);
-    const isSustained = isSustainedOverBudget(this.gapsMs);
+    const { gapMs, cpuMs, isSustained } = windowVerdict(this.gapsMs, this.cpusMs);
     this.gapsMs.shift();
     this.cpusMs.shift();
     if (this.isUselessStepUndone(nowMs, gapMs)) return;

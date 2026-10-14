@@ -5,6 +5,7 @@ import type { ShoreLevelUploader } from '../app/game/render/dive/shore/shore-lev
 import { ShoreLevels } from '../app/game/render/dive/shore/shore-levels';
 import { shoreLevelZoom } from '../app/game/render/dive/shore/shore-lod';
 import type { ShoreView } from '../app/game/render/dive/shore/shore-paint';
+import { SHORE_BAKE_WAITING, type ShoreBakeStep } from '../app/game/render/dive/shore/shore-pump';
 import type { ShoreSnapshot } from '../app/game/render/dive/shore/shore-snapshot';
 import { createFakeShoreCanvasFactory } from './fake-shore-canvas';
 import { TEST_SHORE_LAND, TEST_SHORE_STAGE, bakedTestTiles } from './shore-paint-builder';
@@ -33,6 +34,31 @@ export function uploaderOf(uploads: Uploaded[]): ShoreLevelUploader<Uploaded> {
       uploaded.isReleased = true;
     },
   };
+}
+
+/**
+ * Levels whose bakes wait on another thread (a worker's, `SHORE_BAKE_WAITING`) and land on the next step; `ended` hears
+ * the zoom of each bake ended before it landed, as a worker's is cancelled (ticket #811).
+ */
+export function awaitingLevels(ended: number[]): ShoreLevels<Uploaded> {
+  function* awaitingBake(view: ShoreView): Generator<ShoreBakeStep, ShoreSnapshot> {
+    let hasLanded = false;
+    try {
+      yield SHORE_BAKE_WAITING;
+      hasLanded = true;
+      return { view } as unknown as ShoreSnapshot;
+    } finally {
+      if (!hasLanded) ended.push(view.zoom);
+    }
+  }
+  const factory = createFakeShoreCanvasFactory();
+  const subject = new ShoreLevels<Uploaded>(
+    { land: TEST_SHORE_LAND, tiles: bakedTestTiles(factory), factory },
+    uploaderOf([]),
+    awaitingBake,
+  );
+  subject.setStage(TEST_SHORE_STAGE, 1);
+  return subject;
 }
 
 /** Levels whose bakes draw nothing (`bakeShoreSnapshot` has its own spec below): the rules of what is kept and drawn. */

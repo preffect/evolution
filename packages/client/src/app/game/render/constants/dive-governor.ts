@@ -15,7 +15,9 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   help it. And it must stay so for `sustainedMs` of windows in a row: a burst of a busy page's work is shorter.
  * - `stepRatio`: one notch of resolution, about 0.7× the pixels. Over budget it steps down one notch; a median past
  *   `leapRatio` times the target, which no page's own work explains, steps as many notches as the pixels must shrink
- *   by for the GPU's share of the frame to fit (the cost of a fragment-bound frame scales with its pixels).
+ *   by for the GPU's share of the frame to fit (the cost of a fragment-bound frame scales with its pixels). A window
+ *   spanning `windowMs` whose frames came, on the whole, slower than that is far behind (software GL's bursts: a wait
+ *   of seconds, then a few frames a vsync apart) and is judged by its mean, over budget throughout (ticket #814).
  * - `floorResolution`: never fewer device px per css px than this (an 830 css px stage stays 290 px wide).
  * - `stepUpAfterMs`: on budget this long in a row, it tries one notch up. A step down within `probeFailMs` of a step
  *   up means that notch did not fit: the wait before the next try grows by `backoffFactor`, up to `maxStepUpAfterMs`; a notch up that

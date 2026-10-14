@@ -1,6 +1,7 @@
 // The dive session's start and its surroundings (docs/rendering/opening-dive.md §1, §5): a start where either half
 // fails gives the other back and answers false; an off-screen report that comes before the app is kept; reduced
-// motion asked for mid-fall ends the fall; the lobby's autoplay waits for the bands' bakes.
+// motion asked for mid-fall ends the fall; the lobby's autoplay waits for the bands' bakes, and for the GPU to be past
+// the frame that warmed the bands up with them (ticket #814).
 
 import { describe, expect, it } from 'vitest';
 import { diveSessionHarness as harness, startedDiveSession as started } from '../../../../testing/dive-session-harness';
@@ -77,6 +78,23 @@ describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TI
     app.tick();
     expect(subject.controls.isPlaying).toBe(false);
     slime.bakes.isBaked = true;
+    // The frame after the bakes land warms the bands up, and never plays: its work is the GPU's still.
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    subject.destroy();
+  });
+
+  it('holds the autoplay until the GPU is past the frame that warmed the bands up (ticket #814)', async () => {
+    const { subject, app, clock } = await started();
+    app.gpu.isCaughtUp = false;
+    clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS * 3);
+    for (let frame = 0; frame < 10; frame += 1) app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    // One fence, after the first frame drawn with every bake landed.
+    expect(app.gpu.fences).toBe(1);
+    app.gpu.isCaughtUp = true;
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
     subject.destroy();
@@ -91,6 +109,7 @@ describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TI
     expect(subject.controls.isPlaying).toBe(false);
     band.isReady = true;
     app.tick();
+    app.tick();
     expect(subject.controls.isPlaying).toBe(true);
     subject.destroy();
   });
@@ -100,6 +119,7 @@ describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TI
     const band = shore.bands[0]!;
     const floor = SHORE_LOD.topZoom;
     band.fallFloorZoom = floor;
+    app.tick();
     clock.advanceMilliseconds(DIVE_AUTOPLAY_DELAY_MS);
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);

@@ -1,9 +1,11 @@
 // The dive session's resolution governor (docs/rendering/opening-dive.md §6, ticket #804), over the fake Pixi app and
 // recording bands: slow frames step the dive's one canvas down and every band is told the ratio it renders at, smooth
-// frames never touch it, nothing is judged while a band still bakes, off screen or under the evidence probe, and while
-// the dive falls at DPR 2 the canvas renders at the mockup's 1.5 at most, sharp again on arrival. Each case steps a
-// started dive through hundreds of frames, and the fall through all of its bands, so they take the dive's heavy timeout.
+// frames never touch it, the bands' bake slices are left out of the frames' gaps (ticket #814), nothing is judged off
+// screen or under the evidence probe, and while the dive falls at DPR 2 the canvas renders at the mockup's 1.5 at
+// most, sharp again on arrival. Each case steps a started dive through hundreds of frames, and the fall through all of
+// its bands, so they take the dive's heavy timeout.
 
+import type { ManualScheduler } from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import {
   startedDiveSession as started,
@@ -102,12 +104,19 @@ describe('DiveSession resolution governor', { timeout: DIVE_HEAVY_TEST_TIMEOUT_M
     parts.subject.destroy();
   });
 
-  it('judges no frame while a band still bakes: their slices slow the frames whatever the resolution', async () => {
+  it('judges frames while a band still bakes, its slices left out of their gaps (ticket #814)', async () => {
     const parts = await inTheDrop();
     parts.shore.bands[0]!.isReady = false;
-    frames(parts, FRAMES_TO_JUDGE * 4, SOFTWARE_FRAME_MS);
+    // A slice on the bands' scheduler between each two smooth frames, as long as software GL's frame: on budget.
+    const bakes = parts.shore.bands[0]!.bakes.scheduler!;
+    const slices = parts.dependencies.scheduler as ManualScheduler;
+    for (let frame = 0; frame < FRAMES_TO_JUDGE * 4; frame += 1) {
+      bakes.after(0, () => parts.clock.advanceMilliseconds(SOFTWARE_FRAME_MS));
+      slices.advanceMilliseconds(0);
+      frames(parts, 1, DIVE_TARGET_FRAME_MS);
+    }
     expect(parts.app.resolutions).toEqual([]);
-    parts.shore.bands[0]!.isReady = true;
+    // Software GL's own frames while the band still bakes: the canvas steps down, before the bakes land.
     frames(parts, FRAMES_TO_JUDGE, softwareFrame);
     expect(parts.app.resolutions).toEqual([DIVE_RESOLUTION_GOVERNOR.floorResolution]);
     parts.subject.destroy();

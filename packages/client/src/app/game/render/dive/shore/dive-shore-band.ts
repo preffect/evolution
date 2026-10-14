@@ -144,6 +144,12 @@ export class DiveShoreBand {
     this.wake();
   }
 
+  /** Below the band: the levels stop baking until the camera comes back up (`ShoreLevels.rest`). */
+  private rest(view: DiveView): void {
+    this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
+    this.levels.rest();
+  }
+
   /**
    * One frame: hidden above and below the band; otherwise the level in view, crossfaded, with the live sea. Answers
    * whether the quad shows, so the dive's frame is drawn. The levels the camera left on the frame before go back
@@ -153,9 +159,9 @@ export class DiveShoreBand {
     this.levels.releaseRetired();
     const shore = view.bands.shore;
     if (!shore.isActive) {
-      // above the band the levels the fall will meet first bake already, while the planet shows
+      // above the band the levels the fall will meet first bake already, while the planet shows; below it none does
       if (view.camera.zoom > SHORE_LOD.topZoom) this.follow(view);
-      else this.levels.setStage(view.camera.viewport, this.devicePixelRatio);
+      else this.rest(view);
       this.mesh.setLevels(null, null);
       return false;
     }
