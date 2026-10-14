@@ -14,6 +14,11 @@ export const UPGRADE_POPUP_OUT_MS = 700;
 export const UPGRADE_POPUP_RISE_PX = 24;
 /** The scale it pops in from. */
 export const UPGRADE_POPUP_FROM_SCALE = 0.85;
+/**
+ * Each half of any popup's move to another slot while it is up (ticket #861): it fades out where it was over this,
+ * then back in at its new slot over this again, rather than jumping across the cell.
+ */
+export const UPGRADE_POPUP_MOVE_FADE_MS = 150;
 /** Its widest, at scale 1: a card's width, so a card's effect lines fit on theirs. */
 export const UPGRADE_POPUP_MAX_WIDTH_PX = PICKER_CARD_WIDTH_PX;
 /** A form popup's whole life: about five seconds held between its entrance and its fade. */
