@@ -29,6 +29,9 @@ const EXPECTED_DOMAINS = [
   'earlyLife',
   'progression',
   'traits',
+  'eras',
+  'pool',
+  'poolCreatures',
 ];
 
 describe('DEFAULT_BALANCE', () => {

@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { BACTERIUM_VARIANT, CELL_STAGE, DNA_TAG, FOOD_KIND, GIANT_SPECIES, GIANT_SPECIES_ORDER } from './game.js';
-import { isBacteriumVariant, isCellStage, isDnaTag, isFoodKind, isGiantSpecies } from './game-guards.js';
+import {
+  BACTERIUM_VARIANT,
+  CELL_STAGE,
+  DNA_TAG,
+  FOOD_KIND,
+  GAME_ERA,
+  GAME_ERA_ORDER,
+  GIANT_SPECIES,
+  GIANT_SPECIES_ORDER,
+} from './game.js';
+import {
+  isBacteriumVariant,
+  isCellStage,
+  isDnaTag,
+  isErasInPlayList,
+  isFoodKind,
+  isGameEra,
+  isGiantSpecies,
+} from './game-guards.js';
 
 const STRANGERS: readonly unknown[] = ['spicy', '', 'Algae', 0, null, undefined, {}, ['algae']];
 
@@ -36,5 +53,33 @@ describe('game guards', () => {
     for (const stranger of STRANGERS) expect(isCellStage(stranger), String(stranger)).toBe(false);
     expect(isCellStage('amoeba')).toBe(false);
     expect(isCellStage('Eukaryote')).toBe(false);
+  });
+
+  it('isGameEra accepts every era and nothing else, and the era order lists each era once, dish first', () => {
+    for (const era of Object.values(GAME_ERA)) expect(isGameEra(era), era).toBe(true);
+    for (const stranger of STRANGERS) expect(isGameEra(stranger), String(stranger)).toBe(false);
+    expect(isGameEra('Pool')).toBe(false);
+    expect(GAME_ERA_ORDER).toEqual([GAME_ERA.dish, GAME_ERA.pool, GAME_ERA.colonies]);
+  });
+
+  it('isErasInPlayList accepts every non-empty prefix of the era order (phases.md §14.2.4)', () => {
+    for (let length = 1; length <= GAME_ERA_ORDER.length; length += 1) {
+      const prefix = GAME_ERA_ORDER.slice(0, length);
+      expect(isErasInPlayList(prefix), prefix.join()).toBe(true);
+    }
+  });
+
+  it.each<[string, unknown]>([
+    ['the empty list', []],
+    ['a list without the dish', [GAME_ERA.pool]],
+    ['a list that skips the pool', [GAME_ERA.dish, GAME_ERA.colonies]],
+    ['the eras out of order', [GAME_ERA.pool, GAME_ERA.dish]],
+    ['an era twice', [GAME_ERA.dish, GAME_ERA.dish]],
+    ['a list past the last era', [...GAME_ERA_ORDER, GAME_ERA.colonies]],
+    ['a list of numbers', [0, 1]],
+    ['an era that is not a list', GAME_ERA.dish],
+    ['a record', { 0: GAME_ERA.dish }],
+  ])('isErasInPlayList refuses %s', (_label, value) => {
+    expect(isErasInPlayList(value)).toBe(false);
   });
 });

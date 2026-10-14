@@ -103,6 +103,15 @@ export type GiantRole = ValueOf<typeof GIANT_ROLE>;
 export const WORLD_STANDING = { ahead: 'ahead', with: 'with', behind: 'behind' } as const;
 export type WorldStanding = ValueOf<typeof WORLD_STANDING>;
 
+/**
+ * The game's eras (docs/game-design/phases.md §14.2.1): the dish, the rock pool, and the colonies in that same pool.
+ * The era is derived from the round clock (`eraAt`), never stored; `ERAS_IN_PLAY` lists the eras a game may reach.
+ */
+export const GAME_ERA = { dish: 'dish', pool: 'pool', colonies: 'colonies' } as const;
+export type GameEra = ValueOf<typeof GAME_ERA>;
+/** The order the eras open in: `ERAS_IN_PLAY` is a prefix of it and `ERA_START_SECONDS` rises along it. */
+export const GAME_ERA_ORDER: readonly GameEra[] = [GAME_ERA.dish, GAME_ERA.pool, GAME_ERA.colonies];
+
 /** The debug tools' entity filter vocabulary and the id prefixes (docs/architecture/entity-model.md §2). */
 export const ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' } as const;
 export type EntityKind = ValueOf<typeof ENTITY_KIND>;

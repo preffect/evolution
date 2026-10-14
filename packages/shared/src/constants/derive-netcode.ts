@@ -4,7 +4,7 @@
 // compile at: `netcode.ts` calls it once with `TICK_HZ` and `SNAPSHOT_EVERY_TICKS` and names the
 // result, and `derive-netcode.test.ts` calls it across the cadences the room can run at and asserts
 // the invariants (#287). `netcode.ts` is the only file that imports this one — for the derivation and
-// for `SNAPSHOT_BACKLOG_LIMIT_SECONDS`, whose byte half lives there — and `constants-ledger.test.ts`
+// for `SNAPSHOT_BACKLOG_LIMIT_SECONDS`, whose byte half lives there — and `constants-consumers.test.ts`
 // keeps that true rather than leaving it as prose. It is not in the constants barrel: the public
 // surface is the named constants `netcode.ts` exports, not the function behind them.
 
