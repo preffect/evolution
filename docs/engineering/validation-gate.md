@@ -30,12 +30,14 @@
      error, an eslint crash). Problems eslint cannot fix leave it green and point at `lint`, so run `lint`
      after it. It takes no extra args and is **never cached**: it changes the tree, and it proves nothing
      about lint;
-   - runs **`jscpd`** (`duplication`) against `.jscpd.json`: ≥ 5 duplicated lines / 50 tokens
+   - runs **`jscpd`** (`duplication`) against `.jscpd.json`: any clone of ≥ 5 duplicated lines / 50 tokens
      anywhere in `packages/*/src` outside tests and `testing/` fails (`docs/CODE-STANDARDS.md`
-     §3); import blocks are ignored; the offending file pairs are printed with line ranges;
+     §3) through jscpd's `exitCode`, since its percentage `threshold` rounds a small clone to 0.00%
+     and passes it (#943, pinned by `scripts/duplication-gate.test.sh`); import blocks are ignored;
+     the offending file pairs are printed with line ranges;
    - runs the unit tier **with coverage thresholds** (`docs/testing/tiers-and-builders.md` §5), so a drop below a
      package's floor fails `test`; an unscoped `test` then runs the tooling's shell suites
-     (`scripts/*.test.sh`: the result cache, `run.sh`, the deploy watcher), which a scoped run skips;
+     (`scripts/*.test.sh`: the result cache, the duplication gate, `run.sh`, the deploy watcher), which a scoped run skips;
    - **caps the test workers below the core count** (#475): vitest's forks pool defaults to
      `availableParallelism() - 1` workers and does not count its own main process, which alone serves
      the vite transforms, the coverage collection and the reporters for all of them — on the 4-core box
