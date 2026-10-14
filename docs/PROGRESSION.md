@@ -73,6 +73,14 @@ On each level-up the server builds a draft of `TRAIT_DRAFT_SIZE` = 3 cards from 
      owned, and, if it has `unlockedBy`, `bacteriaEatenByVariant[variant]` ≥ `count`;
    - no _other_ owned trait shares its `exclusionGroup` (an upgrade of the owned member is fine).
      The ladder only filters candidates; tag weighting below works unchanged on top of it.
+
+   The stage, `requires` and exclusion-group checks are the shared per-pick rule, `traitPickProblem`
+   (`shared/simulation/ladder-check.ts`), the one the wild and giant builds keep
+   ([`ecology/wild-cells.md §3.3`](./ecology/wild-cells.md)): a new trait is checked after the owned
+   traits, an upgrade after the owned traits other than itself. The draft adds `unlockedBy` and the
+   tier cap. So an owned trait whose own ladder no longer holds (only `debug_set_player` can make one,
+   e.g. `mitochondrion` without `nucleoid`) gets no upgrade card.
+
 2. **Weights.**
 
 ```

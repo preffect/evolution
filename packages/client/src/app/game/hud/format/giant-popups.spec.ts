@@ -16,6 +16,7 @@ import {
   GIANT_POPUP_KICKER_TEXT,
   giantPopupsIn,
   giantSwallowOf,
+  giantSwallowsKeptAt,
   withGiantSwallow,
   type GiantSwallow,
 } from './giant-popups';
@@ -75,6 +76,21 @@ describe('withGiantSwallow', () => {
     ];
     const added = swallowOn(SWALLOW_TICK);
     expect(withGiantSwallow([...kept, waiting], added)).toEqual([waiting, added]);
+  });
+});
+
+describe('giantSwallowsKeptAt', () => {
+  it('lets go of another seat’s swallow and one after the folded tick, the clock having gone back past it', () => {
+    const before = swallowOn(SWALLOW_TICK - 1);
+    const onFold = swallowOn(SWALLOW_TICK);
+    const kept = [before, onFold, swallowOn(SWALLOW_TICK + 1), swallowOn(SWALLOW_TICK, OTHER_SEAT)];
+    expect(giantSwallowsKeptAt(kept, { seatKey: SEAT, tick: SWALLOW_TICK })).toEqual([before, onFold]);
+  });
+
+  it('keeps nothing without a snapshot, and hands back the same array when nothing leaves', () => {
+    const kept = [swallowOn(SWALLOW_TICK)];
+    expect(giantSwallowsKeptAt(kept, { seatKey: null, tick: null })).toEqual([]);
+    expect(giantSwallowsKeptAt(kept, { seatKey: SEAT, tick: SWALLOW_TICK })).toBe(kept);
   });
 });
 

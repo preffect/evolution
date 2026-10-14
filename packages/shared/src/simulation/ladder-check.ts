@@ -1,7 +1,8 @@
 // The one "valid ladder" rule a fixed build keeps (docs/ecology/wild-cells.md §3.3, docs/ecology/giants.md §3.5.14):
 // every pick is in the catalog, picked once, and reachable from the picks before it (its stage reached, its `requires`
-// owned, no other owned trait of its exclusion group). The wild builds' test and `giantBalanceProblems` both call it, so
-// the two kinds of build cannot be held to different ladders. Pure: it reads only the balance it is given.
+// owned, no other owned trait of its exclusion group). The wild builds' test and `giantBalanceProblems` both call it,
+// so the two kinds of build cannot be held to different ladders; the server's draft asks `traitPickProblem` of every
+// card it offers (docs/PROGRESSION.md §3). Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
 import type { TraitId } from '../types/game.js';
@@ -11,8 +12,12 @@ import { stageIndex, stageOf } from './stage-of.js';
 /** The catalog and the ladder a build is checked against. */
 export type LadderCheckBalance = Pick<BalanceConfig, 'traits' | 'ladder'>;
 
-/** Why `trait` cannot be picked after `before` (the picks ahead of it); null when it can. */
-function pickProblem(trait: TraitDefinition, before: readonly TraitId[], balance: LadderCheckBalance): string | null {
+/** Why `trait` cannot be picked after `before` (the picks ahead of it, or a cell's owned ids); null when it can. */
+export function traitPickProblem(
+  trait: TraitDefinition,
+  before: readonly TraitId[],
+  balance: LadderCheckBalance,
+): string | null {
   if (before.includes(trait.id)) return `${trait.id} is listed twice`;
   if (stageIndex(trait.stage) > stageIndex(stageOf(before, balance.ladder))) {
     return `${trait.id} needs stage ${trait.stage} before it`;
@@ -41,7 +46,7 @@ export function ladderProblem(build: readonly TraitId[], balance: LadderCheckBal
   for (const [index, traitId] of build.entries()) {
     const trait = catalog.find((row) => row.id === traitId);
     if (trait === undefined) return `${traitId} is not in the trait catalog`;
-    const problem = pickProblem(trait, build.slice(0, index), balance);
+    const problem = traitPickProblem(trait, build.slice(0, index), balance);
     if (problem !== null) return problem;
   }
   return null;

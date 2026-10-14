@@ -67,7 +67,7 @@
 }
 
 /* The state tint, over the well as well as the caption band: the well is opaque to anything painted under it, so a
-   background on the tile alone would light 36 of a tile's 132 px. The kit's own rows solve it the same way. */
+   background on the tile alone would light only the caption band below it. The kit's own rows solve it the same way. */
 .tile::after {
   content: '';
   position: absolute;
@@ -119,23 +119,28 @@
   background-color: color-mix(in srgb, var(--ui-text) calc(var(--ui-secondary-fill-alpha) * 100%), transparent);
 }
 
-/* The title on one line, ending in an ellipsis; the tile's accessible name carries the full title (§11.3). */
-.title {
-  overflow: hidden;
-  font-size: calc(var(--ui-type-body) * var(--ui-scale));
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The fact wraps at its spaces to `--encyclopedia-tile-fact-lines` lines, so `<name>: <value>` reads whole (#462). */
+/* The title and the fact each wrap at their spaces to their own line budget and end in an ellipsis past it; the
+   tile's fixed height holds both budgets, so a wrapped title moves only its own fact and the grid stays aligned. */
+.title,
 .fact {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
+  line-height: var(--encyclopedia-tile-caption-line-height);
+}
+
+/* Up to `--encyclopedia-tile-title-lines` lines, so `Photosynthetic bacterium` reads whole (#847); the tile's
+   accessible name carries the full title past that (§11.3). */
+.title {
+  -webkit-line-clamp: var(--encyclopedia-tile-title-lines);
+  line-clamp: var(--encyclopedia-tile-title-lines);
+  font-size: calc(var(--ui-type-body) * var(--ui-scale));
+}
+
+/* Up to `--encyclopedia-tile-fact-lines` lines, so `<name>: <value>` reads whole (#462). */
+.fact {
   -webkit-line-clamp: var(--encyclopedia-tile-fact-lines);
   line-clamp: var(--encyclopedia-tile-fact-lines);
   color: var(--ui-text-label);
   font-size: calc(var(--ui-type-label) * var(--ui-scale));
-  line-height: var(--encyclopedia-tile-fact-line-height);
 }
