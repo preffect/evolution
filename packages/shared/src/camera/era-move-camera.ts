@@ -21,7 +21,9 @@ export function remapCameraAcrossMove(state: CameraState, scaleStep: number): Ca
  * tick: `ERA_MOVE_CAMERA_ZOOM_SECONDS` from the pool's move tick for `ERA_MOVE_CAMERA_EASE_SECONDS`, else
  * `CAMERA_ZOOM_SECONDS`. The move tick is derived from `roundStartTick` (`eraStartedAtTick`), so the server and the
  * client read the same ease. Only the pool's move remaps the camera, so only it eases: a world still in the dish never
- * does, and a jump past the pool puts the pool's start a whole era back, so it lands with no ease.
+ * does, and a jump past the pool puts the pool's start a whole era back, so it lands with no ease. After a balance patch
+ * that adds the pool or moves its start, the derived tick is the start, not the move's: fine for a cosmetic ease, never
+ * for a gameplay timer, which is stored world state (architecture/wire-contract.md §4 "The cameras across the move").
  */
 export function moveCameraZoomSecondsAt(
   tick: number,

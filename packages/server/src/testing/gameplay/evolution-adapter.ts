@@ -16,7 +16,7 @@ import { createEvolutionBotBinding } from '../../game/bots/evolution-binding.js'
 import { createEvolutionModule, type EvolutionModule } from '../../game/evolution-module.js';
 import type { GameModule } from '../../game/game-module.js';
 import { EXACT_SNAPSHOT_VALUES } from '../../game/serialize/quantize.js';
-import { serializeFullSnapshot, toOwnProgressView } from '../../game/serialize/serialize.js';
+import { serializeFullSnapshot, serializeRoundHeader, toOwnProgressView } from '../../game/serialize/serialize.js';
 import { removeSeatedCells } from '../../game/wild/wild-seats.js';
 import { cellOfSeat } from '../../game/world/lookups.js';
 import { drainBroadcastWindow } from '../../game/world/broadcast-window.js';
@@ -182,12 +182,7 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
   // A scenario drains every tick, so its window (the effects and the sprint spend, #383) is the tick's.
   const effects = drainBroadcastWindow(world);
   const snapshot = {
-    tick: world.tick,
-    seed: world.seed,
-    roundStartTick: world.roundStartTick,
-    era: world.eraMovedInto,
-    roundPhase: world.roundPhase,
-    roundTimeLeftMs: world.roundTimeLeftMs,
+    ...serializeRoundHeader(world),
     effects,
     spawnedCounts: { food: world.spawners.food.spawnedCount, dnaFragments: world.spawners.dnaFragments.spawnedCount },
   } as EvolutionScenarioSnapshot;

@@ -227,6 +227,24 @@ export function ownProgressOf(
   return viewer === undefined ? null : toOwnProgressView(world, viewer, WIRE_SNAPSHOT_VALUES, massWindow);
 }
 
+/** The snapshot's round header: the scalars every snapshot copies from the world as they are. */
+export type SnapshotRoundHeader = Pick<
+  GameSnapshot,
+  'tick' | 'seed' | 'roundStartTick' | 'era' | 'roundPhase' | 'roundTimeLeftMs'
+>;
+
+/** The round header of `world`'s snapshot: the one home of these fields, which the scenario snapshot spreads too. */
+export function serializeRoundHeader(world: WorldState): SnapshotRoundHeader {
+  return {
+    tick: world.tick,
+    seed: world.seed,
+    roundStartTick: world.roundStartTick,
+    era: world.eraMovedInto,
+    roundPhase: world.roundPhase,
+    roundTimeLeftMs: world.roundTimeLeftMs,
+  };
+}
+
 /**
  * Everything every viewer is sent alike but the effects: what the full snapshot and the broadcast share. Typed as the
  * broadcast, so a member a viewer is sent apart that is still built here fails to compile (#399).
@@ -237,12 +255,7 @@ function serializeShared(world: WorldState, precision: SnapshotPrecision): Omit<
     players[player.playerId] = toPlayerRosterView(player);
   }
   return {
-    tick: world.tick,
-    seed: world.seed,
-    roundStartTick: world.roundStartTick,
-    era: world.eraMovedInto,
-    roundPhase: world.roundPhase,
-    roundTimeLeftMs: world.roundTimeLeftMs,
+    ...serializeRoundHeader(world),
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),
     cells: world.cells.map((cell) => toCellView(cell, precision)),
     players,

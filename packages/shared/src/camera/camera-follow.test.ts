@@ -3,7 +3,10 @@
 import { describe, expect, it } from 'vitest';
 import { CAMERA_FOLLOW_SECONDS, CAMERA_ZOOM_SECONDS } from '../constants/camera.js';
 import { DISH_RADIUS } from '../constants/world.js';
-import { parkCamera, stepCamera, viewHalfHeightFor } from './camera-follow.js';
+import { parkCamera, stepCamera, viewHalfHeightFor, type CameraState } from './camera-follow.js';
+
+/** A zoom time constant other than the default, as the move's ease passes one. */
+const GIVEN_ZOOM_SECONDS = 2.5;
 
 describe('parkCamera and stepCamera', () => {
   it('parks on the target without smoothing', () => {
@@ -25,13 +28,16 @@ describe('parkCamera and stepCamera', () => {
     expect(zoomShare).toBeGreaterThan(0);
   });
 
-  it.each([CAMERA_ZOOM_SECONDS, 2.5])('smooths the zoom with the time constant it is given (%s s)', (zoomSeconds) => {
+  it('smooths the zoom with CAMERA_ZOOM_SECONDS by default, and with the time constant it is given', () => {
     const start = parkCamera({ x: 0, y: 0, radius: 25 });
-    const wanted = viewHalfHeightFor(50);
-    const given = zoomSeconds === CAMERA_ZOOM_SECONDS ? undefined : zoomSeconds;
-    const stepped = stepCamera(start, { x: 0, y: 0, radius: 50 }, 1, given);
-    const zoomShare = (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (wanted - start.viewHalfHeightWu);
-    expect(zoomShare).toBeCloseTo(1 - Math.exp(-1 / zoomSeconds), 12);
+    const target = { x: 0, y: 0, radius: 50 };
+    const zoomShare = (stepped: CameraState) =>
+      (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (viewHalfHeightFor(50) - start.viewHalfHeightWu);
+    expect(zoomShare(stepCamera(start, target, 1))).toBeCloseTo(1 - Math.exp(-1 / CAMERA_ZOOM_SECONDS), 12);
+    expect(zoomShare(stepCamera(start, target, 1, GIVEN_ZOOM_SECONDS))).toBeCloseTo(
+      1 - Math.exp(-1 / GIVEN_ZOOM_SECONDS),
+      12,
+    );
   });
 
   it('holds with no target and converges on the target over time', () => {

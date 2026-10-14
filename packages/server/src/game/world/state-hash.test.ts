@@ -147,6 +147,10 @@ describe('computeStateHash', () => {
     expect(new Set(hashes).size).toBe(GAME_ERA_ORDER.length);
   });
 
+  it('walks exactly the era moved into after the held lists: a world field added there needs its own test here', () => {
+    expect(TRAILING_WORLD_HASHED_FIELDS).toEqual(['eraMovedInto']);
+  });
+
   it('tells the two trailing sections apart: held lists, an era, both or neither', () => {
     const hashes = [null, FIRST_CELL].flatMap((holderIndex) =>
       [GAME_ERA.dish, GAME_ERA.pool].map((era) => {

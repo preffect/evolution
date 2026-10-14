@@ -4,9 +4,12 @@
 
 import {
   DEFAULT_BALANCE,
+  GAME_ERA_ORDER,
   createTestSessionConfig,
   playerId,
+  withErasInPlay,
   type BalanceConfig,
+  type GameEra,
   type GiantSpecies,
 } from '@evolution/shared';
 import { createPlayerRecord, type PlayerIdentity } from '../game/session/players.js';
@@ -30,6 +33,9 @@ export function balanceSeatingGiants(species: readonly GiantSpecies[]): BalanceC
  * else, which a giant would change the meaning of.
  */
 export const NO_GIANTS_BALANCE: BalanceConfig = balanceSeatingGiants([]);
+
+/** The game's length with the colonies on (docs/game-design/phases.md §14.2.3): every era is reachable in it. */
+export const COLONIES_ON_ROUND_SECONDS = 1500;
 
 export const TEST_PLAYER: PlayerIdentity = { playerId: playerId('p1'), playerName: 'Alice', avatarIndex: 0 };
 
@@ -65,6 +71,20 @@ export function createTestWorld(options: TestWorldOptions = {}): WorldState {
   if (!options.hasWildSeats) {
     removeSeatedCells(world);
   }
+  return world;
+}
+
+/**
+ * `createTestWorld` playing `erasInPlay` (every era by default) in a round of `roundDurationSeconds` (the colonies-on
+ * game by default, so every era in play is reachable): the world an era test steps or jumps through.
+ */
+export function createTestWorldInEras(
+  erasInPlay: readonly GameEra[] = GAME_ERA_ORDER,
+  roundDurationSeconds = COLONIES_ON_ROUND_SECONDS,
+  options: Omit<TestWorldOptions, 'balance'> = {},
+): WorldState {
+  const world = createTestWorld({ ...options, balance: withErasInPlay(erasInPlay) });
+  world.config = createTestSessionConfig({ seed: world.seed, roundDurationSeconds });
   return world;
 }
 
