@@ -28,6 +28,8 @@ export const ENTRY_BY_EFFECT: Readonly<Record<EffectKind, EntryId>> = {
   [EFFECT_KIND.eraMoved]: WORLD_CLOCK_ENTRY,
   [EFFECT_KIND.surgeWarning]: WORLD_CLOCK_ENTRY,
   [EFFECT_KIND.copepodWarning]: WORLD_CLOCK_ENTRY,
+  // A death to a creature is a death: the respawn page until the creatures have their own (ticket #878).
+  [EFFECT_KIND.eatenByCreature]: 'action:respawn',
 };
 
 export const ENTRY_BY_WORLD_STANDING: Readonly<Record<WorldStanding, EntryAnchor>> = {

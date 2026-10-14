@@ -20,6 +20,7 @@ import {
   WORLD_STANDING,
   ZONE_ID,
 } from './game.js';
+import { POOL_CREATURE_SPECIES } from './pool.js';
 import { TRAIT_CATEGORY, TRAIT_RARITY } from './traits.js';
 
 const SNAKE_CASE_VALUE = /^[a-z]+(_[a-z]+)*$/;
@@ -41,6 +42,7 @@ const ID_TABLES: [string, Record<string, string>][] = [
   ['GIANT_ROLE', GIANT_ROLE],
   ['WORLD_STANDING', WORLD_STANDING],
   ['GAME_ERA', GAME_ERA],
+  ['POOL_CREATURE_SPECIES', POOL_CREATURE_SPECIES],
   ['ENTITY_KIND', ENTITY_KIND],
   ['EFFECT_KIND', EFFECT_KIND],
   ['TRAIT_CATEGORY', TRAIT_CATEGORY],
@@ -74,6 +76,7 @@ describe('id tables', () => {
       'era_moved',
       'surge_warning',
       'copepod_warning',
+      'eaten_by_creature',
     ]);
   });
 });

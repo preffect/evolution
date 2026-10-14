@@ -66,6 +66,9 @@ precision.
 - `MassFlowView.decayTraitShare`: `SNAPSHOT_SHARE_DECIMALS` (0.001), left out at 0
 - `LatchedBacteriumView.bearingRadians`: `SNAPSHOT_BEARING_DECIMALS` (0.01 rad: a held rod at most 0.5 wu along the rim
   of a 100 wu cell, a drawing only)
+- `PoolCreatureView.headingRadians`: `SNAPSHOT_BEARING_DECIMALS` too (ticket #935): the client draws the nematode's
+  chain from it, at most 0.8 wu off at its tips; the knock is a server correction, never predicted (game-design/phases.md
+  §14.5.3), so no prediction reads it
 - `MassFlowView.sprintSpent` / `noDraftBonusGained`, `EatEffect.massGained` / `dnaGained` and
   `CellAbsorbedEffect.predatorMassGained` / `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` or
   `noDraftBonusGained` that rounds to 0 is left out
@@ -350,7 +353,11 @@ about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about
 0.7 KB a snapshot over the 35 cells, and each held bacterium about 80 to 90 B more (`moteId`, `variant`, a
 two-decimal `bearingRadians`, `caughtAtTick`; measured with real `m-` ids), at most `LATCH_MAX_HELD` (5) on each of the
 8 player cells: under 4 KB in the worst case,
-and only while early life is on. The fields are stable while held, so the list adds nothing per tick. Every snapshot
+and only while early life is on. The fields are stable while held, so the list adds nothing per tick. Every cell
+carries `poolCreature` (ticket #935): `"poolCreature":null` is 20 B, about 0.7 KB a snapshot over the 35 cells, and a
+creature's view about 45 B more (`{"species":"nematode","isLandmark":false,"headingRadians":1.23}`), on the pool's
+eight creatures only (`DIDINIUM_COUNT` 2, `ROTIFER_COUNT` 3 and the landmark, `NEMATODE_COUNT` 2), which replace the
+dish's three giants. Every snapshot
 carries the pool's three members (ticket #932): `"poolLayout":null,"surge":null,"copepodLane":null` is 50 B in the
 dish. From the pool's warning on, the layout (`POOL_FILM_COUNT` 5 films and `POOL_THREAD_COUNT` 6 threads) is about
 under 0.6 KB a snapshot (0.57 KB measured as JSON, with four-digit coordinates and full-precision angles) because its

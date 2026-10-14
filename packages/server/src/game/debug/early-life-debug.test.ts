@@ -20,7 +20,8 @@ import { ReplayRecorder } from '../replay/replay-recorder.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { BacteriumMoteRecord } from '../world/entities.js';
 import { createInputRejectionCounters } from '../world/world-state.js';
-import { createEvolutionDebugHandle, type DebugEntity } from './evolution-debug-handle.js';
+import type { DebugEntity } from './debug-entities.js';
+import { createEvolutionDebugHandle } from './evolution-debug-handle.js';
 
 /** Where on the rim the held bacterium sits, past the wire's two decimals so the exact read shows. */
 const HELD_BEARING_RADIANS = 1.2345;

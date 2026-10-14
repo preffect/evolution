@@ -4,6 +4,12 @@
 // (positions, angles, ticks): every size (a film's radius, a thread's length and width, the light patch's radius, the
 // bank's and the copepod lane's widths) is read from the live balance (docs/architecture/wire-contract.md §4 "The pool
 // layout").
+//
+// The creatures (§14.6) are named here too: `PoolCreatureSpecies` and the view a creature's cell carries
+// (`CellView.poolCreature`). Their shapes, the nematode's chain and the copepod's per-tick strip, are the shared
+// formulas of `simulation/pool-creature-shapes.ts`.
+
+import type { ValueOf } from './common.js';
 
 /** A bacteria film on the rock pool's floor (docs/game-design/phases.md §14.5.2): a disc of `POOL_FILM_RADIUS` here. */
 export interface PoolFilmView {
@@ -65,4 +71,38 @@ export interface CopepodLaneView {
   directionX: number;
   directionY: number;
   startedAtTick: number;
+}
+
+/**
+ * The rock pool's creatures (docs/game-design/phases.md §14.6.1): the ciliate hunter, the anchored whirlpool, the
+ * thrasher and the passing giant. Also the `debug_spawn` kinds and the `debug_get_entities` filters that name them
+ * (docs/architecture/debug-mcp.md §8).
+ */
+export const POOL_CREATURE_SPECIES = {
+  didinium: 'didinium',
+  rotifer: 'rotifer',
+  nematode: 'nematode',
+  copepod: 'copepod',
+} as const;
+export type PoolCreatureSpecies = ValueOf<typeof POOL_CREATURE_SPECIES>;
+
+/** The creatures that are cells. The copepod has no body: its pass is the snapshot's `CopepodLaneView` (§14.6.4). */
+export type PoolCreatureCellSpecies = Exclude<PoolCreatureSpecies, typeof POOL_CREATURE_SPECIES.copepod>;
+
+/** The creatures that kill without a killer cell (§14.6.4): a rotifer's swallow and the copepod's pass credit no one. */
+export type CreditlessKillerSpecies = typeof POOL_CREATURE_SPECIES.rotifer | typeof POOL_CREATURE_SPECIES.copepod;
+
+/**
+ * What a creature's cell carries beside the ordinary cell fields (`CellView.poolCreature`, null for every other cell),
+ * mirrored from its seat, the creature's whole memory (docs/architecture/entity-model.md §2).
+ */
+export interface PoolCreatureView {
+  species: PoolCreatureCellSpecies;
+  /**
+   * The one rotifer at landmark size (§14.6.3): drawn and collided at `ERA_LANDMARK_RADIUS`, no pull, never eaten. The
+   * shared movement step's rotifer pull skips it. False for every other creature.
+   */
+  isLandmark: boolean;
+  /** The way the body lies (radians): the nematode's chain is laid along it (`nematodeSegmentCentres`). */
+  headingRadians: number;
 }

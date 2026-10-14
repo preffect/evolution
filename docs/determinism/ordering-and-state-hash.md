@@ -42,14 +42,16 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   section's presence is unambiguous: it is there or the walk has ended, #907), then, only once the world has **era
   state**, the eras' section (`game/world/era-hashed-section.ts`, `hashEraSection`): the era it moved into
   (`eraMovedInto`, architecture/server-simulation.md §3), the eras' three streams in `ERA_RANDOM_STREAM_LABELS` order,
-  then the pool's own state, each `null` or its fields: `poolLayout`, `surge`, `copepodLane`
+  then the pool's own state, each `null` or its fields: `poolLayout`, `surge`, `copepodLane`, then the creatures' seats
+  `poolCreatureSeats` (`POOL_CREATURE_SEAT_HASHED_FIELDS` per seat, in seat order; ticket #935; a creature cell's
+  `poolCreature` is its seat's mirror and is left out as derived, as `isStarving` is)
   (`TRAILING_WORLD_HASHED_FIELDS` lists the world fields in walk order). A world has era state (`hasEraState`) once it
   has left the dish, drawn from one of the eras' streams (determinism/random-streams.md §3: they are hashed only once
-  drawn) or holds a layout, a surge or a copepod's pass. Every world that never reaches the pool, every world while
+  drawn) or holds a layout, a surge, a copepod's pass or the creatures' seats (an empty list included). Every world that never reaches the pool, every world while
   the eras are off, feeds the section nothing and hashes as before the eras (#931, #932). The era opens the section
   with a string's tag where the held lists open with an array's, so either section's presence reads from its first
-  byte. This section is the home of all the eras' hashed state: the move's grace (ticket #868) and the creatures'
-  state join it, inside it and under its gate: each joins `POOL_STATE_HASHED_FIELDS`, the one list the gate and the walk
+  byte. This section is the home of all the eras' hashed state: the move's grace (ticket #868) and the rest of the
+  creatures' state (the copepod's schedule, ticket #873) join it, inside it and under its gate: each joins `POOL_STATE_HASHED_FIELDS`, the one list the gate and the walk
   both iterate (null when the world has none of it), and its test then asks for a case that changes the field inside an
   open section, while a recorded hash of a world holding every field pins the walk's order; never in a third trailing
   section, so the
@@ -68,8 +70,8 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   (the test table pins that every non-derived field is listed, in its record's list or a trailing one).
 - Random stream state is included (a run that consumed a different number of draws differs).
 - Derived data (spatial hash, `leaderboard`, `effects`, `massFlow` (transient like `effects`, #383),
-  `CellRecord.heldDisplacementX/Y` (transient: cleared at step 6, read only by the serializer, #774), `balance`,
-  `config`) is excluded:
+  `CellRecord.heldDisplacementX/Y` (transient: cleared at step 6, read only by the serializer, #774),
+  `CellRecord.isStarving` and `CellRecord.poolCreature` (their seats' mirrors, #935), `balance`, `config`) is excluded:
   the leaderboard is a function of the players, effects are transient, and balance and config
   are inputs recorded by the replay instead.
 - Cost: O(entities); computed on demand (tests, `debug_get_state_hash`, replay end, the

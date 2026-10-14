@@ -7,17 +7,18 @@ import {
   FOOD_KIND,
   GIANT_SPECIES,
   PLAYER_LIFE_STATE,
+  POOL_CREATURE_SPECIES,
   playerId,
   secondsToTicks,
 } from '@evolution/shared';
 import { setCellMass } from '../simulation/cell-mass.js';
 import { beginEngulf } from '../simulation/engulf-state.js';
 import { refreshCellDerivedState } from '../progression/modifiers.js';
-import { seatTestWildCell } from '../../testing/wild-builders.js';
+import { seatTestPoolCreature, seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
 import type { CellRecord } from '../world/entities.js';
 import { NO_GAIN } from '../simulation/cell-mass.js';
-import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus, withdrawCell } from './death.js';
+import { absorbCell, detritusMoteCount, dissolveCell, dropDetritus, killWithoutCredit, withdrawCell } from './death.js';
 
 const SEED = 42;
 /** The projection onto the food boundary lands on it up to float rounding; a stray mote overshoots by tens of wu. */
@@ -180,5 +181,67 @@ describe('absorbCell', () => {
       expect(player.lifeState).toBe(PLAYER_LIFE_STATE.alive);
       expect(player.respawnInTicks).toBe(0);
     }
+  });
+});
+
+describe('killWithoutCredit', () => {
+  /** Two players and a roaming rotifer beside the second: the rotifer swallows, the copepod passes. */
+  function playersAndARotifer() {
+    const { world, predator: bystander, prey, killer: other, victim } = predatorAndPrey();
+    const { cell: rotifer } = seatTestPoolCreature(world, {
+      species: POOL_CREATURE_SPECIES.rotifer,
+      at: { x: prey.x + 40, y: prey.y },
+      mass: DEFAULT_BALANCE.poolCreatures.ROTIFER_MASS,
+    });
+    world.tick = 30;
+    victim.dnaTowardNextLevel = 40;
+    return { world, bystander, prey, other, victim, rotifer, context: createTestStepContext(world) };
+  }
+
+  it('a rotifer’s swallow: the cell leaves whole, no one is credited, and the player spectates the rotifer', () => {
+    const { world, bystander, prey, other, victim, rotifer, context } = playersAndARotifer();
+    const before = { mass: rotifer.mass, bystanderMass: bystander.mass, absorptions: other.absorptions };
+    killWithoutCredit(world, context, { victim: prey, species: POOL_CREATURE_SPECIES.rotifer, killerCell: rotifer });
+    expect(world.cells).toEqual([bystander, rotifer]);
+    expect(world.food).toEqual([]);
+    expect(context.effects).toEqual([
+      {
+        kind: EFFECT_KIND.eatenByCreature,
+        tick: 30,
+        x: prey.x,
+        y: prey.y,
+        cellId: prey.id,
+        playerId: 'b',
+        species: POOL_CREATURE_SPECIES.rotifer,
+        killerCellId: rotifer.id,
+      },
+    ]);
+    expect(victim.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
+    expect(victim.spectatingCellId).toBe(rotifer.id);
+    expect(victim.respawnInTicks).toBe(secondsToTicks(session.RESPAWN_SPECTATE_SECONDS) + 1);
+    expect(victim.dnaTowardNextLevel).toBe(0);
+    expect({ mass: rotifer.mass, bystanderMass: bystander.mass, absorptions: other.absorptions }).toEqual(before);
+  });
+
+  it('the copepod’s pass: no killer cell, so the player spectates nothing and its camera holds', () => {
+    const { world, prey, victim, context } = playersAndARotifer();
+    killWithoutCredit(world, context, { victim: prey, species: POOL_CREATURE_SPECIES.copepod, killerCell: null });
+    expect(world.cells).not.toContain(prey);
+    expect(world.food).toEqual([]);
+    expect(context.effects).toMatchObject([
+      { kind: EFFECT_KIND.eatenByCreature, species: POOL_CREATURE_SPECIES.copepod, killerCellId: null },
+    ]);
+    expect(victim.lifeState).toBe(PLAYER_LIFE_STATE.spectating);
+    expect(victim.spectatingCellId).toBeNull();
+  });
+
+  it('a wild victim: the effect carries no player and nobody starts spectating', () => {
+    const { world, other, victim, rotifer, context } = playersAndARotifer();
+    const { cell: wild } = seatTestWildCell(world, { at: { x: rotifer.x + 60, y: rotifer.y }, mass: 20 });
+    killWithoutCredit(world, context, { victim: wild, species: POOL_CREATURE_SPECIES.rotifer, killerCell: rotifer });
+    expect(world.cells).not.toContain(wild);
+    expect(world.food).toEqual([]);
+    expect(context.effects).toMatchObject([{ kind: EFFECT_KIND.eatenByCreature, cellId: wild.id, playerId: null }]);
+    for (const player of [other, victim]) expect(player.lifeState).toBe(PLAYER_LIFE_STATE.alive);
   });
 });

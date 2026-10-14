@@ -87,6 +87,7 @@ describe('view projections', () => {
         'sprintCooldownRemainingTicks',
         'isStarving',
         'giantSpecies',
+        'poolCreature',
         'latchedBacteria',
       ].sort(),
     );

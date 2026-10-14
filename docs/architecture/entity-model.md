@@ -79,6 +79,7 @@ export interface CellView {
   sprintCooldownRemainingTicks: number; // 0 = sprint ready; the HUD meter reads it (ui/hud.md §3.1), never estimates it
   isStarving: boolean; // a wild cell the die-off is starving (ecology/wild-cells.md §3.3.6); the renderer fades it; always false for a player cell
   giantSpecies: GiantSpecies | null; // the giant's species (ecology/giants.md §3.5.15), null for every other cell; canEngulf reads it, so the grazer and the drifter engulf no cell
+  poolCreature: PoolCreatureView | null; // the pool creature's species and body (game-design/phases.md §14.6), its seat's mirror; null for every other cell
   latchedBacteria: LatchedBacteriumView[]; // the held list (game-design/early-life.md §15.4), catch order, ≤ LATCH_MAX_HELD; empty for every cell that does not latch
 }
 export interface LatchedBacteriumView {
@@ -150,6 +151,15 @@ export interface CopepodLaneView {
   directionY: number;
   startedAtTick: number;
 }
+export type PoolCreatureSpecies = 'didinium' | 'rotifer' | 'nematode' | 'copepod'; // POOL_CREATURE_SPECIES (§14.6.1, ticket #935); also the debug_spawn kinds and debug_get_entities filters (debug-mcp.md §8)
+export type PoolCreatureCellSpecies = Exclude<PoolCreatureSpecies, 'copepod'>; // the copepod has no cell: its pass is CopepodLaneView
+export type CreditlessKillerSpecies = 'rotifer' | 'copepod'; // the kills that credit no one (§14.6.4)
+export interface PoolCreatureView {
+  // CellView.poolCreature: a creature's cell is a wild cell with it set, as a giant is one with giantSpecies set; the wild seats' rules skip it (ticket #872)
+  species: PoolCreatureCellSpecies;
+  isLandmark: boolean; // the one rotifer at ERA_LANDMARK_RADIUS (§14.6.3): no pull (the shared pull skips it), never eaten
+  headingRadians: number; // the way the body lies; the nematode's chain is laid along it (nematodeSegmentCentres, simulation/pool-creature-shapes.ts); SNAPSHOT_BEARING_DECIMALS on the wire
+}
 export interface TraitOfferView {
   offerId: number;
   level: number; // the level-up that queued it: back-to-back offers keep their own levels (PROGRESSION §4, ui/overlays.md §3.2)
@@ -207,7 +217,7 @@ export interface LeaderboardRow {
 ```
 
 Every string enum above is an `as const` object (`GAME_MODE`, `ROUND_END_CONDITION`, `ROUND_PHASE`, `FOOD_KIND`,
-`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `CELL_KIND`, `GIANT_SPECIES`, `GIANT_ROLE`, `WORLD_STANDING`, `ENTITY_KIND`) with the
+`BACTERIUM_VARIANT`, `DNA_TAG`, `ZONE_ID`, `CELL_STATE`, `CELL_STAGE`, `PLAYER_LIFE_STATE`, `CELL_KIND`, `GIANT_SPECIES`, `GIANT_ROLE`, `WORLD_STANDING`, `ENTITY_KIND`, `POOL_CREATURE_SPECIES`) with the
 union derived from it (`CODE-STANDARDS.md §2`); `EFFECT_KIND` (`types/effects.ts`), `TRAIT_CATEGORY` and
 `TRAIT_RARITY` (`types/traits.ts`, with the trait definition shape and `CellModifiers`) follow the same rule.
 The effects (`types/effects.ts`) are a discriminated union on `EFFECT_KIND`, each carrying the tick and the
@@ -227,7 +237,10 @@ the move goes into (a step that runs two moves emits two `era_moved`, in era ord
 (phases.md §14.5.2, §14.6.1, ticket #932), each carrying its view's fields: `surge_warning { startedAtTick,
 directionX, directionY }` `POOL_SURGE_WARNING_SECONDS` before a surge and `copepod_warning { startX, startY,
 directionX, directionY, startedAtTick }` `COPEPOD_WARNING_SECONDS` before a pass, on the tick the snapshot's `surge` or
-`copepodLane` first carries it.
+`copepodLane` first carries it. A death to a creature with no killer cell (phases.md §14.6.4, ticket #935) emits
+`eaten_by_creature { cellId, playerId, species, killerCellId }` at the victim's centre instead of `cell_absorbed`:
+`species` is `rotifer` or `copepod` (`CreditlessKillerSpecies`), `killerCellId` the swallowing rotifer's cell, which a
+player victim spectates, or null for the copepod; no one is credited (`killWithoutCredit`, server `session/death.ts`).
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
 `serialize.ts` projects records onto views and nothing else reads a record outside
@@ -322,7 +335,23 @@ export interface DnaFragmentRecord extends DnaFragmentView {
     species: GiantSpecies; // one seat per species
     bornMass: number; // the base size: uniform on the species' range, drawn at each (re)spawn; never decays, never moves with the world
   }
+  export interface PoolCreatureSeatRecord extends SeatMindRecord {
+    // a pool creature's whole memory (game-design/phases.md §14.6, ticket #935): a seat with a mind, built the way a giant's is, in its own list, WorldState.poolCreatureSeats
+    // seatNumber: poolCreatureSeatNumber, after every giant seat (firstGiantSeatNumber + GIANT_SPECIES_ORDER.length + its place in the list), so the decision stagger never shares a number
+    species: PoolCreatureCellSpecies;
+    isLandmark: boolean;
+  }
   ```
+
+  A creature's cell is a wild cell whose `poolCreature` mirrors its seat's `species` and `isLandmark`, and its mind's
+  heading as an angle (`headingRadians = atan2(headingY, headingX)`: one fact, one home, since the body lies the way
+  it swims and the nematode's wave is that heading's swing), written only by `mirrorPoolCreatureSeat` (`game/world/pool-creature-mirror.ts`), which also sets the cell's radius by
+  `cellRadiusOf` (shared `simulation/pool-creature-shapes.ts`): the landmark's is `ERA_LANDMARK_RADIUS` and the
+  nematode's its bounding radius, whatever their mass, and `setCellMass` and the step-1 fold keep them (every cell's
+  radius is `cellRadiusOf`, which is `radiusForMass` for every cell that is not such a creature). Its hashed fields are
+  the mind's list then `species` and `isLandmark` (`POOL_CREATURE_SEAT_HASHED_FIELDS`, `seat-hashed-fields.ts`), walked
+  in the eras' section. A kill without a killer cell (`killWithoutCredit`) runs at or before step 9, the respawn
+  countdown, as the engulf payout does, or the victim's spectate is a tick short.
 
   The seat record is the whole of a seated cell's memory: the wound is not stored, it is `cell.mass − fullMass`, and
   every field above is hashed (`WILD_SEAT_HASHED_FIELDS`, `GIANT_SEAT_HASHED_FIELDS`). The giant seats live apart
@@ -363,7 +392,8 @@ export interface WorldState {
   poolLayout: PoolLayoutView | null; // drawn from the `pool` stream at the round's start when the pool is in play (ticket #870), null in every other round; on the snapshot from the pool's warning tick (wire-contract.md §4 "The pool layout")
   surge: SurgeView | null; // from its warning to its end (ticket #903), else null
   copepodLane: CopepodLaneView | null; // the copepod's pass from its warning to its end (ticket #873), else null
-  // the three above are hashed in the eras' section, with the eras' streams (determinism/ordering-and-state-hash.md §5, ticket #932)
+  poolCreatureSeats: PoolCreatureSeatRecord[] | null; // seat order; placed by the pool's move (ticket #872), null in every world without creatures (ticket #935)
+  // the four above are hashed in the eras' section, with the eras' streams (determinism/ordering-and-state-hash.md §5, tickets #932, #935)
   cells: CellRecord[]; // insertion order
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];

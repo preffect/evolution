@@ -3,7 +3,7 @@
 // 1 right after trait choices apply. The fold itself is the shared `foldModifiers`. A player cell
 // folds its player's traits; a wild cell folds the build the world clock hands it (docs/ecology/wild-cells.md §3.3).
 
-import { foldModifiers, radiusForMass, type BalanceConfig, type OwnedTrait } from '@evolution/shared';
+import { cellRadiusOf, foldModifiers, type BalanceConfig, type OwnedTrait } from '@evolution/shared';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { stageOfOwned } from './ladder.js';
 
@@ -17,7 +17,7 @@ export function refreshCellDerivedStateFromTraits(
   cell.traits = ownedTraits.map((owned) => ({ ...owned }));
   cell.stage = stageOfOwned(ownedTraits, balance);
   cell.membraneRatioBonus = cell.modifiers.membraneRatioBonus;
-  cell.radius = radiusForMass(cell.mass, balance.growth);
+  cell.radius = cellRadiusOf(cell, balance);
 }
 
 /** Recomputes everything a cell derives from its player's traits and its mass. */
