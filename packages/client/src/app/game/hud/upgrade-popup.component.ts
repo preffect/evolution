@@ -59,7 +59,7 @@ const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
     '[style.--popup-offset]': "shownSlot().offsetPx + 'px'",
     '[attr.data-placement]': 'shownSlot().placement',
     '[class.moving]': 'slotMove.isFadingOut()',
-    '[class.held]': 'isHeld()',
+    '[class.held]': 'isLifeHeld()',
   },
   template: `
     <div class="live" role="status" aria-live="polite">
@@ -114,6 +114,8 @@ export class UpgradePopupComponent implements OnInit {
   });
   /** No slot clear of the cues while the picker is open: the popup waits, its life and animations stopped. */
   protected readonly isHeld = computed(() => this.slot().placement === UPGRADE_POPUP_PLACEMENT.held);
+  /** Held before its own fade out began: its animations stop with its life; a later one runs out unseen. */
+  protected readonly isLifeHeld = computed(() => this.isHeld() && !this.popups.isUpPopupFadingOut());
   /** The slot the host is drawn in: the one answered now, or the old one while the host fades out of it. */
   protected readonly shownSlot = computed(() => this.slotMove.slotToShow(this.slot()));
   protected readonly shown = computed(() => {

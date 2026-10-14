@@ -4,13 +4,18 @@ import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   TICK_HZ,
+  millisecondsToTicks,
   createTestPlayerProgressView,
   type OwnProgressView,
   type OwnedTrait,
   type TraitId,
   GIANT_SPECIES,
 } from '@evolution/shared';
-import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
+import {
+  FORM_POPUP_DURATION_SECONDS,
+  FORM_POPUP_OUT_MS,
+  UPGRADE_POPUP_DURATION_SECONDS,
+} from '../upgrade-popup-constants';
 import { formRealLifeLine } from './form-facts';
 import type { GiantSwallow } from './giant-popups';
 import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
@@ -18,6 +23,7 @@ import { describeTierModifierEffects, describeTierModifiers } from './trait-effe
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
   gainedTraits,
+  isUpgradePopupFadingOutAt,
   upgradePopupStepFor,
   upgradePopupUpAt,
   type UpgradePopupMemory,
@@ -203,6 +209,21 @@ describe('upgradePopupStepFor: a held popup (docs/ui/overlays.md §3.8, ticket #
     expect(upgradePopupUpAt(lastTick, formEnd - 1)?.traitId).toBe(PARAMECIUM.traitId);
     const after = upgradePopupStepFor(lastTick, sample(formEnd, [PARAMECIUM, FLAGELLUM]));
     expect(upgradePopupUpAt(after, formEnd)?.traitId).toBe(FLAGELLUM.traitId);
+  });
+
+  it('does not hold a popup whose own fade out has begun: it runs out unseen, the queue waiting only for what is left', () => {
+    const fired = formThenUpgrade();
+    const formEnd = firedTick + FORM_TICKS;
+    const fadeStart = formEnd - millisecondsToTicks(FORM_POPUP_OUT_MS);
+    const fading = upgradePopupStepFor(fired, sample(fadeStart, [PARAMECIUM, FLAGELLUM]));
+    expect(isUpgradePopupFadingOutAt(fading.queue[0]!, fadeStart)).toBe(true);
+    const held = upgradePopupStepFor(fading, sample(fadeStart + 1, [PARAMECIUM, FLAGELLUM], { isUpPopupHeld: true }));
+    expect(held.queue.map((popup) => popup.endTick)).toEqual([formEnd, formEnd + UPGRADE_TICKS]);
+    // One tick earlier it is still whole, and the hold stops its life.
+    const before = upgradePopupStepFor(fired, sample(fadeStart - 1, [PARAMECIUM, FLAGELLUM]));
+    expect(isUpgradePopupFadingOutAt(before.queue[0]!, fadeStart - 1)).toBe(false);
+    const heldBefore = upgradePopupStepFor(before, sample(fadeStart, [PARAMECIUM, FLAGELLUM], { isUpPopupHeld: true }));
+    expect(heldBefore.queue[0]?.endTick).toBe(formEnd + 1);
   });
 
   it('lets the life run while it is not held, and holds nothing with nothing up', () => {

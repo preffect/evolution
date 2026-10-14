@@ -3,6 +3,7 @@
 // when that slot changes while a popup is up (ticket #861), and the hold, unseen with its life stopped, while the
 // picker's band leaves it no slot clear of the cues (ticket #863).
 
+import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CELL_STAGE,
@@ -12,6 +13,7 @@ import {
   createTestSnapshot,
   createTestTraitOfferView,
   entityId,
+  millisecondsToTicks,
   radiusForMass,
   secondsToTicks,
   type OwnedTrait,
@@ -25,7 +27,13 @@ import {
 } from '../../../testing/upgrade-popup-harness';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { UPGRADE_POPUP_PLACEMENT, upgradePopupSlotFor, type UpgradePopupRoom } from './format/upgrade-popup-slot';
-import { FORM_POPUP_DURATION_SECONDS, FORM_POPUP_IN_MS, UPGRADE_POPUP_MOVE_HOLD_MS } from './upgrade-popup-constants';
+import {
+  FORM_POPUP_DURATION_SECONDS,
+  FORM_POPUP_IN_MS,
+  FORM_POPUP_OUT_MS,
+  UPGRADE_POPUP_MOVE_HOLD_MS,
+} from './upgrade-popup-constants';
+import { UpgradePopupService } from './upgrade-popup.service';
 
 const OWN_CELL_ID = entityId('c-own');
 /** Ticket #840's frame: a mass-1250 own cell at 1024 × 640 under a form-sized popup, as the host measures it. */
@@ -151,6 +159,33 @@ describe('UpgradePopupComponent placement (docs/ui/overlays.md §3.8)', () => {
     expect(harness.popup(HUD_TEST_ID.formPopup)).not.toBeNull();
     deliverOverBigCell(pickedTick + FORM_LIFE_TICKS + 1, [PARAMECIUM], false);
     expect(harness.popup(HUD_TEST_ID.formPopup)).toBeNull();
+  });
+
+  it('lets a popup already fading out run out unseen when the picker opens, its animations not stopped', () => {
+    placedOverBigCell(false);
+    const firedTick = POPUP_START_TICK + 2;
+    deliverOverBigCell(firedTick, [PARAMECIUM], false);
+    const fadeStart = firedTick + FORM_LIFE_TICKS - millisecondsToTicks(FORM_POPUP_OUT_MS);
+    deliverOverBigCell(fadeStart, [PARAMECIUM], false);
+
+    deliverOverBigCell(fadeStart + 1, [PARAMECIUM], true);
+    expect(isHeld()).toBe(false);
+    deliverOverBigCell(firedTick + FORM_LIFE_TICKS, [PARAMECIUM], true);
+    expect(harness.popup(HUD_TEST_ID.formPopup)).toBeNull();
+  });
+
+  it('lets the life run again once the host is taken down while holding it', () => {
+    placedOverBigCell(true);
+    const firedTick = POPUP_START_TICK + 2;
+    deliverOverBigCell(firedTick, [PARAMECIUM], true);
+    expect(placement()).toBe(UPGRADE_POPUP_PLACEMENT.held);
+    harness.fixture.destroy();
+
+    const popups = TestBed.inject(UpgradePopupService);
+    harness.deliver(createTestSnapshot({ tick: firedTick + 1 }));
+    expect(popups.current()).not.toBeNull();
+    harness.deliver(createTestSnapshot({ tick: firedTick + FORM_LIFE_TICKS }));
+    expect(popups.current()).toBeNull();
   });
 
   it('takes a new slot at once while it is still entering', () => {

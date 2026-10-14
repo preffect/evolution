@@ -431,7 +431,8 @@ zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, gro
    hold (the popups queued behind it start that much later), and so do its entrance, glow and fade (the host's `held`
    class pauses the animations), so after the pick it plays out what it had left: a giant popup raised by the same
    swallow whose payout opened the picker, or a form popup gained while the next offer was waiting, gets its six seconds
-   after the pick, never during it. The picker's cards are the thing to read while it is open, and a pinned
+   after the pick, never during it. A popup whose own fade out (`UPGRADE_POPUP_OUT_MS`, `FORM_POPUP_OUT_MS`) had already
+   begun is not held: its life and animations run out unseen, so it never comes back half faded after the pick. The picker's cards are the thing to read while it is open, and a pinned
    popup could not keep off the rate tags there: under the toast row it covered two whole rows at mass 1,250 at 1024 ×
    640, and pinning only the box under the toast row (its glow over the toast) gained 19.2 px (24 px at 1280 × 800),
    still over the full three-row column wherever it pinned, at both sizes up to the cap. So no popup's box is ever over a rate tag at
@@ -454,7 +455,7 @@ zero opacity; a slot answered during the hold changes where it lands, never when
 offer opens the picker while a form or giant popup hangs below a big cell: it fades out there into the held slot, its
 animations stopping as the fade starts, and when the pick closes the picker it fades back in below the cell at once,
 with no fade out of the held slot, where nothing is shown. The cell growing past the room above it, or the player
-dying, moves it the same way. Its own entrance and fade run on underneath. A fade rather than a slide, because the way between the two slots
+dying, moves it the same way. Between two shown slots, its own entrance and fade run on underneath; into the held slot they stop, unless its own fade out had begun (3. above). A fade rather than a slide, because the way between the two slots
 crosses the cell and the picker's band. A change of slot during the popup's entrance (`UPGRADE_POPUP_IN_MS`,
 `FORM_POPUP_IN_MS`) is taken at once: the popup is still finding its slot from its measured height, and fading in.
 

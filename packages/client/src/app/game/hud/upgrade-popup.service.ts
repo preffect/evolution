@@ -12,6 +12,7 @@ import type { GameSnapshot } from '@evolution/shared';
 import { giantSwallowOf, giantSwallowsKeptAt, withGiantSwallow, type GiantSwallow } from './format/giant-popups';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
+  isUpgradePopupFadingOutAt,
   upgradePopupStepFor,
   upgradePopupUpAt,
   type UpgradePopupMemory,
@@ -54,6 +55,13 @@ export class UpgradePopupService {
   readonly current = computed<UpgradePopup | null>(() => {
     const memory = this.memory();
     return memory.tick === null ? null : upgradePopupUpAt(memory, memory.tick);
+  });
+
+  /** The popup up has begun its own fade out: a hold no longer stops its life, nor should it stop its animations. */
+  readonly isUpPopupFadingOut = computed(() => {
+    const popup = this.current();
+    const tick = this.memory().tick;
+    return popup !== null && tick !== null && isUpgradePopupFadingOutAt(popup, tick);
   });
 
   constructor() {

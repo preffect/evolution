@@ -26,7 +26,7 @@
 
 /* No room above the cues and the picker's band below (ticket #863): unseen until the pick closes the picker, when it
    fades in at its slot. Its animations stop with its life the moment the hold is answered, while it fades out of its
-   old slot, and run on from there. */
+   old slot, and run on from there; a popup whose own fade out had begun is not paused, and runs out unseen. */
 :host([data-placement='held']) {
   opacity: 0;
   transition: opacity var(--hud-upgrade-popup-move-fade-out) ease-out;

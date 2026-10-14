@@ -14,8 +14,19 @@
 // reconnect fire nothing, and a rematch, which empties the traits, gains nothing. `UpgradePopupService` carries the
 // memory; `upgrade-popup.component.ts` binds the popup that is up.
 
-import { CELL_STAGE, secondsToTicks, type OwnProgressView, type OwnedTrait } from '@evolution/shared';
-import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
+import {
+  CELL_STAGE,
+  millisecondsToTicks,
+  secondsToTicks,
+  type OwnProgressView,
+  type OwnedTrait,
+} from '@evolution/shared';
+import {
+  FORM_POPUP_DURATION_SECONDS,
+  FORM_POPUP_OUT_MS,
+  UPGRADE_POPUP_DURATION_SECONDS,
+  UPGRADE_POPUP_OUT_MS,
+} from '../upgrade-popup-constants';
 import { formRealLifeLine, isFormTrait } from './form-facts';
 import { giantPopupsIn, type GiantSwallow } from './giant-popups';
 import {
@@ -67,6 +78,13 @@ const DURATION_TICKS: Readonly<Record<UpgradePopupKind, number>> = {
   giant: secondsToTicks(FORM_POPUP_DURATION_SECONDS),
 };
 
+/** The last ticks of each kind's life, over which the stylesheet fades it out. */
+const FADE_OUT_TICKS: Readonly<Record<UpgradePopupKind, number>> = {
+  upgrade: millisecondsToTicks(UPGRADE_POPUP_OUT_MS),
+  form: millisecondsToTicks(FORM_POPUP_OUT_MS),
+  giant: millisecondsToTicks(FORM_POPUP_OUT_MS),
+};
+
 /** The owned traits that are new since `previous`, or a tier above what it held, in the snapshot's order. */
 export function gainedTraits(previous: readonly OwnedTrait[], current: readonly OwnedTrait[]): OwnedTrait[] {
   return current.filter((owned) => {
@@ -112,13 +130,23 @@ function enqueue(queue: readonly UpgradePopup[], fired: readonly UpgradePopupCon
 }
 
 /**
+ * The popup's own fade out has begun by `tick`: a hold then stops neither its life nor its animations, so it runs out
+ * unseen rather than coming back half faded after the pick (ticket #863).
+ */
+export function isUpgradePopupFadingOutAt(popup: UpgradePopup, tick: number): boolean {
+  return tick >= popup.endTick - FADE_OUT_TICKS[popup.kind];
+}
+
+/**
  * The queue with the popup up at `fromTick` held until `toTick`: its end, and every later popup's start and end, moved
- * on by the ticks between, its start and key kept, so the component keeps its element and the animation's place.
+ * on by the ticks between, its start and key kept, so the component keeps its element and the animation's place. The
+ * queue's head is always up by the carried tick (`enqueue` starts nothing earlier than the fold, and the fold drops
+ * what has ended); one already fading out is not held.
  */
 function heldQueue(queue: readonly UpgradePopup[], fromTick: number, toTick: number): readonly UpgradePopup[] {
   const heldTicks = toTick - fromTick;
   const upPopup = queue[0];
-  if (heldTicks <= 0 || upPopup === undefined || upPopup.startTick > fromTick) return queue;
+  if (heldTicks <= 0 || upPopup === undefined || isUpgradePopupFadingOutAt(upPopup, fromTick)) return queue;
   return queue.map((popup, index) => ({
     ...popup,
     startTick: index === 0 ? popup.startTick : popup.startTick + heldTicks,
