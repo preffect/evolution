@@ -3,9 +3,18 @@
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
+import { TICK_HZ } from '../constants/network.js';
 import { withErasInPlay } from '../testing/era-balance.js';
+import { ticksToSeconds } from '../time/units.js';
 import { GAME_ERA, GAME_ERA_ORDER, type GameEra } from '../types/game.js';
-import { eraAt, eraBalanceProblems, isEraAfter, isEraReachable, type EraClockBalance } from './era-clock.js';
+import {
+  eraAt,
+  eraBalanceProblems,
+  eraStartTicks,
+  isEraAfter,
+  isEraReachable,
+  type EraClockBalance,
+} from './era-clock.js';
 import { worldElapsedSeconds } from './world-clock.js';
 
 /** The round lengths of §14.2.3: today's game, the pool on, the colonies on. */
@@ -16,10 +25,23 @@ const COLONIES_ON_ROUND_SECONDS = 1500;
 const POOL_FIRST_TICK = 36_000;
 const PH19_JUMP_TICK = 600;
 const PH19_ROUND_START_TICK = -35_400;
-const A_TICK_IN_SECONDS = 1 / 60;
+const A_TICK_IN_SECONDS = ticksToSeconds(1);
+/** A start on a whole tick whose `ticks × (1 / TICK_HZ)` reads a hair under `ticks / TICK_HZ` (600.3166… s). */
+const FLOAT_SHY_POOL_START_TICK = 36_019;
+/** A start between two ticks: 36 000.3 ticks (the review's probe). */
+const BETWEEN_TICKS_POOL_START_SECONDS = 600.005;
 
 const POOL_ON = withErasInPlay([GAME_ERA.dish, GAME_ERA.pool]);
 const COLONIES_ON = withErasInPlay(GAME_ERA_ORDER);
+
+function withStarts(
+  starts: Partial<Record<GameEra, number>>,
+  balance: EraClockBalance = DEFAULT_BALANCE,
+): EraClockBalance {
+  const eras = { ...balance.eras };
+  eras.ERA_START_SECONDS = { ...eras.ERA_START_SECONDS, ...starts };
+  return { eras };
+}
 
 describe('eraAt with the shipping balance (ERAS_IN_PLAY = dish)', () => {
   it.each([0, 599, 600, 1020, 1499, 1500])('is the dish at %s s of a 1500 s round: today’s game', (seconds) => {
@@ -68,6 +90,17 @@ describe('eraAt over the round clock’s ticks', () => {
   });
 });
 
+describe('eraAt reads ticks, not seconds', () => {
+  it('opens an era on its start tick even when that tick, in seconds, reads a hair under the start', () => {
+    const balance = withStarts({ [GAME_ERA.pool]: FLOAT_SHY_POOL_START_TICK / TICK_HZ }, POOL_ON);
+    expect(ticksToSeconds(FLOAT_SHY_POOL_START_TICK)).toBeLessThan(FLOAT_SHY_POOL_START_TICK / TICK_HZ);
+    expect(eraStartTicks(GAME_ERA.pool, balance)).toBe(FLOAT_SHY_POOL_START_TICK);
+    const eraAtTick = (tick: number) => eraAt(ticksToSeconds(tick), COLONIES_ON_ROUND_SECONDS, balance);
+    expect(eraAtTick(FLOAT_SHY_POOL_START_TICK - 1)).toBe(GAME_ERA.dish);
+    expect(eraAtTick(FLOAT_SHY_POOL_START_TICK)).toBe(GAME_ERA.pool);
+  });
+});
+
 describe('isEraReachable', () => {
   it('needs the era in play and starting before the round’s end', () => {
     expect(isEraReachable(GAME_ERA.dish, DISH_ONLY_ROUND_SECONDS, DEFAULT_BALANCE)).toBe(true);
@@ -88,12 +121,6 @@ describe('isEraAfter', () => {
 });
 
 describe('eraBalanceProblems', () => {
-  const withStarts = (starts: Partial<Record<GameEra, number>>): EraClockBalance => {
-    const eras = { ...DEFAULT_BALANCE.eras };
-    eras.ERA_START_SECONDS = { ...eras.ERA_START_SECONDS, ...starts };
-    return { eras };
-  };
-
   it('finds none in the shipping balance', () => {
     expect(eraBalanceProblems(DEFAULT_BALANCE)).toEqual([]);
   });
@@ -101,6 +128,12 @@ describe('eraBalanceProblems', () => {
   it('refuses a dish that does not start at the round’s start', () => {
     expect(eraBalanceProblems(withStarts({ [GAME_ERA.dish]: 5 }))).toEqual([
       "dish starts at 5 s, not at the round's start",
+    ]);
+  });
+
+  it('refuses a start that is not a whole number of ticks (600.005 s is 36 000.3 ticks)', () => {
+    expect(eraBalanceProblems(withStarts({ [GAME_ERA.pool]: BETWEEN_TICKS_POOL_START_SECONDS }))).toEqual([
+      'pool starts at 600.005 s, not on a whole tick',
     ]);
   });
 

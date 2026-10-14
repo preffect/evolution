@@ -3,6 +3,7 @@
 // cannot disagree; the era is derived, never stored. Pure: it reads only the balance it is given.
 
 import type { BalanceConfig } from '../constants/balance.js';
+import { isWholeNumberOfTicks, secondsToTicks } from '../time/units.js';
 import { GAME_ERA, GAME_ERA_ORDER, type GameEra } from '../types/game.js';
 
 /** The era every round starts in; `ERAS_IN_PLAY` always begins with it (`isErasInPlayList`). */
@@ -15,9 +16,17 @@ export interface EraClockBalance {
   eras: Pick<BalanceConfig['eras'], 'ERA_START_SECONDS' | 'ERAS_IN_PLAY'>;
 }
 
+/**
+ * The ticks after `roundStartTick` at which `era` starts: the one conversion the clock and `debug_set_era` share. The
+ * clock compares ticks, never seconds, since `ticks × (1 / TICK_HZ)` can fall a hair under `ticks / TICK_HZ`.
+ */
+export function eraStartTicks(era: GameEra, balance: EraClockBalance): number {
+  return secondsToTicks(balance.eras.ERA_START_SECONDS[era]);
+}
+
 /** True when `era` opens in a round of `roundDurationSeconds`: it is in play and it starts before the round's end. */
 export function isEraReachable(era: GameEra, roundDurationSeconds: number, balance: EraClockBalance): boolean {
-  return balance.eras.ERAS_IN_PLAY.includes(era) && balance.eras.ERA_START_SECONDS[era] < roundDurationSeconds;
+  return balance.eras.ERAS_IN_PLAY.includes(era) && eraStartTicks(era, balance) < secondsToTicks(roundDurationSeconds);
 }
 
 /**
@@ -26,9 +35,10 @@ export function isEraReachable(era: GameEra, roundDurationSeconds: number, balan
  * throughout.
  */
 export function eraAt(elapsedSeconds: number, roundDurationSeconds: number, balance: EraClockBalance): GameEra {
+  const elapsedTicks = secondsToTicks(elapsedSeconds);
   let current = FIRST_ERA;
   for (const era of balance.eras.ERAS_IN_PLAY) {
-    const hasStarted = balance.eras.ERA_START_SECONDS[era] <= elapsedSeconds;
+    const hasStarted = eraStartTicks(era, balance) <= elapsedTicks;
     if (hasStarted && isEraReachable(era, roundDurationSeconds, balance)) current = era;
   }
   return current;
@@ -40,8 +50,9 @@ export function isEraAfter(era: GameEra, other: GameEra): boolean {
 }
 
 /**
- * Why the era starts cannot drive the clock: the dish must start at the round's start and each later era strictly
- * after the one before it, so `eraAt` never skips an era. Empty when they can. `debug_set_balance` refuses a patch that
+ * Why the era starts cannot drive the clock: each must be a whole number of ticks (so `debug_set_era`'s first tick is
+ * the era's own, never a tick early), the dish must start at the round's start and each later era strictly after the
+ * one before it, so `eraAt` never skips an era. Empty when they can. `debug_set_balance` refuses a patch that
  * makes any; the constants test pins none on `DEFAULT_BALANCE`.
  */
 export function eraBalanceProblems(balance: Pick<EraClockBalance, 'eras'>): string[] {
@@ -51,6 +62,7 @@ export function eraBalanceProblems(balance: Pick<EraClockBalance, 'eras'>): stri
     problems.push(`${FIRST_ERA} starts at ${starts[FIRST_ERA]} s, not at the round's start`);
   }
   for (const [index, era] of GAME_ERA_ORDER.entries()) {
+    if (!isWholeNumberOfTicks(starts[era])) problems.push(`${era} starts at ${starts[era]} s, not on a whole tick`);
     const previous = GAME_ERA_ORDER[index - 1];
     if (previous !== undefined && starts[era] <= starts[previous]) {
       problems.push(`${era} starts at ${starts[era]} s, not after ${previous} at ${starts[previous]} s`);

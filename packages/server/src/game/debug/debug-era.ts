@@ -6,15 +6,14 @@
 
 import {
   ROUND_PHASE,
-  eraAt,
+  eraStartTicks,
   isEraAfter,
   isEraReachable,
-  secondsToTicks,
-  worldElapsedSeconds,
   type EraClockBalance,
   type GameEra,
 } from '@evolution/shared';
 import { DebugRequestError } from './debug-request-error.js';
+import { roundEraAt } from '../simulation/round-clock.js';
 import type { WorldState } from '../world/world-state.js';
 
 /** The next step runs at the tick after the world's: the tick the jump makes the era's first. */
@@ -27,20 +26,13 @@ export interface EraJump {
   readonly roundStartTick: number;
 }
 
-/** The era the round is in at the tick the world last stepped, read on `balance` (the world's own by default). */
-export function roundEraOf(world: WorldState, balance: EraClockBalance = world.balance): GameEra {
-  const roundDurationSeconds = world.config.roundDurationSeconds;
-  const elapsedSeconds = worldElapsedSeconds(world.tick, world.roundStartTick, roundDurationSeconds);
-  return eraAt(elapsedSeconds, roundDurationSeconds, balance);
-}
-
 /**
  * Refuses a balance patch that would take the round back to an earlier era (an era taken out of `ERAS_IN_PLAY`, or a
  * start moved past the round's time): an era, once opened, is never left (phases.md §14.2.4).
  */
 export function refuseEraRewind(world: WorldState, patched: EraClockBalance): void {
-  const before = roundEraOf(world);
-  const after = roundEraOf(world, patched);
+  const before = roundEraAt(world, world.tick);
+  const after = roundEraAt(world, world.tick, patched);
   if (isEraAfter(before, after)) {
     throw new DebugRequestError(`The patch would take the round back from "${before}" to "${after}"`);
   }
@@ -63,7 +55,7 @@ function refuseEraJump(world: WorldState, era: GameEra): void {
       `A round of ${roundDurationSeconds} s ends before "${era}" starts at ${eras.ERA_START_SECONDS[era]} s`,
     );
   }
-  const current = roundEraOf(world);
+  const current = roundEraAt(world, world.tick);
   if (!isEraAfter(era, current)) {
     throw new DebugRequestError(`The round is in "${current}": debug_set_era only moves to a later era`);
   }
@@ -73,6 +65,6 @@ function refuseEraJump(world: WorldState, era: GameEra): void {
 export function setEraForDebug(world: WorldState, era: GameEra): EraJump {
   refuseEraJump(world, era);
   const firstTick = world.tick + TICKS_TO_NEXT_STEP;
-  world.roundStartTick = firstTick - secondsToTicks(world.balance.eras.ERA_START_SECONDS[era]);
+  world.roundStartTick = firstTick - eraStartTicks(era, world.balance);
   return { era, firstTick, roundStartTick: world.roundStartTick };
 }

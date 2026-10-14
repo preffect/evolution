@@ -53,13 +53,9 @@ export function isGameEra(value: unknown): value is GameEra {
 
 /**
  * An `ERAS_IN_PLAY` list (docs/game-design/phases.md §14.2.4): a non-empty prefix of `GAME_ERA_ORDER`, so a game always
- * has the dish and never skips an era. `['dish']`, `['dish', 'pool']` and the whole order pass; anything else fails.
+ * has the dish and never skips an era. `['dish']`, `['dish', 'pool']` and the whole order pass; anything else fails, a
+ * list past the last era too (its extra entry meets no era of the order).
  */
 export function isErasInPlayList(value: unknown): value is readonly GameEra[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.length <= GAME_ERA_ORDER.length &&
-    value.every((era, index) => era === GAME_ERA_ORDER[index])
-  );
+  return Array.isArray(value) && value.length > 0 && value.every((era, index) => era === GAME_ERA_ORDER[index]);
 }

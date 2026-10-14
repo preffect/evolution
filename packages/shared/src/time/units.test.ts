@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { TICK_HZ, TICK_INTERVAL_MS } from '../constants/network.js';
-import { millisecondsToTicks, secondsToTicks, ticksToMilliseconds, ticksToSeconds } from './units.js';
+import {
+  isWholeNumberOfTicks,
+  millisecondsToTicks,
+  secondsToTicks,
+  ticksToMilliseconds,
+  ticksToSeconds,
+} from './units.js';
 
 const HALF_SECOND = 0.5;
 const THREE_TICKS = 3;
@@ -25,5 +31,13 @@ describe('time units', () => {
     expect(secondsToTicks(ticksToSeconds(THREE_TICKS))).toBe(THREE_TICKS);
     expect(millisecondsToTicks(ticksToMilliseconds(THREE_TICKS))).toBe(THREE_TICKS);
     expect(ticksToSeconds(TICK_HZ)).toBeCloseTo(1);
+  });
+
+  it.each([0, 600, HALF_SECOND, 36_019 / TICK_HZ])('reads %s s as a whole number of ticks', (seconds) => {
+    expect(isWholeNumberOfTicks(seconds)).toBe(true);
+  });
+
+  it.each([600.005, JUST_UNDER_HALF_A_TICK_S])('reads %s s as no whole number of ticks', (seconds) => {
+    expect(isWholeNumberOfTicks(seconds)).toBe(false);
   });
 });

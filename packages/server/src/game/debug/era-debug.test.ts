@@ -47,6 +47,8 @@ const ERA_START_LEAF = 'ERA_START_SECONDS';
 /** Pool starts no clock can run on: after the colonies' 1020 s; past the 600 s a round in the pool has played. */
 const POOL_START_AFTER_THE_COLONIES_SECONDS = 1100;
 const POOL_START_PAST_THE_ROUND_SECONDS = 700;
+/** 36 000.3 ticks: between two ticks (the review's probe). */
+const BETWEEN_TICKS_POOL_START_SECONDS = 600.005;
 
 /** A test world at `tick` of a round of `roundDurationSeconds`, playing `erasInPlay`. */
 function worldPlaying(
@@ -143,6 +145,13 @@ describe('setBalanceForDebug and the eras domain', () => {
     expect((patched as BalanceConfig).eras.ERAS_IN_PLAY).toEqual([GAME_ERA.dish, GAME_ERA.pool]);
   });
 
+  it('refuses an era start that is not a whole number of ticks (600.005 s), so a jump never lands a tick early', () => {
+    const world = createTestWorld();
+    expect(() =>
+      setBalanceForDebug(world, { eras: { [ERA_START_LEAF]: { [GAME_ERA.pool]: BETWEEN_TICKS_POOL_START_SECONDS } } }),
+    ).toThrow(new DebugRequestError('The patch breaks the era clock: pool starts at 600.005 s, not on a whole tick'));
+  });
+
   it('refuses era starts the clock cannot run on, naming the problem', () => {
     const world = createTestWorld();
     expect(() =>
@@ -219,7 +228,11 @@ describe('debug_set_balance and debug_set_era on a real Evolution room', () => {
     const { world } = fixture.gameModule as EvolutionModule;
     world.config = { ...world.config, roundDurationSeconds: COLONIES_ON_ROUND_SECONDS };
     const setEra = (era: string) => fixture.call('debug_set_era', { gameId: fixture.gameId, era });
-    expect((await setEra(GAME_ERA.pool)).isError).toBe(true);
+    const refusal = (text: string) => ({
+      isError: true,
+      content: [expect.objectContaining({ text: expect.stringContaining(text) })],
+    });
+    expect(await setEra(GAME_ERA.pool)).toMatchObject(refusal('"pool" is not in play'));
     const patch = { eras: { [ERAS_IN_PLAY_LEAF]: [GAME_ERA.dish, GAME_ERA.pool] } };
     const patched = parseToolJson(await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch }));
     expect((patched as BalanceConfig).eras.ERAS_IN_PLAY).toEqual([GAME_ERA.dish, GAME_ERA.pool]);
@@ -227,7 +240,7 @@ describe('debug_set_balance and debug_set_era on a real Evolution room', () => {
     expect(jump).toMatchObject({ era: GAME_ERA.pool, roundStartTick: world.roundStartTick });
     fixture.room.step(1);
     expect(eraOf(world)).toBe(GAME_ERA.pool);
-    expect((await setEra(GAME_ERA.dish)).isError).toBe(true);
+    expect(await setEra(GAME_ERA.dish)).toMatchObject(refusal('The round is in "pool"'));
     fixture.stop();
   });
 });
