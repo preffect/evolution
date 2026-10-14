@@ -14,8 +14,11 @@ export interface DiveCanvasResolutionParts {
   readonly clock: Clock;
   /** The last frame's time handing work to the GPU (`DiveFrameTimes.lastFrameIssueMs`), which a GPU behind blocks. */
   readonly issueMs: () => number;
-  /** The renderer is building: its steps run inside the frames and slow them, not the GPU. */
-  readonly isRendererBuilding: () => boolean;
+  /**
+   * The renderer is building, or the GPU is still on the bands' warm-up (`DiveWarmUpGate`): one-off work that slows
+   * the frames whatever the resolution.
+   */
+  readonly isWarmingUp: () => boolean;
   /** Sets the canvas's resolution (`PixiAppHandle.setResolution`). */
   readonly setResolution: (resolution: number) => void;
 }
@@ -77,7 +80,7 @@ export class DiveCanvasResolution {
       cpuMs: this.frameWorkMs,
       ceiling: upperBandsDevicePixelRatio(this.parts.top, frame.isMoving),
       bakeMs: bakeMs - this.bakeMsNoted,
-      isJudged: frame.isDrawn && !this.parts.isRendererBuilding(),
+      isJudged: frame.isDrawn && !this.parts.isWarmingUp(),
     });
     this.bakeMsNoted = bakeMs;
     if (this.governor.resolution === this.applied) return;

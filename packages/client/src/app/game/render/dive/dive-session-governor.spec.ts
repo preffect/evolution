@@ -122,6 +122,20 @@ describe('DiveSession resolution governor', { timeout: DIVE_HEAVY_TEST_TIMEOUT_M
     parts.subject.destroy();
   });
 
+  it('judges no frame while the GPU is on the bands’ warm-up: a one-off that no resolution shortens', async () => {
+    const parts = await started();
+    parts.app.gpu.isCaughtUp = false;
+    tickUntilBuilt(parts.app, parts.subject);
+    parts.subject.controls.cancelAutoplay();
+    parts.subject.controls.scrub(DROP_ZOOM);
+    frames(parts, FRAMES_TO_JUDGE * 4, SOFTWARE_FRAME_MS);
+    expect(parts.app.resolutions).toEqual([]);
+    parts.app.gpu.isCaughtUp = true;
+    frames(parts, FRAMES_TO_JUDGE, softwareFrame);
+    expect(parts.app.resolutions).toEqual([DIVE_RESOLUTION_GOVERNOR.floorResolution]);
+    parts.subject.destroy();
+  });
+
   it('never counts the stage off screen as a slow frame', async () => {
     const parts = await inTheDrop();
     for (let visit = 0; visit < FRAMES_TO_JUDGE; visit += 1) {

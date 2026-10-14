@@ -8,7 +8,7 @@ export type GpuFenceContext = Pick<
   WebGL2RenderingContext,
   | 'SYNC_GPU_COMMANDS_COMPLETE'
   | 'SYNC_STATUS'
-  | 'SIGNALED'
+  | 'UNSIGNALED'
   | 'fenceSync'
   | 'getSyncParameter'
   | 'deleteSync'
@@ -36,7 +36,8 @@ export function fenceGpuWork(context: Partial<GpuFenceContext> | null): GpuFence
   let hasPassed = false;
   return () => {
     if (hasPassed) return true;
-    hasPassed = webGl.isContextLost() || webGl.getSyncParameter(sync, webGl.SYNC_STATUS) === webGl.SIGNALED;
+    // A sync made before the context was lost and restored is invalid: its status reads `null`, never signalled.
+    hasPassed = webGl.isContextLost() || webGl.getSyncParameter(sync, webGl.SYNC_STATUS) !== webGl.UNSIGNALED;
     if (hasPassed) webGl.deleteSync(sync);
     return hasPassed;
   };

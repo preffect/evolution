@@ -13,11 +13,14 @@ const UNSIGNALED = 0x9118;
 const SYNC_ENUMS = Object.fromEntries([
   ['SYNC_GPU_COMMANDS_COMPLETE', 0x9117],
   ['SYNC_STATUS', SYNC_STATUS],
-  ['SIGNALED', SIGNALED],
+  ['UNSIGNALED', UNSIGNALED],
 ]);
 
-/** A WebGL 2 context whose GPU is past the fence once `gpu.isDone`; it records what it was asked. */
-function context(gpu = { isDone: false, isLost: false }) {
+/**
+ * A WebGL 2 context whose GPU is past the fence once `gpu.isDone`, and whose fence is invalid (a context lost and
+ * restored since) once `gpu.isInvalid`; it records what it was asked.
+ */
+function context(gpu = { isDone: false, isLost: false, isInvalid: false }) {
   const calls: string[] = [];
   const methods: Pick<GpuFenceContext, 'fenceSync' | 'getSyncParameter' | 'deleteSync' | 'flush' | 'isContextLost'> = {
     fenceSync: () => {
@@ -26,6 +29,7 @@ function context(gpu = { isDone: false, isLost: false }) {
     },
     getSyncParameter: (_sync, name) => {
       calls.push('status');
+      if (gpu.isInvalid) return null;
       return name === SYNC_STATUS && gpu.isDone ? SIGNALED : UNSIGNALED;
     },
     deleteSync: () => calls.push('delete'),
@@ -49,7 +53,7 @@ describe('fenceGpuWork', () => {
   });
 
   it('stays passed without asking again, the fence given back once', () => {
-    const { subject, calls, gpu } = context({ isDone: true, isLost: false });
+    const { subject, calls, gpu } = context({ isDone: true, isLost: false, isInvalid: false });
     const check = fenceGpuWork(subject);
     expect(check()).toBe(true);
     const asked = calls.length;
@@ -66,8 +70,16 @@ describe('fenceGpuWork', () => {
     expect(check()).toBe(true);
   });
 
+  it('passes once its fence is invalid: a context lost and restored since reads its status as null, never signalled', () => {
+    const { subject, gpu } = context();
+    const check = fenceGpuWork(subject);
+    expect(check()).toBe(false);
+    gpu.isInvalid = true;
+    expect(check()).toBe(true);
+  });
+
   it('passes at once where no fence can be set: no WebGL 2, a lost context, no sync made, no context', () => {
-    const { subject, calls } = context({ isDone: false, isLost: true });
+    const { subject, calls } = context({ isDone: false, isLost: true, isInvalid: false });
     expect(fenceGpuWork(subject)()).toBe(true);
     expect(calls).toEqual([]);
     const webGl1: Partial<GpuFenceContext> = { flush: () => undefined, isContextLost: () => false };

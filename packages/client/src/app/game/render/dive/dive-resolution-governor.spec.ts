@@ -18,6 +18,10 @@ const { windowFrames, minWindowFrames, windowMs, stepRatio, floorResolution, max
   DIVE_RESOLUTION_GOVERNOR;
 /** Software GL at DPR 2 a few frames behind: the wait before the next burst of frames (the evidence box's 1–2.5 s). */
 const BURST_WAIT_MS = 1500;
+/** A stall of the page's own between two frames, neither a bake slice nor the GPU's (ticket #814's review). */
+const PAGE_STALL_MS = 500;
+/** How long the page stalls in the review's case. */
+const STALLED_SPAN_MS = 20_000;
 
 describe('diveResolutionLadder', () => {
   it('steps from the dive’s ratio by the notch down to the floor, which ends it', () => {
@@ -168,6 +172,43 @@ describe('DiveResolutionGovernor', () => {
       subject.frames(burstFrames, SMOOTH_MS);
     }
     expect(subject.changes).toEqual([floorResolution]);
+  });
+
+  it('leaves bursts that span under a second to the median: a busy page’s few slow frames, not a GPU behind', () => {
+    const subject = feed(2);
+    const shortWaitMs = 400;
+    for (let burst = 0; burst < 30; burst += 1) {
+      subject.frames(1, shortWaitMs);
+      subject.frames(3, SMOOTH_MS);
+    }
+    expect(subject.changes).toEqual([]);
+  });
+
+  it('gives a step back when the page’s stalls among quick frames come no quicker with fewer pixels', () => {
+    // Ticket #814's review: a 500 ms stall every third frame, 2 ms of CPU a frame, no bake and no GPU behind.
+    const subject = feed(2);
+    const stalls = (): void => {
+      subject.frames(1, PAGE_STALL_MS, { cpuMs: 2 });
+      subject.frames(2, SMOOTH_MS, { cpuMs: 2 });
+    };
+    while (subject.nowMs < STALLED_SPAN_MS) stalls();
+    // The mean alone leapt it down; the next window was no quicker, so it went back, then waited 6 s and 12 s before
+    // trying again: at the dive's ratio but for two windows in twenty seconds.
+    const [leap, back, again, backAgain] = subject.changes;
+    expect(subject.changes).toHaveLength(4);
+    expect([leap, again].every((resolution) => resolution! < 1)).toBe(true);
+    expect([back, backAgain]).toEqual([2, 2]);
+    expect(subject.governor.resolution).toBe(2);
+  });
+
+  it('keeps a step the mean alone decided while a band bakes: the bakes slow the frames, not the pixels', () => {
+    const subject = feed(2);
+    while (subject.nowMs < STALLED_SPAN_MS) {
+      subject.frames(1, PAGE_STALL_MS, { bakeMs: 1 });
+      subject.frames(2, SMOOTH_MS);
+    }
+    expect(subject.changes).not.toContain(2);
+    expect(subject.changes.at(-1)).toBe(floorResolution);
   });
 
   it('never moves for one wait of seconds among smooth frames (a bake landing, the bands’ warm-up)', () => {

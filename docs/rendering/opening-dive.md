@@ -38,9 +38,13 @@ controls. This file says how the client draws it. The numbers are `render/consta
   and the slime make their textures and draw each program once, unseen (§4). A fence goes after that frame
   (`DiveWarmUpGate`, a WebGL 2 `fenceSync` through `PixiAppHandle.fenceGpuWork`, `render/gpu-fence.ts`, read without
   blocking), and the autoplay starts only once the GPU is past it, so the warm-up is the orbit's wait. Under software
-  GL at DPR 2 it is 7–10 s (the programs compiled, the textures uploaded and their mipmaps made); the fall used to
-  start on that frame and spend it as one gap of 8–17 s, whose end the shore's level floor held at zoom 3.65. On a
-  GPU the fence passes on the next frame. Where there is no fence (WebGL 1, a lost context) it passes at once.
+  GL at DPR 2 it is 7–10 s at load 2.5 and 23 s at load 6–8 (the programs compiled, the textures uploaded and their
+  mipmaps made); the fall used to start on that frame and spend it as one gap of 8–17 s, whose end the shore's level
+  floor held at zoom 3.65. On a GPU the fence passes within a few frames (about 20–40 ms; Chrome reports a sync's
+  status a few frames late). Where there is no fence (WebGL 1, a lost context) it passes at once, and so does one made
+  invalid by a context lost and restored (its status reads `null`). The gate opens anyway `DIVE_WARM_UP_MAX_WAIT_MS`
+  (20 s) after its fence: that covers the warm-up at ordinary load with margin, starts a fall under heavier load with a
+  few seconds of it left, and holds the lobby no longer than that on a fence that never signals.
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
   `RenderSession` builds. `destroy` frees the planet's, the shore's, the kelp's and the slime's GPU objects (the
   planet's quad, program, coastline textures and render texture; the shore's quad and its levels' and tiles' textures;
@@ -498,13 +502,18 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     bake slices between two frames are left out of the gap (`DiveBakeTime` times each call on the bands' scheduler),
     since they slow the frames whatever the resolution, so it judges while the bands bake (ticket #814: judging none
     then held the canvas at full resolution through the whole orbit and into the fall under software GL). Not while
-    the renderer builds (its steps run inside the frames), not off screen, not a still frame under reduced motion, not
-    the evidence probe.
-  - **Far behind:** a window that spans a second or more and whose frames came, on the whole, slower than 3 × the
-    target is judged by its mean, and counts as over budget throughout (ticket #814). A GPU seconds behind hands out
-    its frames in bursts, a few a vsync apart and then a wait of a second or two, so the median of a window can be a
-    vsync while the dive draws a frame a second. One long wait among smooth frames is in its windows for only a few
-    frames, never the 500 ms a step needs.
+    the renderer builds (its steps run inside the frames), nor while the GPU is on the bands' warm-up (from its fence
+    until it passes; with the CPU four times slower its uploads stepped a GPU's canvas down), not off screen, not a
+    still frame under reduced motion, not the evidence probe.
+  - **Far behind:** a full window that spans a second or more (at most six frames, so a mean of a sixth of a second
+    or slower) is judged by its mean, and counts as over budget throughout (ticket #814). A GPU seconds behind hands
+    out its frames in bursts, a few a vsync apart and then a wait of a second or two, so the median of a window can be
+    a vsync while the dive draws a frame a second. One long wait among smooth frames is in its windows for only a few
+    frames, never the 500 ms a step needs. A step only the mean decided (the window's median on budget), with no bake
+    slice in the window, is checked as a one-notch step is: the page's own stalls among quick frames (500 ms every
+    third frame, in ticket #814's review) are no quicker with fewer pixels, so it is undone and the next try waits
+    6 s, then 12 s… While a band bakes it is kept: software GL's frames in orbit stay slow for the bakes whatever the
+    resolution, and the fall after them is what the step is for.
   - **Over budget throughout:** a step down needs every window judged over the last 500 ms to be over budget with at
     most one frame of six on time. A GPU behind misses every vsync; a busy page misses some (33 ms gaps among 16.7 ms
     ones, a CPU four times slower), and those wait it out: ticket #804's review saw them step the canvas to the floor.
@@ -620,7 +629,8 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   is over budget; a window of slow frames steps down and one long task never does; software GL's 550 ms frames reach the
   floor in one change; nothing judged off the window (an interrupt, a gap too long, a frame not judged); bake slices
   left out of the gaps; software GL's bursts (a wait of seconds, then frames a vsync apart) reaching the floor, and one
-  wait of seconds among smooth frames never moving it; a step up after 3 s on budget, a failed one backed off 2×, 4×…
+  wait of seconds among smooth frames never moving it, nor bursts spanning under a second; a step the mean alone
+  decided undone when the page's stalls come no quicker, and kept while a band bakes; a step up after 3 s on budget, a failed one backed off 2×, 4×…
   to 48 s, a held one putting the wait back; the falling ceiling. `dive-bake-time.spec.ts`: each slice timed, one that
   throws too, a cancelled one never run.
 - `dive-session-governor.spec.ts`: over the fake app, slow frames step the dive's one canvas down and the bands' view
@@ -629,8 +639,10 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   arrives.
 - `dive-warm-up-gate.spec.ts`, `render/gpu-fence.spec.ts`: one fence, after the first frame drawn with every bake
   landed, the gate open only while they are and once the GPU is past it; the fence flushed, read without blocking,
-  given back once, and passed at once with no WebGL 2, no sync or a lost context. `dive-session-start.spec.ts`: the
-  autoplay never plays on the warm-up's frame, and waits for the fence.
+  given back once, and passed at once with no WebGL 2, no sync or a lost context, and once invalid; the gate open
+  after `DIVE_WARM_UP_MAX_WAIT_MS` whatever the fence says, and warming up only between its fence and then.
+  `dive-session-start.spec.ts`: the autoplay never plays on the warm-up's frame, waits for the fence, and starts at the
+  most it waits. `dive-session-governor.spec.ts`: no frame judged while the GPU is on the warm-up.
 - `kelp/*.spec.ts`: the splines and ribbons (through the control points, blade 0 through the focus, the taper and
   ruffles), the ribbons' mesh (strips, shadows first, attributes), the rock's sampled outline and the distance bakes
   (+ inside, exact at the outline), the beads (the mockup's grid cell bit for bit, on blade 0, clear of the drop, in

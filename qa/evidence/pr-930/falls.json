@@ -1,5 +1,5 @@
 {
-  "note": "ticket #814: fresh-load autoplay falls, 1280x800, on the 4-core evidence box shared with other agents. before = main at a497f625, after = this PR. gl sw = SwiftShader (GPU acceleration off), gpu = GTX 1080 Ti via ANGLE/Vulkan. load1m = the 1-minute load average at the start and end of the run. A band missing from a run drew no frame in it (the fall jumped past it). forced-floor runs pinned the canvas at 0.35 through a temporary hook (not in the PR): from the load the fall has no stall, from 12 s it stalls as main does, so the stall is not the canvas resolution.",
+  "note": "ticket #814: fresh-load autoplay falls, 1280x800, on the 4-core evidence box shared with other agents. before = main at a497f625, after = this PR. gl sw = SwiftShader (GPU acceleration off), gpu = GTX 1080 Ti via ANGLE/Vulkan. load1m = the 1-minute load average at the start and end of the run. A band missing from a run drew no frame in it (the fall jumped past it). forced-floor runs pinned the canvas at 0.35 through a temporary hook (not in the PR): from the load the fall has no stall, from 12 s it stalls as main does, so the stall is not the canvas resolution. round2 runs: the review fixes (the warm-up wait capped, no frame judged while the GPU is on the warm-up, a step the mean alone decided with no bake undone when no quicker).",
   "probe": "dive-probe.cjs fall <sw|gpu> <dpr> <cpu throttle> 4512",
   "runs": {
     "m1": {
@@ -736,6 +736,174 @@
           "fps": 6,
           "p50Ms": 166.7,
           "maxGapMs": 416.6,
+          "canvasRatio": [0.35, 0.35]
+        }
+      }
+    },
+    "r4g4a": {
+      "kind": "round2-after-gpu-throttle4",
+      "gl": "gpu",
+      "dpr": 2,
+      "cpuThrottle": 4,
+      "load1m": [2.82, 2.67],
+      "loadToPlayS": 24.5,
+      "fallS": 12.8,
+      "longestTaskInFallMs": 73,
+      "bands": {
+        "planet": {
+          "fps": 59,
+          "p50Ms": 16.7,
+          "maxGapMs": 66.6,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "shore": {
+          "fps": 57.7,
+          "p50Ms": 16.7,
+          "maxGapMs": 33.4,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "fps": 60,
+          "p50Ms": 16.7,
+          "maxGapMs": 16.8,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "slime": {
+          "fps": 60,
+          "p50Ms": 16.7,
+          "maxGapMs": 16.8,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "dish": {
+          "fps": 54,
+          "p50Ms": 16.7,
+          "maxGapMs": 50.1,
+          "canvasRatio": [1.5, 1.5]
+        }
+      }
+    },
+    "r4a": {
+      "kind": "round2-after",
+      "gl": "sw",
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "load1m": [2.67, 3.76],
+      "loadToPlayS": 25.2,
+      "fallS": 14.4,
+      "longestTaskInFallMs": 226,
+      "bands": {
+        "planet": {
+          "fps": 15.1,
+          "p50Ms": 66.6,
+          "maxGapMs": 183.3,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "shore": {
+          "fps": 9.4,
+          "p50Ms": 116.6,
+          "maxGapMs": 216.6,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "kelp+drop": {
+          "fps": 9.1,
+          "p50Ms": 100,
+          "maxGapMs": 350,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "slime": {
+          "fps": 11,
+          "p50Ms": 66.7,
+          "maxGapMs": 233.3,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "dish": {
+          "fps": 12.7,
+          "p50Ms": 50,
+          "maxGapMs": 866.6,
+          "canvasRatio": [0.35, 0.35]
+        }
+      }
+    },
+    "r4g4b": {
+      "kind": "round2-after-gpu-throttle4",
+      "gl": "gpu",
+      "dpr": 2,
+      "cpuThrottle": 4,
+      "load1m": [3.53, 4.86],
+      "loadToPlayS": 24.6,
+      "fallS": 13.8,
+      "longestTaskInFallMs": 116,
+      "bands": {
+        "planet": {
+          "fps": 58.2,
+          "p50Ms": 16.7,
+          "maxGapMs": 116.6,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "shore": {
+          "fps": 52.3,
+          "p50Ms": 16.7,
+          "maxGapMs": 50,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "kelp+drop": {
+          "fps": 57.8,
+          "p50Ms": 16.7,
+          "maxGapMs": 33.4,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "slime": {
+          "fps": 56.5,
+          "p50Ms": 16.7,
+          "maxGapMs": 50,
+          "canvasRatio": [1.5, 1.5]
+        },
+        "dish": {
+          "fps": 44.7,
+          "p50Ms": 16.7,
+          "maxGapMs": 50,
+          "canvasRatio": [1.41, 1.5]
+        }
+      }
+    },
+    "r4b": {
+      "kind": "round2-after",
+      "gl": "sw",
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "load1m": [5.35, 7.03],
+      "loadToPlayS": 27.1,
+      "fallS": 15.2,
+      "longestTaskInFallMs": 231,
+      "bands": {
+        "planet": {
+          "fps": 12.7,
+          "p50Ms": 66.7,
+          "maxGapMs": 166.7,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "shore": {
+          "fps": 6.4,
+          "p50Ms": 133.4,
+          "maxGapMs": 383.3,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "kelp+drop": {
+          "fps": 6.7,
+          "p50Ms": 133.2,
+          "maxGapMs": 433.3,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "slime": {
+          "fps": 10,
+          "p50Ms": 83.4,
+          "maxGapMs": 233.3,
+          "canvasRatio": [0.35, 0.35]
+        },
+        "dish": {
+          "fps": 11,
+          "p50Ms": 83.3,
+          "maxGapMs": 200,
           "canvasRatio": [0.35, 0.35]
         }
       }

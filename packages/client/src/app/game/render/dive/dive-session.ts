@@ -66,7 +66,7 @@ export class DiveSession extends FrameLoopSession {
   private ambientSeconds = 0;
   private readonly globeIdle = new DiveGlobeIdle();
   private readonly canvasResolution: DiveCanvasResolution;
-  private readonly warmUpGate = new DiveWarmUpGate();
+  private readonly warmUpGate = new DiveWarmUpGate(() => this.nowMs());
   private isFrameRequested = true;
   private isDestroyed = false;
   /** The stage's last reported visibility: the panel's observer can report before the app exists. */
@@ -81,7 +81,7 @@ export class DiveSession extends FrameLoopSession {
       top: this.devicePixelRatio,
       clock: dependencies.clock,
       issueMs: () => this.frameTimes.lastFrameIssueMs,
-      isRendererBuilding: () => this.isBuildingRenderer,
+      isWarmingUp: () => this.isBuildingRenderer || this.warmUpGate.isWarmingUp,
       setResolution: (resolution) => this.pixi?.setResolution(resolution),
     });
   }

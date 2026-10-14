@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { diveSessionHarness as harness, startedDiveSession as started } from '../../../../testing/dive-session-harness';
 import { DIVE_HEAVY_TEST_TIMEOUT_MS } from '../../../../testing/dive-test-timeouts';
-import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS } from '../constants';
+import { DIVE_AUTOPLAY_DELAY_MS, DIVE_PLAY_HOLD_MS, DIVE_WARM_UP_MAX_WAIT_MS } from '../constants';
 import { SHORE_LOD } from '../constants/dive-shore';
 import { DIVE_FIRST_PHASE, diveFallMs } from './dive-controls';
 
@@ -95,6 +95,19 @@ describe('DiveSession: what can change around it', { timeout: DIVE_HEAVY_TEST_TI
     // One fence, after the first frame drawn with every bake landed.
     expect(app.gpu.fences).toBe(1);
     app.gpu.isCaughtUp = true;
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(true);
+    subject.destroy();
+  });
+
+  it('starts the autoplay once the most it waits on the warm-up has passed, the GPU never past it', async () => {
+    const { subject, app, clock } = await started();
+    app.gpu.isCaughtUp = false;
+    app.tick();
+    clock.advanceMilliseconds(DIVE_WARM_UP_MAX_WAIT_MS - 1);
+    app.tick();
+    expect(subject.controls.isPlaying).toBe(false);
+    clock.advanceMilliseconds(1);
     app.tick();
     expect(subject.controls.isPlaying).toBe(true);
     subject.destroy();
