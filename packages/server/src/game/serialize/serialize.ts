@@ -240,6 +240,7 @@ function serializeShared(world: WorldState, precision: SnapshotPrecision): Omit<
     tick: world.tick,
     seed: world.seed,
     roundStartTick: world.roundStartTick,
+    era: world.eraMovedInto,
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
     gelPatches: world.gelPatches.map((patch) => ({ ...patch })),

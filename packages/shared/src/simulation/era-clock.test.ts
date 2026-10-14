@@ -11,6 +11,7 @@ import {
   eraAt,
   eraBalanceProblems,
   eraStartTicks,
+  eraStartedAtTick,
   isEraAfter,
   isEraReachable,
   type EraClockBalance,
@@ -87,6 +88,23 @@ describe('eraAt over the round clock’s ticks', () => {
     expect(PH19_JUMP_TICK - POOL_FIRST_TICK).toBe(PH19_ROUND_START_TICK);
     expect(eraAtTick(PH19_JUMP_TICK - 1, PH19_ROUND_START_TICK)).toBe(GAME_ERA.dish);
     expect(eraAtTick(PH19_JUMP_TICK, PH19_ROUND_START_TICK)).toBe(GAME_ERA.pool);
+  });
+});
+
+describe('eraStartedAtTick', () => {
+  it('is the round start plus the era’s start ticks: tick 36 000 for the pool of a round started at 0', () => {
+    expect(eraStartedAtTick(GAME_ERA.dish, 0, DEFAULT_BALANCE)).toBe(0);
+    expect(eraStartedAtTick(GAME_ERA.pool, 0, DEFAULT_BALANCE)).toBe(POOL_FIRST_TICK);
+  });
+
+  it('is the jump’s first tick after a debug_set_era jump (PH19: tick 601 after the jump at 600)', () => {
+    const jumpRoundStartTick = PH19_ROUND_START_TICK + 1;
+    expect(eraStartedAtTick(GAME_ERA.pool, jumpRoundStartTick, DEFAULT_BALANCE)).toBe(PH19_JUMP_TICK + 1);
+  });
+
+  it('reads a patched start', () => {
+    const balance = withStarts({ [GAME_ERA.pool]: 60 });
+    expect(eraStartedAtTick(GAME_ERA.pool, PH19_JUMP_TICK, balance)).toBe(PH19_JUMP_TICK + 60 * TICK_HZ);
   });
 });
 

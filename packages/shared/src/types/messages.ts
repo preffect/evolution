@@ -10,6 +10,7 @@ import type {
   CellView,
   DnaFragmentView,
   FoodMoteView,
+  GameEra,
   GameMode,
   GelPatchView,
   LeaderboardRow,
@@ -79,6 +80,12 @@ export interface GameSnapshot {
    * `debug_set_era` moves it back rather than jump the tick counter (§14.2.4).
    */
   roundStartTick: number;
+  /**
+   * The era the world has moved into (docs/game-design/phases.md §14.2.1): the server's `eraMovedInto`, not `eraAt`, so
+   * the client draws the world the moves have built. It trails the clock only between a `debug_set_era` jump or an era
+   * patch and the next step (docs/architecture/server-simulation.md §3). `dish` throughout while the eras are off.
+   */
+  era: GameEra;
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];

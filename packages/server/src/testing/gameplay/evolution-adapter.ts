@@ -185,6 +185,7 @@ export function createLazyScenarioSnapshot(world: WorldState): LazyScenarioSnaps
     tick: world.tick,
     seed: world.seed,
     roundStartTick: world.roundStartTick,
+    era: world.eraMovedInto,
     roundPhase: world.roundPhase,
     roundTimeLeftMs: world.roundTimeLeftMs,
     effects,

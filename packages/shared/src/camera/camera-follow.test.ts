@@ -1,7 +1,7 @@
 // The follow and the zoom. Z1's view half-height is pinned against game-design/controls-and-scope.md §7's table by
 // the client's `render/camera.spec.ts`, which reads that table; these are the smoothing and the dish clamp.
 import { describe, expect, it } from 'vitest';
-import { CAMERA_FOLLOW_SECONDS } from '../constants/camera.js';
+import { CAMERA_FOLLOW_SECONDS, CAMERA_ZOOM_SECONDS } from '../constants/camera.js';
 import { DISH_RADIUS } from '../constants/world.js';
 import { parkCamera, stepCamera, viewHalfHeightFor } from './camera-follow.js';
 
@@ -23,6 +23,15 @@ describe('parkCamera and stepCamera', () => {
       (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (viewHalfHeightFor(50) - start.viewHalfHeightWu);
     expect(zoomShare).toBeLessThan(1 - Math.exp(-1));
     expect(zoomShare).toBeGreaterThan(0);
+  });
+
+  it.each([CAMERA_ZOOM_SECONDS, 2.5])('smooths the zoom with the time constant it is given (%s s)', (zoomSeconds) => {
+    const start = parkCamera({ x: 0, y: 0, radius: 25 });
+    const wanted = viewHalfHeightFor(50);
+    const given = zoomSeconds === CAMERA_ZOOM_SECONDS ? undefined : zoomSeconds;
+    const stepped = stepCamera(start, { x: 0, y: 0, radius: 50 }, 1, given);
+    const zoomShare = (stepped.viewHalfHeightWu - start.viewHalfHeightWu) / (wanted - start.viewHalfHeightWu);
+    expect(zoomShare).toBeCloseTo(1 - Math.exp(-1 / zoomSeconds), 12);
   });
 
   it('holds with no target and converges on the target over time', () => {

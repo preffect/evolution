@@ -7,6 +7,7 @@
 // silhouette is exactly the ladder's.
 
 import {
+  GAME_ERA,
   MILLISECONDS_PER_SECOND,
   ROUND_DURATION_SECONDS,
   ROUND_PHASE,
@@ -124,6 +125,7 @@ export function previewRenderFrame(input: PreviewFrameInput): RenderFrame {
       tick: Math.floor(renderTick),
       seed: PREVIEW_SEED,
       roundStartTick: 0,
+      era: GAME_ERA.dish,
       roundPhase: ROUND_PHASE.playing,
       roundTimeLeftMs: ROUND_DURATION_SECONDS * MILLISECONDS_PER_SECOND,
       gelPatches: PREVIEW_GEL_PATCHES.map((patch) => ({ ...patch })),

@@ -7,6 +7,7 @@
 import {
   CELL_KIND,
   CELL_STAGE,
+  GAME_ERA,
   GAME_MODE,
   PLAYER_LIFE_STATE,
   ROUND_END_CONDITION,
@@ -123,6 +124,7 @@ export function createTestSnapshot(overrides: Partial<GameSnapshot> = {}): GameS
     tick: 0,
     seed: TEST_SEED,
     roundStartTick: 0,
+    era: GAME_ERA.dish,
     roundPhase: ROUND_PHASE.playing,
     roundTimeLeftMs: ROUND_DURATION_SECONDS * MILLISECONDS_PER_SECOND,
     gelPatches: [],

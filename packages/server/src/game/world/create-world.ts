@@ -5,7 +5,7 @@
 // mote lands inside any cell. Both the room's first round and every rematch come through here; a rematch passes
 // the incremented seed and the continued counters, and its wild cells start again at protocell scale.
 
-import { RANDOM_STREAM, ROUND_PHASE, type BalanceConfig, type GameSessionConfig } from '@evolution/shared';
+import { GAME_ERA, RANDOM_STREAM, ROUND_PHASE, type BalanceConfig, type GameSessionConfig } from '@evolution/shared';
 import { createPlayerRecord, spawnCellForPlayer, type PlayerIdentity } from '../session/players.js';
 import { updateLeaderboard } from '../session/leaderboard.js';
 import { placeGelPatches } from '../simulation/zones.js';
@@ -49,6 +49,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     roundTimeLeftMs: 0,
     config: options.config,
     balance: options.balance,
+    eraMovedInto: GAME_ERA.dish,
     gelPatches: [],
     cells: [],
     food: [],
