@@ -15,7 +15,6 @@ import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../
 import { formRealLifeLine } from './form-facts';
 import type { GiantSwallow } from './giant-popups';
 import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
-import { bindQuantities } from './trait-cards';
 import { describeTierModifierEffects, describeTierModifiers } from './trait-effects';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
@@ -93,7 +92,7 @@ describe('upgradePopupStepFor: the trigger (docs/ui/overlays.md §3.8)', () => {
       startTick: tick,
       endTick: tick + UPGRADE_TICKS,
     });
-    expect(popup?.effects).toEqual(describeTierModifiers(TRAITS, FLAGELLUM.traitId, 1).map(bindQuantities));
+    expect(popup?.effects).toEqual(describeTierModifiers(TRAITS, FLAGELLUM.traitId, 1));
     expect(popup?.effects.length).toBeGreaterThan(0);
     expect(popup?.effectTones).toEqual(describeTierModifierEffects(TRAITS, FLAGELLUM.traitId, 1));
   });

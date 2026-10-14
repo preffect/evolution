@@ -14,7 +14,7 @@ import {
   TRAIT_CATALOG,
 } from '@evolution/shared';
 import { describeTierModifiers } from './trait-effects';
-import { bindQuantities, traitOfferViewFor } from './trait-cards';
+import { traitOfferViewFor } from './trait-cards';
 import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const WINDOW_SECONDS = DEFAULT_BALANCE.progression.TRAIT_CHOICE_TIMEOUT_SECONDS;
@@ -66,9 +66,7 @@ describe('traitOfferViewFor', () => {
       category: 'genome',
       rarity: 'common',
     });
-    expect(view.cards[0]!.effects).toEqual(
-      describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1).map(bindQuantities),
-    );
+    expect(view.cards[0]!.effects).toEqual(describeTierModifiers(DEFAULT_BALANCE.traits, 'nucleoid' as TraitId, 1));
   });
 
   it('reads the effect lines from the live balance, so a debug_set_balance patch reaches the card', () => {
@@ -138,11 +136,5 @@ describe('traitOfferViewFor', () => {
         expect(card!.tierLabel, `${trait.id} ${tier}`).not.toContain(' ');
       }
     }
-  });
-
-  it('binds a number to its unit and a unit’s slash to both sides, and leaves the words free to wrap', () => {
-    expect(bindQuantities('Spines drain 70 % / s, spit out 4 % / s')).toBe(
-      'Spines drain 70\u00a0%\u00a0/\u00a0s, spit out 4\u00a0%\u00a0/\u00a0s',
-    );
   });
 });

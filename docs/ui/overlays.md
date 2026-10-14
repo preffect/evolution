@@ -330,7 +330,7 @@ engulf`), and beside a long name such as `Simple Flagellum I` it does not fit on
 `UI_SCALE_MIN` floor the four-trait cell of Cell Wall, Mitochondrion, Simple Flagellum and Food Vacuole cut its values
 at the panel edge (`+5 % spee`). So the trait table alone opts into the kit's `shouldWrapValues` (§10.2): the names
 keep one line and the value wraps under itself, right-aligned, growing its row downwards. A wrap never splits a
-number from its unit (the value is bound like a trait card's, `bindQuantities`, #446), and the effect mark and the
+number from its unit (`formatQuantity` joins them with no-break spaces, #858), and the effect mark and the
 value's first word are held on one line, so the mark is never left at the end of the line above. The other sections'
 figures stay one line, as above. `e2e/affecting-panel-traits.spec.ts` stages that cell at 1024 × 640 and 1280 × 800
 and fails when any trait value or mark crosses the panel's edge.
