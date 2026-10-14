@@ -219,9 +219,10 @@ whose first snapshot is already a eukaryote sees nothing (the popups' first-snap
   rung card is drawn, if any candidate is an **earned partner** (a trait with `unlockedBy`, its counter met, its stage
   reached, not owned, a new-trait card) that the rung card did not take, one card is drawn among those by weight. The
   rule reads `unlockedBy` and `stage` from the catalog; no list names the two. At most one rung card and one partner
-  card, so a draft keeps at least one free card; when the rung card is itself the earned partner (the mitochondrion for
-  an archaeon) only one card is reserved. Today's game is unchanged by it except that a prokaryote that has earned both
-  endosymbionts sees both. Scenario EL21.
+  card, each drawn only while the draft still has room for a free card after it, so a draft of `TRAIT_DRAFT_SIZE` 1 or 2
+  never overflows and a draft of 3 or more keeps at least one free card; when the rung card is itself the earned partner
+  (the mitochondrion for an archaeon) only one card is reserved. What it changes once the reorder ships: a eukaryote that
+  has earned the chloroplast gets it on a reserved card instead of as a random draw. Scenario EL21.
 - **The unlock toast tells the truth.** `<Trait> unlocked · offered at your next level-up` fires the first time an
   endosymbiont becomes a candidate (counter met **and** stage reached, not owned), not when the counter fills. With the
   partner card it is then always offered at the next level-up. A cell that fills the photosynthetic counter before it
@@ -475,13 +476,14 @@ whose switch moved mid-way reproduces its state hash.
 
 The order (the epic's roadmap):
 
-1. **The ladder reorder, ticket #908, first and on its own** (the chloroplast after the nucleus, the partner card, the
-   unlock toast's rule, the builds, the orbit's counter rule, and the copy of §15.6 that is true with the switch off):
-   it needs no switch and changes only who is offered the chloroplast when.
-2. **The contract, ticket #907**, with the switch off; phases ticket #867 builds on its non-number leaves.
-3. **Behind the switch, in parallel:** the latch (#909), the four test-fixture parts (#910, #923, #924, #925), bots and
+1. **In parallel, first:** the ladder reorder, **ticket #908**, on its own (the chloroplast after the nucleus, the partner
+   card, the unlock toast's rule, the builds, the orbit's counter rule, and the copy of §15.6 that is true with the
+   switch off): it needs no switch and changes only who is offered the chloroplast when. And the contract, **ticket
+   #907**, with the switch off; phases ticket #867 builds on its non-number leaves. The two share no files except the
+   regenerated `balance.json`, so whichever merges second regenerates it.
+2. **Behind the switch, in parallel:** the latch (#909), the four test-fixture parts (#910, #923, #924, #925), bots and
    wild cells (#911), the render (#912), the HUD (#913), the sound (#915); at `protocell` they are inert.
-4. **The flip, ticket #916,** with the encyclopedia (#914) merged immediately before it: `eukaryote` and the fragment
+3. **The flip, ticket #916,** with the encyclopedia (#914) merged immediately before it: `eukaryote` and the fragment
    rate, and core.md §3, session.md §5.1 and the ecology docs move to describe the live game. Every part of the
    test-fixture work lands before it. Then gameplay QA (#917) tunes.
 
