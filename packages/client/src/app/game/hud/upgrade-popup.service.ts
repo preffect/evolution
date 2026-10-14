@@ -4,12 +4,15 @@
 // leaving the room clears the snapshot and the memory with it. A trait gained is a change, which the newest snapshot
 // still shows when two land before one fold; a giant swallowed is an event, which it would not, so the swallows come
 // from the `GameEventBus` (docs/architecture/client.md §6), which hears every snapshot, and wait here to be folded.
+// The component says when the popup up is held off screen (the picker open over a big cell, ticket #863), which only
+// it can tell from the HUD's box and the popup's measured height; each fold reads it, and the held ticks do not count.
 
-import { DestroyRef, Injectable, computed, effect, inject, linkedSignal, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, linkedSignal, signal, untracked } from '@angular/core';
 import type { GameSnapshot } from '@evolution/shared';
 import { giantSwallowOf, giantSwallowsKeptAt, withGiantSwallow, type GiantSwallow } from './format/giant-popups';
 import {
   INITIAL_UPGRADE_POPUP_MEMORY,
+  isUpgradePopupFadingOutAt,
   upgradePopupStepFor,
   upgradePopupUpAt,
   type UpgradePopupMemory,
@@ -28,6 +31,9 @@ export class UpgradePopupService {
   /** The giants the own cell swallowed, in the order the bus reported them, until past or the memory starts over. */
   private readonly giantSwallows = signal<readonly GiantSwallow[]>([]);
 
+  /** The popup up is held off screen, as the component last said; read at each fold, so a change alone folds nothing. */
+  private readonly isUpPopupHeld = signal(false);
+
   /** Carried from snapshot to snapshot; a recomputation on the same snapshot changes nothing. */
   private readonly memory = linkedSignal<GameSnapshot | null, UpgradePopupMemory>({
     source: () => this.gameState.snapshot(),
@@ -40,6 +46,7 @@ export class UpgradePopupService {
         ownProgress: this.gameState.ownProgress(),
         traits: this.gameState.balance()?.traits ?? null,
         giantSwallows: this.giantSwallows(),
+        isUpPopupHeld: untracked(this.isUpPopupHeld),
       });
     },
   });
@@ -48,6 +55,13 @@ export class UpgradePopupService {
   readonly current = computed<UpgradePopup | null>(() => {
     const memory = this.memory();
     return memory.tick === null ? null : upgradePopupUpAt(memory, memory.tick);
+  });
+
+  /** The popup up has begun its own fade out: a hold no longer stops its life, nor should it stop its animations. */
+  readonly isUpPopupFadingOut = computed(() => {
+    const popup = this.current();
+    const tick = this.memory().tick;
+    return popup !== null && tick !== null && isUpgradePopupFadingOutAt(popup, tick);
   });
 
   constructor() {
@@ -63,6 +77,11 @@ export class UpgradePopupService {
     });
     const unsubscribe = inject(GameEventBus).subscribe((event) => this.recordGiantSwallow(event));
     inject(DestroyRef).onDestroy(unsubscribe);
+  }
+
+  /** The component's word on whether the popup up is held off screen (`UPGRADE_POPUP_PLACEMENT.held`). */
+  setUpPopupHeld(isHeld: boolean): void {
+    this.isUpPopupHeld.set(isHeld);
   }
 
   private recordGiantSwallow(event: GameEvent): void {

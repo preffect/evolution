@@ -1,6 +1,7 @@
 // @vitest-environment node
 // A popup's move to another slot while it is up (docs/ui/overlays.md §3.8, ticket #861): held where it was while it
-// fades out, then at the newest slot; followed at once within a placement, during its entrance, and between popups.
+// fades out, then at the newest slot; followed at once within a placement, during its entrance, between popups, and
+// out of the held slot, where nothing is shown (ticket #863).
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ManualScheduler } from '@evolution/shared';
@@ -14,6 +15,7 @@ const BELOW_EASED: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.below
 const PINNED: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.pinned, offsetPx: 102 };
 const PINNED_EASED: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.pinned, offsetPx: 98 };
 const ABOVE: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.aboveCell, offsetPx: 90 };
+const HELD: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.held, offsetPx: 0 };
 
 function popupOf(key: string, kind: UpgradePopupKind = UPGRADE_POPUP_KIND.form): UpgradePopup {
   return {
@@ -82,7 +84,21 @@ describe('UpgradePopupSlotMove (docs/ui/overlays.md §3.8, ticket #861)', () => 
     expect(move.slotToShow(BELOW)).toBe(BELOW);
   });
 
-  it('moves back the same way when the slot changes again, as when the pick closes the picker', () => {
+  it('fades out of its slot into the held one when the picker opens, and takes its slot at once when it closes', () => {
+    const popup = popupOf('form-1');
+    settledBelow(popup);
+    move.follow(popup, HELD);
+    expect(move.isFadingOut()).toBe(true);
+    expect(move.slotToShow(HELD)).toBe(BELOW);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
+    expect(move.slotToShow(HELD)).toBe(HELD);
+
+    move.follow(popup, BELOW_EASED);
+    expect(move.isFadingOut()).toBe(false);
+    expect(move.slotToShow(BELOW_EASED)).toBe(BELOW_EASED);
+  });
+
+  it('moves back the same way when the slot changes again between two shown slots', () => {
     const popup = popupOf('form-1');
     settledBelow(popup);
     move.follow(popup, PINNED);

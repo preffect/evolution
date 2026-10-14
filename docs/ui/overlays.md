@@ -426,15 +426,23 @@ CUE_GAP_PX)` above the centre, wherever the whole host then fits under the top e
 2. **Below the cell** (`below-cell`) where it does not fit above: its top edge `max(band offset,
 zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, grown from its top edge and sinking
    rather than rising as it fades. Never while the picker is open: the band is there.
-3. **Pinned** (`pinned`) where neither fits (the picker open over a big cell): above, its top edge just under the toast row
-   (`toastRowBottomPx`: `HUD_MARGIN_PX`, the toast's padding and one `body` line, scaled; y 41.8 at 1024 × 640 and
-   y 52.3 at 1280 × 800), so a toast up with it (a giant's unlock, raised by the same swallow whose payout opened the
-   picker) never covers its kicker; and never into the exclusion box. Between the two it may come nearer than the band
-   offset. Only here may it meet the cues, over the rate-tag column the picker's dim greys, and by more than its glow:
-   at mass about 1,250 with one tag the tallest form popup's box sits on the tag's top edge at 1024 × 640; at the mass
-   cap there a giant popup hides the top half of the DECAY tag and the Amoeba form popup hides it whole; with all
-   three tag rows up the box covers two rows even at mass 1,250. Main pinned lower and covered more; the fix is
-   ticket #863. A notice row, when up, still drops the toast over its top (§3.6).
+3. **Held** (`held`) where it does not fit above while the picker is open (the picker over a big cell; every form and
+   giant popup at 1024 × 640): it waits, unseen, until the pick closes the picker (ticket #863). Its life stops for the
+   hold (the popups queued behind it start that much later), and so do its entrance, glow and fade (the host's `held`
+   class pauses the animations), so after the pick it plays out what it had left: a giant popup raised by the same
+   swallow whose payout opened the picker, or a form popup gained while the next offer was waiting, gets its six seconds
+   after the pick, never during it. A popup whose own fade out (`UPGRADE_POPUP_OUT_MS`, `FORM_POPUP_OUT_MS`) had already
+   begun is not held: its life and animations run out unseen, so it never comes back half faded after the pick. The picker's cards are the thing to read while it is open, and a pinned
+   popup could not keep off the rate tags there: under the toast row it covered two whole rows at mass 1,250 at 1024 ×
+   640, and pinning only the box under the toast row (its glow over the toast) gained 19.2 px (24 px at 1280 × 800),
+   still over the full three-row column wherever it pinned, at both sizes up to the cap. So no popup's box is ever over a rate tag at
+   either size, up to the mass cap (`upgrade-popup-slot.spec.ts`).
+4. **Pinned** (`pinned`) where neither fits with the picker closed, which no supported size reaches up to the shipped
+   cap (a room patched past it, a window under the supported sizes, or the HUD's box before it is measured): above,
+   its top edge just under the toast row (`toastRowBottomPx`: `HUD_MARGIN_PX`, the toast's padding and one `body`
+   line, scaled; y 41.8 at 1024 × 640 and y 52.3 at 1280 × 800), so a toast up with it never covers its kicker; and
+   never into the exclusion box. Between the two it may come nearer than the band offset and over the cues. A notice
+   row, when up, still drops the toast over its top (§3.6).
 
 A popup takes its slot afresh each frame. Within one placement it follows the slot at once, as its offset eases with
 the camera. When the placement changes under a popup that is up, it does not jump across the cell (ticket #861): the
@@ -444,9 +452,10 @@ clear fast), then takes the slot it should be in by then and fades back in there
 `UPGRADE_POPUP_MOVE_FADE_IN_MS` (`UpgradePopupSlotMove`, the host's `moving` class). The hold is the fade out and
 `UPGRADE_POPUP_MOVE_CLASS_LAG_MS`, the frames by which the class trails the hold's start, so the popup leaves at
 zero opacity; a slot answered during the hold changes where it lands, never when. Most visibly, an
-offer opens the picker while a form or giant popup hangs below a big cell and it goes to the pinned slot, and goes
-back when the pick closes the picker; the cell growing past the room above it, or the player dying, moves it the same
-way. Its own entrance and fade run on underneath. A fade rather than a slide, because the way between the two slots
+offer opens the picker while a form or giant popup hangs below a big cell: it fades out there into the held slot, its
+animations stopping as the fade starts, and when the pick closes the picker it fades back in below the cell at once,
+with no fade out of the held slot, where nothing is shown. The cell growing past the room above it, or the player
+dying, moves it the same way. Between two shown slots, its own entrance and fade run on underneath; into the held slot they stop, unless its own fade out had begun (3. above). A fade rather than a slide, because the way between the two slots
 crosses the cell and the picker's band. A change of slot during the popup's entrance (`UPGRADE_POPUP_IN_MS`,
 `FORM_POPUP_IN_MS`) is taken at once: the popup is still finding its slot from its measured height, and fading in.
 

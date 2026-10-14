@@ -2,6 +2,7 @@
 // Where the popups hang (docs/ui/overlays.md §3.8, ticket #840): the host, popup and glow together, never meets the own
 // cell's cues — the mass chip with a full rate-tag column over it, and the zone pill under the orbit — on any
 // supported viewport at any cell size, never comes nearer the centre than the picker band does, and stays on screen.
+// With the picker's band below a big cell it is held until the pick, so no shown box covers a rate tag (ticket #863).
 
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, PLAYER_LIFE_STATE, radiusForMass } from '@evolution/shared';
@@ -51,6 +52,36 @@ const HOSTS = [
   { kind: 'form', hostPx: formHostPx },
   { kind: 'upgrade', hostPx: upgradeHostPx },
 ];
+
+/** The viewports ticket #863's spec names, and the masses up to the cap, every 250. */
+const SPEC_VIEWPORTS = [
+  { width: 1024, height: 640 },
+  { width: 1280, height: 800 },
+];
+const MASS_STEP = 250;
+const SPEC_MASSES = [
+  CELL_STARTING_MASS,
+  ...Array.from({ length: CELL_MAX_MASS / MASS_STEP }, (_unused, index) => (index + 1) * MASS_STEP),
+];
+
+/** A cell four times the shipped cap, under a host too tall for the room above or below it at 1024 × 640. */
+const PAST_CAP_MASS = 4 * CELL_MAX_MASS;
+const PAST_CAP_HOST_PX = 150;
+
+/** The popup's box, its glow left off, as px above the centre (below it negative): where a rate tag would be met. */
+function boxSpanAboveCentrePx(
+  slot: UpgradePopupSlot,
+  room: UpgradePopupRoom,
+  glowPx: number,
+): { readonly bottomPx: number; readonly topPx: number } {
+  const boxPx = room.popupHeightPx - 2 * glowPx;
+  if (slot.placement === UPGRADE_POPUP_PLACEMENT.belowCell) {
+    const topPx = -(slot.offsetPx + glowPx);
+    return { topPx, bottomPx: topPx - boxPx };
+  }
+  const bottomPx = slot.offsetPx + glowPx;
+  return { bottomPx, topPx: bottomPx + boxPx };
+}
 
 function radiusAt(mass: number): number {
   return radiusForMass(mass, DEFAULT_BALANCE.growth);
@@ -122,23 +153,53 @@ describe('upgradePopupSlotFor (docs/ui/overlays.md §3.8)', () => {
     { width: 1280, height: 800, mass: 1250 },
     { width: 1280, height: 800, mass: CELL_MAX_MASS },
   ])(
-    'never drops below while the picker’s band is there: at $width × $height over a mass-$mass cell it pins just ' +
-      'under the toast row, outside the exclusion box (PR #852 review)',
+    'never drops below while the picker’s band is there: at $width × $height over a mass-$mass cell it holds the ' +
+      'popup until the pick (ticket #863)',
     ({ width, height, mass }) => {
       const room = { ...roomAt(width, height, mass, formHostPx(width, height)), isPickerOpen: true };
-      const slot = upgradePopupSlotFor(room);
-      expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
-      const hostTopPx = height * HALF - slot.offsetPx - room.popupHeightPx;
-      expect(hostTopPx).toBeCloseTo(toastRowBottomPx(room.viewport));
-      expect(slot.offsetPx).toBeGreaterThanOrEqual(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(width, height));
+      expect(upgradePopupSlotFor(room).placement).toBe(UPGRADE_POPUP_PLACEMENT.held);
     },
   );
 
-  it('pins at the exclusion box, not into it, when even the toast row leaves no room', () => {
-    const room = { ...roomAt(1024, 640, CELL_MAX_MASS, 320), isPickerOpen: true };
+  describe.each(SPEC_VIEWPORTS)(
+    'never sets a shown box over a rate tag at $width × $height, up to the mass cap (ticket #863)',
+    ({ width, height }) => {
+      it.each(
+        HOSTS.flatMap((host) =>
+          SPEC_MASSES.flatMap((mass) => [false, true].map((isPickerOpen) => ({ ...host, mass, isPickerOpen }))),
+        ),
+      )('a $kind popup over a mass-$mass cell, picker open: $isPickerOpen', ({ kind, hostPx, mass, isPickerOpen }) => {
+        const room = { ...roomAt(width, height, mass, hostPx(width, height)), isPickerOpen };
+        const slot = upgradePopupSlotFor(room);
+        if (slot.placement === UPGRADE_POPUP_PLACEMENT.held) return;
+        const rPx = onScreenRadiusPx(room.ownCellRadiusWu!, room.viewport);
+        const box = boxSpanAboveCentrePx(
+          slot,
+          room,
+          kind === 'form' ? FORM_POPUP_GLOW_PX * uiScaleFor(width, height) : 0,
+        );
+        const tagsBottomPx = rateTagColumnTopPx(rPx, 0);
+        const tagsTopPx = rateTagColumnTopPx(rPx, RATE_TAG_ROWS_MAX);
+        expect(box.bottomPx >= tagsTopPx || box.topPx <= tagsBottomPx).toBe(true);
+      });
+    },
+  );
+
+  it('pins at the exclusion box, not into it, when even the toast row leaves no room with the picker closed', () => {
+    const room = roomAt(1024, 640, CELL_MAX_MASS, 320);
     const slot = upgradePopupSlotFor(room);
     expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
     expect(slot.offsetPx).toBe(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(1024, 640));
+  });
+
+  it('pins just under the toast row when a cell past the shipped cap leaves no room above or below', () => {
+    // A room patched past the cap (`debug_set_balance`): the zone pill hangs so low that under the toast row is nearer.
+    const room = { ...roomAt(1024, 640, CELL_MAX_MASS, PAST_CAP_HOST_PX), ownCellRadiusWu: radiusAt(PAST_CAP_MASS) };
+    const slot = upgradePopupSlotFor(room);
+    expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
+    expect(room.viewport.height * HALF - slot.offsetPx - room.popupHeightPx).toBeCloseTo(
+      toastRowBottomPx(room.viewport),
+    );
   });
 
   it('keeps the picker band’s mirror before the own cell is known', () => {
