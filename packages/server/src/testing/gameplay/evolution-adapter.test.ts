@@ -1,6 +1,15 @@
 // docs/testing/scenario-runner.md §8: the Evolution adapter's scenario duties on a real module.
 import { describe, expect, it } from 'vitest';
-import { CELL_KIND, EFFECT_KIND, createTestSessionConfig, gameId, playerId, type CellView } from '@evolution/shared';
+import {
+  CELL_KIND,
+  EFFECT_KIND,
+  GAME_ERA,
+  GAME_ERA_ORDER,
+  createTestSessionConfig,
+  gameId,
+  playerId,
+  type CellView,
+} from '@evolution/shared';
 import { worldReferenceAt } from '../../game/simulation/round-clock.js';
 import { computeStateHash } from '../../game/world/state-hash.js';
 import type { FixtureContext } from './adapter.js';
@@ -9,6 +18,7 @@ import {
   applyEvolutionFixture,
   clearFood,
   evolutionAdapter,
+  jumpToThePool,
   resetSpawnerAccumulators,
   TABLE_SEED,
   withoutGelPatches,
@@ -21,6 +31,8 @@ import { placeCell, placeMote, placeWildCell } from './fixtures.js';
 import { ZONE } from './placement.js';
 
 const alice = playerId('player_0');
+/** A round that reaches every era (phases.md §14.2.3). */
+const COLONIES_ON_ROUND_SECONDS = 1500;
 const context: FixtureContext = { tick: 0, playerId: () => alice };
 
 function moduleUnderTest(seed = PLACED_ROW_SEED): EvolutionScenarioModule {
@@ -131,6 +143,16 @@ describe('evolutionAdapter', () => {
     evolutionAdapter.applyFixture(module, placeMote({ moteKind: 'algae', at: ZONE.vent }, undefined), context);
     expect(world.spawners.food.isEnabled).toBe(false);
     expect(world.food).toHaveLength(1);
+  });
+
+  it('jumps a round long enough to the pool, so the next step is its move (phases.md §14.2.4)', () => {
+    const module = moduleUnderTest();
+    const { world } = module;
+    world.config = createTestSessionConfig({ seed: PLACED_ROW_SEED, roundDurationSeconds: COLONIES_ON_ROUND_SECONDS });
+    evolutionAdapter.applyFixture(module, jumpToThePool, context);
+    expect(world.balance.eras.ERAS_IN_PLAY).toEqual(GAME_ERA_ORDER);
+    module.reduceGameState();
+    expect(world.eraMovedInto).toBe(GAME_ERA.pool);
   });
 
   it('refuses a placed record on a seed whose gel patch reaches the broth point', () => {
