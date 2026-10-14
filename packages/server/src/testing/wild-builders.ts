@@ -3,14 +3,31 @@
 // docs/ecology/giants.md §3.5.9), so a test of the death or the payout seam meets the record the world makes, `kind`,
 // `organismId`, species and seat included, not a player cell with its id blanked.
 
-import { CELL_KIND, type GiantSpecies, type Vec2 } from '@evolution/shared';
+import {
+  AVATAR_INDEX_MIN,
+  CELL_KIND,
+  DEFAULT_BALANCE,
+  ENTITY_KIND,
+  FIRST_LEVEL,
+  POOL_CREATURE_SPECIES,
+  pointOnCircle,
+  type GiantSpecies,
+  type PoolCreatureCellSpecies,
+  type Vec2,
+} from '@evolution/shared';
 import { worldReferenceAt } from '../game/simulation/round-clock.js';
 import { giantSeatOf, seatGiantCell } from '../game/wild/giant-seats.js';
 import { createWildSeatRecord, seatWildCell } from '../game/wild/wild-seats.js';
-import type { CellRecord, GiantSeatRecord, WildSeatRecord } from '../game/world/entities.js';
+import { bornCellRecord } from '../game/world/cell-record.js';
+import type { CellRecord, GiantSeatRecord, PoolCreatureSeatRecord, WildSeatRecord } from '../game/world/entities.js';
+import { mintEntityId } from '../game/world/entity-ids.js';
+import { mirrorPoolCreatureSeat, poolCreatureSeatNumber } from '../game/world/pool-creature-mirror.js';
+import { createSeatMindRecord } from '../game/wild/seat-mind.js';
 import type { WorldState } from '../game/world/world-state.js';
 
 const FIRST_SEAT = 0;
+/** A mind's heading is a unit vector. */
+const HEADING_LENGTH = 1;
 /** The world's own mass, unless `mass` asks for another base size. */
 const WORLD_SIZE = 1;
 
@@ -58,6 +75,60 @@ export function seatTestGiantCell(world: WorldState, options: TestGiantCellOptio
   const seat = giantSeatOf(world, options.species);
   const seating = { centre: options.at, bornMass: options.bornMass, grownMass: options.grownMass ?? 0 };
   return { seat, cell: seatGiantCell(world, seat, seating) };
+}
+
+export interface TestPoolCreatureOptions {
+  readonly species: PoolCreatureCellSpecies;
+  readonly at: Vec2;
+  readonly mass: number;
+  readonly isLandmark?: boolean;
+  /** The mind's heading, as an angle; due east when left out. */
+  readonly headingRadians?: number;
+}
+
+export interface TestPoolCreature {
+  readonly seat: PoolCreatureSeatRecord;
+  readonly cell: CellRecord;
+}
+
+/**
+ * A vacant roaming rotifer's seat, the first after the giants of a default world (docs/game-design/phases.md §14.6.2):
+ * no cell, counting down to its respawn, its mind at rest.
+ */
+export function createTestPoolCreatureSeat(overrides: Partial<PoolCreatureSeatRecord> = {}): PoolCreatureSeatRecord {
+  const seatNumber = poolCreatureSeatNumber(DEFAULT_BALANCE.wildCells.WILD_CELL_COUNT, FIRST_SEAT);
+  return {
+    ...createSeatMindRecord(seatNumber),
+    species: POOL_CREATURE_SPECIES.rotifer,
+    isLandmark: false,
+    respawnInTicks: 5_400,
+    ...overrides,
+  };
+}
+
+/**
+ * Seats a pool creature at `at` in a new seat at the end of `world.poolCreatureSeats` (created when the world has
+ * none): a wild cell whose `poolCreature` mirrors the seat (docs/game-design/phases.md §14.6), until the pool's build
+ * seats creatures itself (ticket #872).
+ */
+export function seatTestPoolCreature(world: WorldState, options: TestPoolCreatureOptions): TestPoolCreature {
+  const id = mintEntityId(world, ENTITY_KIND.cell);
+  const identity = { id, kind: CELL_KIND.wild, playerId: null, organismId: id, avatarIndex: AVATAR_INDEX_MIN };
+  const cell = bornCellRecord({ ...identity, level: FIRST_LEVEL }, options.at, options.mass);
+  const heading = pointOnCircle(HEADING_LENGTH, options.headingRadians ?? 0);
+  const seat = createTestPoolCreatureSeat({
+    seatNumber: poolCreatureSeatNumber(world.firstGiantSeatNumber, world.poolCreatureSeats?.length ?? FIRST_SEAT),
+    species: options.species,
+    isLandmark: options.isLandmark ?? false,
+    cellId: id,
+    respawnInTicks: 0,
+    headingX: heading.x,
+    headingY: heading.y,
+  });
+  mirrorPoolCreatureSeat(seat, cell, world.balance);
+  world.cells.push(cell);
+  world.poolCreatureSeats = [...(world.poolCreatureSeats ?? []), seat];
+  return { seat, cell };
 }
 
 /** The wild seats' cells in world order: every wild cell but the giants (docs/ecology/giants.md §3.5.9). */

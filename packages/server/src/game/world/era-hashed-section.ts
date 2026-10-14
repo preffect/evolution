@@ -23,6 +23,8 @@ import {
   type StateHasher,
   type SurgeView,
 } from '@evolution/shared';
+import type { PoolCreatureSeatRecord } from './entities.js';
+import { POOL_CREATURE_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import type { WorldState } from './world-state.js';
 
 export const POOL_FILM_HASHED_FIELDS: readonly HashedField<PoolFilmView>[] = ['x', 'y'];
@@ -54,6 +56,15 @@ export const COPEPOD_LANE_HASHED_FIELDS: readonly HashedField<CopepodLaneView>[]
   'startedAtTick',
 ];
 
+/** The seats in seat order, or null's marker for a world without creatures. */
+function hashPoolCreatureSeats(hasher: StateHasher, seats: readonly PoolCreatureSeatRecord[] | null): void {
+  if (seats === null) {
+    hasher.hashNull();
+    return;
+  }
+  hashArray(hasher, seats, (seatHasher, seat) => hashFields(seatHasher, seat, POOL_CREATURE_SEAT_HASHED_FIELDS));
+}
+
 /**
  * The pool's own state on the world, in walk order: each field is null in a world that has none of it, and is walked as
  * null's marker or its fields. The gate (`hasEraState`) and the walk (`hashEraSection`) both iterate this list.
@@ -62,6 +73,7 @@ export const POOL_STATE_HASHED_FIELDS = [
   { key: 'poolLayout', hash: (hasher, layout) => hashNullable(hasher, layout, POOL_LAYOUT_HASHED_FIELDS) },
   { key: 'surge', hash: (hasher, surge) => hashNullable(hasher, surge, SURGE_HASHED_FIELDS) },
   { key: 'copepodLane', hash: (hasher, lane) => hashNullable(hasher, lane, COPEPOD_LANE_HASHED_FIELDS) },
+  { key: 'poolCreatureSeats', hash: hashPoolCreatureSeats },
 ] as const satisfies readonly HashedField<WorldState>[];
 
 /** The world fields the section walks, in walk order (the eras' streams are walked between the first and the rest). */

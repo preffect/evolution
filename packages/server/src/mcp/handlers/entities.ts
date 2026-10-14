@@ -16,7 +16,12 @@ export function registerEntityTools(mcp: McpServer, context: DebugContext): void
     capability: 'listEntities',
     schema: {
       gameId: GAME_ID_ARGUMENT,
-      kind: z.string().optional().describe('Only entities of this kind id; omit for every kind'),
+      kind: z
+        .string()
+        .optional()
+        .describe(
+          'Only entities of this kind id, or of a pool creature species (its cells; copepod: its pass, at its head); omit for every kind',
+        ),
       bbox: BOUNDING_BOX_SCHEMA.optional(),
     },
     run: (handle, input) => handle.listEntities({ kind: input.kind, bbox: input.bbox }),

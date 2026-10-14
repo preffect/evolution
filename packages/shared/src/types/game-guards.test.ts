@@ -17,7 +17,9 @@ import {
   isFoodKind,
   isGameEra,
   isGiantSpecies,
+  isPoolCreatureSpecies,
 } from './game-guards.js';
+import { POOL_CREATURE_SPECIES } from './pool.js';
 
 const STRANGERS: readonly unknown[] = ['spicy', '', 'Algae', 0, null, undefined, {}, ['algae']];
 
@@ -46,6 +48,14 @@ describe('game guards', () => {
     expect(isGiantSpecies('amoeba')).toBe(false);
     expect([...GIANT_SPECIES_ORDER].sort()).toEqual(Object.values(GIANT_SPECIES).sort());
     expect(GIANT_SPECIES_ORDER).toEqual([GIANT_SPECIES.amoeba, GIANT_SPECIES.paramecium, GIANT_SPECIES.diatom]);
+  });
+
+  it('isPoolCreatureSpecies accepts every pool creature and nothing else: no giant, no food kind', () => {
+    for (const species of Object.values(POOL_CREATURE_SPECIES))
+      expect(isPoolCreatureSpecies(species), species).toBe(true);
+    for (const stranger of STRANGERS) expect(isPoolCreatureSpecies(stranger), String(stranger)).toBe(false);
+    expect(isPoolCreatureSpecies(GIANT_SPECIES.amoeba)).toBe(false);
+    expect(isPoolCreatureSpecies(FOOD_KIND.algae)).toBe(false);
   });
 
   it('isCellStage accepts every stage and nothing else: no form name, no state', () => {

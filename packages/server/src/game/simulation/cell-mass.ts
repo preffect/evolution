@@ -2,7 +2,7 @@
 // gained past `CELL_MAX_MASS` converts to DNA at `MASS_OVERFLOW_DNA_PER_MASS`, so eating at the
 // cap still progresses the leaderboard.
 
-import { radiusForMass, type BalanceConfig } from '@evolution/shared';
+import { cellRadiusOf, type BalanceConfig } from '@evolution/shared';
 import { gainDna } from '../progression/dna.js';
 import { keepInsideDish } from './dish-wall.js';
 import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entities.js';
@@ -10,7 +10,7 @@ import { isPlayerCell, type CellRecord, type PlayerRecord } from '../world/entit
 /** Sets the mass and refreshes the radius; never applies the cap (callers that gain mass use `gainMass`). */
 export function setCellMass(cell: CellRecord, mass: number, balance: BalanceConfig): void {
   cell.mass = mass;
-  cell.radius = radiusForMass(mass, balance.growth);
+  cell.radius = cellRadiusOf(cell, balance);
 }
 
 /**

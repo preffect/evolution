@@ -23,6 +23,7 @@ import type {
   FoodMoteRecord,
   GiantSeatRecord,
   PlayerRecord,
+  PoolCreatureSeatRecord,
   SpawnerState,
   WildSeatRecord,
 } from './entities.js';
@@ -59,6 +60,11 @@ export interface WorldState {
   surge: SurgeView | null;
   /** The copepod's pass from its warning to its end (phases.md §14.6.4, ticket #873), else null. */
   copepodLane: CopepodLaneView | null;
+  /**
+   * The pool creatures' seats in seat order (phases.md §14.6.2): placed by the pool's move (ticket #872), null in every
+   * world that has none, so a world without creatures hashes as before them (the eras' section's gate).
+   */
+  poolCreatureSeats: PoolCreatureSeatRecord[] | null;
   /** Insertion order. */
   cells: CellRecord[];
   food: FoodMoteRecord[];

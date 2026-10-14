@@ -364,17 +364,23 @@ the whole game.
 The simulation's contact, the spatial hash (300-wu cells) and the interest cull assume one centre and one radius.
 Two creatures are not circles:
 
-- **The nematode** is a chain of `NEMATODE_SEGMENT_COUNT` circles of radius `NEMATODE_THICKNESS` / 2 along its wave;
-  contact tests against each circle, the hash and the interest reach use its bounding radius.
+- **The nematode** is a chain of `NEMATODE_SEGMENT_COUNT` circles of radius `NEMATODE_THICKNESS` / 2, evenly spaced
+  along its heading so the end rims lie `NEMATODE_LENGTH` / 2 from its centre (`nematodeSegmentCentres`); its wave is
+  the path that heading swings along as it thrashes, so the chain itself is straight. Contact tests against each
+  circle; its cell's radius is the bounding radius, `NEMATODE_LENGTH` / 2 (`cellRadiusOf`), which the hash and the
+  interest reach read as they read any cell's. The landmark's radius is `ERA_LANDMARK_RADIUS` the same way.
 - **The copepod** has no body. Each tick of a pass, the strip of its lane it crosses that tick (a rectangle) is tested
-  against the hash by its bounding box. It is on the snapshot as a lane view (`{ startX, startY, directionX,
+  against the hash by its bounding box (`copepodStripAt`, `copepodStripBounds`). It is on the snapshot as a lane view (`{ startX, startY, directionX,
 directionY, startedAtTick }`) sent to every viewer, as the surge is, so the client draws the shadow and the lane.
 
 **Deaths to the copepod and to a rotifer's swallow.** No player is credited: no absorption, no leaderboard change, no
 mass or DNA to anyone. The victim's `spectatingCellId` is the rotifer's cell for a swallow (the camera follows it as it
 does a killer) and null for the copepod (`followTargetIn` gives no target, so the camera holds where the cell died).
-The respawn line names the creature (`EATEN BY A COPEPOD`, `SWALLOWED BY A ROTIFER`, ui/overlays.md §3.3). The
-Didinium's kills are ordinary engulfs with the Didinium as the killer.
+The respawn line names the creature (`EATEN BY A COPEPOD`, `SWALLOWED BY A ROTIFER`, ui/overlays.md §3.3), from the
+`eaten_by_creature` effect such a death emits instead of `cell_absorbed` (`killWithoutCredit`, server
+`session/death.ts`; architecture/entity-model.md §2), which the swallow and the pass call at or before step 9, the
+respawn countdown, so the spectate is not a tick short. The Didinium's kills are ordinary engulfs with the Didinium as
+the killer.
 
 ### 14.7 Progression across eras
 

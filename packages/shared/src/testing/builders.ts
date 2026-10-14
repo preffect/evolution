@@ -14,7 +14,13 @@ import {
   ROUND_PHASE,
 } from '../types/game.js';
 import type { CellView, TraitOfferView } from '../types/game.js';
-import type { CopepodLaneView, PoolLayoutView, SurgeView } from '../types/pool.js';
+import {
+  POOL_CREATURE_SPECIES,
+  type CopepodLaneView,
+  type PoolCreatureView,
+  type PoolLayoutView,
+  type SurgeView,
+} from '../types/pool.js';
 import type { OwnProgressView } from '../types/mass-flow.js';
 import { RENDER_STAGE_NAMES } from '../types/messages.js';
 import type { ClientPerformanceReport, GameInput, GameSessionConfig, GameSnapshot } from '../types/messages.js';
@@ -74,6 +80,7 @@ export function createTestCellView(overrides: Partial<CellView> = {}): CellView 
     sprintCooldownRemainingTicks: 0,
     isStarving: false,
     giantSpecies: null,
+    poolCreature: null,
     latchedBacteria: [],
     ...overrides,
   };
@@ -162,6 +169,11 @@ export function createTestSurge(overrides: Partial<SurgeView> = {}): SurgeView {
 /** A copepod pass running north from below the pool, starting on tick 600 (phases.md §14.6.4). */
 export function createTestCopepodLane(overrides: Partial<CopepodLaneView> = {}): CopepodLaneView {
   return { startX: 0, startY: -3600, directionX: 0, directionY: 1, startedAtTick: 600, ...overrides };
+}
+
+/** A roaming rotifer's creature view (phases.md §14.6.1): not the landmark, lying due east. */
+export function createTestPoolCreature(overrides: Partial<PoolCreatureView> = {}): PoolCreatureView {
+  return { species: POOL_CREATURE_SPECIES.rotifer, isLandmark: false, headingRadians: 0, ...overrides };
 }
 
 /** A client frame report inside every docs/rendering/budget.md §7 budget; pass the fields the test reads. */
