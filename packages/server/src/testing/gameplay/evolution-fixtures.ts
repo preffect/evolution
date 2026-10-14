@@ -22,6 +22,7 @@ import { refreshCellDerivedState } from '../../game/progression/modifiers.js';
 import { toOwnedTraits, UnknownTraitError } from '../../game/progression/owned-traits.js';
 import { setCellMass } from '../../game/simulation/cell-mass.js';
 import { spawnDnaFragment, spawnFoodMote } from '../../game/simulation/spawn-mote.js';
+import { clearFoodAndStopSpawners } from '../../game/simulation/spawner.js';
 import { removeSeatedCells } from '../../game/wild/wild-seats.js';
 import type { CellRecord, PlayerRecord } from '../../game/world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../../game/world/lookups.js';
@@ -64,10 +65,7 @@ export function prepareWorldForPlacement(world: WorldState): void {
       `seed ${world.seed} puts a gel patch within ${GEL_PATCH_CLEARANCE_WU} wu of the broth point; pick another seed`,
     );
   }
-  world.food = [];
-  world.dnaFragments = [];
-  world.spawners.food.isEnabled = false;
-  world.spawners.dnaFragments.isEnabled = false;
+  clearFoodAndStopSpawners(world);
   removeSeatedCells(world);
 }
 

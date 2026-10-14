@@ -13,6 +13,7 @@ import {
   type GiantSpecies,
 } from '@evolution/shared';
 import { createPlayerRecord, type PlayerIdentity } from '../game/session/players.js';
+import { clearFoodAndStopSpawners } from '../game/simulation/spawner.js';
 import { createWorld } from '../game/world/create-world.js';
 import type { PlayerRecord } from '../game/world/entities.js';
 import { removeSeatedCells } from '../game/wild/wild-seats.js';
@@ -63,10 +64,7 @@ export function createTestWorld(options: TestWorldOptions = {}): WorldState {
     players: options.players ?? [TEST_PLAYER],
   });
   if (!options.isFilled) {
-    world.food = [];
-    world.dnaFragments = [];
-    world.spawners.food.isEnabled = false;
-    world.spawners.dnaFragments.isEnabled = false;
+    clearFoodAndStopSpawners(world);
   }
   if (!options.hasWildSeats) {
     removeSeatedCells(world);

@@ -123,6 +123,17 @@ function runSpawner(spawner: SpawnerState, rates: SpawnerRates, population: () =
 }
 
 /** Step 8: both spawners for one tick; the kind row is the current world stage's (docs/ecology/food-and-spawn.md §3.2). */
+/**
+ * Every mote and fragment gone and both spawners off: what the pool's move does to the dish's food
+ * (docs/game-design/phases.md §14.4.2 step 4) and what a placed scenario row starts from (docs/ecology/acceptance.md §8).
+ */
+export function clearFoodAndStopSpawners(world: WorldState): void {
+  world.food = [];
+  world.dnaFragments = [];
+  world.spawners.food.isEnabled = false;
+  world.spawners.dnaFragments.isEnabled = false;
+}
+
 export function runSpawners(world: WorldState, context: StepContext): void {
   const maxAttempts = context.balance.ecology.SPAWN_POINT_MAX_ATTEMPTS;
   const { worldStage } = worldReferenceAt(world, world.tick);

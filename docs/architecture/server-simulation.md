@@ -13,7 +13,8 @@ against it):
  stepWorld(world, context): void          context = { balance, streams, effects }
    1 inputs        apply the coalesced input per player (join order); fold modifiers + stage; then the wild and giant settles and the due seats' decisions (§3.4)
                    (`wild/wild-settle.ts`: every seated wild cell's growth, recovery, level, traits and stage; `wild/wild-strategy.ts`: target + sprint, wild seats then giant seats)
-   2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed
+   2 round         timer, bloom flag, world level-up, results phase (ignores 1, freezes 3–9: game-design/session.md §5.4), auto-rematch reseed;
+                   then, on a playing tick, the era moves: every move the era clock crossed, in era order, and the next era's warning (`era-moves.ts`, §3 "The eras")
    3 movement      shared kernel: throttle, steer blend, gel factor, wall clamp; then separation, held to a minimum centre
                    distance, which reads the start-of-tick centres so a pair that crossed this tick is pushed back to its own sides,
                    and stops each push at the wall, the other cell taking what the wall kept (ecology/mass-and-movement.md §5.3, #710)
@@ -135,14 +136,25 @@ roundDurationSeconds, balance)` (`shared/simulation/era-clock.ts`, beside `world
   (`eras.ERA_START_SECONDS`, a whole number of ticks, compared in ticks) has come and lies before the round's end
   (`isEraReachable`); a round shorter than an era's start never reaches it. `roundEraAt(world, tick, balance?)`
   (`simulation/round-clock.ts`) is that read at a tick of the world. `ERAS_IN_PLAY` ships as `['dish']`, so the clock
-  reads the dish throughout and no step reads the eras yet: the default game is today's, its state hash and replays
-  unchanged.
+  reads the dish throughout and no move, warning, grace or pool mass ever happens: the default game is today's, its
+  state hash and replays unchanged. The clock also bounds the bloom, which belongs to the dish (`dishEraEndSeconds`:
+  the next reachable era's start, else the round's end), and restarts the world mass at the pool's move
+  (`worldReferenceInEra`, game-design/phases.md §14.2.2); both are the round's length and today's curve while the eras
+  are off.
   **Which moves a step runs: one rule.** The world keeps the last era it moved into, `eraMovedInto: GameEra` on
   `WorldState` (entity-model.md §2): `dish` when the world is built, so at creation and at every rematch (which
   rebuilds the world); a `debug_set_seed` keeps it, since it rebuilds only the streams of a world that keeps running,
-  and resetting it would run a move again. It is a record of which moves have run, not the era. Each step, after
+  and resetting it would run a move again. It is a record of which moves have run, not the era. Each playing step, after
   step 2, runs the move into every era after `eraMovedInto` up to `roundEraAt(world, world.tick)`, in `GAME_ERA_ORDER`,
-  and then sets `eraMovedInto` to that era. The one rule covers every way the clock's era can get ahead of the world:
+  each with its `era_moved` effect, setting `eraMovedInto` to each era as its move runs (`simulation/era-moves.ts`); on
+  the next reachable era's warning tick (`eraWarningStartedAtTick`) it pushes `era_warning`. The pool's move is
+  `simulation/pool-move.ts` (game-design/phases.md §14.4.2, steps 1–8; step 9 is the serializer's): it ends every
+  engulf with no transfer, every sprint and every held list; takes the dish's wild cells, giants, motes and fragments
+  out with their seats and stops the dish's spawners (the pool's own food, wild seats and creatures are tickets #870,
+  #871 and #872); lands each player cell at its dish point over `ERA_SCALE_STEP` at `POOL_ARRIVAL_MASS`, its velocity,
+  target and pin scaled with it; and stores the grace (`WorldState.moveGraceEndsAtTick`, `simulation/move-grace.ts`),
+  which `canStartEngulf` and a seat's hunt filter read. The colonies' move opens in place and changes nothing yet
+  (§14.4.5; ticket #891 adds the wild colonies). The one rule covers every way the clock's era can get ahead of the world:
   the clock reaching a start; a `debug_set_era` jump (architecture/debug-mcp.md §8), so a jump from the dish to
   `colonies` runs the pool's move and then the colonies' on one tick and the colony era never opens in the dish; a
   `debug_set_balance` that adds an era to `ERAS_IN_PLAY` after its start has passed (the move runs on the next step,

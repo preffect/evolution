@@ -65,13 +65,23 @@ export interface WorldState {
    * world that has none, so a world without creatures hashes as before them (the eras' section's gate).
    */
   poolCreatureSeats: PoolCreatureSeatRecord[] | null;
+  /**
+   * The first tick the pool's move grace no longer covers (phases.md §14.4.2 step 8): set by the move itself to its
+   * tick plus `ERA_MOVE_GRACE_SECONDS`, never derived from the clock (wire-contract.md §4 "The cameras across the
+   * move"); null in every world the move has not run in. Before it nothing targets a player and no engulf of a player
+   * cell starts (`simulation/move-grace.ts`).
+   */
+  moveGraceEndsAtTick: number | null;
   /** Insertion order. */
   cells: CellRecord[];
   food: FoodMoteRecord[];
   dnaFragments: DnaFragmentRecord[];
   /** Join order. */
   players: PlayerRecord[];
-  /** Seat order (docs/ecology/wild-cells.md §3.3): `WILD_CELL_COUNT` seats from world creation, never fewer. */
+  /**
+   * Seat order (docs/ecology/wild-cells.md §3.3): `WILD_CELL_COUNT` seats from world creation, never fewer in the dish;
+   * the pool's move empties them with the dish's wild cells (phases.md §14.4.2 step 4).
+   */
   wildSeats: WildSeatRecord[];
   /**
    * Seat order (docs/ecology/giants.md §3.5.9): one seat per species of `GIANT_SPECIES_IN_DISH`, seated at world

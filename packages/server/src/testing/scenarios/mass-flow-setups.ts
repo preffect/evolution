@@ -5,19 +5,29 @@
 //   Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own eat massGained + predatorMassGained − sprintSpent
 //           + noDraftBonusGained
 //
+// except on the pool's move tick, which sets every player's mass to `POOL_ARRIVAL_MASS` (docs/game-design/phases.md
+// §14.4.2 step 5): a reset, not a flow, skipped as an entry is (docs/architecture/wire-contract.md §4).
+//
 // Not a test file: the scenario file imports it.
 
-import { EFFECT_KIND, TICK_INTERVAL_S } from '@evolution/shared';
+import { EFFECT_KIND, GAME_ERA, TICK_INTERVAL_S } from '@evolution/shared';
 import { cellOf, effectsOfKind, massFlowOf, massOf, type EvolutionView } from '../gameplay/evolution-views.js';
 import type { placedSolo } from './shared-setups.js';
 
 /** The causes must explain the change to float precision, far inside the tables' ± 0.01. */
 export const CONSERVATION_TOLERANCE = 1e-6;
+/** What the identity leaves unexplained on the pool's move tick: nothing, since the reset is no flow to explain. */
+const MOVE_TICK_UNEXPLAINED_MASS = 0;
 
 type RowBuilder = ReturnType<typeof placedSolo>;
 
 const massLabel = (tick: number, playerIndex: number) => `player ${playerIndex} mass after tick ${tick}`;
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
+
+/** Whether the tick the view ends is the pool's move: its `era_moved` into the pool. */
+function isPoolMoveTick(view: EvolutionView): boolean {
+  return effectsOfKind(view, EFFECT_KIND.eraMoved).some((effect) => effect.era === GAME_ERA.pool);
+}
 
 /** Δmass minus everything the snapshot says moved it; `undefined` before a mass was captured or without a cell. */
 function unexplainedMass(view: EvolutionView, playerIndex: number): number | undefined {
@@ -25,6 +35,9 @@ function unexplainedMass(view: EvolutionView, playerIndex: number): number | und
   const massBefore = view.captured(massLabel(view.tick - 1, playerIndex));
   if (cell === undefined || typeof massBefore !== 'number') {
     return undefined;
+  }
+  if (isPoolMoveTick(view)) {
+    return MOVE_TICK_UNEXPLAINED_MASS;
   }
   const flow = massFlowOf(view, playerIndex);
   const applied = sum(Object.values(flow?.ratesPerSecond ?? {})) * TICK_INTERVAL_S;

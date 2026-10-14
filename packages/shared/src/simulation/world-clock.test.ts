@@ -5,8 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { TICK_HZ } from '../constants/network.js';
 import { ROUND_DURATION_SECONDS } from '../constants/session.js';
-import { CELL_STAGE, WORLD_STANDING, type CellStage } from '../types/game.js';
-import { standingAgainstWorld, worldElapsedSeconds, worldReference, worldWholeLevel } from './world-clock.js';
+import { withErasInPlay } from '../testing/era-balance.js';
+import { CELL_STAGE, GAME_ERA, GAME_ERA_ORDER, WORLD_STANDING, type CellStage } from '../types/game.js';
+import {
+  standingAgainstWorld,
+  worldElapsedSeconds,
+  worldReference,
+  worldReferenceInEra,
+  worldWholeLevel,
+} from './world-clock.js';
 
 const balance = DEFAULT_BALANCE;
 
@@ -34,6 +41,14 @@ const JUST_UNDER_FIRST_LEVEL_UP = 179.99;
 const FIRST_LEVEL_UP_TICK = 10_800;
 const RESULTS_END_TICK = 37_200;
 const LEVEL_DIGITS = 2;
+/** The game's length with every era on (phases.md §14.2.3). */
+const COLONIES_ON_ROUND_SECONDS = 1500;
+/** §14.2.2's pool masses: 60 at 10:00, 270 at 17:00, 510 at 25:00. */
+const POOL_MASS_BY_SECONDS: readonly [number, number][] = [
+  [600, 60],
+  [1020, 270],
+  [1500, 510],
+];
 
 describe('worldReference', () => {
   it.each(REFERENCE_TABLE)('at $seconds s: level $level, $stage, mass $mass, dna $dna (W1)', (row) => {
@@ -103,6 +118,48 @@ describe('worldElapsedSeconds', () => {
     expect(worldElapsedSeconds(0, RESULTS_END_TICK, ROUND_DURATION_SECONDS)).toBe(0);
     const beforeStart = worldReference(worldElapsedSeconds(0, RESULTS_END_TICK, ROUND_DURATION_SECONDS), balance);
     expect(beforeStart).toEqual(worldReference(0, balance));
+  });
+});
+
+describe('worldReferenceInEra (docs/game-design/phases.md §14.2.2)', () => {
+  const colonies = withErasInPlay(GAME_ERA_ORDER);
+
+  it.each(POOL_MASS_BY_SECONDS)('restarts the world mass at the move: %s s reads %s', (seconds, mass) => {
+    expect(worldReferenceInEra(seconds, COLONIES_ON_ROUND_SECONDS, colonies).worldMass).toBe(mass);
+  });
+
+  it('keeps the level and the DNA on their absolute curves past the move', () => {
+    const dish = worldReference(TEN_MINUTES, balance);
+    const inPool = worldReferenceInEra(TEN_MINUTES, COLONIES_ON_ROUND_SECONDS, colonies);
+    expect(inPool).toEqual({ ...dish, worldMass: inPool.worldMass });
+    expect(inPool.worldMass).not.toBe(dish.worldMass);
+  });
+
+  it('is worldReference in the dish, and throughout a round the eras are off in or too short for', () => {
+    const justBeforeTheMove = TEN_MINUTES - 1 / TICK_HZ;
+    expect(worldReferenceInEra(justBeforeTheMove, COLONIES_ON_ROUND_SECONDS, colonies)).toEqual(
+      worldReference(justBeforeTheMove, colonies),
+    );
+    expect(worldReferenceInEra(TEN_MINUTES, COLONIES_ON_ROUND_SECONDS, balance)).toEqual(
+      worldReference(TEN_MINUTES, balance),
+    );
+    expect(worldReferenceInEra(TEN_MINUTES, TEN_MINUTES, colonies)).toEqual(worldReference(TEN_MINUTES, colonies));
+  });
+
+  it('caps the pool’s world mass at CELL_MAX_MASS, as the dish’s is capped', () => {
+    const fastGain = structuredClone(colonies);
+    fastGain.pool.POOL_WORLD_MASS_GAIN_PER_SECOND = balance.growth.CELL_MAX_MASS;
+    expect(worldReferenceInEra(COLONIES_ON_ROUND_SECONDS, COLONIES_ON_ROUND_SECONDS, fastGain).worldMass).toBe(
+      balance.growth.CELL_MAX_MASS,
+    );
+  });
+
+  it('reads the move from the pool’s start, so a patched start moves the restart', () => {
+    const early = structuredClone(colonies);
+    early.eras.ERA_START_SECONDS = { ...early.eras.ERA_START_SECONDS, [GAME_ERA.pool]: 60 };
+    expect(worldReferenceInEra(60, COLONIES_ON_ROUND_SECONDS, early).worldMass).toBe(
+      balance.pool.POOL_WORLD_MASS_START,
+    );
   });
 });
 
