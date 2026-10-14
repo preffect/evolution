@@ -148,7 +148,9 @@ the landmark's bearing), `pool` (the layout, swarm placement and respawn points,
 `pool_creatures` (creature placement, their minds, the copepod's lanes).
 
 1. **End what cannot cross.** Every engulf in progress ends with no mass or DNA moving (predator and prey both go
-   free); every sprint ends.
+   free); every sprint ends; every held list empties (the bacteria an archaeon's arms hold, early-life.md §15.4.2) with
+   no payout, no credit and no `eat`, before step 6's gift, so a cell the gift makes a eukaryote has nothing left to
+   swallow.
 2. **Fill the pool** (§14.5): its food, wild seats and creatures. Its **layout** (films, threads, the bank, the
    light patch's orbit) is not built here: it is drawn from the `pool` stream at the round's start, whenever the pool
    is in play, and sent to the client with the warning (§14.4.6), so the client has the pool's layer baked before
