@@ -19,6 +19,7 @@ import { createHunterStrategy } from '../bots/strategies/hunter.js';
 import { HUNT_PREFERENCE } from '../bots/strategy-constants.js';
 import { mealKindsAt } from '../simulation/cell-diet.js';
 import { engulfingPredatorOf, isCarried } from '../simulation/engulf-state.js';
+import { isMoveGraceOn } from '../simulation/move-grace.js';
 import type { CellRecord, SeatMindRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { isHuntResting } from './wild-hunt-give-up.js';
@@ -146,7 +147,8 @@ function huntCommand(sight: WildSight, seatDecision: SeatDecision): SeatCommand 
     },
   };
   const filter = {
-    isPlayerPrey: isPlayerPreyAt(profile.hunt, decision.worldStage),
+    // The pool's move grace (phases.md §14.4.2 step 8): no seat chooses a player as a target while it runs.
+    isPlayerPrey: isPlayerPreyAt(profile.hunt, decision.worldStage) && !isMoveGraceOn(decision.world),
     minPreyMassFraction: profile.hunt.minPreyMassFraction,
   };
   const prey = withoutGivenUpPrey(createWildHuntPerception(sight, balance, cell, filter), seat.givenUpPreyId);

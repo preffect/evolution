@@ -3,8 +3,9 @@
 // `roundStartTick`; nothing about the clock rides on the wire.
 
 import type { BalanceConfig } from '../constants/balance.js';
-import { WORLD_STANDING, type CellStage, type WorldStanding } from '../types/game.js';
+import { GAME_ERA, WORLD_STANDING, type CellStage, type WorldStanding } from '../types/game.js';
 import { secondsToTicks, ticksToSeconds } from '../time/units.js';
+import { eraAt, type EraClockBalance } from './era-clock.js';
 import { cumulativeDnaForLevel, type LevelCostBalance } from './level-costs.js';
 import { stageOf, type LadderBalance } from './stage-of.js';
 
@@ -71,6 +72,29 @@ export function worldReference(elapsedSeconds: number, balance: WorldClockBalanc
     ),
     worldDna: cumulativeDnaForLevel(wholeLevel, balance.progression),
   };
+}
+
+/** What the clock reads across the eras: its own balance, the era clock's and the pool's world mass. */
+export type EraWorldClockBalance = WorldClockBalance &
+  EraClockBalance & { pool: Pick<BalanceConfig['pool'], 'POOL_WORLD_MASS_START' | 'POOL_WORLD_MASS_GAIN_PER_SECOND'> };
+
+/**
+ * The world's average cell at `elapsedSeconds` into a round of `roundDurationSeconds`, across the eras
+ * (docs/game-design/phases.md §14.2.2): `worldReference` in the dish; past it the world mass restarts at the pool's
+ * start, since the move resets every size, while the level and the DNA keep their absolute curves. The colony era
+ * opens in the same pool, so its mass runs on from the pool's. The dish throughout while the eras are off.
+ */
+export function worldReferenceInEra(
+  elapsedSeconds: number,
+  roundDurationSeconds: number,
+  balance: EraWorldClockBalance,
+): WorldReference {
+  const reference = worldReference(elapsedSeconds, balance);
+  if (eraAt(elapsedSeconds, roundDurationSeconds, balance) === GAME_ERA.dish) return reference;
+  const { pool } = balance;
+  const secondsSinceTheMove = elapsedSeconds - balance.eras.ERA_START_SECONDS[GAME_ERA.pool];
+  const poolMass = pool.POOL_WORLD_MASS_START + pool.POOL_WORLD_MASS_GAIN_PER_SECOND * secondsSinceTheMove;
+  return { ...reference, worldMass: Math.min(poolMass, balance.growth.CELL_MAX_MASS) };
 }
 
 /**

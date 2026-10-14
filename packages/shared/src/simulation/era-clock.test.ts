@@ -8,6 +8,7 @@ import { withErasInPlay } from '../testing/era-balance.js';
 import { ticksToSeconds } from '../time/units.js';
 import { GAME_ERA, GAME_ERA_ORDER, type GameEra } from '../types/game.js';
 import {
+  dishEraEndSeconds,
   eraAt,
   eraBalanceProblems,
   eraStartTicks,
@@ -144,6 +145,20 @@ describe('isEraReachable', () => {
     expect(isEraReachable(GAME_ERA.pool, COLONIES_ON_ROUND_SECONDS, POOL_ON)).toBe(true);
     expect(isEraReachable(GAME_ERA.pool, DISH_ONLY_ROUND_SECONDS, POOL_ON)).toBe(false);
     expect(isEraReachable(GAME_ERA.colonies, POOL_ON_ROUND_SECONDS, COLONIES_ON)).toBe(false);
+  });
+});
+
+describe('dishEraEndSeconds (the bloom belongs to the dish, §14.2.1)', () => {
+  it('is the round’s end while no later era is reachable: today’s game, and a short round with every era in play', () => {
+    const shortRoundSeconds = DISH_ONLY_ROUND_SECONDS / 2;
+    expect(dishEraEndSeconds(COLONIES_ON_ROUND_SECONDS, DEFAULT_BALANCE)).toBe(COLONIES_ON_ROUND_SECONDS);
+    expect(dishEraEndSeconds(shortRoundSeconds, COLONIES_ON)).toBe(shortRoundSeconds);
+  });
+
+  it('is the pool’s start once the pool is reachable, whether or not the colonies are', () => {
+    const poolStart = DEFAULT_BALANCE.eras.ERA_START_SECONDS[GAME_ERA.pool];
+    expect(dishEraEndSeconds(POOL_ON_ROUND_SECONDS, POOL_ON)).toBe(poolStart);
+    expect(dishEraEndSeconds(COLONIES_ON_ROUND_SECONDS, COLONIES_ON)).toBe(poolStart);
   });
 });
 

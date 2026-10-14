@@ -55,6 +55,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     surge: null,
     copepodLane: null,
     poolCreatureSeats: null,
+    moveGraceEndsAtTick: null,
     cells: [],
     food: [],
     dnaFragments: [],
