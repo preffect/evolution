@@ -25,9 +25,12 @@ export interface FoodKindStats {
   readonly tag: DnaTag | null;
 }
 
-/** Mass, DNA and tag by kind (docs/ecology/food-and-spawn.md §1), read from the live balance. */
+/**
+ * Mass, DNA and tag by kind (docs/ecology/food-and-spawn.md §1), read from the live balance. A green speck is a green
+ * alga (Dunaliella), so it credits an alga's DNA and tag at the pool's speck mass (docs/game-design/phases.md §14.5.2).
+ */
 export function foodKindStats(kind: FoodKind, variant: BacteriumVariant | null, balance: BalanceConfig): FoodKindStats {
-  const { ecology } = balance;
+  const { ecology, pool } = balance;
   const byKind: Record<FoodKind, FoodKindStats> = {
     [FOOD_KIND.algae]: { mass: ecology.ALGAE_MASS, dna: ecology.ALGAE_DNA, tag: ecology.ALGAE_TAG },
     [FOOD_KIND.bacterium]: {
@@ -36,6 +39,7 @@ export function foodKindStats(kind: FoodKind, variant: BacteriumVariant | null, 
       tag: variant === null ? null : ecology.BACTERIUM_TAG_BY_VARIANT[variant],
     },
     [FOOD_KIND.detritus]: { mass: ecology.DETRITUS_MOTE_MASS, dna: 0, tag: null },
+    [FOOD_KIND.greenSpeck]: { mass: pool.POOL_GREEN_SPECK_MASS, dna: ecology.ALGAE_DNA, tag: ecology.ALGAE_TAG },
   };
   return byKind[kind];
 }

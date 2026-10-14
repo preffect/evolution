@@ -4,7 +4,7 @@ import { BACTERIUM_VARIANT, DEFAULT_BALANCE, DNA_TAG, FOOD_KIND, secondsToTicks 
 import { createTestWorld } from '../../testing/world-builders.js';
 import { foodKindStats, spawnDnaFragment, spawnFoodMote } from './spawn-mote.js';
 
-const { ecology } = DEFAULT_BALANCE;
+const { ecology, pool } = DEFAULT_BALANCE;
 
 describe('foodKindStats', () => {
   it('reads mass, DNA and the tag point by kind (and variant) from the balance', () => {
@@ -22,6 +22,15 @@ describe('foodKindStats', () => {
       mass: ecology.DETRITUS_MOTE_MASS,
       dna: 0,
       tag: null,
+    });
+  });
+
+  it('gives a green speck the pool’s speck mass with an alga’s DNA and tag (phases.md §14.5.2)', () => {
+    expect(pool.POOL_GREEN_SPECK_MASS).not.toBe(ecology.ALGAE_MASS);
+    expect(foodKindStats(FOOD_KIND.greenSpeck, null, DEFAULT_BALANCE)).toEqual({
+      mass: pool.POOL_GREEN_SPECK_MASS,
+      dna: ecology.ALGAE_DNA,
+      tag: ecology.ALGAE_TAG,
     });
   });
 });

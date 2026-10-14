@@ -6,12 +6,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  EFFECT_KIND,
   GAME_ERA,
   createTestCopepodLane,
   createTestSurge,
   distanceBetween,
   playerId,
   secondsToTicks,
+  type EntityId,
+  type GameEffect,
   type GameEra,
 } from '@evolution/shared';
 import { ERA_PLAYER, eraMovesIn, startEraRoom, type EraRoom } from '../../testing/era-room.js';
@@ -45,15 +48,27 @@ const GRACE_PAIR = {
   prey: { mass: pool.POOL_ARRIVAL_MASS, position: { x: 5, y: 0 } },
 };
 
-/** A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick, run to 1 200. */
+/** The mass `cellId` gained by eating among one tick's `effects`: a leftover speck it landed on (§14.4.2 step 4). */
+function massEatenBy(cellId: EntityId, effects: readonly GameEffect[]): number {
+  return effects
+    .flatMap((effect) => (effect.kind === EFFECT_KIND.eat && effect.cellId === cellId ? [effect.massGained] : []))
+    .reduce((total, massGained) => total + massGained, 0);
+}
+
+/**
+ * A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick with the mass it ate
+ * there, run to 1 200.
+ */
 async function jumpAndRun(era: GameEra) {
   const room = startEraRoom({ roundDurationSeconds: COLONIES_ON_ROUND_SECONDS });
   await room.stepTo(JUMP_TICK);
   const jump = room.handle.setEra(era);
-  let landing: { x: number; y: number; mass: number } | undefined;
-  await room.stepTo(END_TICK, (world) => {
+  let landing: { x: number; y: number; mass: number; massEaten: number } | undefined;
+  await room.stepTo(END_TICK, (world, effects) => {
     const cell = findCellOfPlayer(world, ERA_PLAYER);
-    if (world.tick === MOVE_TICK && cell !== undefined) landing = { x: cell.x, y: cell.y, mass: cell.mass };
+    if (world.tick === MOVE_TICK && cell !== undefined) {
+      landing = { x: cell.x, y: cell.y, mass: cell.mass, massEaten: massEatenBy(cell.id, effects) };
+    }
   });
   return { room, jump, landing };
 }
@@ -104,8 +119,10 @@ describe('phases.md §14.15 PH19: debug_set_era', () => {
     ]);
     expect(room.world.eraMovedInto).toBe(GAME_ERA.colonies);
     expect(distanceBetween(landing!, { x: 0, y: 0 })).toBeLessThanOrEqual(FOOTPRINT_RADIUS_WU);
-    expect(landing!.mass).toBeLessThan(pool.POOL_ARRIVAL_MASS);
-    expect(landing!.mass).toBeGreaterThan(pool.POOL_ARRIVAL_MASS - 1);
+    // The move tick's own metabolism runs in the pool: the arrival mass, less a little decay, plus any speck eaten.
+    const massBeforeEating = landing!.mass - landing!.massEaten;
+    expect(massBeforeEating).toBeLessThan(pool.POOL_ARRIVAL_MASS);
+    expect(massBeforeEating).toBeGreaterThan(pool.POOL_ARRIVAL_MASS - 1);
     expect(room.world.moveGraceEndsAtTick).not.toBeNull();
     expectReplayReproduces(room);
     expect(() => room.handle.setEra(GAME_ERA.dish)).toThrow(DebugRequestError);

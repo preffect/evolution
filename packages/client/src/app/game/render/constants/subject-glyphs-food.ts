@@ -23,6 +23,7 @@ import {
   helixLayers,
   rodLayers,
   roundBodyLayers,
+  strokedMarkLayers,
 } from './subject-glyph-motifs';
 import { rodPath } from './subject-glyph-shapes';
 import * as kit from './trait-glyph-layers';
@@ -65,6 +66,36 @@ const ALGAE: shape.SubjectGlyph = {
       stroke: kit.stroke(SUBJECT_RAMP.algae.dark, SUBJECT_STROKE.mark, SUBJECT_ALPHA.scatter),
       motion: kit.BREATHE,
     }),
+  ],
+};
+
+/**
+ * A placeholder until the pool's own art draws it (ticket #875): Dunaliella, the rock pool's green swimmer, as a lit
+ * chloroplast-green body with its two flagella reaching ahead.
+ */
+const GREEN_SPECK = {
+  bodyCentreY: 56,
+  radius: 18,
+  flagella: 'M47 39 Q40 27 30 21 M53 39 Q60 27 70 21',
+} as const;
+const GREEN_SPECK_GLYPH: shape.SubjectGlyph = {
+  entryId: 'food:green_speck',
+  tiltDeg: kit.GLYPH_NO_TILT,
+  layers: [
+    ...roundBodyLayers({
+      cx: 50,
+      cy: GREEN_SPECK.bodyCentreY,
+      radius: GREEN_SPECK.radius,
+      ramp: kit.GLYPH_RAMP.chloroplast,
+      rim: kit.stroke(kit.GLYPH_RAMP.chloroplast.light, SUBJECT_STROKE.rim),
+      motion: kit.BEAT,
+    }),
+    ...strokedMarkLayers(
+      shape.path(GREEN_SPECK.flagella),
+      kit.GLYPH_RAMP.chloroplast.light,
+      SUBJECT_STROKE.fine,
+      kit.BEAT,
+    ),
   ],
 };
 
@@ -250,6 +281,7 @@ export const FOOD_SUBJECT_GLYPHS: readonly shape.SubjectGlyph[] = [
   ALGAE,
   DETRITUS,
   BACTERIUM_FOOD,
+  GREEN_SPECK_GLYPH,
   PLAIN_ROD,
   AEROBIC_ROD,
   PHOTOSYNTHETIC_ROD,

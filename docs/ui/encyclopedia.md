@@ -90,6 +90,12 @@ player's words and in no more than a line.
 | 5     | `actions`    | Actions      | none                                                                                  | One page per `ACTION` (§12.4): steer, sprint, eat, engulf (its `ENGULF_PHASE`s cover, wrap, absorb), escape, pick a trait, level up, respawn                                                                                                                                                              |
 | 6     | `world`      | World        | Dish and zones (`dish_and_zones`) · Time (`time`)                                     | The dish and its four zones; the world clock, the bloom, the round                                                                                                                                                                                                                                        |
 
+**The era gate.** A page about a later era's world (the pool's green speck, ticket #939; the pool's creatures after
+it) is written ahead of the slice that turns its era on, and stays out of the encyclopedia (its tile, its list row,
+its search hit and its deep link) while that era is not in the shipped balance's `ERAS_IN_PLAY`: today, with the dish
+alone, the player sees no pool page. It appears once the era ships on. The rule is §12.4's `isEntryInPlay`, the one
+gate every later era's page goes through.
+
 A list shows group headers only when its category has more than one group. The `hud` subject is a subject under
 Basics, not a category: §12.2's `CATEGORY_BY_SUBJECT` sends it there, and `HUD_ELEMENT_BY_TOPIC` (§12.4) anchors each topic to the element it explains, a `HUD_TEST_ID` key or an `OwnCellIndicators` field (§12.4, #361); `HUD_TEST_ID` moves to the neutral
 `game/test-ids/hud-test-ids.ts`, so the encyclopedia never imports `hud/`.

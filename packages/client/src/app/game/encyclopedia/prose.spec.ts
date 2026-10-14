@@ -3,8 +3,9 @@
 // id or anchor; every entry resolves over `DEFAULT_BALANCE`. The token parser's malformed cases throw.
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE } from '@evolution/shared';
+import { DEFAULT_BALANCE, GAME_ERA_ORDER, withErasInPlay } from '@evolution/shared';
 import { MINUS_SIGN, PLUS_SIGN } from '../quantities/quantity-unit';
+import { buildEntryDefinitions } from './build-entries';
 import { factContextFor } from './encyclopedia-context';
 import { resolveProse } from './facts/resolve-prose';
 import type { ProseSegment } from './model/entry';
@@ -36,6 +37,8 @@ function proseViolations(text: string): string[] {
 }
 
 const context = factContextFor(null);
+/** The registry with every era in play: a later era's page meets the copy rules before its era ships. */
+const EVERY_ERA_ENTRIES = buildEntryDefinitions(withErasInPlay(GAME_ERA_ORDER));
 
 /** A signed value already says which way it goes; a comparative word beside it says it again, or the opposite. */
 /** Words that state which way a value goes; a signed value beside one states it again, or contradicts it. */
@@ -65,8 +68,8 @@ describe('the prose rule', () => {
     expect(proseViolations('Keeps {dnaKeptOnDeathFraction} of your DNA')).toEqual([]);
   });
 
-  it('holds for every title, template, heading, fact label and real-life note in the registry', () => {
-    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+  it('holds for every title, template, heading, fact label and real-life note, a later era’s pages included', () => {
+    for (const entry of EVERY_ERA_ENTRIES) {
       const texts = [
         entry.title,
         entry.summary,
@@ -122,8 +125,8 @@ describe('the prose rule', () => {
     }
   });
 
-  it('names only registry entries and anchors in its links', () => {
-    for (const entry of ENCYCLOPEDIA_ENTRIES) {
+  it('names only registry entries and anchors in its links, a later era’s pages included', () => {
+    for (const entry of EVERY_ERA_ENTRIES) {
       const templates = [entry.summary, ...entry.sections.flatMap((section) => [section.heading, section.body])];
       const references = templates.flatMap(parseProseTemplate).flatMap(referenceOf);
       for (const reference of references) expect(isEntryReference(reference), `${entry.id}: ${reference}`).toBe(true);

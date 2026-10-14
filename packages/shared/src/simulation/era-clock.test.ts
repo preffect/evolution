@@ -15,6 +15,7 @@ import {
   eraStartedAtTick,
   eraWarningStartedAtTick,
   isEraAfter,
+  isEraInPlay,
   isEraReachable,
   type EraClockBalance,
 } from './era-clock.js';
@@ -135,6 +136,15 @@ describe('eraAt reads ticks, not seconds', () => {
     const eraAtTick = (tick: number) => eraAt(ticksToSeconds(tick), COLONIES_ON_ROUND_SECONDS, balance);
     expect(eraAtTick(FLOAT_SHY_POOL_START_TICK - 1)).toBe(GAME_ERA.dish);
     expect(eraAtTick(FLOAT_SHY_POOL_START_TICK)).toBe(GAME_ERA.pool);
+  });
+});
+
+describe('isEraInPlay', () => {
+  it('reads ERAS_IN_PLAY alone: the shipped balance plays the dish, a pool-on balance the pool too', () => {
+    expect(isEraInPlay(GAME_ERA.dish, DEFAULT_BALANCE)).toBe(true);
+    expect(isEraInPlay(GAME_ERA.pool, DEFAULT_BALANCE)).toBe(false);
+    expect(isEraInPlay(GAME_ERA.pool, POOL_ON)).toBe(true);
+    expect(isEraInPlay(GAME_ERA.colonies, POOL_ON)).toBe(false);
   });
 });
 

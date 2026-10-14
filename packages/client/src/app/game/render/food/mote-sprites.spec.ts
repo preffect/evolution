@@ -33,6 +33,7 @@ describe('mote sprites', () => {
       MOTE_SPRITE.bacteriumPhotosynthetic,
     );
     expect(moteSpriteKey({ kind: 'bacterium', bacteriumVariant: 'plain' })).toBe(MOTE_SPRITE.bacteriumPlain);
+    expect(moteSpriteKey({ kind: 'green_speck', bacteriumVariant: null })).toBe(MOTE_SPRITE.algae);
   });
 
   it('draws each mote its own breath rate and phases from the cosmetic stream, the same for the same seed', () => {
