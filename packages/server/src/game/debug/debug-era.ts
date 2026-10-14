@@ -1,8 +1,8 @@
 // `debug_set_era(gameId, era)` (docs/architecture/debug-mcp.md §8, docs/game-design/phases.md §14.2.4): jumps a round
 // forward to a later era by moving `roundStartTick` back, so that the next step is that era's first tick. The tick
 // counter never jumps (the replay log, the acks and the effect windows are keyed by it), so `roundStartTick` may go
-// below zero. Recorded as a `debug_patch`, so a replay reproduces the hash across the jump. The moves the jump crosses
-// run in the next step, every one in era order (server-simulation.md §3).
+// below zero. Recorded as a `debug_patch`, so a replay reproduces the hash across the jump. The next step runs the move
+// into every era after the one the world has moved into, up to the clock's, in era order (server-simulation.md §3).
 
 import {
   ROUND_PHASE,

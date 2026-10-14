@@ -54,7 +54,8 @@ road with _Phaeocystis_ (§14.9.1); ticket #902, the opening dive stays as it is
 - **The era is derived, not stored.** One shared pure function, `eraAt(elapsedSeconds, roundDurationSeconds,
 balance)` in `packages/shared/src/simulation/` beside `worldReference`, gives the era from the same inputs as
   the round clock. The server's step, the bloom and the HUD all call it, so they cannot disagree. `era` on the
-  snapshot is a convenience copy; `eraStartedAtTick` is derived from it.
+  snapshot is a convenience copy of the era the world has moved into (it trails `eraAt` only between a jump and the
+  next step: architecture/server-simulation.md §3); `eraStartedAtTick` is derived from it.
 - **A round shorter than an era's start never reaches it.** An era opens only if it starts before the round's
   end (`ROUND_DURATION_SECONDS`, still set at create time within 60–1800 s). A 600 s round is today's game
   exactly; a 1020 s round ends at the end of the pool era. Tests and short rooms keep working unchanged.
@@ -94,10 +95,11 @@ replay log, acks and effect windows are keyed by tick): it moves `roundStartTick
 the era's first tick, and it is recorded as a `debug_patch`, so `debug_export_replay` reproduces the state hash
 across it. Three rules make that safe:
 
-- **Every crossed move runs, in order.** Each step runs every move whose start lies in (the previous step's elapsed
-  time, this step's elapsed time], in era order. A jump from the dish to `colonies` therefore runs the pool's move
-  (§14.4.2, all nine steps) and then the colonies' move (§14.4.5) on the same tick; the colony era never opens in
-  the dish. The same rule covers an ordinary step, which crosses at most one start.
+- **Every crossed move runs, in order.** The world remembers the last era it moved into, and each step runs the move
+  into every era after it up to the clock's era, in era order (the rule's one home: architecture/server-simulation.md
+  §3). A jump from the dish to `colonies` therefore runs the pool's move (§14.4.2, all nine steps) and then the
+  colonies' move (§14.4.5) on the same tick; the colony era never opens in the dish. The same rule covers an ordinary
+  step, which crosses at most one start, and a balance patch that turns an era on after its start.
 - **No way back.** `debug_set_era` refuses an era earlier than the current one (and the current one); to start
   over, a new round.
 - **`roundStartTick` may be negative.** A jump early in a round moves it below zero (PH19's jump at tick 600 to the

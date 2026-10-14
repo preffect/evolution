@@ -104,7 +104,7 @@ takes a snapshot at its latest tick as a replacement (a republished frame), not 
 the tick estimator is not re-observed for it (§5); a refused request republishes nothing.
 `debug_set_balance` refuses a patch whose result breaks a balance-wide rule, whichever domain the patch
 names: the wild builds' ladder (#671), the giants' rules (`giantBalanceProblems`, giants.md §3.5.14) and the era
-starts (`eraBalanceProblems`: the dish at 0 s, each later era strictly after the one before), so a patch of
+starts (`eraBalanceProblems`: each on a whole tick, the dish at 0 s, each later era strictly after the one before), so a patch of
 `growth.CELL_STARTING_MASS` or `traits.TRAIT_TIER_COUNT` can be refused with no giant in the dish. It also refuses a
 patch that would take the round back to an earlier era (an era taken out of `ERAS_IN_PLAY`, or a start moved past the
 round's time, while the round is in it): an era, once opened, is never left (game-design/phases.md §14.2.4).
@@ -119,8 +119,9 @@ an era not in `ERAS_IN_PLAY` (patch the list first), one that starts at or after
 (`isEraReachable`), the current era and every earlier one (no way back: to start over, a new round), and any jump
 once the round is in `results`; a refusal changes nothing. The jump is recorded as a `set_era` `debug_patch` and
 replayed through `applyDebugPatch`, so `debug_export_replay` reproduces the state hash across it. The step that
-follows runs every era move whose start it crosses, in era order (architecture/server-simulation.md §3), so a jump
-from the dish to `colonies` runs the pool's move and then the colonies' on that one tick.
+follows runs the move into every era after the world's `eraMovedInto` up to the clock's era, in era order
+(architecture/server-simulation.md §3), so a jump from the dish to `colonies` runs the pool's move and then the
+colonies' on that one tick; until that step the snapshot's `era` still reads the era the world is in.
 
 **Bots (#15).** The decision stack is production code under `game/bots/` (the strategy seam,
 perception, the strategies, the catalogue, identity, pilot, binding and the in-process roster);

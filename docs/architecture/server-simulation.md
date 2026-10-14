@@ -129,20 +129,32 @@ prediction reuses them unchanged.
   `wild/`): step 4 feeds a wild cell algae and detritus, the grazer algae, detritus and bacteria while its seat's
   growth is under `GIANT_GRAZER_APPETITE_MASS` (tested once per cell before its meal), and the hunter and the drifter
   nothing; the seat's sight sees only the motes its diet eats now.
-- **The eras** (game-design/phases.md §14.2, ticket #867): the era is derived, never stored. `eraAt(elapsedSeconds,
+- **The eras** (game-design/phases.md §14.2, ticket #867). The era is derived: `eraAt(elapsedSeconds,
 roundDurationSeconds, balance)` (`shared/simulation/era-clock.ts`, beside `worldReference`) reads the same
   `worldElapsedSeconds` as the round clock and gives the last era of `eras.ERAS_IN_PLAY` whose start
-  (`eras.ERA_START_SECONDS`) has come and lies before the round's end (`isEraReachable`), so the step, the bloom and the
-  HUD cannot disagree; a round shorter than an era's start never reaches it. `ERAS_IN_PLAY` ships as `['dish']`, so
-  `eraAt` is the dish throughout and no step reads the eras yet: the default game is today's, its state hash and
-  replays unchanged. **Every crossed move runs, in order:** the step runs each era move whose start lies in (the
-  previous step's elapsed time, this step's], in `GAME_ERA_ORDER`, so a `debug_set_era` jump from the dish to
-  `colonies` (architecture/debug-mcp.md §8) runs the pool's move and then the colonies' on the same tick, and the colony
-  era never opens in the dish; an ordinary step crosses at most one start. The previous step's elapsed time is the
-  one before the jump moved `roundStartTick`, so the step keeps which era it last moved into rather than recomputing it
-  from `tick − 1`; that marker is hashed only once it leaves the dish, as the held lists are, so it feeds nothing while
-  the eras are off. No era is ever left: `debug_set_balance` refuses era starts `eraBalanceProblems` finds (the dish at
-  0 s, each later era strictly after the one before) and a patch that would take the round back an era.
+  (`eras.ERA_START_SECONDS`, a whole number of ticks, compared in ticks) has come and lies before the round's end
+  (`isEraReachable`); a round shorter than an era's start never reaches it. `roundEraAt(world, tick, balance?)`
+  (`simulation/round-clock.ts`) is that read at a tick of the world. `ERAS_IN_PLAY` ships as `['dish']`, so the clock
+  reads the dish throughout and no step reads the eras yet: the default game is today's, its state hash and replays
+  unchanged.
+  **Which moves a step runs: one rule.** The world keeps the last era it moved into, `eraMovedInto: GameEra` on
+  `WorldState` (entity-model.md §2): `dish` when the world is built, so at creation and at every rematch (which
+  rebuilds the world); a `debug_set_seed` keeps it, since it rebuilds only the streams of a world that keeps running,
+  and resetting it would run a move again. It is a record of which moves have run, not the era. Each step, after
+  step 2, runs the move into every era after `eraMovedInto` up to `roundEraAt(world, world.tick)`, in `GAME_ERA_ORDER`,
+  and then sets `eraMovedInto` to that era. The one rule covers every way the clock's era can get ahead of the world:
+  the clock reaching a start; a `debug_set_era` jump (architecture/debug-mcp.md §8), so a jump from the dish to
+  `colonies` runs the pool's move and then the colonies' on one tick and the colony era never opens in the dish; a
+  `debug_set_balance` that adds an era to `ERAS_IN_PLAY` after its start has passed (the move runs on the next step,
+  though no start lies in that step's interval); and one that pulls a start earlier than now. It never runs a move
+  backward: no era is ever left, so `debug_set_balance` refuses era starts `eraBalanceProblems` finds (a start off the
+  tick grid, the dish not at 0 s, a later era not strictly after the one before) and a patch that would put
+  `roundEraAt` before the current era (`refuseEraRewind`). `eraMovedInto` is hashed only once it leaves the dish, as a
+  trailing section like the held lists, so it feeds nothing while the eras are off.
+  **The snapshot's `era`** (game-design/phases.md §14.2.1's convenience copy) is `eraMovedInto`, not `eraAt`: the world
+  the client draws is the one the moves have built. The two differ only between a jump or a patch and the next step:
+  in a paused room after a dish-to-`colonies` jump with the pool in play, `eraAt` on the republished frame reads `pool`
+  (1 019.98 s) while the world is still the dish, and the snapshot says `dish` until the step runs both moves.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 
