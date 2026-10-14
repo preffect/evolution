@@ -209,7 +209,9 @@ in the dive's submit, and no second WebGL context:
   so no bake step lands on the page's thread. The band starts it with the dive and terminates it with the band
   (`ShoreBakeThread`, `shore-bake-thread.ts`). The page opens it once with the land and any tiles it already has
   (as `ImageBitmap`s), then asks for one level at a time; a newer ask replaces the one under way between two steps.
-  The worker sends each tile as it bakes, copied into a page canvas for the kelp band and the live sea, and each
+  A bake `ShoreLevels` drops (the camera turned away, or the stage changed) is ended with `return()`, and a level's
+  wait that ends before its level lands posts a `cancel` for its id, so the worker stops baking it and sends nothing
+  (ticket #811); a level that landed and was never taken, or lands after its cancel, is closed. The worker sends each tile as it bakes, copied into a page canvas for the kelp band and the live sea, and each
   level as `ImageBitmap`s and its data's buffers, all transferred. A level's bake on the page is then a generator
   that yields `SHORE_BAKE_WAITING` until its level lands, so `ShoreLevels` and its drafts, order and stand-ins are
   unchanged and the slices only poll. Upload stays on the page: a bitmap becomes an `ImageSource`, closed when the
@@ -562,9 +564,12 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   50 ms (on the page the longest is the bake step), and the fall no later.
 - `shore/shore-bake-worker-core.spec.ts`, `shore-bake-thread.spec.ts`: the worker's tiles sent once each (the
   page's adopted), the level asked for last sent with its pictures and buffers transferred, a newer ask replacing
-  the one under way, a failure said once; on the page a tile adopted into a canvas, a level waited on without
-  baking, a stale or untaken one closed, a failed worker's bake finished on the page, no worker without
-  `OffscreenCanvas` 2D, the bundled worker started as a module.
+  the one under way, a cancelled level stopped and never sent (a cancel for a replaced one leaving the newer), a
+  failure said once; on the page a tile adopted into a canvas, a level waited on without baking, a stale or untaken
+  one closed, a dropped level cancelled once and closed should it land after, no cancel for a level that landed or
+  once the worker failed or ended, a failed worker's bake finished on the page, no worker without `OffscreenCanvas`
+  2D, the bundled worker started as a module. `shore-levels.spec.ts`: a bake dropped when the camera turns away or
+  the stage changes is ended.
 - `render/dive/shore/*.spec.ts`: the noise against the mockup's hash bit for bit, the coast's rings and distances,
   the levels' zooms and scales, each tile's bake, the paint helpers, the near strokes and cells, the kelp beds and
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and
