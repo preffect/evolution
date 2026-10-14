@@ -117,7 +117,8 @@ vec3 region(vec2 q, vec2 ld, float inlandKm, float mpp, out float meadowOut, out
   c = mix(c, REGION_ROCK, clamp(smoothstep(1650., 2100., h0) + smoothstep(1.1, 1.9, slope) * .5, 0., 1.));
   c = mix(c, REGION_SNOW, smoothstep(2150., 2500., h0 + 260. * speckle - slope * 180.) * .92);
   // the dry side: steppe east of the Cascades, oak meadows round Victoria
-  c = mix(c, REGION_STEPPE, smoothstep(-121., -120.1, ld.x + .5 * valueNoise(q / 40000.)) * smoothFall(1800., 900., h0) * smoothFall(49.35, 48.85, ld.y));
+  float dryNorth = smoothFall(49.35, 48.85, ld.y + .5 * (valueNoise(q / 90000.) - .5));     // ragged, not a parallel
+  c = mix(c, REGION_STEPPE, smoothstep(-121., -120.1, ld.x + .5 * valueNoise(q / 40000.)) * smoothFall(1800., 900., h0) * dryNorth);
   float meadow = gaussian2(ld, vec2(-123.38, 48.46), vec2(.12, .06)) * smoothFall(260., 80., h0);
   vec2 mq = mat2(.8, .6, -.6, .8) * q;
   meadow *= smoothstep(.64, .72, valueNoise(mq / 900.) * .55 + valueNoise(q / 260. + 3.1) * .3 + valueNoise(mq / 70.) * .15);

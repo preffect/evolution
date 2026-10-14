@@ -162,6 +162,14 @@ WebGL context and no copy into a 2D canvas.
     distance to the coast, the land's biomes by latitude and its deserts, and close in the Salish region's relief
     (its lowlands, the Olympics, the Coast Mountains, the Cascades and their volcanoes), snow, the dry side east of
     the Cascades, the oak meadows round Victoria and a conifer canopy.
+  - **Where the region's own land shows (ticket #817):** the region's bake gives the coast across its whole box,
+    feathered over the box's outer 12 %. Its relief, snow, dry side and meadows draw only inside a rounded box
+    (`regionDetailMask`, `planet/dive-planet-region-mask.ts`, `DIVE_PLANET_REGION_DETAIL_MASK`): a superellipse in
+    the box's own unit, its edge moved inward by noise a degree or so across. That detail is full round the focus and
+    gone before the box's edge, so the box's straight edges and corners never show. The mockup feathered the box
+    itself, which read as a soft rectangle of steppe and relief against the world's green from about 2,300 km down to
+    1,000 km, on every fall. The steppe's northern edge is ragged with noise for the same reason, rather than
+    following a parallel.
   - Clouds drift and cast shadows; the Olympic rain shadow keeps the focus clear. They clear by zoom 6.1.
   - The light is the game's, from the top-left: a soft terminator, a sun glint on the sea, and no lights on the
     night side (no one is here yet).
