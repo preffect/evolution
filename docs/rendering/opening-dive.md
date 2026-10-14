@@ -34,6 +34,13 @@ controls. This file says how the client draws it. The numbers are `render/consta
   frames (ticket #479) while the upper bands already draw, so the lobby never freezes on the bake. A failed bake
   leaves the dive on its upper bands. They bake at the organelle atlas's highest ratio whatever the screen's
   (`DIVE_BAKE_DEVICE_PIXEL_RATIO`).
+- **The autoplay waits for the warm-up (ticket #814):** on the first frame drawn once every bake has landed, the kelp
+  and the slime make their textures and draw each program once, unseen (§4). A fence goes after that frame
+  (`DiveWarmUpGate`, a WebGL 2 `fenceSync` through `PixiAppHandle.fenceGpuWork`, `render/gpu-fence.ts`, read without
+  blocking), and the autoplay starts only once the GPU is past it, so the warm-up is the orbit's wait. Under software
+  GL at DPR 2 it is 7–10 s (the programs compiled, the textures uploaded and their mipmaps made); the fall used to
+  start on that frame and spend it as one gap of 8–17 s, whose end the shore's level floor held at zoom 3.65. On a
+  GPU the fence passes on the next frame. Where there is no fence (WebGL 1, a lost context) it passes at once.
 - **Teardown:** the panel goes with the lobby, so joining a room destroys the dive before the room's
   `RenderSession` builds. `destroy` frees the planet's, the shore's, the kelp's and the slime's GPU objects (the
   planet's quad, program, coastline textures and render texture; the shore's quad and its levels' and tiles' textures;
@@ -201,9 +208,11 @@ in the dive's submit, and no second WebGL context:
   every 10 ms, from 60 ms after open), each step forcing its raster so no deferred work lands on a frame. The camera's
   level bakes first, then five ahead the way it moves, one behind and the widest level (the anchor, kept always)
   (`shore-levels.ts`, `SHORE_LEVEL_CACHE`). Above the band the camera counts as at its top, so the first levels of the
-  fall bake while the planet shows. A bake is dropped only when the camera has turned away from it. Levels the camera
-  left are given back at the start of the next frame, once a frame has drawn without them. The levels bake at the
-  stage's size, which the band takes from each frame's view.
+  fall bake while the planet shows. A bake is dropped only when the camera has turned away from it. Below the band's
+  cut the levels rest (`ShoreLevels.rest`, ticket #814): nothing more is wanted and the bake under way is ended (a
+  worker's is cancelled), so the redraws of the levels the camera left never take a core from the bands below; the
+  levels baked are kept for a way back up. Levels the camera left are given back at the start of the next frame, once
+  a frame has drawn without them. The levels bake at the stage's size, which the band takes from each frame's view.
 - **The bake worker (ticket #809):** where the browser has workers and `OffscreenCanvas` with a 2D context, the
   tiles and the levels bake in a module worker (`shore-bake.worker.ts`, its logic in `shore-bake-worker-core.ts`),
   so no bake step lands on the page's thread. The band starts it with the dive and terminates it with the band
@@ -485,9 +494,17 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   renders at most at it (§4).
   - **What it judges:** the gap between two drawn frames, the median of six (or of three once they span a second, for
     software GL's frames seconds apart), against 1.3 × 16.7 ms; and the frame's own work on the page's thread less the
-    time it spent handing work to the GPU (the planet's draw and the submit, which a GPU behind blocks). Not while a
-    band still bakes or the renderer builds (their slices slow the frames whatever the resolution), not off screen,
-    not a still frame under reduced motion, not the evidence probe.
+    time it spent handing work to the GPU (the planet's draw and the submit, which a GPU behind blocks). The bands'
+    bake slices between two frames are left out of the gap (`DiveBakeTime` times each call on the bands' scheduler),
+    since they slow the frames whatever the resolution, so it judges while the bands bake (ticket #814: judging none
+    then held the canvas at full resolution through the whole orbit and into the fall under software GL). Not while
+    the renderer builds (its steps run inside the frames), not off screen, not a still frame under reduced motion, not
+    the evidence probe.
+  - **Far behind:** a window that spans a second or more and whose frames came, on the whole, slower than 3 × the
+    target is judged by its mean, and counts as over budget throughout (ticket #814). A GPU seconds behind hands out
+    its frames in bursts, a few a vsync apart and then a wait of a second or two, so the median of a window can be a
+    vsync while the dive draws a frame a second. One long wait among smooth frames is in its windows for only a few
+    frames, never the 500 ms a step needs.
   - **Over budget throughout:** a step down needs every window judged over the last 500 ms to be over budget with at
     most one frame of six on time. A GPU behind misses every vsync; a busy page misses some (33 ms gaps among 16.7 ms
     ones, a CPU four times slower), and those wait it out: ticket #804's review saw them step the canvas to the floor.
@@ -505,10 +522,14 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     (once, at the leap).
   - **Under software GL** (SwiftShader, Chromium with GPU acceleration off: VMs, remote desktops), held frames at the
     floor take 13–102 ms flushed at DPR 1 (8–38 fps), against 79–700 ms at full resolution on main, and 14–98 ms at
-    DPR 2 against 304–2,520 ms. In a fresh-load autoplay fall at DPR 1 the kelp, the drop, the slime and the dish run at
-    4–13 fps, against 1.4–2.9; the planet and the shore stay at 2–3 fps while the shore's bake worker shares the box's
-    cores with the software rasteriser. The drop's lens at −2.3, 550 ms a frame when ticket #802 landed and 183 ms on
-    main, is 27 ms at the floor.
+    DPR 2 against 304–2,520 ms. The drop's lens at −2.3, 550 ms a frame when ticket #802 landed and 183 ms on main, is
+    27 ms at the floor. A fresh-load autoplay fall at DPR 2 (ticket #814, `qa/evidence/pr-930/`, five runs at load
+    1.6–5.8 on the 4-core box) leaps to the floor in orbit and runs every band at 6.7–16 fps (planet 12–16, shore
+    6.7–9.4, kelp and drop 6.9–10, slime 8.6–15, dish 11–14; the longest task in the fall 311 ms), against 0.4–1.5 fps
+    on main (five runs at load 3.2–7.7), which kept the canvas at 1.5 into the shore or past it and stalled 11–17 s at
+    the shore's arrival. At DPR 1 it runs 10–17 fps (load 3.2–3.9); under load 5–9 from other agents a band dipped to
+    2–5 fps, the software rasteriser short of cores. The autoplay starts 24–31 s after the load rather than 10–20 s:
+    the warm-up's wait and the rest of the bakes, now in orbit.
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:
   - the upper bands: the planet's forest test
   - the planet: its uniforms and its draw into its render texture
@@ -570,7 +591,9 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   one closed, a dropped level cancelled once and closed should it land after, no cancel for a level that landed or
   once the worker failed or ended, a failed worker's bake finished on the page, no worker without `OffscreenCanvas`
   2D, the bundled worker started as a module. `shore-levels.spec.ts`: a bake dropped when the camera turns away or
-  the stage changes is ended.
+  the stage changes is ended; at rest nothing is wanted, the bake under way is ended and the levels are kept.
+  `dive-shore-band.spec.ts`: below the band the worker's bake is cancelled and the slices stop, back in it they
+  start again.
 - `render/dive/shore/*.spec.ts`: the noise against the mockup's hash bit for bit, the coast's rings and distances,
   the levels' zooms and scales, each tile's bake, the paint helpers, the near strokes and cells, the kelp beds and
   far rim, the land edge, the pools and boulders, the sea grid and ramp, the levels' bake order, stand-ins and
@@ -595,11 +618,19 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
 - `dive-dish-clip.spec.ts`: the clip to the dish's wall and its lift, the dish's group fade under 1 and none at 1.
 - `dive-resolution-governor.spec.ts`: the ladder to its floor; the notches a slow frame costs, none when the CPU alone
   is over budget; a window of slow frames steps down and one long task never does; software GL's 550 ms frames reach the
-  floor in one change; nothing judged off the window (an interrupt, a gap too long, a frame not judged); a step up after
-  3 s on budget, a failed one backed off 2×, 4×… to 48 s, a held one putting the wait back; the falling ceiling.
+  floor in one change; nothing judged off the window (an interrupt, a gap too long, a frame not judged); bake slices
+  left out of the gaps; software GL's bursts (a wait of seconds, then frames a vsync apart) reaching the floor, and one
+  wait of seconds among smooth frames never moving it; a step up after 3 s on budget, a failed one backed off 2×, 4×…
+  to 48 s, a held one putting the wait back; the falling ceiling. `dive-bake-time.spec.ts`: each slice timed, one that
+  throws too, a cancelled one never run.
 - `dive-session-governor.spec.ts`: over the fake app, slow frames step the dive's one canvas down and the bands' view
-  carries the ratio; smooth frames, a band still baking, the stage off screen and the evidence probe never move it; a
-  DPR 2 fall renders at 1.5 and at 2 once it arrives.
+  carries the ratio; smooth frames, bake slices between them, the stage off screen and the evidence probe never move
+  it, and software GL's frames step it down while a band still bakes; a DPR 2 fall renders at 1.5 and at 2 once it
+  arrives.
+- `dive-warm-up-gate.spec.ts`, `render/gpu-fence.spec.ts`: one fence, after the first frame drawn with every bake
+  landed, the gate open only while they are and once the GPU is past it; the fence flushed, read without blocking,
+  given back once, and passed at once with no WebGL 2, no sync or a lost context. `dive-session-start.spec.ts`: the
+  autoplay never plays on the warm-up's frame, and waits for the fence.
 - `kelp/*.spec.ts`: the splines and ribbons (through the control points, blade 0 through the focus, the taper and
   ruffles), the ribbons' mesh (strips, shadows first, attributes), the rock's sampled outline and the distance bakes
   (+ inside, exact at the outline), the beads (the mockup's grid cell bit for bit, on blade 0, clear of the drop, in
