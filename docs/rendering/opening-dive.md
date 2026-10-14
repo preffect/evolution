@@ -524,10 +524,10 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     floor take 13–102 ms flushed at DPR 1 (8–38 fps), against 79–700 ms at full resolution on main, and 14–98 ms at
     DPR 2 against 304–2,520 ms. The drop's lens at −2.3, 550 ms a frame when ticket #802 landed and 183 ms on main, is
     27 ms at the floor. A fresh-load autoplay fall at DPR 2 (ticket #814, `qa/evidence/pr-930/`, five runs at load
-    1.6–5.8 on the 4-core box) leaps to the floor in orbit and runs every band at 6.7–16 fps (planet 12–16, shore
+    1.6–5.9 on the 4-core box) leaps to the floor in orbit and runs every band at 6.7–16 fps (planet 12–16, shore
     6.7–9.4, kelp and drop 6.9–10, slime 8.6–15, dish 11–14; the longest task in the fall 311 ms), against 0.4–1.5 fps
-    on main (five runs at load 3.2–7.7), which kept the canvas at 1.5 into the shore or past it and stalled 11–17 s at
-    the shore's arrival. At DPR 1 it runs 10–17 fps (load 3.2–3.9); under load 5–9 from other agents a band dipped to
+    above the dish on main (five runs at load 3.2–7.7; the dish 0.4–5.4), which kept the canvas at 1.5 into the shore
+    or past it and stalled 11–17 s at the shore's arrival. At DPR 1 it runs 10–17 fps (load 3.2–3.9); under load 5–9 from other agents a band dipped to
     2–5 fps, the software rasteriser short of cores. The autoplay starts 24–31 s after the load rather than 10–20 s:
     the warm-up's wait and the rest of the bakes, now in orbit.
 - **What is measured:** `DiveFrameTimes` keeps the script milliseconds per frame of each part:
