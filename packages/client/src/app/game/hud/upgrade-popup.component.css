@@ -14,6 +14,14 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
+  /* A move to another slot while up (`UpgradePopupSlotMove`, ticket #861): back in at the new one. */
+  transition: opacity var(--hud-upgrade-popup-move-fade-in) ease-in-out;
+}
+
+/* Held in its old slot while it fades out of it: quickly and front-loaded, so the picker's cards come clear. */
+:host(.moving) {
+  opacity: 0;
+  transition: opacity var(--hud-upgrade-popup-move-fade-out) ease-out;
 }
 
 /* No room above the cues: under the zone pill instead, grown from its top edge and sinking as it fades. */
@@ -214,7 +222,7 @@
   }
 }
 
-/* Reduced motion: fade only, no scale, rise, flare or ring; the timings stay. */
+/* Reduced motion: fade only, no scale, rise, flare or ring; the timings stay. A move between slots is a fade already. */
 @media (prefers-reduced-motion: reduce) {
   .popup {
     animation-name: popup-fade-in, popup-fade-out;

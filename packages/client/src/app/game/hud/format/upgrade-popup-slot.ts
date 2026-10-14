@@ -17,12 +17,15 @@ import { onScreenRadiusPx, pickerBandOffsetPx } from './picker-band';
 import { toastRowBottomPx } from './toast-row';
 
 /**
- * Above the own cell while it is alive, clear of its cues; below it when there is no room above; under the death
- * overlay's text while dead or spectating, when the cell's cues are gone and the text must stay readable.
+ * Above the own cell while it is alive, clear of its cues; below it when there is no room above; pinned under the toast
+ * row when neither fits (the picker open over a big cell); under the death overlay's text while dead or spectating,
+ * when the cell's cues are gone and the text must stay readable. A popup whose placement changes while it is up fades
+ * across (`UpgradePopupSlotMove`, ticket #861).
  */
 export const UPGRADE_POPUP_PLACEMENT = {
   aboveCell: 'above-cell',
   belowCell: 'below-cell',
+  pinned: 'pinned',
   belowDeathText: 'below-death-text',
 } as const;
 export type UpgradePopupPlacement = ValueOf<typeof UPGRADE_POPUP_PLACEMENT>;
@@ -42,8 +45,8 @@ export interface UpgradePopupRoom {
 export interface UpgradePopupSlot {
   readonly placement: UpgradePopupPlacement;
   /**
-   * Real px from the viewport centre to the host's edge nearest the cell: its bottom edge above the centre, or its
-   * top edge below it. Unused under the death text, which places the host from the top.
+   * Real px from the viewport centre to the host's edge nearest the cell: its bottom edge above the centre (above the
+   * cell or pinned), or its top edge below it. Unused under the death text, which places the host from the top.
    */
   readonly offsetPx: number;
 }
@@ -85,5 +88,5 @@ export function upgradePopupSlotFor(room: UpgradePopupRoom): UpgradePopupSlot {
   if (!room.isPickerOpen && fitsOnScreen(belowPx, room)) {
     return { placement: UPGRADE_POPUP_PLACEMENT.belowCell, offsetPx: belowPx };
   }
-  return { placement: UPGRADE_POPUP_PLACEMENT.aboveCell, offsetPx: Math.min(abovePx, pinnedOffsetPx(room)) };
+  return { placement: UPGRADE_POPUP_PLACEMENT.pinned, offsetPx: Math.min(abovePx, pinnedOffsetPx(room)) };
 }

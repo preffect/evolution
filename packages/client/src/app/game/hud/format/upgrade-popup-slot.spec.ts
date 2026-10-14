@@ -127,7 +127,7 @@ describe('upgradePopupSlotFor (docs/ui/overlays.md §3.8)', () => {
     ({ width, height, mass }) => {
       const room = { ...roomAt(width, height, mass, formHostPx(width, height)), isPickerOpen: true };
       const slot = upgradePopupSlotFor(room);
-      expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+      expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
       const hostTopPx = height * HALF - slot.offsetPx - room.popupHeightPx;
       expect(hostTopPx).toBeCloseTo(toastRowBottomPx(room.viewport));
       expect(slot.offsetPx).toBeGreaterThanOrEqual(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(width, height));
@@ -137,7 +137,7 @@ describe('upgradePopupSlotFor (docs/ui/overlays.md §3.8)', () => {
   it('pins at the exclusion box, not into it, when even the toast row leaves no room', () => {
     const room = { ...roomAt(1024, 640, CELL_MAX_MASS, 320), isPickerOpen: true };
     const slot = upgradePopupSlotFor(room);
-    expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.aboveCell);
+    expect(slot.placement).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
     expect(slot.offsetPx).toBe(HUD_PLAYER_EXCLUSION_PX * uiScaleFor(1024, 640));
   });
 
