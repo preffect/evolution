@@ -1,0 +1,77 @@
+// The ledger's code side (docs/CODE-STANDARDS.md §2): constants whose doc block claims something about their consumers,
+// checked against every shipping source file so the claim cannot go quietly false. Split from constants-ledger.test.ts,
+// which reads the design tables.
+
+import { readFileSync, readdirSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const PACKAGES_DIRECTORY = new URL('../../../../packages/', import.meta.url);
+
+/**
+ * Constants that describe a consequence of other constants rather than driving anything, and whose
+ * doc block says so. The claim is load-bearing: it is the only reason `world-store.spec.ts` and
+ * `netcode.test.ts` deliberately repeat the literal instead of importing the name, and it goes
+ * quietly false the day someone gives one a consumer (#283 item 18).
+ */
+const DESCRIBES_BUT_DOES_NOT_DRIVE = ['EFFECT_DRAW_WINDOW_TICKS'] as const;
+
+/**
+ * `constants/derive-netcode.ts` is the algebra behind the netcode constants and is deliberately out of
+ * the barrel: the public surface is the named constants `netcode.ts` exports, not the function behind
+ * them, and a second caller would pick levers of its own and re-open the drift #287 closes. Its own
+ * header says so, which is the shape of prose #287 exists to turn into a case.
+ */
+const DERIVATION_MODULE = 'derive-netcode.js';
+const DERIVATION_SOLE_IMPORTER = 'shared/src/constants/netcode.ts';
+
+/** Every shipping TypeScript file under each package's `src`: not tests, not the doubles they use. */
+function shippingSourceFiles(): URL[] {
+  const files: URL[] = [];
+  for (const packageName of readdirSync(PACKAGES_DIRECTORY)) {
+    const source = new URL(`${packageName}/src/`, PACKAGES_DIRECTORY);
+    let entries: string[];
+    try {
+      entries = readdirSync(source, { recursive: true }) as string[];
+    } catch {
+      continue; // a package without a src/ directory
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith('.ts') || entry.endsWith('.d.ts')) continue;
+      if (/\.(test|spec)\.ts$/.test(entry) || entry.includes('testing')) continue;
+      files.push(new URL(entry, source));
+    }
+  }
+  return files;
+}
+
+/** `…/packages/shared/src/constants/netcode.ts` as `shared/src/constants/netcode.ts`, for a readable failure. */
+function pathWithinPackages(file: URL): string | undefined {
+  return file.pathname.split('/packages/')[1];
+}
+
+describe('constants ledger: constants that describe rather than drive', () => {
+  const sources = shippingSourceFiles();
+
+  it('finds the shipping sources to scan', () => {
+    // A scan that matched nothing would pass the cases below without reading a line of code.
+    expect(sources.length).toBeGreaterThan(100);
+  });
+
+  it.each(DESCRIBES_BUT_DOES_NOT_DRIVE)('%s has no runtime consumer, so its doc block holds', (name) => {
+    const consumers = sources.filter((file) => {
+      const source = readFileSync(file, 'utf8');
+      // The file that exports it is its home, not a consumer.
+      return source.includes(name) && !source.includes(`export const ${name}`);
+    });
+    // Aimed at the condition, not at today's behaviour: this goes red on exactly the day the comment
+    // needs rewriting, and hands whoever adds the consumer the paragraph to update.
+    expect(consumers.map(pathWithinPackages)).toEqual([]);
+  });
+
+  it('imports the netcode derivation from nothing but the file that names its result', () => {
+    // The same shape for `derive-netcode.ts`'s own header claim (#287): the specifier is matched
+    // without its leading `./` so an import from another directory counts too.
+    const importers = sources.filter((file) => readFileSync(file, 'utf8').includes(DERIVATION_MODULE));
+    expect(importers.map(pathWithinPackages)).toEqual([DERIVATION_SOLE_IMPORTER]);
+  });
+});

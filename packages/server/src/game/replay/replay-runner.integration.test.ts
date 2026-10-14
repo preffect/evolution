@@ -7,6 +7,7 @@ import {
   CELL_STAGE,
   DEFAULT_BALANCE,
   ENTITY_KIND,
+  GAME_ERA,
   TICK_INTERVAL_MS,
   createTestGameInput,
   createTestSessionConfig,
@@ -35,9 +36,13 @@ const CID = playerId('cid');
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
 const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
+/** A round that reaches the pool (phases.md §14.2.3), and the tick the run jumps to it after turning it on. */
+const POOL_ON_ROUND_SECONDS = 1020;
+const ERA_JUMP_TICK = 80;
 
-function roomUnderTest() {
-  const options = createTestRoomInitOptions([ALICE, BOB], { config: createTestSessionConfig({ seed: SEED }) });
+function roomUnderTest(config = createTestSessionConfig({ seed: SEED })) {
+  const options = createTestRoomInitOptions([ALICE, BOB], { config });
   const module: EvolutionModule = createEvolutionModule(options);
   const timing = createManualRoomTiming();
   const room = new GameRoom(module, options, timing);
@@ -101,6 +106,25 @@ describe('replaying what a room recorded', () => {
     expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toContain(SWITCH_TICK);
     const replayed = replay(recording);
     expect(replayed.world.balance.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
+    expect(replayed.hash).toBe(recording.finalHash);
+  });
+
+  it('reproduces a run that turned the pool on and jumped to it, through a JSON round trip (phases.md §14.2.4)', () => {
+    const config = createTestSessionConfig({ seed: SEED, roundDurationSeconds: POOL_ON_ROUND_SECONDS });
+    const { module, handle, step, stop } = roomUnderTest(config);
+    for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) {
+      if (tick === SWITCH_TICK) handle.patchBalance({ eras: { [ERAS_IN_PLAY_LEAF]: [GAME_ERA.dish, GAME_ERA.pool] } });
+      if (tick === ERA_JUMP_TICK) handle.setEra(GAME_ERA.pool);
+      step(tick);
+    }
+    const recording = JSON.parse(JSON.stringify(handle.exportReplay())) as Replay;
+    stop();
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toEqual(
+      expect.arrayContaining([SWITCH_TICK, ERA_JUMP_TICK]),
+    );
+    expect(module.world.roundStartTick).toBeLessThan(0);
+    const replayed = replay(recording);
+    expect(replayed.world.roundStartTick).toBe(module.world.roundStartTick);
     expect(replayed.hash).toBe(recording.finalHash);
   });
 

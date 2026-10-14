@@ -1,6 +1,13 @@
 // docs/game-design/session.md §5.1, §5.4: whole-tick boundaries from the integer counter.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, TICK_HZ, TICK_INTERVAL_MS } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  GAME_ERA,
+  TICK_HZ,
+  TICK_INTERVAL_MS,
+  createTestSessionConfig,
+  withErasInPlay,
+} from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import {
   bloomStartTick,
@@ -9,9 +16,14 @@ import {
   resultsElapsedTicksAt,
   roundDurationTicks,
   roundElapsedTicksAt,
+  roundEraAt,
   roundTimeLeftMsAt,
   worldReferenceAt,
 } from './round-clock.js';
+
+/** The pool's first tick after a round start at 0, in a round long enough to reach it (phases.md §14.2.1). */
+const POOL_FIRST_TICK = 36_000;
+const POOL_ON_ROUND_SECONDS = 1020;
 
 describe('round clock', () => {
   it('derives whole-tick durations from the config and the balance', () => {
@@ -55,5 +67,16 @@ describe('round clock', () => {
     expect(worldReferenceAt(world, roundDurationTicks(world) + 600)).toEqual(atRoundEnd);
     world.roundStartTick = 37_200;
     expect(worldReferenceAt(world, 37_200).worldLevel).toBe(1);
+  });
+
+  it('reads the era of a tick from roundStartTick, on the world’s balance or a patched one (phases.md §14.2.1)', () => {
+    const world = createTestWorld();
+    world.config = createTestSessionConfig({ seed: world.seed, roundDurationSeconds: POOL_ON_ROUND_SECONDS });
+    const poolOn = withErasInPlay([GAME_ERA.dish, GAME_ERA.pool]);
+    expect(roundEraAt(world, POOL_FIRST_TICK)).toBe(GAME_ERA.dish);
+    expect(roundEraAt(world, POOL_FIRST_TICK - 1, poolOn)).toBe(GAME_ERA.dish);
+    expect(roundEraAt(world, POOL_FIRST_TICK, poolOn)).toBe(GAME_ERA.pool);
+    world.roundStartTick = -POOL_FIRST_TICK;
+    expect(roundEraAt(world, 0, poolOn)).toBe(GAME_ERA.pool);
   });
 });

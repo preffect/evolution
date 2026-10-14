@@ -8,6 +8,14 @@ export function secondsToTicks(seconds: number): number {
   return Math.round(seconds * TICK_HZ);
 }
 
+/**
+ * True when `seconds` is a whole number of ticks: the nearest tick, read back as `ticks / TICK_HZ`, is `seconds` itself
+ * (600, 600.5 and `36 019 / TICK_HZ` are; 600.005 is not). A start that must land on a tick is checked with this.
+ */
+export function isWholeNumberOfTicks(seconds: number): boolean {
+  return secondsToTicks(seconds) / TICK_HZ === seconds;
+}
+
 /** Whole ticks nearest to `milliseconds` at `TICK_HZ`. */
 export function millisecondsToTicks(milliseconds: number): number {
   return Math.round(milliseconds / TICK_INTERVAL_MS);

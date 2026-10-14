@@ -1,7 +1,7 @@
 // The one balance record (docs/architecture/constants-files-tests.md §9): the tunable domain modules spread into plain
-// records. Each room starts from a `structuredClone` of `DEFAULT_BALANCE`, `debug_set_balance`
-// patches number leaves and the declared non-number leaves (a stage id) of the room's copy, and the client predicts with the copy it receives in
-// `game_state`. Nothing here is read by the simulation as a module import; it arrives as
+// records. Each room starts from a `structuredClone` of `DEFAULT_BALANCE`, `debug_set_balance` patches number leaves
+// and the declared non-number leaves (a stage id, the era list) of the room's copy, and the client predicts with the
+// copy it receives in `game_state`. Nothing here is read by the simulation as a module import; it arrives as
 // `context.balance`. The record is deep-frozen: it aliases the module constants, so a room that
 // forgot to clone would otherwise rewrite every room and the constants themselves.
 // `data/balance.json` is generated from this record by `pnpm generate:balance` and pinned equal
@@ -18,9 +18,12 @@ import { deepFreeze } from './deep-freeze.js';
 import * as controls from './controls.js';
 import * as earlyLife from './early-life.js';
 import * as ecology from './ecology.js';
+import * as eras from './eras.js';
 import * as giants from './giants.js';
 import * as growth from './growth.js';
 import * as ladder from './ladder.js';
+import * as pool from './pool.js';
+import * as poolCreatures from './pool-creatures.js';
 import * as progression from './progression.js';
 import * as session from './session.js';
 import * as traits from './traits.js';
@@ -33,8 +36,8 @@ import * as worldClock from './world-clock.js';
  * holds other numbers, so the config type widens every number leaf to `number`. Ids, tables and
  * arrays keep their literal types: they are structure, not tunables. A patchable non-number leaf (one that
  * `debug_set_balance` declares a kind for) is declared with its widened type, never its literal: an id with its id type
- * (`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`readonly EraId[]`), so a patched value never lies to
- * the type.
+ * (`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`ERAS_IN_PLAY: readonly GameEra[]`), so a patched
+ * value never lies to the type.
  */
 type WidenNumberLeaves<Value> = Value extends number
   ? number
@@ -53,6 +56,7 @@ export const DERIVED_BALANCE_CONSTANTS = [
   'ENGULF_BASE_DURATION_SECONDS',
   'ENGULF_WRAP_START_PROGRESS',
   'ENGULF_SEAL_PROGRESS',
+  'ERA_LANDMARK_RADIUS',
 ] as const;
 
 /** A spread's type: the module namespace's read-only exports as the writable properties of a plain record. */
@@ -82,6 +86,9 @@ const BALANCE_DEFAULTS = {
   earlyLife: { ...earlyLife },
   progression: { ...progression },
   traits: { ...traits },
+  eras: { ...eras },
+  pool: { ...pool },
+  poolCreatures: { ...poolCreatures },
 };
 
 export type BalanceConfig = WidenNumberLeaves<typeof BALANCE_DEFAULTS>;

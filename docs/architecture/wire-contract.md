@@ -28,6 +28,7 @@ export interface GameSessionConfig {
 export interface GameSnapshot {
   tick: number;
   seed: number; // current round seed (G2 asserts 43 after the first rematch)
+  roundStartTick: number; // 0 at creation, the tick at a rematch; may be negative after a debug_set_era jump (game-design/phases.md §14.2.4): the world clock and eraAt read tick − roundStartTick
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];

@@ -1,14 +1,18 @@
 // The round clock as numbers (docs/game-design/session.md §5.1, §5.4; docs/ecology/food-and-spawn.md §3.1): whole ticks
 // from the integer counter (`tick − roundStartTick`), never accumulated milliseconds, so the
 // boundaries land on exact ticks; and the world reference the tick reads, computed here from the
-// shared clock exactly as the HUD computes it from the snapshot.
+// shared clock exactly as the HUD computes it from the snapshot; and the era the clock reads at a tick (`eraAt`,
+// docs/game-design/phases.md §14.2.1).
 
 import {
+  eraAt,
   secondsToTicks,
   ticksToMilliseconds,
   worldElapsedSeconds,
   worldReference,
   type BalanceConfig,
+  type EraClockBalance,
+  type GameEra,
   type WorldReference,
 } from '@evolution/shared';
 import type { WorldState } from '../world/world-state.js';
@@ -60,4 +64,13 @@ export function worldReferenceAt(world: RoundClockWorld, tick: number): WorldRef
     worldElapsedSeconds(tick, world.roundStartTick, world.config.roundDurationSeconds),
     world.balance,
   );
+}
+
+/**
+ * The era the round clock reads at `tick`, on `balance` (the world's own by default; a patch is read on its result
+ * before it lands). The clock's era, not the era the world has moved into (architecture/server-simulation.md §3).
+ */
+export function roundEraAt(world: RoundClockWorld, tick: number, balance: EraClockBalance = world.balance): GameEra {
+  const roundDurationSeconds = world.config.roundDurationSeconds;
+  return eraAt(worldElapsedSeconds(tick, world.roundStartTick, roundDurationSeconds), roundDurationSeconds, balance);
 }

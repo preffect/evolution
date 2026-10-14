@@ -7,6 +7,7 @@ import {
   ENTITY_KIND,
   type BalanceConfig,
   type EntityKind,
+  type GameEra,
   type GameInput,
   type PlayerId,
   type StateHash,
@@ -169,6 +170,10 @@ export class EvolutionDebugHandle implements Required<SimulationDebugHandle> {
   patchBalance(patch: BalancePatch): BalanceConfig {
     this.applyAndRecord({ kind: DEBUG_PATCH_KIND.setBalance, patch });
     return this.dependencies.world.balance;
+  }
+
+  setEra(era: GameEra): unknown {
+    return this.applyAndRecord({ kind: DEBUG_PATCH_KIND.setEra, era });
   }
 
   computeStateHash(): StateHash {

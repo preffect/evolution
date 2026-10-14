@@ -4,6 +4,7 @@ import { registerBalanceTools } from './balance.js';
 import { registerBotTools } from './bots.js';
 import { registerDeterminismTools } from './determinism.js';
 import { registerEntityTools } from './entities.js';
+import { registerEraTools } from './eras.js';
 import { registerPlayerTools } from './player.js';
 import { registerRoomLoopTools } from './room-loop.js';
 import { registerSpawnTools } from './spawn.js';
@@ -20,5 +21,6 @@ export function registerGameSpecificTools(mcp: McpServer, context: DebugContext)
   registerRoomLoopTools(mcp, context);
   registerDeterminismTools(mcp, context);
   registerBalanceTools(mcp, context);
+  registerEraTools(mcp, context);
   registerBotTools(mcp, context);
 }

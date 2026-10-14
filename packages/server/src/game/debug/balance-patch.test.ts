@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, DEFAULT_BALANCE, DISH_RADIUS } from '@evolution/shared';
+import { CELL_STAGE, DEFAULT_BALANCE, DISH_RADIUS, GAME_ERA, GAME_ERA_ORDER, type GameEra } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch } from './simulation-debug-handle.js';
@@ -12,6 +12,8 @@ const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
 const LATCH_LEAF = 'LATCH_FROM_STAGE';
 const STARTING_STAGE_LEAF = 'STARTING_STAGE';
 const DNA_TAGS_LEAF = 'DNA_TAGS';
+/** The declared era-list leaf (phases.md §14.2.4). */
+const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 const TIER_TABLES_LEAF = 'TRAIT_TIERS';
 const CILIA = 'cilia';
 const TIER_I_ROW = 0;
@@ -190,5 +192,46 @@ describe('applyBalancePatch on the declared non-number leaves (docs/game-design/
   it('refuses the whole patch when a stage-id leaf beside a good number is refused', () => {
     const patch = { world: { [DISH_RADIUS_LEAF]: DISH_RADIUS + 1 }, absorption: { [SWALLOW_LEAF]: 'amoeba' } };
     expect(() => applyBalancePatch(DEFAULT_BALANCE, patch)).toThrow(DebugRequestError);
+  });
+});
+
+describe('applyBalancePatch on the era-list leaf (docs/game-design/phases.md §14.2.4)', () => {
+  const erasInPlay = (value: unknown): BalancePatch => ({ eras: { [ERAS_IN_PLAY_LEAF]: value as string[] } });
+  const poolOn = [GAME_ERA.dish, GAME_ERA.pool];
+
+  it.each([[poolOn], [GAME_ERA_ORDER], [[GAME_ERA.dish]]])('writes the prefix %j', (prefix) => {
+    const result = applyBalancePatch(DEFAULT_BALANCE, erasInPlay(prefix));
+    expect(result.writtenPaths).toEqual(['eras.ERAS_IN_PLAY']);
+    expect(result.balance.eras.ERAS_IN_PLAY).toEqual(prefix);
+    expect(DEFAULT_BALANCE.eras.ERAS_IN_PLAY).toEqual([GAME_ERA.dish]);
+  });
+
+  it('writes a copy: the balance never aliases the list the patch came in', () => {
+    const patchList: GameEra[] = [...poolOn];
+    const result = applyBalancePatch(DEFAULT_BALANCE, erasInPlay(patchList));
+    expect(result.balance.eras.ERAS_IN_PLAY).not.toBe(patchList);
+    patchList.push(GAME_ERA.colonies);
+    expect(result.balance.eras.ERAS_IN_PLAY).toEqual(poolOn);
+  });
+
+  it.each<[string, unknown]>([
+    ['a list that skips the pool', [GAME_ERA.dish, GAME_ERA.colonies]],
+    ['a list without the dish', [GAME_ERA.pool]],
+    ['the empty list', []],
+    ['an era that is not a list', GAME_ERA.dish],
+    ['a list of numbers', [1, 2]],
+    ['a number', 1],
+  ])('refuses %s, naming the path and what it takes', (_label, value) => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, erasInPlay(value))).toThrow(
+      new DebugRequestError(
+        `"eras.ERAS_IN_PLAY" takes a prefix of the eras (dish, pool, colonies), the dish first, not ${JSON.stringify(value)}`,
+      ),
+    );
+  });
+
+  it('refuses a record at the era-list leaf', () => {
+    expect(() => applyBalancePatch(DEFAULT_BALANCE, { eras: { [ERAS_IN_PLAY_LEAF]: { 0: GAME_ERA.dish } } })).toThrow(
+      /"eras\.ERAS_IN_PLAY" takes a prefix of the eras/,
+    );
   });
 });
