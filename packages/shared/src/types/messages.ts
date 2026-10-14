@@ -20,6 +20,7 @@ import type {
   RoundPhase,
   TraitChoiceInput,
 } from './game.js';
+import type { CopepodLaneView, PoolLayoutView, SurgeView } from './pool.js';
 import type { OwnProgressView } from './mass-flow.js';
 import type { GameEffect } from './effects.js';
 import type { BalanceConfig } from '../constants/balance.js';
@@ -89,6 +90,16 @@ export interface GameSnapshot {
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
+  /**
+   * The rock pool's layout (docs/game-design/phases.md §14.4.6): in every snapshot from the pool's warning tick on, so
+   * the client bakes it during the warning; null before, and in every round whose pool is not in play
+   * (docs/architecture/wire-contract.md §4 "The pool layout").
+   */
+  poolLayout: PoolLayoutView | null;
+  /** The surge from its warning to its end (phases.md §14.5.3), else null: the shared movement step reads it. */
+  surge: SurgeView | null;
+  /** The copepod's pass from its warning to its end (phases.md §14.6.4), else null: the client draws its shadow and lane. */
+  copepodLane: CopepodLaneView | null;
   cells: CellView[];
   /** Every fragment in the receiver's interest area, every snapshot: they drift (docs/architecture/wire-contract.md §4.2). */
   dnaFragments: DnaFragmentView[];

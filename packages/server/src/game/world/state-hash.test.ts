@@ -31,10 +31,10 @@ import {
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
   TRAILING_CELL_HASHED_FIELDS,
-  TRAILING_WORLD_HASHED_FIELDS,
   WORLD_SCALAR_HASHED_FIELDS,
   computeStateHash,
 } from './state-hash.js';
+import { TRAILING_WORLD_HASHED_FIELDS } from './era-hashed-section.js';
 import { GIANT_SEAT_HASHED_FIELDS, WILD_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 
 const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'Bea', avatarIndex: 1 };
@@ -73,15 +73,15 @@ function worldHoldingTheMote(holderIndex: number | null): WorldState {
 
 /**
  * `computeStateHash(populatedWorld())` recorded on main (4fe77f46) before ticket #907 added the held lists. It must not
- * move while no cell holds a bacterium and the world is in the dish: the held lists, then the era moved into, are walked
- * last and only when they leave their defaults (`hashLatchedBacteriaOfCells`, `hashEraMovedInto`, #931), so recordings
- * exported before them keep their `finalHash`. A deliberate change to the walk or to the test world re-records it, and
- * says so here.
+ * move while no cell holds a bacterium and the world has no era state: the held lists, then the eras' section, are
+ * walked last and only when they leave their defaults (`hashLatchedBacteriaOfCells`, `hashEraSection`, #931), so
+ * recordings exported before them keep their `finalHash`, and so does a world carrying the eras' streams undrawn
+ * (#932). A deliberate change to the walk or to the test world re-records it, and says so here.
  */
 const RECORDED_POPULATED_WORLD_HASH = 'bf921363406e995f';
 
 describe('computeStateHash', () => {
-  it('hashes a world in the dish whose cells hold nothing exactly as main did before the held lists and the eras', () => {
+  it('hashes a world in the dish whose cells hold nothing exactly as main did before the held lists and the eras, its era streams undrawn', () => {
     expect(computeStateHash(populatedWorld())).toBe(RECORDED_POPULATED_WORLD_HASH);
   });
 
@@ -145,10 +145,6 @@ describe('computeStateHash', () => {
     });
     expect(hashes[0]).toBe(RECORDED_POPULATED_WORLD_HASH);
     expect(new Set(hashes).size).toBe(GAME_ERA_ORDER.length);
-  });
-
-  it('walks exactly the era moved into after the held lists: a world field added there needs its own test here', () => {
-    expect(TRAILING_WORLD_HASHED_FIELDS).toEqual(['eraMovedInto']);
   });
 
   it('tells the two trailing sections apart: held lists, an era, both or neither', () => {

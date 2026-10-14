@@ -33,6 +33,9 @@ export interface GameSnapshot {
   roundPhase: RoundPhase;
   roundTimeLeftMs: number;
   gelPatches: GelPatchView[];
+  poolLayout: PoolLayoutView | null; // from the pool's warning tick on, in every snapshot; null before and in a round without one ("The pool layout" below, ticket #932)
+  surge: SurgeView | null; // from its warning to its end, else null: the shared movement step predicts it (game-design/phases.md §14.5.3)
+  copepodLane: CopepodLaneView | null; // the copepod's pass from its warning to its end, else null (phases.md §14.6.4)
   cells: CellView[];
   dnaFragments: DnaFragmentView[]; // every fragment in the receiver's interest area, every snapshot: they drift (section 4.2 lever 1)
   food: FoodDelta; // wire refinement of the design's FoodMoteView[] (section 4.1)
@@ -66,7 +69,9 @@ precision.
 - `MassFlowView.sprintSpent` / `noDraftBonusGained`, `EatEffect.massGained` / `dnaGained` and
   `CellAbsorbedEffect.predatorMassGained` / `predatorDnaGained`: `SNAPSHOT_MASS_DECIMALS` (0.1); a `sprintSpent` or
   `noDraftBonusGained` that rounds to 0 is left out
-- Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), effect `x` / `y`,
+- Written exact: `GelPatchView` `x` / `y` / `radius` (static, sent whole each snapshot), the pool's views (`poolLayout`,
+  `surge`, `copepodLane` and the warnings that carry their fields: the shared movement step predicts with them, and the
+  surge alone moves a cell 360 wu, so a rounded direction would mispredict it), effect `x` / `y`,
   `engulfProgress`, `membraneRatioBonus` and every other number of a view (counters, ticks, the progress DNA such as
   `dnaCumulative`; the meal amounts `dnaGained` / `predatorDnaGained` are rounded, above).
 
@@ -134,6 +139,18 @@ every tick
     toast.
   - The colonies' move (§14.4.5) maps nothing and goes out as an ordinary delta; a step that runs both (a
     `debug_set_era` jump past the pool) sends the one `game_state`.
+- **The pool layout** (game-design/phases.md §14.4.6, ticket #932; ticket #870 draws it, ticket #875 bakes it). The
+  world holds the layout from the round's start when the pool is in play, and `poolLayout` rides **every** snapshot, a
+  delta or a `game_state`, from the pool's warning tick on (`isPoolLayoutOnTheWire`, `serialize/era-views.ts`: the tick
+  is at least `eraWarningStartedAtTick(pool, roundStartTick, balance)`, `ERA_MOVE_WARNING_SECONDS` before the move);
+  it is `null` before that and in every round without a layout. So the client has it a whole warning before the move,
+  and a client that joins, reconnects or is resynced after the warning has it in its first `game_state`. A
+  `debug_set_era` jump moves `roundStartTick` so that the warning tick lies behind the move, and the move's
+  `game_state` carries it. It is sent whole, like `gelPatches`, rather than once with the warning and then only in a
+  `game_state`: then a delta's `null` would have to mean "unchanged", and a reseed, a rematch and a viewer the flow
+  control holds through the warning would each need a rule of their own. The client keys its bake on the layout it
+  holds, so the same layout arriving again bakes nothing (client.md §5). `surge` and `copepodLane` ride every
+  snapshot from their warnings to their ends, the tick each first appears being the tick of its warning effect.
 - **The cameras across the move.** Both sides remap with the shared `remapCameraAcrossMove(state, eras.ERA_SCALE_STEP)`
   (`camera/era-move-camera.ts`: x, y and the view's half-height divided by the step) when the era they frame leaves
   the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` at its step has left the dish
@@ -322,7 +339,13 @@ about 0.7 KB a snapshot over the 35 cells, and a giant's species name adds about
 0.7 KB a snapshot over the 35 cells, and each held bacterium about 80 to 90 B more (`moteId`, `variant`, a
 two-decimal `bearingRadians`, `caughtAtTick`; measured with real `m-` ids), at most `LATCH_MAX_HELD` (5) on each of the
 8 player cells: under 4 KB in the worst case,
-and only while early life is on. The fields are stable while held, so the list adds nothing per tick.
+and only while early life is on. The fields are stable while held, so the list adds nothing per tick. Every snapshot
+carries the pool's three members (ticket #932): `"poolLayout":null,"surge":null,"copepodLane":null` is 50 B in the
+dish. From the pool's warning on, the layout (`POOL_FILM_COUNT` 5 films and `POOL_THREAD_COUNT` 6 threads) is about
+0.65 KB a snapshot when its points are whole world units, which is how ticket #870 draws them (about twice that at
+full float precision), and a surge or a copepod's pass about 80 B each while one is on. The pool replaces the dish's
+motes with its own (phases.md §14.4.2), so the layout adds to the dish's worst case above only over the warning's
+10 s, by under 3 % of the 24 KB per-snapshot budget.
 
 | Snapshot part (20 Hz)                                                          | Count × bytes                            | Per snapshot       |
 | ------------------------------------------------------------------------------ | ---------------------------------------- | ------------------ |

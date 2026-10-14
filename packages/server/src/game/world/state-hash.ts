@@ -1,7 +1,7 @@
 // The state hash of a world (docs/determinism/ordering-and-state-hash.md §5): the canonical walk over `HASHED_FIELDS`
 // through the shared hasher. Every non-derived record field is listed (the test pins it; the seats' lists live in
 // `seat-hashed-fields.ts`), and two sections are walked last, each only when it has something to say: the held lists
-// (`TRAILING_CELL_HASHED_FIELDS`), then the era moved into (`TRAILING_WORLD_HASHED_FIELDS`). The derived fields are
+// (`TRAILING_CELL_HASHED_FIELDS`), then the eras' section (`era-hashed-section.ts`). The derived fields are
 // excluded and named here so a debug-only field can never move the hash:
 // `leaderboard` (a function of the players), `effects` and `massFlow` (transient), `balance` and `config`
 // (replay inputs), `CellRecord.modifiers` (folded at step 1), `CellRecord.heldDisplacementX/Y` (transient: cleared at
@@ -11,16 +11,14 @@
 
 import {
   BACTERIUM_VARIANTS,
+  ALWAYS_HASHED_RANDOM_STREAM_LABELS,
   DNA_TAGS,
-  GAME_ERA,
-  SERVER_RANDOM_STREAM_LABELS,
   StateHasher,
   hashArray,
   hashEnumRecord,
   hashFields,
   hashRandomStreams,
   hashScalarArray,
-  type GameEra,
   type GameInput,
   type GelPatchView,
   type HashedField,
@@ -40,6 +38,7 @@ import type {
   SpitOutRefractoryRecord,
   TraitOffer,
 } from './entities.js';
+import { hashEraSection } from './era-hashed-section.js';
 import { GIANT_SEAT_HASHED_FIELDS, WILD_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import type { WorldState } from './world-state.js';
 
@@ -114,19 +113,6 @@ function hashLatchedBacteriaOfCells(hasher: StateHasher, cells: readonly CellRec
       hashFields(entryHasher, entry, LATCHED_BACTERIUM_FIELDS),
     ),
   );
-}
-
-/** World fields walked after the held lists: the era the world has moved into (architecture/server-simulation.md §3). */
-export const TRAILING_WORLD_HASHED_FIELDS = ['eraMovedInto'] as const;
-
-/**
- * The era the world has moved into, after the held lists and only once it has left the dish, so every world while the
- * eras are off feeds nothing and hashes byte for byte as before the eras (#931). It opens with a string's tag where the
- * held lists open with an array's, so each trailing section's presence reads from its first byte.
- */
-function hashEraMovedInto(hasher: StateHasher, era: GameEra): void {
-  if (era === GAME_ERA.dish) return;
-  hasher.hashString(era);
 }
 
 export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
@@ -278,9 +264,9 @@ export function computeStateHash(world: WorldState): StateHash {
   hashRecords(hasher, world.gelPatches, GEL_PATCH_HASHED_FIELDS);
   hashFields(hasher, world.spawners.food, SPAWNER_HASHED_FIELDS);
   hashFields(hasher, world.spawners.dnaFragments, SPAWNER_HASHED_FIELDS);
-  hashRandomStreams(hasher, world.random, SERVER_RANDOM_STREAM_LABELS);
+  hashRandomStreams(hasher, world.random, ALWAYS_HASHED_RANDOM_STREAM_LABELS);
   hasher.hashNumber(world.nextEntityNumber);
   hashLatchedBacteriaOfCells(hasher, world.cells);
-  hashEraMovedInto(hasher, world.eraMovedInto);
+  hashEraSection(hasher, world);
   return hasher.digest();
 }

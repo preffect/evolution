@@ -139,6 +139,19 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   Restarting the buffer holds the other cells still for about the interpolation delay (100 ms) plus an
   acknowledgement's round trip at the move; graphics QA judges it (ticket #874).
 
+- **The pool's layer is baked during the warning and swapped in place** (game-design/phases.md §14.4.6, wire-contract.md
+  §4 "The pool layout", ticket #932; ticket #875 builds it). The renderer is built per seed and bakes its textures one
+  step per animation frame (rendering/budget.md §7.2), and the move keeps the seed, so the move never rebuilds it.
+  When a snapshot first brings a `poolLayout`, normally on the pool's warning tick, the client bakes the pool's layer
+  (water, films, threads, the bank, the light patch) into the **existing** renderer across the warning, hidden; the
+  layout arrives again in every later snapshot, and the bake keys on the layout it holds, so an equal one bakes
+  nothing and a different one (a reseed) replaces it. On the snapshot whose `era` first leaves the dish (the move's
+  `game_state`, above) the renderer hides the dish's layers and shows the pool's, with the camera remapped and no
+  rebuild and no park; the fade plays on that swap. A client that first builds its renderer when the snapshot's `era`
+  is already past the dish builds it with the pool's layer directly. The light patch's centre is drawn from
+  `lightPatchCentreAt(orbit, renderTick, balance)` (`shared/simulation/pool-layout.ts`), the function the server's
+  zones read, so no per-tick field is sent.
+
 - **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
   has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
   and a `game_state` that arrives mid-stream is the room's resync: `applyGameState` already replaces

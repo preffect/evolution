@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+  ALWAYS_HASHED_RANDOM_STREAM_LABELS,
   COSMETIC_SUB_STREAM,
+  ERA_RANDOM_STREAM_LABELS,
   RANDOM_STREAM,
   RANDOM_STREAM_LABELS,
   SERVER_RANDOM_STREAM_LABELS,
@@ -65,5 +67,10 @@ describe('RANDOM_STREAM', () => {
   it('keeps the cosmetic stream off the server list and nothing else', () => {
     expect(SERVER_RANDOM_STREAM_LABELS).not.toContain(RANDOM_STREAM.cosmetic);
     expect([...SERVER_RANDOM_STREAM_LABELS, RANDOM_STREAM.cosmetic]).toEqual(RANDOM_STREAM_LABELS);
+  });
+
+  it('splits the server streams into the always-hashed ones and the eras’ three, in that order', () => {
+    expect(SERVER_RANDOM_STREAM_LABELS).toEqual([...ALWAYS_HASHED_RANDOM_STREAM_LABELS, ...ERA_RANDOM_STREAM_LABELS]);
+    expect(ERA_RANDOM_STREAM_LABELS).toEqual([RANDOM_STREAM.eras, RANDOM_STREAM.pool, RANDOM_STREAM.poolCreatures]);
   });
 });

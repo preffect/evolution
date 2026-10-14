@@ -1,5 +1,6 @@
 export * from './types/common.js';
 export * from './types/game.js';
+export * from './types/pool.js';
 export * from './types/game-guards.js';
 export * from './types/traits.js';
 export * from './types/effects.js';
@@ -43,6 +44,7 @@ export * from './simulation/vector-math.js';
 export * from './simulation/world-clock.js';
 export * from './simulation/era-clock.js';
 export * from './simulation/era-scale.js';
+export * from './simulation/pool-layout.js';
 export * from './simulation/toxin-reach.js';
 export * from './simulation/zones.js';
 export * from './audio/sound-events.js';

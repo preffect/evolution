@@ -5,6 +5,7 @@
 
 import type { EntityId, PlayerId, ValueOf } from './common.js';
 import type { BacteriumVariant, CellStage, EntityKind, GameEra, GiantSpecies } from './game.js';
+import type { CopepodLaneView, SurgeView } from './pool.js';
 
 export const EFFECT_KIND = {
   cellAbsorbed: 'cell_absorbed',
@@ -18,6 +19,8 @@ export const EFFECT_KIND = {
   latchShaken: 'latch_shaken',
   eraWarning: 'era_warning',
   eraMoved: 'era_moved',
+  surgeWarning: 'surge_warning',
+  copepodWarning: 'copepod_warning',
 } as const;
 export type EffectKind = (typeof EFFECT_KIND)[keyof typeof EFFECT_KIND];
 
@@ -158,6 +161,23 @@ export interface EraMovedEffect extends EffectMoment {
   era: GameEra;
 }
 
+/**
+ * A surge is `POOL_SURGE_WARNING_SECONDS` away (docs/game-design/phases.md §14.5.2): the ripples cross the view from
+ * the side it comes from. It carries the surge as the snapshot's `surge` does, and, as that washes the whole pool, no
+ * position.
+ */
+export interface SurgeWarningEffect extends EffectMoment, SurgeView {
+  kind: typeof EFFECT_KIND.surgeWarning;
+}
+
+/**
+ * The copepod passes in `COPEPOD_WARNING_SECONDS` (phases.md §14.6.1): its shadow and lane show. It carries the pass as
+ * the snapshot's `copepodLane` does; the lane crosses the whole pool, so it has no one position.
+ */
+export interface CopepodWarningEffect extends EffectMoment, CopepodLaneView {
+  kind: typeof EFFECT_KIND.copepodWarning;
+}
+
 export type GameEffect =
   | CellAbsorbedEffect
   | CellReleasedEffect
@@ -169,4 +189,6 @@ export type GameEffect =
   | BacteriumBondedEffect
   | LatchShakenEffect
   | EraWarningEffect
-  | EraMovedEffect;
+  | EraMovedEffect
+  | SurgeWarningEffect
+  | CopepodWarningEffect;

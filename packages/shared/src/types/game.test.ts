@@ -72,6 +72,8 @@ describe('id tables', () => {
       'latch_shaken',
       'era_warning',
       'era_moved',
+      'surge_warning',
+      'copepod_warning',
     ]);
   });
 });

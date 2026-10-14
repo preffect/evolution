@@ -138,6 +138,9 @@ function scenarioModuleOf(module: GameModule<GameInput, EvolutionScenarioSnapsho
 /** The snapshot parts a row rarely reads and that cost a projection of the whole dish: built on first access. */
 const LAZY_SNAPSHOT_KEYS = [
   'gelPatches',
+  'poolLayout',
+  'surge',
+  'copepodLane',
   'cells',
   'dnaFragments',
   'food',
