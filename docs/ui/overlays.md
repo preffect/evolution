@@ -438,8 +438,12 @@ zonePillBottomPx(r_px) + CUE_GAP_PX)` below the centre, under the zone pill, gro
 
 A popup takes its slot afresh each frame. Within one placement it follows the slot at once, as its offset eases with
 the camera. When the placement changes under a popup that is up, it does not jump across the cell (ticket #861): the
-host is held where it was while it fades out over `UPGRADE_POPUP_MOVE_FADE_MS`, then takes the slot it should be in by
-then and fades back in there over the same time (`UpgradePopupSlotMove`, the host's `moving` class). Most visibly, an
+host is held where it was for `UPGRADE_POPUP_MOVE_HOLD_MS` while it fades out, `ease-out` over
+`UPGRADE_POPUP_MOVE_FADE_OUT_MS` (short and front-loaded, so the picker's cards, drawn at full strength at once, come
+clear fast), then takes the slot it should be in by then and fades back in there, `ease-in-out` over
+`UPGRADE_POPUP_MOVE_FADE_IN_MS` (`UpgradePopupSlotMove`, the host's `moving` class). The hold is the fade out and
+`UPGRADE_POPUP_MOVE_CLASS_LAG_MS`, the frame or two by which the class trails the hold's start, so the popup leaves at
+zero opacity; a slot answered during the hold changes where it lands, never when. Most visibly, an
 offer opens the picker while a form or giant popup hangs below a big cell and it goes to the pinned slot, and goes
 back when the pick closes the picker; the cell growing past the room above it, or the player dying, moves it the same
 way. Its own entrance and fade run on underneath. A fade rather than a slide, because the way between the two slots

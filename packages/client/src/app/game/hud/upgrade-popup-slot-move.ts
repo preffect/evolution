@@ -1,8 +1,9 @@
 // A popup's move to another slot while it is up (docs/ui/overlays.md §3.8, ticket #861). `upgradePopupSlotFor` answers
 // a slot afresh each frame, and its placement can change under a popup that is up: most visibly, the picker opens over
 // a big cell while a form popup hangs below it, and the popup has to go to the pinned slot near the top. Rather than
-// jump across the cell, the host is held where it was while it fades out over `UPGRADE_POPUP_MOVE_FADE_MS`, then takes
-// the slot it should be in by then and fades back in there. Within a placement the slot is followed at once: its offset
+// jump across the cell, the host is held where it was for `UPGRADE_POPUP_MOVE_HOLD_MS` while it fades out (the fade
+// and the frame or two by which it trails the hold, so it leaves at zero opacity), then takes the slot it should be in
+// by then and fades back in there. A slot answered during the hold changes only where it lands, never when. Within a placement the slot is followed at once: its offset
 // eases with the camera. A popup's entrance is exempt: it is still finding its slot from its measured height, and is
 // fading in anyway. The fades are the stylesheet's (`.moving`); this decides only where the host is held, and when.
 
@@ -10,7 +11,7 @@ import { computed, signal } from '@angular/core';
 import type { CancelDeferredCall, Scheduler } from '@evolution/shared';
 import type { UpgradePopupSlot } from './format/upgrade-popup-slot';
 import { UPGRADE_POPUP_KIND, type UpgradePopup } from './format/upgrade-popup-kinds';
-import { FORM_POPUP_IN_MS, UPGRADE_POPUP_IN_MS, UPGRADE_POPUP_MOVE_FADE_MS } from './upgrade-popup-constants';
+import { FORM_POPUP_IN_MS, UPGRADE_POPUP_IN_MS, UPGRADE_POPUP_MOVE_HOLD_MS } from './upgrade-popup-constants';
 
 /** Each popup's entrance, during which a change of slot is it settling, not moving. */
 function entranceMsOf(popup: UpgradePopup): number {
@@ -56,7 +57,7 @@ export class UpgradePopupSlotMove {
       return;
     }
     this.heldSlot.set(this.shownSlot);
-    this.cancelPending = this.scheduler.after(UPGRADE_POPUP_MOVE_FADE_MS, () => this.arrive());
+    this.cancelPending = this.scheduler.after(UPGRADE_POPUP_MOVE_HOLD_MS, () => this.arrive());
   }
 
   /** Stops whatever is pending: the host is being taken down. */

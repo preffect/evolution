@@ -1,6 +1,6 @@
 // The upgrade and form popups' numbers (docs/ui/overlays.md §3.8, docs/ui/layout.md §1, #783): HUD constants like
 // `hud-constants.ts`'s, in a file of their own so that one stays under the size limit. Published to the stylesheet by
-// `format/hud-css-variables.ts`.
+// `format/popup-css-variables.ts`, part of `format/hud-css-variables.ts`.
 
 import { PICKER_CARD_WIDTH_PX } from './hud-constants';
 
@@ -15,10 +15,16 @@ export const UPGRADE_POPUP_RISE_PX = 24;
 /** The scale it pops in from. */
 export const UPGRADE_POPUP_FROM_SCALE = 0.85;
 /**
- * Each half of any popup's move to another slot while it is up (ticket #861): it fades out where it was over this,
- * then back in at its new slot over this again, rather than jumping across the cell.
+ * Any popup's fade out of its slot when the slot changes while it is up (ticket #861), rather than jumping across the
+ * cell: short and front-loaded, so the picker's cards, drawn at full strength at once, come clear fast.
  */
-export const UPGRADE_POPUP_MOVE_FADE_MS = 150;
+export const UPGRADE_POPUP_MOVE_FADE_OUT_MS = 90;
+/** Its fade back in at the new slot. */
+export const UPGRADE_POPUP_MOVE_FADE_IN_MS = 150;
+/** How far the fade out can trail the hold's start: the `moving` class reaches the page a frame or two later (60 Hz). */
+export const UPGRADE_POPUP_MOVE_CLASS_LAG_MS = 33;
+/** How long the host is held in its old slot: the fade out and its lag, so it leaves at zero opacity. */
+export const UPGRADE_POPUP_MOVE_HOLD_MS = UPGRADE_POPUP_MOVE_FADE_OUT_MS + UPGRADE_POPUP_MOVE_CLASS_LAG_MS;
 /** Its widest, at scale 1: a card's width, so a card's effect lines fit on theirs. */
 export const UPGRADE_POPUP_MAX_WIDTH_PX = PICKER_CARD_WIDTH_PX;
 /** A form popup's whole life: about five seconds held between its entrance and its fade. */

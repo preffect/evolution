@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ManualScheduler } from '@evolution/shared';
 import { UPGRADE_POPUP_KIND, type UpgradePopup, type UpgradePopupKind } from './format/upgrade-popup-kinds';
 import { UPGRADE_POPUP_PLACEMENT, type UpgradePopupSlot } from './format/upgrade-popup-slot';
-import { FORM_POPUP_IN_MS, UPGRADE_POPUP_IN_MS, UPGRADE_POPUP_MOVE_FADE_MS } from './upgrade-popup-constants';
+import { FORM_POPUP_IN_MS, UPGRADE_POPUP_IN_MS, UPGRADE_POPUP_MOVE_HOLD_MS } from './upgrade-popup-constants';
 import { UpgradePopupSlotMove } from './upgrade-popup-slot-move';
 
 const BELOW: UpgradePopupSlot = { placement: UPGRADE_POPUP_PLACEMENT.belowCell, offsetPx: 140 };
@@ -54,7 +54,7 @@ describe('UpgradePopupSlotMove (docs/ui/overlays.md §3.8, ticket #861)', () => 
     expect(move.isFadingOut()).toBe(true);
     expect(move.slotToShow(PINNED)).toBe(BELOW);
     move.follow(popup, PINNED_EASED);
-    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS - 1);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS - 1);
     expect(move.slotToShow(PINNED_EASED)).toBe(BELOW);
 
     scheduler.advanceMilliseconds(1);
@@ -62,15 +62,35 @@ describe('UpgradePopupSlotMove (docs/ui/overlays.md §3.8, ticket #861)', () => 
     expect(move.slotToShow(PINNED_EASED)).toBe(PINNED_EASED);
   });
 
+  it('ends a hold when it began, whatever slots are answered during it, and leaves no timer to cut the next one', () => {
+    const popup = popupOf('form-1');
+    const partWayMs = Math.floor(UPGRADE_POPUP_MOVE_HOLD_MS / 2);
+    settledBelow(popup);
+    move.follow(popup, PINNED);
+    scheduler.advanceMilliseconds(partWayMs);
+    move.follow(popup, ABOVE);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS - partWayMs - 1);
+    expect(move.slotToShow(ABOVE)).toBe(BELOW);
+    scheduler.advanceMilliseconds(1);
+    expect(move.slotToShow(ABOVE)).toBe(ABOVE);
+
+    move.follow(popup, BELOW);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS - 1);
+    expect(move.isFadingOut()).toBe(true);
+    expect(move.slotToShow(BELOW)).toBe(ABOVE);
+    scheduler.advanceMilliseconds(1);
+    expect(move.slotToShow(BELOW)).toBe(BELOW);
+  });
+
   it('moves back the same way when the slot changes again, as when the pick closes the picker', () => {
     const popup = popupOf('form-1');
     settledBelow(popup);
     move.follow(popup, PINNED);
-    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
 
     move.follow(popup, BELOW);
     expect(move.slotToShow(BELOW)).toBe(PINNED);
-    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
     expect(move.slotToShow(BELOW)).toBe(BELOW);
   });
 
@@ -107,7 +127,7 @@ describe('UpgradePopupSlotMove (docs/ui/overlays.md §3.8, ticket #861)', () => 
     move.follow(popupOf('form-2'), ABOVE);
     expect(move.isFadingOut()).toBe(false);
     expect(move.slotToShow(ABOVE)).toBe(ABOVE);
-    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
     expect(move.slotToShow(ABOVE)).toBe(ABOVE);
   });
 
@@ -124,7 +144,7 @@ describe('UpgradePopupSlotMove (docs/ui/overlays.md §3.8, ticket #861)', () => 
     settledBelow(popup);
     move.follow(popup, PINNED);
     move.stop();
-    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS);
+    scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
     expect(move.slotToShow(PINNED)).toBe(BELOW);
   });
 });

@@ -23,7 +23,7 @@ import {
 } from '../../../testing/upgrade-popup-harness';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
 import { UPGRADE_POPUP_PLACEMENT, upgradePopupSlotFor, type UpgradePopupRoom } from './format/upgrade-popup-slot';
-import { FORM_POPUP_IN_MS, UPGRADE_POPUP_MOVE_FADE_MS } from './upgrade-popup-constants';
+import { FORM_POPUP_IN_MS, UPGRADE_POPUP_MOVE_HOLD_MS } from './upgrade-popup-constants';
 
 const OWN_CELL_ID = entityId('c-own');
 /** Ticket #840's frame: a mass-1250 own cell at 1024 × 640 under a form-sized popup, as the host measures it. */
@@ -117,7 +117,7 @@ describe('UpgradePopupComponent placement (docs/ui/overlays.md §3.8)', () => {
     expect(harness.host().style.getPropertyValue('--popup-offset')).toBe(`${below.offsetPx}px`);
     expect(isMoving()).toBe(true);
 
-    harness.scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_FADE_MS);
+    harness.scheduler.advanceMilliseconds(UPGRADE_POPUP_MOVE_HOLD_MS);
     harness.fixture.detectChanges();
     expect(placement()).toBe(UPGRADE_POPUP_PLACEMENT.pinned);
     expect(harness.host().style.getPropertyValue('--popup-offset')).toBe(`${pinned.offsetPx}px`);
