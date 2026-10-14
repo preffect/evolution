@@ -37,6 +37,24 @@ export function snapshotForViewer(
 }
 
 /**
+ * The broadcast `snapshot` whole as `viewerPlayerId` is sent it: the shared part and that viewer's declared members, as
+ * one object. What a broadcast sent as a `game_state` carries (docs/architecture/wire-contract.md §4 "The move").
+ */
+export function broadcastForViewer(
+  game: RoomGameModule,
+  snapshot: RoomBroadcastSnapshot,
+  viewerPlayerId: PlayerId,
+): GameSnapshot {
+  const { viewerState } = game;
+  // A module that declares no viewer member leaves none out: its broadcast is the whole snapshot.
+  if (viewerState === undefined) return snapshot as GameSnapshot;
+  return {
+    ...snapshot,
+    ...viewerMembersOf(viewerState.keys, viewerState.serialize(viewerPlayerId, snapshot)),
+  } as GameSnapshot;
+}
+
+/**
  * Sends `snapshot` as a `game_snapshot` to every target, each with its own declared members. Answers the bytes one
  * client was sent — the mean over the targets, a closed socket counting none — which is what `PerformanceTracker`
  * multiplies by the clients.

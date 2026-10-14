@@ -1,8 +1,8 @@
 // docs/game-design/phases.md §14.15 PH19 (§14.2.4): `debug_set_era` at tick 600 moves `roundStartTick` back so tick
 // 601 is the era's first, never the tick counter; the step runs every crossed move in era order (a jump to the
 // colonies runs the pool's move first, on the same tick); the jump is recorded, so `debug_export_replay` reproduces
-// the final state hash across the move; the hash covers the pool's state; and no jump goes back. The cameras across the
-// move are ticket #868's wire part, the leftover specks ticket #939's. Run with `./validate.sh integration`.
+// the final state hash across the move; the hash covers the pool's state; the viewer cameras are remapped across the
+// pool's move; and no jump goes back. The leftover specks are ticket #939's. Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
@@ -11,7 +11,9 @@ import {
   createTestSurge,
   distanceBetween,
   playerId,
+  remapCameraAcrossMove,
   secondsToTicks,
+  type CameraState,
   type GameEra,
 } from '@evolution/shared';
 import { ERA_PLAYER, eraMovesIn, startEraRoom, type EraRoom } from '../../testing/era-room.js';
@@ -45,17 +47,31 @@ const GRACE_PAIR = {
   prey: { mass: pool.POOL_ARRIVAL_MASS, position: { x: 5, y: 0 } },
 };
 
-/** A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick, run to 1 200. */
+/** The player's viewer camera history after a broadcast is serialised for it now. */
+function viewedCameras(room: EraRoom): readonly CameraState[] {
+  const { viewerState } = room.module;
+  viewerState.serialize(ERA_PLAYER, room.module.serializeRoomState());
+  return viewerState.cameraHistoryOf(ERA_PLAYER);
+}
+
+/**
+ * A fresh PH19 room jumped to `era` at tick 600, run to 1 200: its player's cell as it stood on the move tick, and its
+ * viewer camera history at a broadcast on the jump's tick and on the move's.
+ */
 async function jumpAndRun(era: GameEra) {
   const room = startEraRoom({ roundDurationSeconds: COLONIES_ON_ROUND_SECONDS });
   await room.stepTo(JUMP_TICK);
+  const dishCameras = viewedCameras(room);
   const jump = room.handle.setEra(era);
   let landing: { x: number; y: number; mass: number } | undefined;
+  let movedCameras: readonly CameraState[] = [];
   await room.stepTo(END_TICK, (world) => {
     const cell = findCellOfPlayer(world, ERA_PLAYER);
-    if (world.tick === MOVE_TICK && cell !== undefined) landing = { x: cell.x, y: cell.y, mass: cell.mass };
+    if (world.tick !== MOVE_TICK || cell === undefined) return;
+    landing = { x: cell.x, y: cell.y, mass: cell.mass };
+    movedCameras = viewedCameras(room);
   });
-  return { room, jump, landing };
+  return { room, jump, landing, cameras: { dish: dishCameras, moved: movedCameras } };
 }
 
 /**
@@ -97,7 +113,9 @@ describe('phases.md §14.15 PH19: debug_set_era', () => {
   });
 
   it('B: a jump to the colonies runs the pool’s move first, then the colonies’, on 601, and replays', async () => {
-    const { room, landing } = await jumpAndRun(GAME_ERA.colonies);
+    const { room, landing, cameras } = await jumpAndRun(GAME_ERA.colonies);
+    const remapped = cameras.dish.map((state) => remapCameraAcrossMove(state, eras.ERA_SCALE_STEP));
+    expect(cameras.moved.slice(0, remapped.length)).toEqual(remapped);
     expect(eraMovesIn(room.effects)).toEqual([
       [MOVE_TICK, GAME_ERA.pool],
       [MOVE_TICK, GAME_ERA.colonies],

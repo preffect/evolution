@@ -131,10 +131,11 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   on the tick before the move, so every dish moment arrived in an ordinary delta and reached the sound bus and the HUD
   at ingest; the reset only stops the renderer drawing the dish moments its render tick had not reached, in dish
   coordinates. The snapshot's own effects (the `era_moved`, unlike any other `game_state`'s) fire when the render tick
-  reaches them, and `RenderSession` hands the move's `game_state` to the sound bus (`audio.observe`) as it does a
-  delta (today it hands only a delta). The renderer is not rebuilt (the seed is the round's) and the camera is not
-  re-parked: it is remapped by `remapCameraAcrossMove` when the snapshot it draws first has an `era` past the dish,
-  then eases its zoom with `moveCameraZoomSecondsAt` (wire-contract.md §4 "The cameras across the move"). Every move
+  reaches them, and `RenderSession` hands every `game_state` to the sound bus (`audio.observe`) as it does a delta. The
+  renderer is not rebuilt (the seed is the round's) and the camera is not re-parked: `render/frame-camera.ts` remaps
+  it by `remapCameraAcrossMove` on the first frame whose newest snapshot has an `era` past the dish when the frame
+  before it drew the dish (a camera whose first frame is already in the pool parks there), then eases its zoom with
+  `moveCameraZoomSecondsAt` (wire-contract.md §4 "The cameras across the move"). Every move
   cue keys on the snapshot's `era`, never on the `era_moved` effect, which a viewer the flow control holds never sees.
   Restarting the buffer holds the other cells still for about the interpolation delay (100 ms) plus an
   acknowledgement's round trip at the move; graphics QA judges it (ticket #874).

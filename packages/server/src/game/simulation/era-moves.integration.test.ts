@@ -1,8 +1,8 @@
 // docs/game-design/phases.md §14.15, the era clock and the pool's move over whole rounds on the Evolution module, with
 // every era in play (seed 42): PH1 (the move at 10:00 without stopping play), PH3 (the dish leaves with the move), PH13
 // (results at 25:00 and a new game from the dish) on one 91 200-tick run, and PH5 (a 600 s round never reaches the pool).
-// PH3's green specks wait on ticket #939 and its landmark on ticket #872; PH17 is the move's wire (ticket #868's
-// camera and wire part). Run with `./validate.sh integration`.
+// PH3's green specks wait on ticket #939 and its landmark on ticket #872; PH17, the move's wire and cameras, is
+// `lobby/era-move-wire.integration.test.ts`. Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,

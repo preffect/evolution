@@ -133,6 +133,14 @@ export class SnapshotBacklog {
     return this.owedResync.has(playerId) && !this.isBehind(playerId) && !this.isHoldingBytes(connection);
   }
 
+  /**
+   * Owes `playerId` a `game_state`: a broadcast it was held from carried a change no delta can bring it later (the
+   * Evolution pool's move, docs/architecture/wire-contract.md §4 "The move"). It is sent once the client catches up.
+   */
+  oweResync(playerId: string): void {
+    this.owedResync.add(playerId);
+  }
+
   /** The `game_state` a due resync was settled with has been sent at `tick`, as the broadcast would record it. */
   recordResyncSent(playerId: string, tick: number): void {
     this.owedResync.delete(playerId);

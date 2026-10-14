@@ -251,4 +251,14 @@ describe('SnapshotBacklog', () => {
     expect(backlog.nextFor(connection, FIRST_TICK + 1)).toBe(SNAPSHOT_DELIVERY.resync);
     expect(backlog.nextFor(connection, FIRST_TICK + 2)).toBe(SNAPSHOT_DELIVERY.delta);
   });
+
+  it('sends one resync to a connection owed one, once it has caught up, and deltas after it', () => {
+    const { backlog, connection, playerId } = oneConnection();
+    backlog.oweResync(playerId);
+    expect(backlog.owedCount()).toBe(1);
+    expect(backlog.nextFor(connection, FIRST_TICK)).toBe(SNAPSHOT_DELIVERY.resync);
+    backlog.recordAcknowledgedTick(playerId, FIRST_TICK);
+    expect(backlog.nextFor(connection, FIRST_TICK + 1)).toBe(SNAPSHOT_DELIVERY.delta);
+    expect(backlog.resyncCount()).toBe(1);
+  });
 });

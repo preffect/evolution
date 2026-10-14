@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
   FOOD_KIND,
+  GAME_ERA,
   SNAPSHOT_EVERY_TICKS,
   interestMarginFor,
   playerId,
@@ -10,6 +11,7 @@ import {
 import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { WorldState } from '../world/world-state.js';
+import { MoveBroadcasts } from './move-broadcasts.js';
 import { serializeBroadcastSnapshot } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
 import { VIEWER_SNAPSHOT_KEYS, type BroadcastSnapshot } from './viewer-snapshot-keys.js';
@@ -32,7 +34,7 @@ function centredWorld(players = [TEST_PLAYER]) {
   const own = world.cells.find((cell) => cell.playerId === TEST_PLAYER.playerId)!;
   own.x = 0;
   own.y = 0;
-  return { world, own, viewerState: new EvolutionViewerState(world) };
+  return { world, own, viewerState: new EvolutionViewerState(world, new MoveBroadcasts(world)) };
 }
 
 /** What the room does once per broadcast: the world moves on, then the shared snapshot is built. */
@@ -78,6 +80,25 @@ describe('EvolutionViewerState', () => {
     expect(Object.keys(shared)).not.toContain('dnaFragments');
     const { dnaFragments } = viewerState.serialize(TEST_PLAYER.playerId, shared);
     expect(dnaFragments.map((fragment) => fragment.id)).toEqual([nearFragment.id]);
+  });
+
+  it('restarts the food delta on the broadcast that holds the pool’s move, and only on it', () => {
+    const world = createTestWorld();
+    const moves = new MoveBroadcasts(world);
+    const viewerState = new EvolutionViewerState(world, moves);
+    world.cells[0]!.x = 0;
+    world.cells[0]!.y = 0;
+    const held = algaeAt(world, NEAR);
+    const serializeBroadcast = () => {
+      const shared = broadcast(world);
+      moves.noteBroadcast();
+      return viewerState.serialize(TEST_PLAYER.playerId, shared).food.spawned.map((mote) => mote.id);
+    };
+    expect(serializeBroadcast()).toEqual([held.id]);
+    expect(serializeBroadcast()).toEqual([]);
+    world.eraMovedInto = GAME_ERA.pool;
+    expect(serializeBroadcast()).toEqual([held.id]);
+    expect(serializeBroadcast()).toEqual([]);
   });
 
   it('spawns a mote entering the area, removes one leaving it and moves one inside it', () => {

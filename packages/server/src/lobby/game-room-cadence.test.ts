@@ -154,6 +154,38 @@ describe('game-room: the broadcast cadence (docs/architecture/entity-model.md §
   });
 });
 
+describe('game-room: a broadcast closes before a view restart (wire-contract.md §4 "The move")', () => {
+  /** Steps two intervals with the module saying a restart comes after tick `restartAfterTick` (none when null). */
+  function stepAroundRestart(restartAfterTick: number | null) {
+    const sent: SentLog = {};
+    const gameModule = createDrainingGameModule();
+    const steppedTicks = () => vi.mocked(gameModule.reduceGameState).mock.calls.length;
+    if (restartAfterTick !== null) gameModule.isViewRestartNext = () => steppedTicks() === restartAfterTick;
+    const room = new GameRoom(gameModule, roomOptions(), createManualRoomTiming());
+    room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
+    room.start();
+    room.step(INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS);
+    return { ticks: broadcastTicks(sent, ROOM_PLAYER_ID), moments: broadcastMoments(sent, ROOM_PLAYER_ID) };
+  }
+  const allTicks = Array.from(
+    { length: INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS },
+    (_unused, index) => index + 1,
+  );
+  const restartAfterTick = SNAPSHOT_EVERY_TICKS + TICKS_PAST_A_BOUNDARY;
+  const lastTick = INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS;
+
+  it('sends the ticks not yet sent before the restart’s step, so its window starts with it, losing nothing', () => {
+    const { ticks, moments } = stepAroundRestart(restartAfterTick);
+    expect(ticks).toEqual([SNAPSHOT_EVERY_TICKS, restartAfterTick, lastTick]);
+    expect(moments).toEqual(allTicks);
+  });
+
+  it('sends nothing extra when the window is already closed, nor without a restart', () => {
+    expect(stepAroundRestart(SNAPSHOT_EVERY_TICKS).ticks).toEqual([SNAPSHOT_EVERY_TICKS, lastTick]);
+    expect(stepAroundRestart(null).ticks).toEqual([SNAPSHOT_EVERY_TICKS, lastTick]);
+  });
+});
+
 describe('game-room: the cadence against the #266 flow control', () => {
   /** A started room with one connection on a module whose snapshots carry a tick the backlog can read. */
   function flowControlledRoom() {

@@ -4,7 +4,9 @@ import {
   RENDER_STAGE_NAMES,
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_ACK_EVERY_SNAPSHOTS,
+  GAME_ERA,
   TICK_INTERVAL_MS,
+  createTestSnapshot,
   entityId,
   playerId,
   type ServerMessage,
@@ -72,7 +74,8 @@ describe('RenderSession', () => {
     const second = snapshotMessage(6, [createTestFoodMoteView({ id: entityId('b') })]);
     subject.onMessage(first);
     subject.onMessage(second);
-    expect(audio.observe).toHaveBeenCalledTimes(2);
+    // The game_state and both deltas.
+    expect(audio.observe).toHaveBeenCalledTimes(3);
     clock.setMilliseconds(6 * TICK_INTERVAL_MS);
     pixi.tick();
     expect(pixi.renderCalls.count).toBe(1);
@@ -229,6 +232,13 @@ describe('RenderSession', () => {
     subject.onMessage({ ...gameState(), playerId: playerId('someone-else') } as ServerMessage);
     expect(dependencies.connectAudio).toHaveBeenCalledTimes(2);
     expect(audio.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('hands a game_state’s snapshot to the sound bus as it does a delta’s: the move’s carries its era_moved', () => {
+    const { subject, audio } = session();
+    const snapshot = createTestSnapshot({ era: GAME_ERA.pool });
+    subject.onMessage({ ...gameState(), snapshot } as ServerMessage);
+    expect(audio.observe).toHaveBeenCalledExactlyOnceWith(snapshot);
   });
 
   it('applies balance updates to the store and the audio handle', async () => {
