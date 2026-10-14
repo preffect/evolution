@@ -1,0 +1,63 @@
+--- a/packages/client/src/app/game/render/dive/dive-session.ts
++++ b/packages/client/src/app/game/render/dive/dive-session.ts
+@@ -7,7 +7,17 @@
+ // `window.__evolutionDebug`. `destroy` frees the bands, the renderer's textures, the app (#468's `disposeLoop`).
+ 
+ import { MILLISECONDS_PER_SECOND, type BalanceConfig, type Clock, type Scheduler } from '@evolution/shared';
+-import { Container, Graphics, type Application } from 'pixi.js';
++import { Container, Filter, GlProgram, Graphics, UniformGroup, defaultFilterVert, type Application } from 'pixi.js'; // TEMP-816
++// TEMP-816 heavy fill-bound filter, never committed.
++const TEMP816_FRAG = `in vec2 vTextureCoord; out vec4 finalColor; uniform sampler2D uTexture; uniform float uIters;
++void main(void){ vec4 c = texture(uTexture, vTextureCoord); float a = vTextureCoord.x;
++for (float i = 0.0; i < 100000.0; i += 1.0) { if (i >= uIters) break; a = fract(sin(a * 12.9898 + i) * 43758.5453); }
++finalColor = c + vec4(a * 1e-6); }`;
++function temp816Filter(): Filter {
++  const heavyUniforms = new UniformGroup({ uIters: { value: 0, type: 'f32' } });
++  const filter = new Filter({ glProgram: GlProgram.from({ vertex: defaultFilterVert, fragment: TEMP816_FRAG, name: 'temp816' }), resources: { heavyUniforms }, resolution: 'inherit' });
++  return filter;
++}
+ import {
+   DIVE_AUTOPLAY_DELAY_MS,
+   DIVE_CANVAS_TEST_ID,
+@@ -102,6 +112,14 @@
+     if (!this.isVisible) pixi.app.ticker.stop();
+     pixi.canvas.dataset['testid'] = DIVE_CANVAS_TEST_ID;
+     pixi.app.stage.addChild(this.gameRoot, this.dishClip);
++    // TEMP-816
++    const temp816 = globalThis as unknown as { __diveHeavy?: number };
++    if (temp816.__diveHeavy !== undefined) {
++      const heavy = temp816Filter();
++      pixi.app.stage.filters = [heavy];
++      pixi.app.stage.filterArea = pixi.app.screen;
++      pixi.app.ticker.add(() => { (heavy.resources['heavyUniforms'] as UniformGroup).uniforms['uIters'] = temp816.__diveHeavy ?? 0; });
++    }
+     this.upper = openDiveUpperLayers(halves, {
+       clock: dependencies.clock,
+       scheduler: this.canvasResolution.timedBakes(dependencies.scheduler),
+--- a/packages/client/src/app/game/render/dive/dive-canvas-resolution.ts
++++ b/packages/client/src/app/game/render/dive/dive-canvas-resolution.ts
+@@ -83,6 +83,10 @@
+       isJudged: frame.isDrawn && !this.parts.isWarmingUp(),
+     });
+     this.bakeMsNoted = bakeMs;
++    // TEMP-816 probe hook, never committed.
++    const probe = globalThis as unknown as { __diveGov?: unknown; __govFeed?: unknown[] };
++    probe.__diveGov = this.governor;
++    (probe.__govFeed ??= []).push([frame.nowMs, this.frameWorkMs, bakeMs, frame.isDrawn && !this.parts.isWarmingUp() ? 1 : 0, upperBandsDevicePixelRatio(this.parts.top, frame.isMoving), this.governor.resolution]);
+     if (this.governor.resolution === this.applied) return;
+     this.applied = this.governor.resolution;
+     this.parts.setResolution(this.applied);
+--- a/packages/client/src/app/game/render/constants/dive.ts
++++ b/packages/client/src/app/game/render/constants/dive.ts
+@@ -198,9 +198,9 @@
+  */
+ export const DIVE_BAKE_DEVICE_PIXEL_RATIO = ORGANELLE_ATLAS_MAX_DPR;
+ /** The dive renders at most at this device pixel ratio when still (`DPR_STEPS[0]`)… */
+-export const DIVE_MAX_DEVICE_PIXEL_RATIO = 2;
++export const DIVE_MAX_DEVICE_PIXEL_RATIO = 2 * ((globalThis as unknown as { __diveK?: number }).__diveK ?? 1); // TEMP-816
+ /** …and its upper bands' canvas at this one while the dive moves, where the motion hides it (`DIVE_DPR`). */
+-export const DIVE_MOVING_DEVICE_PIXEL_RATIO = 1.5;
++export const DIVE_MOVING_DEVICE_PIXEL_RATIO = 1.5 * ((globalThis as unknown as { __diveK?: number }).__diveK ?? 1); // TEMP-816
+ /**
+  * The upper bands' texture bakes run in slices of this long, one every `DIVE_BAKE_INTERVAL_MS`, until every tile is
+  * made (`pump`'s 8 ms slice on a 10 ms timer), starting `DIVE_BAKE_START_DELAY_MS` after the dive opens.

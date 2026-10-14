@@ -525,7 +525,7 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
     slow; otherwise the notch is given back and steps down wait 6 s, doubling to 48 s, as a window's one-notch step
     does. Measured on the box's GPU made fill-bound by a test-only full-canvas filter (6,000 and 8,000 iterations of a
     hash a pixel) at DPR 2, 1280 × 800, held 30 s at the dish (−4.3), the slime (−3) and the shore (1), `probe816.cjs`
-    in `qa/evidence/` (PR #N):
+    in `qa/evidence/pr-937/`:
 
     | GPU load         | main: fps at the canvas ratio                             | ticket #816: fps at the canvas ratio |
     | ---------------- | --------------------------------------------------------- | ------------------------------------ |
