@@ -60,6 +60,11 @@ and wrap are unchanged, a wall does not wriggle). Engulf as predator: none, by d
 defensive). Visual: a second, brighter rim inside the first; rim thickness × 1.5 / 2 / 2.5. Audio: dull
 thud on contact.
 
+> **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.4, §15.6).**
+> The Mitochondrion is earned by holding aerobic bacteria with the archaeon's arms until they bond, and the
+> Chloroplast moves to `stage: 'eukaryote'` (unlocked by swallowing photosynthetic bacteria as a eukaryote); it is
+> no longer an endosymbiosis gate. The rows below are the game as it plays today.
+
 ### Rung 2 — prokaryote organelles (`stage: 'prokaryote'`)
 
 #### 3.4 Ribosome Studs `ribosomes` — metabolism, common, tags `metabolic`, no group, requires none

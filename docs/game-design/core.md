@@ -77,6 +77,12 @@ export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
 | `eukaryote`     | `nuclear_envelope` owned                                        | `cytoskeleton`, `cilia`, `food_vacuole`, `toxin_vacuole`, and the five forms | true nucleus, organelles |
 | `specialised`   | one form owned (`body_plan` exclusion group: one form per cell) | nothing new; the remaining picks deepen tiers                                | amoeba, paramecium, …    |
 
+**Decided, not built yet (ticket #865, [`early-life.md`](./early-life.md) §15).** The early game becomes true to
+life: the protocell and the archaeon (today's `prokaryote`) absorb specks and cannot swallow; the archaeon's arms latch
+bacteria, and aerobic ones held to the bond earn the mitochondrion; swallowing cells unlocks at `eukaryote`; the
+chloroplast becomes a `eukaryote` trait and `endosymbiosis`'s only gate is the mitochondrion. This section describes the
+game as it plays until those tickets land.
+
 Rules (home of the pure functions: `packages/server/src/game/progression/ladder.ts`):
 
 - **A cell's stage** is the last stage `S` in `STAGE_ORDER` such that every stage after `protocell`

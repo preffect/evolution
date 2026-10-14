@@ -190,9 +190,9 @@ A player who has no form at the move gets one, with every trait it needs, as a g
   two-tag forms always win, and the amoeba (`predatory motile`) beats the paramecium (`motile`) for every player,
   so the paramecium could never be gifted. A player with only `motile` points gets the paramecium (scenario PH16).
   A player with no tag points gets the form the `eras` stream draws.
-- **The missing traits**, at tier I: every stage gate the cell lacks (read from `STAGE_GATE_TRAITS` at build time,
-  so ticket #865's reordered ladder needs no change here; for an endosymbiont, the one the form needs, else the
-  mitochondrion) and the form's own requirement (`cytoskeleton`, `cilia`, `chloroplast`, `cell_wall` or
+- **The missing traits**, at tier I: every stage gate the cell lacks (read from `STAGE_GATE_TRAITS` at build time;
+  for an endosymbiont, the one the form needs, else the mitochondrion, and simply the mitochondrion once ticket #865
+  reorders the ladder, with no change here: early-life.md §15.8.7) and the form's own requirement (`cytoskeleton`, `cilia`, `chloroplast`, `cell_wall` or
   `toxin_vacuole`), then the form.
 - **Level and DNA do not change.** The gift is traits, not levels; it never scores. The HUD shows the form popup
   for it as for a picked form (ui/overlays.md §3.8).
@@ -710,7 +710,9 @@ tickets, checked against a source each, in the giants' style (ecology/giants.md 
   swallowing, the archaeon's latch, the chloroplast after the nucleus. Where it meets this plan: the no-form gift
   (§14.4.3) reads the ladder's gates and the forms' requirements at build time, so the reordered ladder needs no rule
   here; if #865 moves the pace so that fewer players have a form by 10:00, more get the gift, and gameplay QA should
-  measure the share. The archaeon (an Asgard archaeon) is a sea-floor microbe, which fits the sea-water setting.
+  measure the share. The archaeon (an Asgard archaeon) is a sea-floor microbe, which fits the sea-water setting. The
+  design is [`early-life.md`](./early-life.md) §15; §15.8.7 there lists every point where it meets this plan (held
+  bacteria end at the move, the pool creatures swallow by species, the euglena's pool build).
 - **The opening dive (epic #795).** The move's caption tells the dive's story (§14.4.4). The dive itself stays the
   dish's and is not part of this build. It does not stop one step of ten higher for a player who joins a game already in
   the pool (the human's idea on ticket #782): decided on **ticket #902** (answer A, the dive stays as it is). The
