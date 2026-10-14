@@ -124,6 +124,15 @@ SNAPSHOT_EVERY_TICKS + 1`, so the bracket buys the whole budget and a **faster**
   `stale`. `connectionStateFor` (`connection-state.ts`) puts a closed socket first. The HUD reads the result through
   `GameStateService.connectionState`, and `hud/format/connection-banner.ts` only words it.
 
+- **The move's `game_state`** (wire-contract.md §4 "The move", ticket #931). The broadcast that carries the pool's move
+  arrives as a `game_state` and goes through `applyGameState` like any other: the store resets (the snapshot buffer,
+  so interpolation restarts in pool coordinates; the predictor, which then snaps to the new pose as for a new own cell;
+  the food store; the pending effects, so a dish moment not yet drawn is dropped), then applies the snapshot, whose
+  effects (the `era_moved`, unlike any other `game_state`'s) fire when the render tick reaches them and reach the sound
+  bus as a delta's do (ticket #868 wires it: today `RenderSession` hands only a delta to the sound bus). The renderer is not rebuilt (the seed is the round's) and the camera is not re-parked: it is
+  remapped by `remapCameraAcrossMove` when the snapshot it draws first has an `era` past the dish, then eases its zoom
+  with `moveCameraZoomSecondsAt` (wire-contract.md §4 "The cameras across the move").
+
 - **Every applied snapshot is acknowledged** (#266, §4). `RenderSession` tells the room the tick it
   has just applied — at once for a `game_state`, every `SNAPSHOT_ACK_EVERY_SNAPSHOTS` for a delta —
   and a `game_state` that arrives mid-stream is the room's resync: `applyGameState` already replaces

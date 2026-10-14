@@ -155,6 +155,9 @@ roundDurationSeconds, balance)` (`shared/simulation/era-clock.ts`, beside `world
   the client draws is the one the moves have built. The two differ only between a jump or a patch and the next step:
   in a paused room after a dish-to-`colonies` jump with the pool in play, `eraAt` on the republished frame reads `pool`
   (1 019.98 s) while the world is still the dish, and the snapshot says `dish` until the step runs both moves.
+  The move's wire and cameras (the full `game_state`, the remap of every viewer camera's history, the zoom ease) are
+  the wire contract's (wire-contract.md §4 "The move"): the viewer cameras are serialisation state, so they remap
+  when they find the world's `eraMovedInto` has left the dish, and the step never reaches into them.
 - **Perf budget** (measured by `PerformanceTracker`, gated in #103): step ≤ 4 ms p95 and serialise
   ≤ 2 ms p95 at 8 players, 1 400 motes, 110 fragments; `MAX_TICKS_PER_ADVANCE` bounds catch-up.
 

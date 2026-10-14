@@ -39,7 +39,11 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   streams in `SERVER_RANDOM_STREAM_LABELS` order, then `nextEntityNumber`, then, only when some cell holds a bacterium,
   every cell's held list in cell order (`TRAILING_CELL_HASHED_FIELDS`: `latchedBacteria`, game-design/early-life.md
   §15.11; last, so a world in which no cell holds one hashes byte for byte as before the lists existed, and the
-  section's presence is unambiguous: it is there or the walk has ended, #907); each record's fields in
+  section's presence is unambiguous: it is there or the walk has ended, #907), then, only once the world has left the
+  dish, the era it moved into (`TRAILING_WORLD_HASHED_FIELDS`: `eraMovedInto`, architecture/server-simulation.md §3;
+  a world in the dish, every world while the eras are off, hashes as before the eras, #931; the era opens with a
+  string's tag where the held lists open with an array's, so either section's presence reads from its first byte);
+  each record's fields in
   the order `HASHED_FIELDS[kind]` declares. Every scalar is preceded by a type tag
   (so `0`, `false`, `""` and `null` differ); numbers hash by their IEEE-754 bits (one shared
   `DataView`), strings by a length prefix then UTF-16 code units, booleans as 0/1, `null` as a
@@ -49,7 +53,7 @@ or `{ key, hash }` for a nested value, so listing a field with the wrong shape i
   `SERVER_RANDOM_STREAM_LABELS` order (the client's `cosmetic` stream is never in the hashed
   world). A record field that is not in `HASHED_FIELDS` is not hashed, so adding a debug-only
   field cannot silently change the hash, and a new gameplay field must be added to the list
-  (the test table pins that every non-derived field is listed, in its record's list or the trailing one).
+  (the test table pins that every non-derived field is listed, in its record's list or a trailing one).
 - Random stream state is included (a run that consumed a different number of draws differs).
 - Derived data (spatial hash, `leaderboard`, `effects`, `massFlow` (transient like `effects`, #383),
   `CellRecord.heldDisplacementX/Y` (transient: cleared at step 6, read only by the serializer, #774), `balance`,
