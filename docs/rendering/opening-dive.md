@@ -517,13 +517,35 @@ exemptions from eslint, prettier, jscpd and coverage were deleted with it. The b
   - **Over budget throughout:** a step down needs every window judged over the last 500 ms to be over budget with at
     most one frame of six on time. A GPU behind misses every vsync; a busy page misses some (33 ms gaps among 16.7 ms
     ones, a CPU four times slower), and those wait it out: ticket #804's review saw them step the canvas to the floor.
+  - **A little too slow (ticket #816):** a GPU at 40–55 fps mixes quick and late frames as a busy page does, so no
+    window is over budget throughout, and at 46 fps or quicker the median is on budget. So the governor also judges
+    the frames' mean over spans of 2 s (`DiveFrameSpan`, gaps past 3 × the target left out: a stall is the window's).
+    A span over 1.1 × the target (about 55 fps), with the dive's own work under half the frame, tries one notch down.
+    The span after it keeps the notch when its mean came under 0.9 × the span's before it or is no longer a little too
+    slow; otherwise the notch is given back and steps down wait 6 s, doubling to 48 s, as a window's one-notch step
+    does. Measured on the box's GPU made fill-bound by a test-only full-canvas filter (6,000 and 8,000 iterations of a
+    hash a pixel) at DPR 2, 1280 × 800, held 30 s at the dish (−4.3), the slime (−3) and the shore (1), `probe816.cjs`
+    in `qa/evidence/` (PR #N):
+
+    | GPU load         | main: fps at the canvas ratio                             | ticket #816: fps at the canvas ratio |
+    | ---------------- | --------------------------------------------------------- | ------------------------------------ |
+    | 6,000 (≈ 48 fps) | 47.6–49.3 at 2, never stepped (load 1.4–3.4)              | 60 at 1.68 (two runs, load 1.9–11.9) |
+    | 8,000 (≈ 37 fps) | 36.2–37.7 at 2, its one-notch steps undone (load 1.2–1.9) | 60 at 1.41 (load 2.7–5.3)            |
+
+    The fall itself (at most 1.5) holds 54–60 fps in both. A notch up is tried after 3, 6, 12, 24 s…, each try about
+    4 s at the old rate before a span gives it back. A page whose own work is light but which is busy elsewhere (the
+    CPU four times slower) can still try a notch; its next span is mostly no quicker and gives it back (one or two tries a
+    fall in three runs, each back at the notch above within 2–6 s).
+
   - **Down:** a notch is × 0.84 (about 0.7× the pixels). A median a little over steps one notch; past 3 × the target
     it leaps as far as the GPU's share of the frame must shrink by its pixels to fit, so software GL reaches the floor
     in one change. Never below 0.35 device px per CSS px. Never when the page's own work alone is over budget. A
     one-notch step that does not bring the next window's median under 0.9 × that of the over-budget windows before it
     is undone (the slowness was the page's, not the GPU's) and steps down wait 6 s, doubling for each in a row to 48 s.
-  - **Up:** after 3 s on budget, one notch. A step down within 2 s of a step up means that notch did not fit: the wait
-    before the next try doubles, to 48 s; a notch that holds puts it back to 3 s. A view held on budget never steps:
+  - **Up:** after 3 s on budget, one notch. A step down within 10 s of a step up means that notch did not fit: the
+    wait before the next try doubles, to 48 s; a notch that holds puts it back to 3 s. Ten seconds, not the 2 s a
+    window's step takes: on the box the GPU's frames came at 60 fps for 2 s after the canvas grew, and the span after
+    them stepped down about 4 s after the notch up (ticket #816). A view held on budget never steps:
     its scattered missed vsyncs are not over budget throughout.
   - **While falling:** at most the mockup's 1.5 at DPR 2 (`upperBandsDevicePixelRatio`), sharp at the screen's ratio
     again on arrival.

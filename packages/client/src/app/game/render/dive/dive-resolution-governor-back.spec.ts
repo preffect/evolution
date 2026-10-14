@@ -19,6 +19,7 @@ const {
   floorResolution,
   stepUpAfterMs,
   probeFailMs,
+  backoffFactor,
   maxStepUpAfterMs,
   uselessStepHoldMs,
   sustainedMs,
@@ -99,15 +100,20 @@ describe('DiveResolutionGovernor stepping back', () => {
     const subject = feed(1);
     subject.untilChange(gpuBound(36), sustainedMs * 4);
     subject.untilChange(gpuBound(36), sustainedMs * 4);
-    // Fail the first try at the middle notch: the next waits twice as long.
-    subject.smoothUntilChange(maxStepUpAfterMs);
-    subject.untilChange(SLOW_MS, sustainedMs * 4);
-    expect(subject.smoothUntilChange(maxStepUpAfterMs)).toBeGreaterThanOrEqual(stepUpAfterMs * 2);
-    // That notch holds: the try at the top waits the first wait again.
-    subject.frames(Math.ceil(probeFailMs / SMOOTH_MS) + windowFrames, SMOOTH_MS);
+    // Fail the tries at the middle notch until the next waits longer than the probe's window.
+    let waitMs = stepUpAfterMs;
+    while (waitMs <= probeFailMs) {
+      subject.smoothUntilChange(maxStepUpAfterMs);
+      subject.untilChange(SLOW_MS, sustainedMs * 4);
+      waitMs *= backoffFactor;
+    }
+    expect(subject.smoothUntilChange(maxStepUpAfterMs)).toBeGreaterThanOrEqual(waitMs);
+    // That notch holds past the probe's window: the wait goes back to the first, long over, so the try at the top
+    // comes then, not after the longer wait.
     const waitedMs = subject.smoothUntilChange(maxStepUpAfterMs);
     expect(subject.governor.resolution).toBe(1);
-    expect(waitedMs).toBeLessThan(stepUpAfterMs);
+    expect(waitedMs).toBeGreaterThan(probeFailMs);
+    expect(waitedMs).toBeLessThan(waitMs);
   });
 
   it('renders at most at the falling ceiling, and a notch down from it goes under it', () => {

@@ -10,6 +10,8 @@ export const SMOOTH_MS = DIVE_TARGET_FRAME_MS;
 export const SLOW_MS = 22.5;
 /** The drop's lens under software GL at zoom −2.3 (ticket #804's hand-off). */
 export const SOFTWARE_LENS_MS = 550;
+/** A GPU's work that ends a hair past a vsync, in floating point, still shows on it. */
+const VSYNC_ROUNDING = 1e-9;
 
 /** A frame's gap: a fixed one, or one that follows the resolution it was drawn at. */
 export type FrameGap = number | ((resolution: number) => number);
@@ -19,6 +21,24 @@ export function gpuBound(fullMs: number, top = 1): (resolution: number) => numbe
   return (resolution) => {
     const scale = resolution / top;
     return fullMs * scale * scale;
+  };
+}
+
+/**
+ * A GPU a little too slow behind the display's vsync (ticket #816): it works on one frame while the last is shown, and
+ * each frame shows at the first vsync after its work (`gpuBound`), so the gaps mix 16.7 ms and 33 ms ones at a mean of
+ * the GPU's frame. Under the vsync, every frame shows one vsync after the last.
+ */
+export function vsyncPaced(fullMs: number, top = 1): (resolution: number) => number {
+  const gpuMs = gpuBound(fullMs, top);
+  let doneMs = 0;
+  let shownMs = 0;
+  return (resolution) => {
+    doneMs = Math.max(doneMs, shownMs - SMOOTH_MS) + gpuMs(resolution);
+    const nextShownMs = Math.max(shownMs + SMOOTH_MS, Math.ceil(doneMs / SMOOTH_MS - VSYNC_ROUNDING) * SMOOTH_MS);
+    const gapMs = nextShownMs - shownMs;
+    shownMs = nextShownMs;
+    return gapMs;
   };
 }
 

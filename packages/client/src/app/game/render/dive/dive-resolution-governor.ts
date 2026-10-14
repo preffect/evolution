@@ -1,11 +1,32 @@
-// The dive's resolution governor (docs/rendering/opening-dive.md §6, ticket #804): when its frames run over budget it
-// steps the dive canvas's device px per css px down, and back up once there is headroom. Every band draws on that one
+// The dive's resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #816): when its frames run over
+// budget it steps the dive canvas's device px per css px down, and back up once there is headroom. Every band draws on that one
 // canvas, so the drop's lens, the slime and the dish all shrink with it, and so does the detail the shaders judge in
 // device px (the barnacles under half a device px, the strokes' coverage). Pure: the session hands it each drawn
 // frame's time and CPU share, read off the injected clock.
 
 import { DIVE_RESOLUTION_GOVERNOR, DIVE_TARGET_FRAME_MS } from '../constants';
-import { HALF } from '../geometry';
+import {
+  DiveFrameSpan,
+  LEAP_FRAME_MS,
+  SLIGHTLY_SLOW_FRAME_MS,
+  SLOW_FRAME_MS,
+  sumOf,
+  windowVerdict,
+} from './dive-governor-window';
+
+/** The frames the page's own work may average for a span's trial: past it, the page misses its vsyncs itself. */
+const TRIAL_CPU_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.trialCpuShare;
+
+/** A step down to check: the notch it left, and the gap the frames after it must come under for it to stay. */
+interface StepCheck {
+  readonly fromLevel: number;
+  readonly helpedUnderMs: number;
+  /** A span's trial, checked by the next span; else checked by the next window. */
+  readonly isTrial: boolean;
+}
+
+/** How a step's frames are judged, whatever notch it left. */
+type StepCheckRule = Omit<StepCheck, 'fromLevel'>;
 
 /** A drawn frame, as the governor judges it. */
 export interface DiveGovernedFrame {
@@ -36,71 +57,6 @@ export function diveResolutionLadder(top: number): number[] {
   return ladder;
 }
 
-/** A frame gap over this is over budget. */
-const SLOW_FRAME_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.slowFrameRatio;
-/** A frame gap past this leaps: no page's own work explains it. */
-const LEAP_FRAME_MS = DIVE_TARGET_FRAME_MS * DIVE_RESOLUTION_GOVERNOR.leapRatio;
-
-/**
- * Whether a window's frames were over budget nearly all of them (`sustainedFastFrames` at most on time): a GPU behind
- * misses every vsync, a busy page now and then (ticket #804's review: scattered 33 ms gaps among 16.7 ms ones on a
- * slow CPU stepped the canvas to the floor while the GPU idled).
- */
-function isSustainedOverBudget(gapsMs: readonly number[]): boolean {
-  const sorted = [...gapsMs].sort((first, second) => first - second);
-  const fastest = sorted[Math.min(DIVE_RESOLUTION_GOVERNOR.sustainedFastFrames, sorted.length - 1)] ?? 0;
-  return fastest > SLOW_FRAME_MS;
-}
-
-/** The median of a few numbers: the middle one, or the mean of the middle two. */
-function medianOf(values: readonly number[]): number {
-  const sorted = [...values].sort((first, second) => first - second);
-  const lastIndex = sorted.length - 1;
-  return ((sorted[Math.floor(lastIndex * HALF)] ?? 0) + (sorted[Math.ceil(lastIndex * HALF)] ?? 0)) * HALF;
-}
-
-function sumOf(values: readonly number[]): number {
-  return values.reduce((total, value) => total + value, 0);
-}
-
-function meanOf(values: readonly number[]): number {
-  return sumOf(values) / values.length;
-}
-
-/**
- * Whether a full window spans `windowMs` or more: at most `windowFrames` frames in it, so a mean of a sixth of a second
- * or slower, ten times the target. A GPU seconds behind (software GL) hands frames out in bursts, a few a vsync apart
- * and then a wait of seconds, so their median can be on budget while the dive draws a frame a second (ticket #814). A
- * busy page's slow frames (uploads, a slow CPU's) seldom make a whole second of six frames.
- */
-function isFarBehind(gapsMs: readonly number[]): boolean {
-  return sumOf(gapsMs) >= DIVE_RESOLUTION_GOVERNOR.windowMs;
-}
-
-/** A full window's typical frame and whether it was over budget throughout. */
-interface WindowVerdict {
-  readonly gapMs: number;
-  readonly cpuMs: number;
-  readonly isSustained: boolean;
-  /** Only its mean is over budget: its median is on budget, so long stalls among quick frames decide it. */
-  readonly isMeanOnly: boolean;
-}
-
-/**
- * A window far behind is judged by its mean frame, the GPU's rate through the bursts, and is over budget throughout;
- * any other by its median, so one long task never moves it.
- */
-function windowVerdict(gapsMs: readonly number[], cpusMs: readonly number[]): WindowVerdict {
-  const isBehind = isFarBehind(gapsMs);
-  const typicalOf = isBehind ? meanOf : medianOf;
-  return {
-    gapMs: typicalOf(gapsMs),
-    cpuMs: typicalOf(cpusMs),
-    isSustained: isBehind || isSustainedOverBudget(gapsMs),
-    isMeanOnly: isBehind && medianOf(gapsMs) <= SLOW_FRAME_MS,
-  };
-}
-
 /**
  * How many notches down a frame of `gapMs` (of which `cpuMs` is CPU work) goes: none when it fits or the CPU alone is
  * over budget (fewer pixels would not help); one when it is a little over; past `leapRatio` times the target, as many
@@ -128,8 +84,10 @@ export class DiveResolutionGovernor {
   private overBudgetSinceMs: number | null = null;
   private steppedUpAtMs: number | null = null;
   private stepUpAfterMs: number = DIVE_RESOLUTION_GOVERNOR.stepUpAfterMs;
-  /** The last step down, until the window after it says whether it helped. */
-  private stepToCheck: { readonly fromLevel: number; readonly gapMs: number } | null = null;
+  /** The last step down, until the window (or span) after it says whether it helped. */
+  private stepToCheck: StepCheck | null = null;
+  /** The frames since the last span, for a GPU a little too slow (ticket #816). */
+  private readonly span = new DiveFrameSpan();
   /** When a frame last had bake slices in its gap. */
   private bakedAtMs = Number.NEGATIVE_INFINITY;
   private stepDownHeldUntilMs = Number.NEGATIVE_INFINITY;
@@ -174,10 +132,13 @@ export class DiveResolutionGovernor {
       this.restartWindow();
     } else if (last !== null && frame.nowMs - last <= DIVE_RESOLUTION_GOVERNOR.maxGapMs) {
       // The slices ran between the two frames, on the same thread and clock: never more than the gap.
-      this.gapsMs.push(frame.nowMs - last - frame.bakeMs);
+      const gapMs = frame.nowMs - last - frame.bakeMs;
+      this.gapsMs.push(gapMs);
       if (frame.bakeMs > 0) this.bakedAtMs = frame.nowMs;
       this.cpusMs.push(frame.cpuMs);
+      this.span.add(gapMs, frame.cpuMs);
       if (this.isWindowFull()) this.judge(frame.nowMs);
+      if (this.span.isFull) this.judgeSpan(frame.nowMs);
     } else if (last !== null) {
       this.restartWindow();
     }
@@ -204,12 +165,15 @@ export class DiveResolutionGovernor {
     const isChecked = isMeanOnly && this.hasNoBakeInWindow(nowMs);
     this.gapsMs.shift();
     this.cpusMs.shift();
-    if (this.isUselessStepUndone(nowMs, gapMs)) return;
+    if (this.isUselessStepUndone(nowMs, gapMs, false)) return;
     if (gapMs > SLOW_FRAME_MS) {
       // Over budget: a step only when nearly every frame is; scattered missed vsyncs are the page's, and wait it out.
       this.onBudgetSinceMs = null;
       this.overBudgetSinceMs = isSustained ? (this.overBudgetSinceMs ?? nowMs) : null;
-      if (this.isOverBudgetLongEnough(nowMs)) this.stepDown(nowMs, diveNotchesDown(gapMs, cpuMs), gapMs, isChecked);
+      if (!this.isOverBudgetLongEnough(nowMs)) return;
+      const notches = diveNotchesDown(gapMs, cpuMs);
+      const isWindowChecked = notches === 1 || isChecked;
+      this.stepDown(nowMs, notches, isWindowChecked ? windowCheck(gapMs) : null);
       return;
     }
     this.noteOnBudget(nowMs);
@@ -227,6 +191,19 @@ export class DiveResolutionGovernor {
     if (nowMs - this.onBudgetSinceMs >= this.stepUpAfterMs) this.stepUp(nowMs);
   }
 
+  /**
+   * A full span (ticket #816): a little too slow, and the page's own work light, tries one notch down, checked by the
+   * next span; the time on budget starts again.
+   */
+  private judgeSpan(nowMs: number): void {
+    const verdict = this.span.take();
+    if (verdict === null || this.isUselessStepUndone(nowMs, verdict.gapMs, true)) return;
+    if (verdict.gapMs <= SLIGHTLY_SLOW_FRAME_MS) return;
+    this.onBudgetSinceMs = null;
+    if (verdict.cpuMs >= TRIAL_CPU_MS || nowMs < this.stepDownHeldUntilMs) return;
+    this.stepDown(nowMs, 1, trialCheck(verdict.gapMs));
+  }
+
   /** Whether no frame of the window, which ends `nowMs`, had bake slices in its gap. */
   private hasNoBakeInWindow(nowMs: number): boolean {
     return this.bakedAtMs < nowMs - sumOf(this.gapsMs);
@@ -240,14 +217,14 @@ export class DiveResolutionGovernor {
   }
 
   /**
-   * The first window after a step down: when its frames came no quicker, the step was not the GPU's to fix. It is
-   * undone, and steps down wait a while, longer each time in a row; one that helped puts that wait back.
+   * The first window (a trial's: span) after a step down: when its frames came no quicker, the step was not the GPU's
+   * to fix. It is undone, and steps down wait a while, longer each time in a row; one that helped puts that wait back.
    */
-  private isUselessStepUndone(nowMs: number, gapMs: number): boolean {
+  private isUselessStepUndone(nowMs: number, gapMs: number, isSpan: boolean): boolean {
     const step = this.stepToCheck;
-    if (step === null) return false;
+    if (step?.isTrial !== isSpan) return false;
     this.stepToCheck = null;
-    if (gapMs <= step.gapMs * DIVE_RESOLUTION_GOVERNOR.helpRatio) {
+    if (gapMs <= step.helpedUnderMs) {
       this.uselessStepHoldMs = DIVE_RESOLUTION_GOVERNOR.uselessStepHoldMs;
       return false;
     }
@@ -261,7 +238,8 @@ export class DiveResolutionGovernor {
     return true;
   }
 
-  private stepDown(nowMs: number, notches: number, gapMs: number, isChecked: boolean): void {
+  /** `notches` down; `check`, how the frames after it say whether it helped (none for a leap, which always stays). */
+  private stepDown(nowMs: number, notches: number, check: StepCheckRule | null): void {
     if (notches === 0) return;
     // The first notch is the first rung under what renders now: under a lower ceiling the rungs above it change nothing.
     let level = this.level;
@@ -269,13 +247,14 @@ export class DiveResolutionGovernor {
     const target = Math.min(this.ladder.length - 1, level + notches - 1);
     if (target === this.level) return;
     if (this.steppedUpAtMs !== null && nowMs - this.steppedUpAtMs <= DIVE_RESOLUTION_GOVERNOR.probeFailMs) {
+      // Down again soon after a notch up: that notch did not fit.
       this.stepUpAfterMs = Math.min(
         DIVE_RESOLUTION_GOVERNOR.maxStepUpAfterMs,
         this.stepUpAfterMs * DIVE_RESOLUTION_GOVERNOR.backoffFactor,
       );
     }
     this.steppedUpAtMs = null;
-    this.stepToCheck = notches === 1 || isChecked ? { fromLevel: this.level, gapMs } : null;
+    this.stepToCheck = check === null ? null : { fromLevel: this.level, ...check };
     this.level = target;
     this.restartWindow();
   }
@@ -293,6 +272,18 @@ export class DiveResolutionGovernor {
   private restartWindow(): void {
     this.gapsMs = [];
     this.cpusMs = [];
+    this.span.clear();
     this.overBudgetSinceMs = null;
   }
+}
+
+/** A window's step: the next window's median must come under this one's by `helpRatio`. */
+function windowCheck(gapMs: number): StepCheckRule {
+  return { helpedUnderMs: gapMs * DIVE_RESOLUTION_GOVERNOR.helpRatio, isTrial: false };
+}
+
+/** A span's trial: the next span's mean must come under this one's by `helpRatio`, or be a little too slow no more. */
+function trialCheck(gapMs: number): StepCheckRule {
+  const helpedUnderMs = Math.max(gapMs * DIVE_RESOLUTION_GOVERNOR.helpRatio, SLIGHTLY_SLOW_FRAME_MS);
+  return { helpedUnderMs, isTrial: true };
 }
