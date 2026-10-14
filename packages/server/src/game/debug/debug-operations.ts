@@ -5,6 +5,7 @@
 import {
   FIRST_LEVEL,
   ENTITY_KIND,
+  eraBalanceProblems,
   FOOD_KIND,
   GIANT_SPAWN_KIND,
   giantBalanceProblems,
@@ -18,6 +19,7 @@ import {
 } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
 import { DebugRequestError } from './debug-request-error.js';
+import { refuseEraRewind, setEraForDebug } from './debug-era.js';
 import { spawnGiantForDebug } from './debug-giant-spawn.js';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from './simulation-debug-handle.js';
 import { gainDna, gainTagPoints } from '../progression/dna.js';
@@ -171,7 +173,8 @@ export function setPlayerForDebug(world: WorldState, playerId: PlayerId, patch: 
  * Refuses a patched balance the cells cannot live on: one whose `MAX_LEVEL` wraps a wild build past `TRAIT_TIER_COUNT`,
  * refused here rather than thrown inside the room's step (#671), or one that breaks a giant rule (a build that is not
  * a valid ladder ending in a form, a born range unordered or outside its bounds, a speed multiplier above 1:
- * docs/ecology/giants.md §3.5.14), whichever domain the patch named.
+ * docs/ecology/giants.md §3.5.14), or one whose era starts do not rise from the round's start
+ * (`eraBalanceProblems`, docs/game-design/phases.md §14.2.1), whichever domain the patch named.
  */
 function refuseUnlivableBalance(patched: BalanceConfig): void {
   const topTier = topWildTier(patched);
@@ -185,16 +188,22 @@ function refuseUnlivableBalance(patched: BalanceConfig): void {
   if (giantProblems.length > 0) {
     throw new DebugRequestError(`The patch breaks the giant cells: ${giantProblems.join('; ')}`);
   }
+  const eraProblems = eraBalanceProblems(patched);
+  if (eraProblems.length > 0) {
+    throw new DebugRequestError(`The patch breaks the era clock: ${eraProblems.join('; ')}`);
+  }
 }
 
 /**
- * Number leaves only, validated as a whole (balance-patch.ts) and refused when the cells cannot live on the result
- * (`refuseUnlivableBalance`); the world carries the new copy. A tier patch refolds every cell from the traits it
+ * Number leaves and the declared non-number leaves, validated as a whole (balance-patch.ts) and refused when the cells
+ * cannot live on the result (`refuseUnlivableBalance`) or it would take the round back to an earlier era
+ * (`refuseEraRewind`); the world carries the new copy. A tier patch refolds every cell from the traits it
  * already owns, since the fold runs only when traits change (#715).
  */
 export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
   const { balance: patched, didChangeTraitTiers } = applyBalancePatch(world.balance, patch);
   refuseUnlivableBalance(patched);
+  refuseEraRewind(world, patched);
   world.balance = patched;
   if (didChangeTraitTiers) {
     for (const cell of world.cells) refreshAnyCellFromItsTraits(cell, world.balance);
@@ -218,6 +227,8 @@ export function applyDebugPatch(world: WorldState, patch: DebugPatch): unknown {
       return setPlayerForDebug(world, patch.playerId, patch.patch);
     case DEBUG_PATCH_KIND.setBalance:
       return setBalanceForDebug(world, patch.patch);
+    case DEBUG_PATCH_KIND.setEra:
+      return setEraForDebug(world, patch.era);
     default: {
       const unknownPatch: never = patch;
       throw new SimulationInvariantError(`unknown debug patch ${JSON.stringify(unknownPatch)}`);

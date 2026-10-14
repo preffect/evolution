@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { BALANCE_PATH_SEPARATOR, NON_NUMBER_BALANCE_LEAVES } from './balance-leaf-kinds.js';
 
-/** Values no declared kind may take: a number, nothing, a record, an empty id. */
-const NO_KIND_ACCEPTS: readonly unknown[] = [3, null, undefined, {}, ''];
+/** Values no declared kind may take: a number, nothing, a record, an empty id, an empty list, a list of numbers. */
+const NO_KIND_ACCEPTS: readonly unknown[] = [3, null, undefined, {}, '', [], [3]];
 
 function defaultAt(dottedPath: string): unknown {
   let cursor: unknown = DEFAULT_BALANCE;
@@ -15,9 +15,9 @@ function defaultAt(dottedPath: string): unknown {
 }
 
 describe('the declared non-number balance leaves', () => {
-  it('declares at least the two stage-id leaves of the swallow switch and the latch', () => {
+  it('declares at least the stage-id leaves of the swallow switch and the latch, and the eras in play', () => {
     expect([...NON_NUMBER_BALANCE_LEAVES.keys()]).toEqual(
-      expect.arrayContaining(['absorption.SWALLOW_FROM_STAGE', 'earlyLife.LATCH_FROM_STAGE']),
+      expect.arrayContaining(['absorption.SWALLOW_FROM_STAGE', 'earlyLife.LATCH_FROM_STAGE', 'eras.ERAS_IN_PLAY']),
     );
   });
 

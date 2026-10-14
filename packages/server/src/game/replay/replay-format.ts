@@ -3,7 +3,7 @@
 // tick counter continues across a rematch) and `roster` (who was present when the recording
 // started), both needed to rebuild the world the recording started from.
 
-import type { BalanceConfig, GameInput, GameSessionConfig, PlayerId, StateHash } from '@evolution/shared';
+import type { BalanceConfig, GameEra, GameInput, GameSessionConfig, PlayerId, StateHash } from '@evolution/shared';
 import type { BalancePatch, DnaGrant, PlayerPatch, SpawnRequest } from '../debug/simulation-debug-handle.js';
 import type { PlayerIdentity } from '../session/players.js';
 
@@ -13,13 +13,15 @@ export const DEBUG_PATCH_KIND = {
   grantDna: 'grant_dna',
   setPlayer: 'set_player',
   setBalance: 'set_balance',
+  setEra: 'set_era',
 } as const;
 
 export type DebugPatch =
   | { readonly kind: typeof DEBUG_PATCH_KIND.spawn; readonly request: SpawnRequest }
   | { readonly kind: typeof DEBUG_PATCH_KIND.grantDna; readonly playerId: PlayerId; readonly grant: DnaGrant }
   | { readonly kind: typeof DEBUG_PATCH_KIND.setPlayer; readonly playerId: PlayerId; readonly patch: PlayerPatch }
-  | { readonly kind: typeof DEBUG_PATCH_KIND.setBalance; readonly patch: BalancePatch };
+  | { readonly kind: typeof DEBUG_PATCH_KIND.setBalance; readonly patch: BalancePatch }
+  | { readonly kind: typeof DEBUG_PATCH_KIND.setEra; readonly era: GameEra };
 
 /**
  * What opened the recording: a world build (round start) and a rematch replay from scratch; a

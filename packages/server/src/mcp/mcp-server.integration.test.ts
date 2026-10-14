@@ -28,6 +28,7 @@ const GAME_SPECIFIC_TOOLS = [
   'debug_set_seed',
   'debug_get_balance',
   'debug_set_balance',
+  'debug_set_era',
   'debug_get_state_hash',
   'debug_export_replay',
   'debug_spawn_bot',

@@ -1,5 +1,5 @@
 // Applies a `debug_set_balance` patch (docs/CODE-STANDARDS.md §2): number leaves, at paths that already exist, and the
-// declared non-number leaves (`balance-leaf-kinds.ts`: a stage id), each value checked by its kind's validator. Tables
+// declared non-number leaves (`balance-leaf-kinds.ts`: a stage id, the era list), each value checked by its kind's validator. Tables
 // and id arrays are structure, not tunables, so a patch that names one is refused as a whole; a live balance is
 // never left half-patched. The one array a patch indexes is a trait's tier table under `traits.TRAIT_TIERS`
 // (`traits.TRAIT_TIERS.cilia.0.speedMultiplier`, row 0 = tier I, #715). The input is never written: the patch lands
