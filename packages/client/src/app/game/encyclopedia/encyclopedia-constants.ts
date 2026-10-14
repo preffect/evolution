@@ -51,9 +51,10 @@ export const ENCYCLOPEDIA_LENS_GAP_PX = 32;
 /**
  * The narrowest the title column may be beside the lens (§11.4, #854). Where the content column cannot give it this
  * much — under `ENCYCLOPEDIA_LENS_DIAMETER_PX` + `ENCYCLOPEDIA_LENS_GAP_PX` + this, 692 units, which a viewport under
- * 1024 × 640 is — the title column wraps under the lens and takes the content column's full width. The widest title
- * column any entry needs today is 343 (Mass and size's `DNA per mass gained at the largest mass`), and the column is
- * 370 at the reference sizes, so this sits between the two: every reference layout keeps the lens beside the title.
+ * 1024 × 640 is — the title column wraps under the lens and takes the content column's full width. The widest facts
+ * table beside a lens needs 331 since #858 (Chloroplast's Effects by tier; it was Mass and size's 343 at #854), and
+ * the column is 370 at the reference sizes, so this sits between the two: every reference layout keeps the lens
+ * beside the title.
  */
 export const ENCYCLOPEDIA_TITLE_COLUMN_MIN_WIDTH_PX = 360;
 
@@ -207,6 +208,10 @@ export const ENCYCLOPEDIA_OWNED_CHIP_SEPARATOR = ' · ';
 
 /** What a tier column shows where that tier leaves the row's modifier at identity (§11.4). */
 export const ENCYCLOPEDIA_TIER_IDENTITY_TEXT = '—';
+
+/** `Photosynthesis (mass / s)`: around the unit a tier row's name carries for its bare figures (§11.4, #858). */
+export const ENCYCLOPEDIA_TIER_UNIT_OPEN = ' (';
+export const ENCYCLOPEDIA_TIER_UNIT_CLOSE = ')';
 
 /** The list header while a search is running, where no one category is selected (§11.5). */
 export const ENCYCLOPEDIA_RESULTS_LABEL = 'Results';

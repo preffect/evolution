@@ -21,6 +21,7 @@ import {
   type GiantSwallow,
 } from './giant-popups';
 import { UPGRADE_POPUP_KIND } from './upgrade-popup-kinds';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const OWN_CELL_ID = entityId('c-own');
 const SEAT = 'game-1/player-me';
@@ -105,7 +106,7 @@ describe('giantPopupsIn (docs/ui/overlays.md §3.8, docs/ecology/giants.md §3.5
           traitId: null,
           giantSpecies: species,
           title: GIANT_DISPLAY_NAME_BY_SPECIES[species],
-          effects: [`+${GIANT_DNA} DNA`],
+          effects: [unbroken(`+${GIANT_DNA} DNA`)],
           effectTones: [UI_EFFECT.benefit],
           realLifeLine: GIANT_REAL_LIFE_LINES[species],
         },
@@ -116,7 +117,7 @@ describe('giantPopupsIn (docs/ui/overlays.md §3.8, docs/ecology/giants.md §3.5
   it('shows the DNA the payout measured, a Nucleoid’s share included', () => {
     const swallow = { ...swallowOn(SWALLOW_TICK), dnaGained: NUCLEOID_GIANT_DNA };
     const [popup] = giantPopupsIn([swallow], SEAT, SWALLOW_TICK - 1, SWALLOW_TICK);
-    expect(popup?.effects).toEqual([`+${NUCLEOID_GIANT_DNA} DNA`]);
+    expect(popup?.effects).toEqual([unbroken(`+${NUCLEOID_GIANT_DNA} DNA`)]);
   });
 
   it('fires only the seat’s swallows after the last fold and by this one, in their order', () => {

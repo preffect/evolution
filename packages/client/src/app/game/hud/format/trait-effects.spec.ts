@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, TRAIT_CATALOG, type TraitId } from '@evolution/shared';
 import { PICKER_CARD_EFFECT_LINES_MAX } from '../hud-constants';
 import { describeTierModifiers as describeTierModifiersIn, type TraitModifierTables } from './trait-effects';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const TIERS = [1, 2, 3];
 
@@ -21,35 +22,40 @@ function patchableTables(): TraitModifierTables {
 describe('describeTierModifiers', () => {
   it('reads a multiplier as a change from one and a delta with its unit (the flagellum’s tier I)', () => {
     expect(describeTierModifiers('simple_flagellum' as TraitId, 1)).toEqual([
-      '+5 % speed',
-      '+30 % sprint speed',
-      '−0.5 s sprint cooldown',
+      `${unbroken('+5 %')} speed`,
+      `${unbroken('+30 %')} sprint speed`,
+      `${unbroken('−0.5 s')} sprint cooldown`,
     ]);
   });
 
   it('keeps the sign of a cost: the cell wall trades speed for resistance', () => {
     expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual([
-      '+30 % harder to engulf',
-      '+40 % time to absorb you',
-      '−10 % speed',
+      `${unbroken('+30 %')} harder to engulf`,
+      `${unbroken('+40 %')} time to absorb you`,
+      `${unbroken('−10 %')} speed`,
     ]);
   });
 
   it('never hides a cost: the diatom shell pairs its two spine lines and still ends on its speed', () => {
     expect(describeTierModifiers('diatom_shell' as TraitId, 1)).toEqual([
-      '+40 % time to absorb you',
-      'Spines drain 2 % / s, spit out 40 % / s',
-      '−3 % speed',
+      `${unbroken('+40 %')} time to absorb you`,
+      `Spines drain ${unbroken('2 % / s')}, spit out ${unbroken('40 % / s')}`,
+      `${unbroken('−3 %')} speed`,
     ]);
   });
 
   it('reads a shorter duration as the rate it gives, and a fraction as a share', () => {
-    expect(describeTierModifiers('cytoskeleton' as TraitId, 3)).toEqual(['+64 % acceleration', '+30 % struggle']);
-    expect(describeTierModifiers('nuclear_envelope' as TraitId, 3)).toEqual(['Keeps 75 % DNA on death']);
+    expect(describeTierModifiers('cytoskeleton' as TraitId, 3)).toEqual([
+      `${unbroken('+64 %')} acceleration`,
+      `${unbroken('+30 %')} struggle`,
+    ]);
+    expect(describeTierModifiers('nuclear_envelope' as TraitId, 3)).toEqual([`Keeps ${unbroken('75 %')} DNA on death`]);
   });
 
   it('reads a gel floor below full speed as a floor, and one at full speed as no slowdown at all', () => {
-    expect(describeTierModifiers('amoeba_pseudopods' as TraitId, 1)).toContain('Gel slows you to no less than 60 %');
+    expect(describeTierModifiers('amoeba_pseudopods' as TraitId, 1)).toContain(
+      `Gel slows you to no less than ${unbroken('60 %')}`,
+    );
     expect(describeTierModifiers('amoeba_pseudopods' as TraitId, 3)).toContain('Gel no longer slows you');
   });
 
@@ -92,13 +98,13 @@ describe('describeTierModifiers', () => {
     const [tierOne, , tierThree] = patched.TRAIT_TIERS.cell_wall;
     patched.TRAIT_TIERS.cell_wall = [tierOne, { membraneRatioBonus: 0.45, speedMultiplier: 0.8 }, tierThree];
     expect(describeTierModifiersIn(patched, 'cell_wall' as TraitId, 2)).toEqual([
-      '+45 % harder to engulf',
-      '−20 % speed',
+      `${unbroken('+45 %')} harder to engulf`,
+      `${unbroken('−20 %')} speed`,
     ]);
     expect(describeTierModifiers('cell_wall' as TraitId, 2)).toEqual([
-      '+30 % harder to engulf',
-      '+40 % time to absorb you',
-      '−10 % speed',
+      `${unbroken('+30 %')} harder to engulf`,
+      `${unbroken('+40 %')} time to absorb you`,
+      `${unbroken('−10 %')} speed`,
     ]);
   });
 
@@ -106,8 +112,8 @@ describe('describeTierModifiers', () => {
     const patched = patchableTables();
     patched.DEFAULT_CELL_MODIFIERS.speedMultiplier = 0.9;
     expect(describeTierModifiersIn(patched, 'cell_wall' as TraitId, 2)).toEqual([
-      '+30 % harder to engulf',
-      '+40 % time to absorb you',
+      `${unbroken('+30 %')} harder to engulf`,
+      `${unbroken('+40 %')} time to absorb you`,
     ]);
   });
 

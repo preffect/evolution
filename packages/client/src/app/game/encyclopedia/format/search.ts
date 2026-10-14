@@ -10,6 +10,7 @@
 // rank and then by the caller's own list order. A tie between two categories keeps the caller's rail order.
 
 import type { ValueOf } from '@evolution/shared';
+import { NO_BREAK_SPACE } from '../../quantities/quantity-unit';
 import type { EncyclopediaCategory } from '../model/categories';
 import type { ProseSegment } from '../model/entry';
 import type { EntryId } from '../model/entry-id';
@@ -64,8 +65,12 @@ export interface EncyclopediaSearchGroup {
 /** The combining marks NFD splits an accented letter into; dropping them leaves the plain letter. */
 const COMBINING_MARKS = /\p{Mn}/gu;
 
+/** The space a query is typed with, which the no-break space inside a formatted quantity folds to. */
+const SPACE = ' ';
+
 /**
- * The form a query and a searched text are both compared in: decomposed, stripped of accents, lowercased.
+ * The form a query and a searched text are both compared in: decomposed, stripped of accents, lowercased, and every
+ * no-break space a plain one, so `20 mass` typed finds the `20 mass` a summary's value writes unbreakable (#858).
  *
  * Deliberately limited to what NFD decomposes. Ligatures and stroked letters — `œ`, `æ`, `ß`, `ø` — have no combining
  * mark to drop, so they stay as typed and `oeil` will not find `Œil`. None appears in an entry title, and the fix is a
@@ -76,7 +81,7 @@ const COMBINING_MARKS = /\p{Mn}/gu;
  * on purpose — neither should be "fixed" to match the other.
  */
 export function foldForSearch(text: string): string {
-  return text.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase();
+  return text.normalize('NFD').replace(COMBINING_MARKS, '').replaceAll(NO_BREAK_SPACE, SPACE).toLowerCase();
 }
 
 /** Resolved prose as the plain text it reads as on screen: a value segment is its formatted number, a link its title. */

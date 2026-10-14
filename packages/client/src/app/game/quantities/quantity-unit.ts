@@ -101,9 +101,9 @@ const WHOLE = 0;
 const UNSCALED = 1;
 
 export interface UnitFormat {
-  /** Written before the figure, separator included (`Level 5`). */
+  /** Written before the figure, separator included and non-breaking (`Level 5`). */
   readonly prefix: string;
-  /** Written after the figure, separator included (`0.5 s`, `1.5×`). */
+  /** Written after the figure, separator included and non-breaking (`0.5 s`, `1.5×`). */
   readonly suffix: string;
   /** The suffix when the shown magnitude is exactly one; the plural suffix where the unit has no singular. */
   readonly singularSuffix: string;
@@ -115,8 +115,20 @@ export interface UnitFormat {
   readonly form: QuantityForm;
 }
 
+/**
+ * The space inside a quantity: a number and its unit are one reading, so a line never breaks between them — `5000`
+ * over `mass`, `+0.3 mass` over `/ s` (#858). The table below writes plain spaces for legibility; `unitFormat` swaps.
+ */
+export const NO_BREAK_SPACE = '\u00A0';
+const BREAKING_SPACE = ' ';
+
+/** `text` with every space made non-breaking. */
+function unbreakable(text: string): string {
+  return text.replaceAll(BREAKING_SPACE, NO_BREAK_SPACE);
+}
+
 function unitFormat(suffix: string, overrides: Partial<UnitFormat> = {}): UnitFormat {
-  return {
+  const format: UnitFormat = {
     prefix: '',
     suffix,
     singularSuffix: suffix,
@@ -125,6 +137,12 @@ function unitFormat(suffix: string, overrides: Partial<UnitFormat> = {}): UnitFo
     rounding: QUANTITY_ROUNDING.nearest,
     form: QUANTITY_FORM.figure,
     ...overrides,
+  };
+  return {
+    ...format,
+    prefix: unbreakable(format.prefix),
+    suffix: unbreakable(format.suffix),
+    singularSuffix: unbreakable(format.singularSuffix),
   };
 }
 

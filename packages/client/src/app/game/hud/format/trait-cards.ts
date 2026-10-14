@@ -20,7 +20,7 @@ import {
   type TraitRarity,
 } from '@evolution/shared';
 import { formatQuantity } from '../../quantities/format-quantity';
-import { QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
+import { NO_BREAK_SPACE, QUANTITY_PRESENTATION, QUANTITY_UNIT } from '../../quantities/quantity-unit';
 import type { ModifierEffect } from '../../quantities/modifier-labels';
 import { describeTierModifierEffects, describeTierModifiers, type TraitModifierTables } from './trait-effects';
 
@@ -31,9 +31,9 @@ const UPGRADE_ARROW = '→';
 /**
  * A card's narrow column wraps its lines, so the places a wrap would split a reading are bound (#446): a number to
  * the unit after it (`70 %`), a unit's slash to both sides (`% / s`), and an upgrade's tiers to the arrow between
- * them (`I → II`). A no-break space is the same width as a space, so binding costs the card nothing.
+ * them (`I → II`). A no-break space is the same width as a space, so binding costs the card nothing. `formatQuantity`
+ * binds its own quantities since #858; the card still binds what it builds around them.
  */
-const NO_BREAK_SPACE = '\u00a0';
 /** A space after a digit: the number meets its unit there. */
 const SPACE_AFTER_NUMBER = /(\d) /g;
 /** A unit's slash with a space either side: `% / s`, `mass / s`. */

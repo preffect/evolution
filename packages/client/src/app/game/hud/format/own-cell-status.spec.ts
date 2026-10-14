@@ -22,6 +22,7 @@ import {
 } from '../../state/own-cell-indicators';
 import { STATUS_ANNOUNCE_DNA_STEP_PERCENT } from '../hud-constants';
 import { SPRINT_STATUS, dnaPercentOf, formatOwnCellStatus, formatTraits, shouldAnnounce } from './own-cell-status';
+import { unbroken } from '../../../../testing/unbroken-quantity';
 
 const NOTHING_EATEN: Record<BacteriumVariant, number> = { plain: 0, aerobic: 0, photosynthetic: 0 };
 
@@ -150,7 +151,7 @@ describe('formatOwnCellStatus text', () => {
   it('reads as a sentence in the order §3.1.4 sets', () => {
     const prokaryote = createTestCellView({ stage: CELL_STAGE.prokaryote });
     expect(formatOwnCellStatus(indicatorsWith(prokaryote)).text).toBe(
-      'Level 1 · DNA 0 % · Aerobic 0 of 10 · Photosynthetic 0 of 10 · Sprint ready',
+      `${unbroken('Level 1')} · DNA ${unbroken('0 %')} · Aerobic 0 of 10 · Photosynthetic 0 of 10 · Sprint ready`,
     );
   });
 

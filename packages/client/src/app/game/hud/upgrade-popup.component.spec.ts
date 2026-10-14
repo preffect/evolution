@@ -28,6 +28,7 @@ import { GIANT_POPUP_KICKER_TEXT } from './format/giant-popups';
 import { FORM_POPUP_KICKER_TEXT, UPGRADE_POPUP_PLACEMENT } from './format/upgrade-popups';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from './upgrade-popup-constants';
 import { UpgradePopupComponent } from './upgrade-popup.component';
+import { unbroken } from '../../../testing/unbroken-quantity';
 
 const OWN_PLAYER_ID = playerId('player-me');
 const OWN_AVATAR_INDEX = 3;
@@ -197,7 +198,7 @@ describe('UpgradePopupComponent (docs/ui/overlays.md §3.8)', () => {
     expect(shown?.classList.contains('form')).toBe(true);
     expect(textOf(shown, '.kicker')).toBe(GIANT_POPUP_KICKER_TEXT);
     expect(textOf(shown, '.title')).toBe(GIANT_DISPLAY_NAME_BY_SPECIES[GIANT_SPECIES.diatom]);
-    expect(textOf(shown, '.effect')).toBe(`+${GIANT_DNA} DNA`);
+    expect(textOf(shown, '.effect')).toBe(unbroken(`+${GIANT_DNA} DNA`));
     expect(textOf(shown, '.real-life')).toBe(GIANT_REAL_LIFE_LINES[GIANT_SPECIES.diatom]);
 
     receive(swallowTick + FORM_TICKS - 1, []);
