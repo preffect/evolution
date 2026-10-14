@@ -1,5 +1,5 @@
-// The opening dive's resolution governor (docs/rendering/opening-dive.md §6, ticket #804): the frame it aims at, how
-// it judges frames and how far it steps the dive's canvas resolution. Re-exported by `render/constants`.
+// The opening dive's resolution governor (docs/rendering/opening-dive.md §6, tickets #804 and #816): the frame it aims
+// at, how it judges frames and how far it steps the dive's canvas resolution. Re-exported by `render/constants`.
 
 /** The frame the dive aims at: one display frame at 60 Hz (the epic's 60 fps on a laptop's integrated GPU). */
 export const DIVE_TARGET_FRAME_MS = 1000 / 60;
@@ -21,13 +21,21 @@ export const DIVE_TARGET_FRAME_MS = 1000 / 60;
  *   mean alone decided (its median on budget) with no bake slice in the window is undone if the next window is no
  *   quicker, as a one-notch step is: a page's own stalls among quick frames are no quicker with fewer pixels.
  * - `floorResolution`: never fewer device px per css px than this (an 830 css px stage stays 290 px wide).
+ * - `spanMs`, `slightlySlowRatio`: it also judges the mean gap of the frames over each `spanMs` (gaps past the leap
+ *   left out, the window's to judge). A mean over the target times `slightlySlowRatio` (about 55 fps) is a little too
+ *   slow: a GPU at 40–55 fps mixes quick and late frames as a busy page does, so its windows are never over budget
+ *   throughout (ticket #816). That span tries one notch down, only when the page's own work averages under
+ *   `trialCpuShare` of the target (a page busy half the frame misses its vsyncs itself), and checks it by the next
+ *   span.
  * - `stepUpAfterMs`: on budget this long in a row, it tries one notch up. A step down within `probeFailMs` of a step
- *   up means that notch did not fit: the wait before the next try grows by `backoffFactor`, up to `maxStepUpAfterMs`; a notch up that
- *   holds puts the wait back. So it never pumps: a level that fits stays, and the one above is tried ever more
- *   rarely.
- * - `helpRatio`: a one-notch step down must bring the next window's median gap under the last one's times this. One
- *   that does not was not the GPU's to fix (the page's own work, layout, a slow CPU): it is undone, and no step down is
- *   tried for `uselessStepHoldMs`, doubled for each in a row, up to `maxStepUpAfterMs`. A leap is never undone: the
+ *   up means that notch did not fit: the wait before the next try grows by `backoffFactor`, up to `maxStepUpAfterMs`;
+ *   a notch up that holds puts the wait back. So it never pumps: a level that fits stays, and the one above is tried
+ *   ever more rarely. `probeFailMs` covers a span's trial after the step up: a GPU's frames come at 60 fps for about
+ *   2 s after the canvas grows (measured on the evidence box, ticket #816), and the span after them steps down 4 s on.
+ * - `helpRatio`: a one-notch step down must bring the next window's median gap under the last one's times this (a
+ *   span's trial: the next span's mean under its own times this, or no longer a little too slow). One that does not
+ *   was not the GPU's to fix (the page's own work, layout, a slow CPU): it is undone, and no step down is tried for
+ *   `uselessStepHoldMs`, doubled for each in a row, up to `maxStepUpAfterMs`. A leap is never undone: the
  *   camera moves through bands of different cost while software GL's slow frames fill a window.
  * - `maxGapMs`: a longer gap is not a frame (the ticker stopped off screen, the tab hidden) and starts the window
  *   again; software GL's slowest frames (up to about 13 s at DPR 2 on the evidence box) still count.
@@ -42,8 +50,11 @@ export const DIVE_RESOLUTION_GOVERNOR = {
   leapRatio: 3,
   stepRatio: 0.84,
   floorResolution: 0.35,
+  spanMs: 2000,
+  slightlySlowRatio: 1.1,
+  trialCpuShare: 0.5,
   stepUpAfterMs: 3000,
-  probeFailMs: 2000,
+  probeFailMs: 10_000,
   maxStepUpAfterMs: 48_000,
   backoffFactor: 2,
   helpRatio: 0.9,
