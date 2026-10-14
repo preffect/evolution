@@ -13,15 +13,7 @@
 // reconnect fire nothing, and a rematch, which empties the traits, gains nothing. `UpgradePopupService` carries the
 // memory; `upgrade-popup.component.ts` binds the popup that is up.
 
-import {
-  CELL_STAGE,
-  PLAYER_LIFE_STATE,
-  secondsToTicks,
-  type PlayerLifeState,
-  type OwnProgressView,
-  type OwnedTrait,
-  type ValueOf,
-} from '@evolution/shared';
+import { CELL_STAGE, secondsToTicks, type OwnProgressView, type OwnedTrait } from '@evolution/shared';
 import { FORM_POPUP_DURATION_SECONDS, UPGRADE_POPUP_DURATION_SECONDS } from '../upgrade-popup-constants';
 import { formRealLifeLine, isFormTrait } from './form-facts';
 import { giantPopupsIn, type GiantSwallow } from './giant-popups';
@@ -36,19 +28,6 @@ import type { TraitModifierTables } from './trait-effects';
 
 /** The form popup's kicker above the name: it names the moment. */
 export const FORM_POPUP_KICKER_TEXT = 'NEW FORM';
-
-/**
- * Where the popups hang (docs/ui/overlays.md §3.8): above the own cell while it is alive, clear of the exclusion box;
- * under the death overlay's text while dead or spectating, when the box does not apply and the text must stay readable.
- */
-export const UPGRADE_POPUP_PLACEMENT = { aboveCell: 'above-cell', belowDeathText: 'below-death-text' } as const;
-export type UpgradePopupPlacement = ValueOf<typeof UPGRADE_POPUP_PLACEMENT>;
-
-export function upgradePopupPlacementFor(lifeState: PlayerLifeState | null): UpgradePopupPlacement {
-  return lifeState === PLAYER_LIFE_STATE.spectating
-    ? UPGRADE_POPUP_PLACEMENT.belowDeathText
-    : UPGRADE_POPUP_PLACEMENT.aboveCell;
-}
 
 /** One snapshot as the popups read it. */
 export interface UpgradePopupSample {

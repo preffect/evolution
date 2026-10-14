@@ -97,18 +97,21 @@ describe('HudComponent', () => {
     expect(host().querySelector('.connection-lost-dim')).not.toBeNull();
   });
 
-  it('stops observing its box on destroy', () => {
+  it('stops observing its box, and the popup its own, on destroy', () => {
+    const observe = vi.fn();
     const disconnect = vi.fn();
     vi.stubGlobal(
       'ResizeObserver',
       class {
-        observe = vi.fn();
+        observe = observe;
         disconnect = disconnect;
       },
     );
     fixture.detectChanges();
+    const observedBoxes = observe.mock.calls.map(([element]) => element as Element);
+    expect(observedBoxes).toContain(host());
     fixture.destroy();
-    expect(disconnect).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledTimes(observedBoxes.length);
     vi.unstubAllGlobals();
   });
 });

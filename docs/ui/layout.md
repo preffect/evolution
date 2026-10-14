@@ -36,7 +36,7 @@ is only the roster row `{ playerId, playerName }`, architecture/wire-contract.md
  (0,0) ────────────────────────────────────────────────────────────────── 1280
  │ [connection banner when shown]      [toast]        leaderboard 240×162 (16,16 from right)
  │ [hold-Tab panel, overlays.md §3.7]
- │                                  [upgrade / form popup, overlays.md §3.8]
+ │                                  [upgrade / form popup, overlays.md §3.8: above, or below the cell when no room]
  │                                   ┌── 240 × 240 ──┐
  │                                   │  rate tags    │   no DOM element enters;
  │                                   │  mass chip    │   the renderer draws the

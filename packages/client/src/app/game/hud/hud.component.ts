@@ -36,6 +36,7 @@ import { uiScaleFor } from '../../ui-kit/format/ui-scale';
 import { uiScaleVariable, uiStyleVariables } from '../../ui-kit/format/ui-css-variables';
 import { hudStyleVariables, noticeRowsVariable, pickerBandVariables } from './format/hud-css-variables';
 import { ElementSizeTracker } from '../../ui-kit/element-size';
+import type { ViewportPx } from '../render/camera';
 import { AffectingPanelComponent } from './affecting-panel.component';
 import { EncyclopediaOverlayComponent } from './encyclopedia-overlay.component';
 import { HUD_OVERLAY } from './hud-state.service';
@@ -67,9 +68,9 @@ import { HUD_OVERLAY } from './hud-state.service';
       <app-respawn-overlay />
       <!-- The picker draws nothing without an open offer, and an offer stays pickable while spectating (§3.3). -->
       <app-trait-offer-overlay />
-      <!-- Over the picker's dim, above the own cell (docs/ui/overlays.md §3.8); its service keeps stepping between
-           rounds, and a rematch gains nothing, so a round's last popup never shows in the next. -->
-      <app-upgrade-popup />
+      <!-- Over the picker's dim, clear of the own cell's cues (docs/ui/overlays.md §3.8); its service keeps stepping
+           between rounds, and a rematch gains nothing, so a round's last popup never shows in the next. -->
+      <app-upgrade-popup [viewport]="viewport()" />
       <!-- The board and the clock stand down under the encyclopedia (docs/ui/encyclopedia.md §11.1): the panel would
            cut both into slivers, and what a reader must not miss is on its alert strip instead. -->
       @if (!isEncyclopediaOpen()) {
@@ -195,17 +196,21 @@ export class HudComponent implements OnInit {
    */
   protected readonly isConnectionLost = computed(() => this.gameState.connectionState() !== CONNECTION_STATE.connected);
 
+  /** The HUD's box: the viewport every centre-relative element is placed in (docs/ui/layout.md §1). */
+  protected readonly viewport = computed<ViewportPx>(() => ({
+    width: this.sizeTracker.size().widthPx,
+    height: this.sizeTracker.size().heightPx,
+  }));
+
   /** `--ui-scale` (docs/ui/layout.md §1): unitless, so hit-testing and focus rings stay in real pixels. */
-  protected readonly scale = computed(() =>
-    uiScaleFor(this.sizeTracker.size().widthPx, this.sizeTracker.size().heightPx),
-  );
+  protected readonly scale = computed(() => uiScaleFor(this.viewport().width, this.viewport().height));
 
   /** The scale plus every constant the child stylesheets read — the kit's and the HUD's — as one style map. */
   protected readonly styleVariables = computed(() => ({
     ...this.kitTokens,
     ...uiScaleVariable(this.scale()),
     ...hudStyleVariables(),
-    ...pickerBandVariables({ width: this.sizeTracker.size().widthPx, height: this.sizeTracker.size().heightPx }),
+    ...pickerBandVariables(this.viewport()),
     ...noticeRowsVariable(noticeRowCountFor(this.gameState.connectionState(), this.gameState.serverError())),
   }));
 

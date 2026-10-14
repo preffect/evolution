@@ -1,6 +1,7 @@
 // The upgrade and form popups (docs/ui/overlays.md §3.8, #783): the trait just gained, its tier and its effect lines,
-// centred above the own cell, its bottom edge where the picker band's top edge is below it, so it never enters the
-// exclusion box or the cap orbit (docs/ui/layout.md §1); while dead, under the death overlay's text instead. An upgrade
+// centred over the own cell, clear of the exclusion box, the cap orbit and the cell's cues (docs/ui/layout.md §1):
+// above them where it fits, below the cell where it does not (`upgradePopupSlotFor`, ticket #840); while dead, under
+// the death overlay's text instead. An upgrade
 // popup pops in, holds and rises as it fades; a form popup is larger, under a `NEW FORM` kicker, overshoots in with a
 // flaring glow and one expanding ring in the seat colour, holds about five seconds and adds its real-life line.
 // A giant swallowed raises the giant popup, drawn as a form popup under a `GIANT ENGULFED` kicker: the giant's name,
@@ -8,17 +9,22 @@
 // It decides nothing: `UpgradePopupService` says which popup is up and what it says. It is read, never pressed: no
 // pointer, no focus, a polite live region.
 
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, type OnInit } from '@angular/core';
 import { HUD_TEST_ID } from '../test-ids/hud-test-ids';
+import { ElementSizeTracker } from '../../ui-kit/element-size';
 import { UiEffectMarkComponent } from '../../ui-kit/ui-effect-mark.component';
+import type { ViewportPx } from '../render/camera';
 import { paletteFor } from '../render/palette';
 import { GameStateService } from '../state/game-state.service';
 import { UPGRADE_POPUP_KIND, type UpgradePopupKind } from './format/upgrade-popup-kinds';
-import { upgradePopupPlacementFor } from './format/upgrade-popups';
+import { upgradePopupSlotFor } from './format/upgrade-popup-slot';
 import { UpgradePopupService } from './upgrade-popup.service';
 
 /** A seat the room has not assigned yet draws in the first seat's colour. */
 const UNASSIGNED_AVATAR_INDEX = 0;
+
+/** Before the HUD shell has measured its box: the slot then answers the band's mirror, above the cell. */
+const UNMEASURED_VIEWPORT: ViewportPx = { width: 0, height: 0 };
 
 /** Each kind's test id: a giant popup is drawn as a form popup, but tested as itself. */
 const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
@@ -33,7 +39,11 @@ const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiEffectMarkComponent],
   styleUrl: './upgrade-popup.component.css',
-  host: { '[style.--popup-seat-colour]': 'seatColour()', '[attr.data-placement]': 'placement()' },
+  host: {
+    '[style.--popup-seat-colour]': 'seatColour()',
+    '[style.--popup-offset]': "slot().offsetPx + 'px'",
+    '[attr.data-placement]': 'slot().placement',
+  },
   template: `
     <div class="live" role="status" aria-live="polite">
       <!-- A list of at most one, keyed per popup, so the next one is a new element and replays its animation. -->
@@ -60,16 +70,28 @@ const POPUP_TEST_ID: Readonly<Record<UpgradePopupKind, string>> = {
     </div>
   `,
 })
-export class UpgradePopupComponent {
+export class UpgradePopupComponent implements OnInit {
   private readonly gameState = inject(GameStateService);
   private readonly current = inject(UpgradePopupService).current;
+  /** The host's own box: its height is the popup's, with a form popup's glow margins, as laid out. */
+  private readonly hostSize = new ElementSizeTracker(inject<ElementRef<HTMLElement>>(ElementRef).nativeElement);
+
+  /** The HUD's box, which the slot is centred in. */
+  readonly viewport = input<ViewportPx>(UNMEASURED_VIEWPORT);
 
   protected readonly popupTestId = POPUP_TEST_ID;
   protected readonly kind = UPGRADE_POPUP_KIND;
-  /** Above the cell while alive, under the death text while dead (`upgradePopupPlacementFor`). */
-  protected readonly placement = computed(() =>
-    upgradePopupPlacementFor(this.gameState.ownProgress()?.lifeState ?? null),
-  );
+  /** Above the cell's cues, below the cell, or under the death text, and how far from the centre. */
+  protected readonly slot = computed(() => {
+    const progress = this.gameState.ownProgress();
+    return upgradePopupSlotFor({
+      lifeState: progress?.lifeState ?? null,
+      viewport: this.viewport(),
+      ownCellRadiusWu: this.gameState.ownCell()?.radius ?? null,
+      popupHeightPx: this.hostSize.size().heightPx,
+      isPickerOpen: (progress?.offer ?? null) !== null,
+    });
+  });
   protected readonly shown = computed(() => {
     const popup = this.current();
     return popup === null ? [] : [popup];
@@ -81,4 +103,8 @@ export class UpgradePopupComponent {
     const avatarIndex = own === null ? undefined : this.gameState.avatarAssignments()[own];
     return paletteFor(avatarIndex ?? UNASSIGNED_AVATAR_INDEX).rim;
   });
+
+  ngOnInit(): void {
+    this.hostSize.start();
+  }
 }
