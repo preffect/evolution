@@ -1,7 +1,8 @@
 // What the page and the shore's bake worker say to each other (docs/rendering/opening-dive.md §4, ticket #809). The
-// page opens the worker once a dive with the land and any tiles it already has, then asks for one level at a time;
-// the worker sends each tile as it bakes and each level when it lands, its pictures as `ImageBitmap`s and its data
-// as buffers, all transferred, so nothing is copied on the page's thread.
+// page opens the worker once a dive with the land and any tiles it already has, then asks for one level at a time and
+// cancels one it no longer wants (ticket #811); the worker sends each tile as it bakes and each level when it
+// lands, its pictures as `ImageBitmap`s and its data as buffers, all transferred, so nothing is copied on the page's
+// thread.
 
 import { isShoreBitmap } from './shore-offscreen';
 import type { LandRings } from './shore-coast-rings';
@@ -12,6 +13,7 @@ import type { ShoreTileBitmap } from './shore-tiles';
 export const SHORE_BAKE_MESSAGE = {
   open: 'open',
   bake: 'bake',
+  cancel: 'cancel',
   tile: 'tile',
   level: 'level',
   failed: 'failed',
@@ -34,7 +36,13 @@ export interface ShoreBakeRequest {
   readonly view: ShoreView;
 }
 
-export type ShoreBakeCommand = ShoreBakeOpen | ShoreBakeRequest;
+/** Page to worker: the level asked for as `id` is no longer wanted; the worker drops it if it has not landed. */
+export interface ShoreBakeCancel {
+  readonly type: typeof SHORE_BAKE_MESSAGE.cancel;
+  readonly id: number;
+}
+
+export type ShoreBakeCommand = ShoreBakeOpen | ShoreBakeRequest | ShoreBakeCancel;
 
 export interface ShoreTileBaked extends ShoreTileTransfer {
   readonly type: typeof SHORE_BAKE_MESSAGE.tile;

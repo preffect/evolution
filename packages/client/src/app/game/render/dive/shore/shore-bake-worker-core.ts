@@ -1,7 +1,8 @@
 // The shore's bake worker, without the worker (docs/rendering/opening-dive.md §4, ticket #809): the tiles any page
 // lacks, then the level the page asks for, a step a turn, handing back to the worker's message queue between steps so
-// a newer level asked for replaces the one under way. `shore-bake.worker.ts` gives it the worker's canvases and
-// messaging; a spec gives it fakes. Nothing here holds a frame up, so a step needs no budget.
+// a newer level asked for replaces the one under way, and one cancelled stops (ticket #811). `shore-bake.worker.ts`
+// gives it the worker's canvases and messaging; a spec gives it fakes. Nothing here holds a frame up, so a step needs
+// no budget.
 
 import type { ShoreCanvas, ShoreCanvasFactory, ShoreImage } from './shore-canvas';
 import {
@@ -50,8 +51,16 @@ export class ShoreBakeWorkerCore {
 
   handle(command: ShoreBakeCommand): void {
     if (command.type === SHORE_BAKE_MESSAGE.open) this.open(command);
+    else if (command.type === SHORE_BAKE_MESSAGE.cancel) this.cancel(command.id);
     else this.request = command;
     this.queueTurn();
+  }
+
+  /** The page no longer wants level `id`: its bake stops where it is and nothing is sent (ticket #811). */
+  private cancel(id: number): void {
+    if (this.request?.id !== id) return;
+    this.request = null;
+    this.job = null;
   }
 
   private open(command: ShoreBakeOpen): void {
