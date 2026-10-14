@@ -11,20 +11,20 @@ slices land (§14.2.4), [`session.md`](./session.md) describes the game as it pl
 
 ### 14.1 What the human decided (2026-10-13)
 
-| Ticket      | Answer | Decision                                                                                                                                                                                                                      |
-| ----------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ticket #784 | A      | **One journey, together.** At 10:00 the whole room leaves the dish for the next world; colonies open in that same world at 17:00; one game of about 25 minutes.                                                               |
-| ticket #785 | A      | **Colonies start after a big-protist chapter.** From 10:00 to 17:00 you play your form in the new world; many-celled life opens there at 17:00.                                                                               |
-| ticket #786 | C      | **Seamless.** You never stop playing: the dish's rim dissolves, the new world fades in around you and the camera eases out. Not the recommended pull-back, so the size jump must read without taking control.                 |
-| ticket #787 | A      | **The paramecium and the stentor stay one cell, with real upgrades:** trichocysts and conjugation; anchoring together and regrowth.                                                                                           |
-| ticket #790 | A      | **Keep the kelp shore; each form becomes its sea-water cousin.** Choanoflagellate rosettes join the colony step; the green road needs a sea-water colony in place of Volvox (which colony: **pending ticket #901**, §14.9.1). |
+| Ticket      | Answer | Decision                                                                                                                                                                                                                                           |
+| ----------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ticket #784 | A      | **One journey, together.** At 10:00 the whole room leaves the dish for the next world; colonies open in that same world at 17:00; one game of about 25 minutes.                                                                                    |
+| ticket #785 | A      | **Colonies start after a big-protist chapter.** From 10:00 to 17:00 you play your form in the new world; many-celled life opens there at 17:00.                                                                                                    |
+| ticket #786 | C      | **Seamless.** You never stop playing: the dish's rim dissolves, the new world fades in around you and the camera eases out. Not the recommended pull-back, so the size jump must read without taking control.                                      |
+| ticket #787 | A      | **The paramecium and the stentor stay one cell, with real upgrades:** trichocysts and conjugation; anchoring together and regrowth.                                                                                                                |
+| ticket #790 | A      | **Keep the kelp shore; each form becomes its sea-water cousin.** Choanoflagellate rosettes join the colony step; the green road needs a sea-water colony in place of Volvox (which colony: _Phaeocystis_, the light road, ticket #901 A, §14.9.1). |
 
 Ticket #786's other options are kept on the concept sheets as "not chosen" (the pull-back storyboard,
 `transition-storyboard.png`). The decision tickets called the second world "the pond". Ticket #790's answer puts it
 by the sea, so this design calls it **the rock pool** (§14.5). In code and constants it is `pool`.
 
-Two questions are still with the human, and this section marks what each would change: ticket #901 (the euglena's
-colony road, §14.9.1) and ticket #902 (the opening dive for a game already in the pool, §14.13).
+Two follow-up decisions were answered on 2026-10-14, both **A**: ticket #901, the euglena's colony road is the light
+road with _Phaeocystis_ (§14.9.1); ticket #902, the opening dive stays as it is (§14.13).
 
 ### 14.2 The shape and the clock
 
@@ -450,17 +450,12 @@ From the first level-up after 17:00:
 Each road is how life really did it, with the honest caveat in its encyclopedia page. Step counts and floor masses
 are game values (tuning); the real numbers are in the "real" column and the encyclopedia.
 
-#### 14.9.1 The euglena's road: pending ticket #901 (recommended A, the light road with _Phaeocystis_)
+#### 14.9.1 The light road (the euglena): _Phaeocystis_, a sea-water colony of light-fed cells (ticket #901 A)
 
-**Pending the human's answer on ticket #901.** The options: **A** the light road below (recommended); **B** keep the
-green road's volvocine balls, with an encyclopedia line saying they live in fresh water, not on the kelp shore; **C**
-fresh water for this one road (the colony era of a euglena happens in a freshwater pool of its own). Under B or C the
-mechanics below stay (six steps, floor masses, speed factors, the copepod's window, three jobs, the spare life); only
-the step names and the "real" column change (B and C: pair, Tetrabaena, Gonium, Pandorina or Eudorina, Volvox; jobs
-whip, eye and germ cells as the proposal had them), and the encyclopedia caveat. The build tickets for this road
-(ticket #886, ticket #892's light-road art) wait for the answer; the rest of the colony era does not.
+Decided on ticket #901 (answer A): the euglena's road is the light road below. Not chosen: B, keeping the green road's
+volvocine balls with a fresh-water caveat, and C, a fresh-water pool for this one road.
 
-The rest of this subsection is option A. The green road's freshwater ladder (Tetrabaena, Gonium, Pandorina, Eudorina, Volvox) cannot stay: every volvocine
+The green road's freshwater ladder (Tetrabaena, Gonium, Pandorina, Eudorina, Volvox) cannot stay: every volvocine
 alga lives in fresh water, not only Volvox. The sea's own colony of light-fed swimmers is **_Phaeocystis_**: single
 swimming cells of 4–6 µm that, when small grazers are about, build balls of cells in a shared skin of mucus, up to
 about 3 cm across, big enough to see with your eye (Long et al. 2007). Each size is a refuge from a different grazer:
@@ -602,7 +597,7 @@ the encyclopedia shows them and says the experiments were on _Stentor_.
 ### 14.11 Wild colonies and the choanoflagellate rosettes
 
 - **At 17:00 wild colonies appear** among the pool's wild seats: each form seat of the euglena and the diatom (four
-  each) becomes, at its next respawn after 17:00, a wild body at a road step of its world level (a _Phaeocystis_ ball under ticket #901's option A, or
+  each) becomes, at its next respawn after 17:00, a wild body at a road step of its world level (a _Phaeocystis_ ball, ticket #901 A, or
   a diatom chain), with the body rules of §14.8. The wild amoebae stay single (social amoebae aggregate only on a
   call); the wild ciliates gain their upgrades.
 - **The rosettes (ticket #790 A).** The 4 collar-cell seats are wild **choanoflagellates**, sea-water cells with one
@@ -657,7 +652,7 @@ powers; only names, lines and some art change.
 | Rotifer                   | **_Brachionus plicatilis_**                               | a salt-water rotifer, raised by the billion as food in fish farms; it swims and attaches only briefly, so the anchored rotifer is a game liberty the encyclopedia names                                                                                                                  |
 | Nematode                  | sea-floor nematodes                                       | nematodes are the most numerous animals in sea-floor sediments                                                                                                                                                                                                                           |
 | Water flea (Daphnia)      | **_Tigriopus californicus_**, a copepod                   | Daphnia lives in fresh water; _Tigriopus_ lives in high rock pools from Baja California to Alaska, Vancouver Island included                                                                                                                                                             |
-| Volvox (the green road)   | **_Phaeocystis_**, pending ticket #901 (recommended)      | §14.9.1: no volvocine alga lives in the sea; options B and C keep Volvox                                                                                                                                                                                                                 |
+| Volvox (the green road)   | **_Phaeocystis_** (ticket #901 A)                         | §14.9.1: no volvocine alga lives in the sea                                                                                                                                                                                                                                              |
 | _Asterionella_ star       | **_Asterionellopsis glacialis_**                          | §14.9.3                                                                                                                                                                                                                                                                                  |
 | Wild collar cells         | **_Salpingoeca rosetta_**                                 | a sea-water choanoflagellate whose rosettes are triggered by bacteria (Alegado et al. 2012)                                                                                                                                                                                              |
 | Social amoebae            | _Dictyostelium_, on land                                  | no sea-water social amoeba is known to us; the road fruits on the bank (§14.9.2)                                                                                                                                                                                                         |
@@ -673,9 +668,9 @@ tickets, checked against a source each, in the giants' style (ecology/giants.md 
   here; if #865 moves the pace so that fewer players have a form by 10:00, more get the gift, and gameplay QA should
   measure the share. The archaeon (an Asgard archaeon) is a sea-floor microbe, which fits the sea-water setting.
 - **The opening dive (epic #795).** The move's caption tells the dive's story (§14.4.4). The dive itself stays the
-  dish's and is not part of this build. Whether it should stop one step of ten higher for a player who joins a game
-  already in the pool (the human's idea on ticket #782) is **ticket #902**, open with the human; the move's camera
-  ease plays that step in-game either way, and nothing in this build depends on the answer.
+  dish's and is not part of this build. It does not stop one step of ten higher for a player who joins a game already in
+  the pool (the human's idea on ticket #782): decided on **ticket #902** (answer A, the dive stays as it is). The
+  move's camera ease plays that step in-game.
 - **The giants (ecology/giants.md).** They stay in the dish era and do not cross. Their sea-water names are this plan's
   cast ticket (§14.12.3).
 - **Ticket #79 (cross-player fusion).** Stays "not yet": no player's body joins another's.
