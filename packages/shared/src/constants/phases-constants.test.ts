@@ -6,12 +6,14 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from './balance.js';
 import * as eras from './eras.js';
+import * as erasDerived from './eras-derived.js';
 import * as pool from './pool.js';
 import * as poolCreatures from './pool-creatures.js';
 import { DISH_RADIUS } from './world.js';
 import { markdownSection, tableRows } from '../testing/markdown-document.js';
 import { GAME_ERA } from '../types/game.js';
 import { isErasInPlayList } from '../types/game-guards.js';
+import { eraLandmarkRadius } from '../simulation/era-scale.js';
 
 const PHASES_DOC = new URL('../../../../docs/game-design/phases.md', import.meta.url);
 const STAGE_ONE_HEADING = '#### 14.14.1 Stage 1 constants table';
@@ -22,7 +24,7 @@ const LEADING_NUMBER_PATTERN = /^(\d[\d ]*(?:\.\d+)?)/;
 const BACKTICKED_NAME_PATTERN = /^`([A-Z][A-Z0-9_]*)`$/;
 const DIGIT_GROUP_SEPARATOR = / /g;
 
-const STAGE_ONE_CONSTANTS: Readonly<Record<string, unknown>> = { ...eras, ...pool, ...poolCreatures };
+const STAGE_ONE_CONSTANTS: Readonly<Record<string, unknown>> = { ...eras, ...erasDerived, ...pool, ...poolCreatures };
 
 /** Each row of the table as its constant's name and the number its default cell opens with. */
 function numericRows(): [string, number][] {
@@ -57,8 +59,12 @@ describe('the stage 1 constants table (phases.md §14.14.1)', () => {
     expect(isErasInPlayList(eras.ERAS_IN_PLAY)).toBe(true);
   });
 
-  it('sizes the landmark as the footprint: the dish’s radius over the scale step (§14.6.3)', () => {
-    expect(eras.ERA_LANDMARK_RADIUS).toBe(DISH_RADIUS / eras.ERA_SCALE_STEP);
+  it('derives the landmark from the footprint: the dish’s radius over the scale step, patched leaves included (§14.6.3)', () => {
+    expect(erasDerived.ERA_LANDMARK_RADIUS).toBe(DISH_RADIUS / eras.ERA_SCALE_STEP);
+    expect(eraLandmarkRadius(DEFAULT_BALANCE)).toBe(erasDerived.ERA_LANDMARK_RADIUS);
+    const doubledStep = { ...DEFAULT_BALANCE.eras };
+    doubledStep.ERA_SCALE_STEP *= 2;
+    expect(eraLandmarkRadius({ ...DEFAULT_BALANCE, eras: doubledStep })).toBe(erasDerived.ERA_LANDMARK_RADIUS / 2);
   });
 });
 

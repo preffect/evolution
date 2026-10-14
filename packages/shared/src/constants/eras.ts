@@ -1,6 +1,7 @@
 // The eras and the move between them (docs/game-design/phases.md §14.2, §14.4, its stage 1 constants table §14.14.1):
 // the `eras` balance domain. The era is derived from the round clock by `eraAt` (simulation/era-clock.ts); nothing
 // here is read outside a room's balance. Pool-world units (`wu (pool)`) are dish units divided by `ERA_SCALE_STEP`.
+// The landmark's radius is derived from the scale step (`eras-derived.ts`), so it is no leaf here.
 
 import { GAME_ERA, type GameEra } from '../types/game.js';
 
@@ -25,8 +26,6 @@ export const ERA_MOVE_GRACE_SECONDS = 8;
 export const ERA_LANDING_CLEAR_RADIUS = 900;
 /** The landmark rotifer's anchor lies this far due east or due west of the pool's centre (wu, pool). */
 export const ERA_LANDMARK_DISTANCE = 650;
-/** The landmark rotifer's radius (wu, pool): the footprint's, `DISH_RADIUS / ERA_SCALE_STEP`, decided (§14.6.3). */
-export const ERA_LANDMARK_RADIUS = 300;
 /** Each dish wild cell and giant becomes one green speck of this mass at its mapped point. */
 export const ERA_LEFTOVER_SPECK_MASS = 2;
 /** After the move the shared camera eases its zoom toward the pool's view for this long (s, §14.4.4). */

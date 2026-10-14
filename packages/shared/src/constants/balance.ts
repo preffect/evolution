@@ -56,6 +56,7 @@ export const DERIVED_BALANCE_CONSTANTS = [
   'ENGULF_BASE_DURATION_SECONDS',
   'ENGULF_WRAP_START_PROGRESS',
   'ENGULF_SEAL_PROGRESS',
+  'ERA_LANDMARK_RADIUS',
 ] as const;
 
 /** A spread's type: the module namespace's read-only exports as the writable properties of a plain record. */

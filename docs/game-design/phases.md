@@ -772,7 +772,7 @@ arena keeps `DISH_RADIUS` (§14.5.2); there is no pool radius.
 | `ERA_MOVE_GRACE_SECONDS`          | 8                                        | s                 | `eras.ts`           | tuning  | §14.4.2 step 8                                               |
 | `ERA_LANDING_CLEAR_RADIUS`        | 900                                      | wu (pool)         | `eras.ts`           | tuning  | §14.4.2                                                      |
 | `ERA_LANDMARK_DISTANCE`           | 650                                      | wu (pool)         | `eras.ts`           | tuning  | §14.6.3                                                      |
-| `ERA_LANDMARK_RADIUS`             | 300 (the footprint's radius)             | wu (pool)         | `eras.ts`           | decided | §14.6.3                                                      |
+| `ERA_LANDMARK_RADIUS`             | 300 (derived, the footprint's radius)    | wu (pool)         | `eras-derived.ts`   | decided | §14.6.3: `DISH_RADIUS / ERA_SCALE_STEP`                      |
 | `ERA_LEFTOVER_SPECK_MASS`         | 2                                        | mass              | `eras.ts`           | tuning  | §14.4.2                                                      |
 | `ERA_MOVE_CAMERA_EASE_SECONDS`    | 4                                        | s                 | `eras.ts`           | tuning  | the shared camera (§14.4.4)                                  |
 | `ERA_MOVE_CAMERA_ZOOM_SECONDS`    | 1.0                                      | s (time constant) | `eras.ts`           | tuning  | the shared camera's zoom smoothing during the ease (§14.4.4) |

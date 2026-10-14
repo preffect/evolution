@@ -34,14 +34,16 @@ catalog row carries its tiers), so a patch has one path. The one number read fro
 runtime. The full rule set is `CODE-STANDARDS.md §2`.
 **Derived constants are not balance leaves (#367).** A constant computed from balance leaves (today
 `ENGULF_BASE_DURATION_SECONDS`, `ENGULF_WRAP_START_PROGRESS` and `ENGULF_SEAL_PROGRESS`, from the three engulf phase
-seconds) is listed in `DERIVED_BALANCE_CONSTANTS`, exported beside `DEFAULT_BALANCE` in `balance.ts`, and declared
-outside the domain module the balance spreads (`constants/absorption-derived.ts`, beside `absorption.ts`). Everything
+seconds, and `ERA_LANDMARK_RADIUS`, `DISH_RADIUS / ERA_SCALE_STEP`) is listed in `DERIVED_BALANCE_CONSTANTS`, exported
+beside `DEFAULT_BALANCE` in `balance.ts`, and declared outside the domain module the balance spreads
+(`constants/absorption-derived.ts` beside `absorption.ts`, `constants/eras-derived.ts` beside `eras.ts`). Everything
 that needs its value derives it at read time from the room's leaves through the shared function that owns the formula
-(`engulfBaseDurationSeconds`, `engulfWrapStartProgress`, `engulfSealProgress` in `simulation/engulf-pace.ts`), so a
+(`engulfBaseDurationSeconds`, `engulfWrapStartProgress`, `engulfSealProgress` in `simulation/engulf-pace.ts`;
+`eraLandmarkRadius` in `simulation/era-scale.ts`), so a
 patched source leaf is felt and there is no second copy to disagree with it; the named export is the defaults' value,
-for the docs and the ledger, computed by the same function over the domain module. `absorption-derived.ts` is the one
-constants module allowed to import `simulation/`, and the formula module it calls (`engulf-pace.ts`) imports leaf
-constants modules only, never the `constants/index.ts` barrel, so loading the constants can never cycle through it.
+for the docs and the ledger, computed by the same function over the domain module. The `*-derived.ts` modules are the
+only constants modules allowed to import `simulation/`, and the formula module each calls (`engulf-pace.ts`,
+`era-scale.ts`) imports leaf constants modules only, never the `constants/index.ts` barrel, so loading the constants can never cycle through it.
 `balance.test.ts` pins that no domain carries a listed name, and `constants-ledger.test.ts` that the `derived` rows
 of the design tables (a row whose later cell reads `(derived …`) are exactly the list, so a new derived constant cannot
 reach the balance untagged. The `(derived` marker in a constants-table row is reserved for constants derived from
@@ -68,7 +70,7 @@ packages/shared/src/
   constants/{index,units,network,lobby,identity}.ts            (template, already split)
   constants/{world,session,world-clock,controls,ladder,camera,ecology,growth,wild-cells,giants,absorption,early-life,progression,traits,eras,pool,pool-creatures}.ts
   constants/balance.ts                                          DEFAULT_BALANCE, BalanceConfig, DERIVED_BALANCE_CONSTANTS
-  constants/absorption-derived.ts                               the engulf base duration and progress bands at the defaults, derived from absorption.ts; not in balance (§9)
+  constants/{absorption-derived,eras-derived}.ts                the engulf base duration and progress bands, and the landmark's radius, at the defaults, derived from absorption.ts and eras.ts (+ world.ts); not in balance (§9)
   constants/trait-modifiers.ts                                  DEFAULT_CELL_MODIFIERS and one tier table per trait, re-exported by traits.ts
   constants/{simulation,netcode}.ts                             engineering constants (CODE-STANDARDS §2), not tunables
   constants/interest.ts                                         viewport culling: the covered aspect, the camera history and the margin, derived (wire-contract.md §4.2 lever 1)
@@ -81,7 +83,7 @@ packages/shared/src/
   time/{clock,fixed-step-accumulator,units}.ts
   simulation/{movement-kernel,movement-step,mass-curves,level-costs,engulf-eligibility,engulf-pace,state-hasher,state-hash,vector-math}.ts   engulf-pace: phases, rates, struggle, held speed (ecology/absorption.md §6.1); movement-step: the speed cap and blend the server and the prediction share (#265)
   camera/{camera-follow,interest-margin}.ts                     camera-follow: the camera's follow, zoom and target (game-design/controls-and-scope.md §7), which the client renders through and the server culls with; interest-margin: interestMarginFor(balance), the cull margin over the live balance (wire-contract.md §4.2 lever 1). Neither feeds the simulation, so they sit outside simulation/
-  simulation/{world-clock,era-clock,stage-of,entry-rule,bacterium-variant-weights,bacterium-contact,trait-tiers,giant-balance,ladder-check}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); era-clock: eraAt, isEraReachable, isEraAfter and eraBalanceProblems, the era from the round clock (game-design/phases.md §14.2.1); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
+  simulation/{world-clock,era-clock,era-scale,stage-of,entry-rule,bacterium-variant-weights,bacterium-contact,trait-tiers,giant-balance,ladder-check}.ts   worldElapsedSeconds / worldReference / standingAgainstWorld (ecology/food-and-spawn.md §3.1); era-clock: eraAt, eraStartTicks, isEraReachable, isEraAfter and eraBalanceProblems, the era from the round clock (game-design/phases.md §14.2.1); era-scale: eraLandmarkRadius, the dish's footprint in the pool (§14.6.3); stageOf(traitIds, balance.ladder); entryMass / entryDnaFloor (PROGRESSION §5); the stage-driven broth variant row (ecology/food-and-spawn.md §3.2); trait-tiers: FIRST_TIER, tierRowOf and tierOfRowIndex, the one tier-to-row rule
                                                                 level-costs: FIRST_LEVEL, levelUpCost(level, balance.progression) and cumulativeDnaForLevel, shared with the HUD (ui/hud.md §3.1)
                                                                 engulf-eligibility: canEngulf / canContinueEngulf(predator, prey, balance.absorption) (canEngulf reads the predator's stage against SWALLOW_FROM_STAGE, game-design/early-life.md §15.5.1), meetsEngulfStartRatio (its mass half), isCellEaterSpecies (ecology/absorption.md §6.1, ecology/giants.md §3.5.6) and engulfStartMass(prey, balance.absorption), canEngulf's bound as a figure (the encyclopedia's giant pages, #831)
                                                                 bacterium-contact: bacteriumContactOutcome(stage, heldCount, balance), what a player cell's touch does to a bacterium: swallow, latch or pass (game-design/early-life.md §15.5.1)
@@ -96,7 +98,7 @@ packages/server/src/
   lobby/viewer-snapshots.ts, ws/snapshot-frame.ts                what each connection is sent (the policy) and the splice that closes one shared stringify per viewer (§4)
   game/evolution-module.ts                                      factory + GameModule (≤ 120 lines)
   game/world/{world-state,entities,cell-record,create-world,entity-ids,lookups,simulation-invariant-error,streams,spatial-hash,state-hash}.ts   cell-record: the literal every cell is born from (player or wild); state-hash: computeStateHash over the records' HASHED_FIELDS (determinism/ordering-and-state-hash.md §5)
-  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-diet,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock and worldReferenceAt; cell-diet: what a wild cell and each giant eats, read by step 4 and the seat's graze (ecology/giants.md §3.5.7, #827); engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
+  game/simulation/{step,round,round-clock,inputs,input-coalescing,movement,contact,eating,cell-diet,cell-mass,metabolism,engulf,engulf-state,engulf-payout}.ts   round-clock: the tick-based round clock, worldReferenceAt and roundEraAt (the clock's era at a tick); cell-diet: what a wild cell and each giant eats, read by step 4 and the seat's graze (ecology/giants.md §3.5.7, #827); engulf: the lifecycle step (#258), engulf-state: the record on a cell and every writer of it (the aborts included, so `session/death.ts` never imports the step), engulf-payout: the #259 seam
   game/simulation/{spawner,spawn-rates,spawn-point,spawn-mote,spawn-placement,mote-motion,zones}.ts
   game/wild/{wild-seats,wild-build,wild-settle,wild-respawn}.ts   the wild seats (ecology/wild-cells.md §3.3, #176, #517): placement by the safe-spawn rule plus the wild spacing (with the size factor, the first heading and the decision countdown), a seat's build up to a level, the step-1 settle (`settleWildMass`, `wildSizeFactor`: growth, the growth ceiling, recovery; server-simulation.md §3.4), the step-9 respawn (`runSeatRespawns`, shared with the giants)
   game/wild/seat-mind.ts                                         what a wild and a giant seat share (#826): the `SeatMindRecord` at rest and the birth of a seat's cell

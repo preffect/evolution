@@ -13,6 +13,7 @@ import * as controls from './controls.js';
 import * as earlyLife from './early-life.js';
 import * as ecology from './ecology.js';
 import * as eras from './eras.js';
+import * as erasDerived from './eras-derived.js';
 import * as giants from './giants.js';
 import * as growth from './growth.js';
 import * as ladder from './ladder.js';
@@ -70,7 +71,7 @@ const CONSTANTS_TABLE_SOURCES = [
     documentName: 'game-design/phases.md',
     heading: '#### 14.14.1 Stage 1 constants table',
     expectedNames: 59,
-    domainModules: { eras, pool, poolCreatures },
+    domainModules: { eras, erasDerived, pool, poolCreatures },
   },
 ] as const;
 

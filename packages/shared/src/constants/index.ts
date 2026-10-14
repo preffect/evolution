@@ -23,6 +23,7 @@ export * from './early-life.js';
 export * from './progression.js';
 export * from './traits.js';
 export * from './eras.js';
+export * from './eras-derived.js';
 export * from './pool.js';
 export * from './pool-creatures.js';
 export * from './interest.js';
