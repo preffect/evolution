@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <body style="margin: 0">
+    <canvas id="c" width="2560" height="1600"></canvas>
+    <script>
+      const c = document.getElementById('c'),
+        g = c.getContext('webgl2');
+      const vs = `#version 300 es
+in vec2 p;void main(){gl_Position=vec4(p,0,1);}`;
+      const fs = `#version 300 es
+precision highp float;uniform float n;out vec4 o;void main(){float a=gl_FragCoord.x*0.001;for(float i=0.;i<100000.;i+=1.){if(i>=n)break;a=fract(sin(a*12.9898+i)*43758.5453);}o=vec4(a,0,0,1);}`;
+      function sh(t, s) {
+        const x = g.createShader(t);
+        g.shaderSource(x, s);
+        g.compileShader(x);
+        return x;
+      }
+      const pr = g.createProgram();
+      g.attachShader(pr, sh(g.VERTEX_SHADER, vs));
+      g.attachShader(pr, sh(g.FRAGMENT_SHADER, fs));
+      g.linkProgram(pr);
+      g.useProgram(pr);
+      const b = g.createBuffer();
+      g.bindBuffer(g.ARRAY_BUFFER, b);
+      g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), g.STATIC_DRAW);
+      g.enableVertexAttribArray(0);
+      g.vertexAttribPointer(0, 2, g.FLOAT, false, 0, 0);
+      const u = g.getUniformLocation(pr, 'n');
+      window.N = Number(location.hash.slice(1) || 100);
+      window.frames = 0;
+      function f() {
+        g.uniform1f(u, window.N);
+        g.drawArrays(g.TRIANGLES, 0, 3);
+        window.frames++;
+        requestAnimationFrame(f);
+      }
+      requestAnimationFrame(f);
+    </script>
+  </body>
+</html>
