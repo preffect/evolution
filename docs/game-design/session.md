@@ -4,6 +4,10 @@
 
 ## 5. Session structure (#29)
 
+This section is the game as it plays today: one 10-minute round in the dish. The decided next shape, three eras
+in one game of about 25 minutes (the dish, the rock pool, the colonies), is [`phases.md`](./phases.md) §14; it
+changes this section only as its build lands.
+
 | Decision            | Build 1 value                                                                                                                                                                                              |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Mode                | Free-for-all only. `mode: 'colony'` is reserved and rejected by the server until build 2.                                                                                                                  |
