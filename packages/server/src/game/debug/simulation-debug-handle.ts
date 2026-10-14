@@ -58,9 +58,18 @@ export interface SpawnedBot {
   readonly behavior: BotStrategyName;
 }
 
-/** A nested record whose leaves are numbers: `debug_set_balance` patches number leaves only (docs/CODE-STANDARDS.md §2). */
+/**
+ * What a patch may write at a leaf: a number, or a value of a declared non-number kind (`balance-leaf-kinds.ts`: a stage
+ * id today), so the shapes a declared kind may take are strings and lists of them.
+ */
+export type BalancePatchLeaf = number | string | readonly string[];
+
+/**
+ * A nested record whose leaves are numbers or the declared non-number leaves (docs/CODE-STANDARDS.md §2,
+ * docs/architecture/debug-mcp.md §8).
+ */
 export interface BalancePatch {
-  readonly [key: string]: number | BalancePatch;
+  readonly [key: string]: BalancePatchLeaf | BalancePatch;
 }
 
 /**
@@ -77,7 +86,7 @@ export interface SimulationDebugHandle {
   /** Rebuilds every random stream from `seed` (docs/determinism/random-streams.md §3). */
   reseed?(seed: number): void;
   getBalance?(): unknown;
-  /** Applies a number-leaf patch and returns the live balance. */
+  /** Applies a patch of number leaves and declared non-number leaves and returns the live balance. */
   patchBalance?(patch: BalancePatch): unknown;
   computeStateHash?(): StateHash;
   exportReplay?(): unknown;

@@ -84,7 +84,8 @@ lobby's create form keeps its 60–1800 s field: a host who wants today's 10-min
 
 Main deploys to the human's game on every merge, so the eras ship behind a balance leaf, as the giants did
 (ecology/giants.md §3.5.17): `ERAS_IN_PLAY` lists the eras a game may reach. It must be a prefix of
-`['dish', 'pool', 'colonies']`; `debug_set_balance` refuses any other list. It ships as `['dish']` (today's
+`['dish', 'pool', 'colonies']`; `debug_set_balance` refuses any other list (a declared non-number leaf with its
+validator, the mechanism ticket #907 built: architecture/debug-mcp.md §8). It ships as `['dish']` (today's
 game), becomes `['dish', 'pool']` in a "pool on" slice once the pool's world, creatures, move and HUD have
 landed, and `['dish', 'pool', 'colonies']` in a "colonies on" slice once the roads have. Each "on" slice also
 moves the `ROUND_DURATION_SECONDS` default (§14.2.3). Until then every era is reachable in tests and on a private

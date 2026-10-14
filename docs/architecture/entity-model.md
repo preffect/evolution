@@ -79,6 +79,14 @@ export interface CellView {
   sprintCooldownRemainingTicks: number; // 0 = sprint ready; the HUD meter reads it (ui/hud.md §3.1), never estimates it
   isStarving: boolean; // a wild cell the die-off is starving (ecology/wild-cells.md §3.3.6); the renderer fades it; always false for a player cell
   giantSpecies: GiantSpecies | null; // the giant's species (ecology/giants.md §3.5.15), null for every other cell; canEngulf reads it, so the grazer and the drifter engulf no cell
+  latchedBacteria: LatchedBacteriumView[]; // the held list (game-design/early-life.md §15.4), catch order, ≤ LATCH_MAX_HELD; empty for every cell that does not latch
+}
+export interface LatchedBacteriumView {
+  // every field stable while held, so a holder's view changes only on a latch, a bond or a shake (early-life.md §15.11)
+  moteId: EntityId; // the held mote's own id: the effects key the renderer's rod on it
+  variant: BacteriumVariant;
+  bearingRadians: number; // from the cell's centre at the catch; SNAPSHOT_BEARING_DECIMALS on the wire
+  caughtAtTick: number; // the client derives the bond's progress from it, its render tick and the live LATCH_BOND_SECONDS
 }
 export interface MotePositionView {
   id: EntityId;
@@ -125,7 +133,7 @@ export interface PlayerProgressView extends PlayerRosterView {
   dnaCatchUpGift: number;
   dnaTowardNextLevel: number;
   dnaTagPoints: Record<DnaTag, number>;
-  bacteriaEatenByVariant: Record<BacteriumVariant, number>; // endosymbiosis counters, kept on death
+  bacteriaEatenByVariant: Record<BacteriumVariant, number>; // endosymbiosis counters, kept on death: bacteria taken in, swallowed or held to the bond (early-life.md §15.4.1; the wire name stays, #907)
   absorptions: number; // players absorbed: the only ones that score (game-design/session.md §5.3)
   wildAbsorptions: number; // wild cells absorbed; never scores (ecology/wild-cells.md §3.3)
   score: number;
@@ -169,7 +177,11 @@ predatorDnaGained, preyGiantSpecies }` (`playerId` is `PlayerId | null` like `Ce
 reported like any other so the predator's viewer sees the dissolve, #270; `preyGiantSpecies` is the prey's
 `giantSpecies`, which the client's giant popup reads, ecology/giants.md §3.5.8), `eat { cellId, eatenId, eatenKind,
 massGained, dnaGained }` (the amounts measured around the gains,
-#383, wire-contract.md §4 "Mass flow"), `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; `world_level_up { level, stage }`
+#383, wire-contract.md §4 "Mass flow"), `level_up { cellId, playerId, level }`, `respawn { cellId, playerId }`; the latch's three (game-design/early-life.md §15.4, keyed by the mote's own id so the
+renderer knows which rod): `bacterium_latched { cellId, moteId, variant }` at the mote's centre, `bacterium_bonded {
+cellId, moteId, isCredited }` at the rim point beside the ordinary `eat` of the same mote (which carries the payout, so
+the mass accounting is unchanged), and `latch_shaken { cellId, moteIds }` at the cell's centre (`moteIds` the ids they
+were held under; the freed motes take fresh ids); `world_level_up { level, stage }`
 (ecology/food-and-spawn.md §3.1) happens everywhere and is the one effect without a position.
 
 The **records** are the server's supersets in `packages/server/src/game/world/entities.ts`;
@@ -178,7 +190,8 @@ The **records** are the server's supersets in `packages/server/src/game/world/en
 
 ```ts
 // packages/server/src/game/world/entities.ts — records extend the views
-export interface CellRecord extends CellView {
+export interface CellRecord extends Omit<CellView, 'latchedBacteria'> {
+  latchedBacteria: LatchedBacteriumRecord[]; // the held list, each entry richer than the view's (below); hashed in the walk's trailing section (determinism/ordering-and-state-hash.md §5)
   targetX: number | null; // latest applied input's target, latched until an input with one replaces it; null until the first such input (no target: throttle 0, ecology/mass-and-movement.md §5.2)
   targetY: number | null;
   modifiers: CellModifiers; // folded at step 1 of the tick (traits/model.md §2); the simulation reads only this
@@ -206,6 +219,14 @@ export interface FoodMoteRecord extends FoodMoteView {
   tag: DnaTag | null; // by variant for bacteria, null otherwise
   headingRadians: number; // bacteria only: random walk, redrawn from the `moteMotion` stream
   expiresAtTick: number | null; // detritus only
+}
+export type BacteriumMoteRecord = FoodMoteRecord & { bacteriumVariant: BacteriumVariant }; // the only food a latch takes
+export interface LatchedBacteriumRecord {
+  // one held bacterium (game-design/early-life.md §15.4.1): the mote's own record kept untouched from the catch, so a bond
+  // eats it through eatFoodMote and a shake puts it back into the world at its rim point under a fresh id, its mass, DNA, tag and heading kept (§15.4.2)
+  mote: BacteriumMoteRecord;
+  bearingRadians: number;
+  caughtAtTick: number;
 }
 export interface DnaFragmentRecord extends DnaFragmentView {
   driftX: number; // unit vector × DNA_FRAGMENT_DRIFT_SPEED, drawn at spawn

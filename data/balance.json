@@ -233,7 +233,14 @@
     "ENGULF_STRUGGLE_SLOWDOWN_CAP": 0.9,
     "ENGULF_SWALLOWED_TOXIN_MULTIPLIER": 8,
     "ENGULF_TAG_SHARE": 0.5,
-    "ENGULF_WRAP_SECONDS": 0.4
+    "ENGULF_WRAP_SECONDS": 0.4,
+    "SWALLOW_FROM_STAGE": "protocell"
+  },
+  "earlyLife": {
+    "LATCH_BOND_SECONDS": 6,
+    "LATCH_FROM_STAGE": "prokaryote",
+    "LATCH_MAX_HELD": 5,
+    "LATCH_REACH_RADII": 0.25
   },
   "progression": {
     "DNA_TAGS": ["motile", "photic", "predatory", "armored", "toxic", "sensory", "metabolic"],

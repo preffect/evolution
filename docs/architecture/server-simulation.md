@@ -72,9 +72,12 @@ prediction reuses them unchanged.
 - **Engulf is server-only.** The client animates `states`, `engulfProgress` and effects. What it shares
   is the eligibility predicate `canEngulf` (`shared/simulation/engulf-eligibility.ts`, ecology/absorption.md §6.1: the
   engulf system, the wild cells' flee, hunt and closer-rival rules, the bots, the HUD threat label (`threatsFor`) and
-  relations and the warning ring all call it on views; it reads the mass ratio and the predator's `giantSpecies`,
-  through `isCellEaterSpecies` over the fixed `GIANT_ROLE_BY_SPECIES`, so the giant grazer and drifter engulf no cell,
-  ecology/giants.md §3.5.6, and it has no balance input beyond `balance.absorption`) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
+  relations and the warning ring all call it on views; it reads the mass ratio (exported alone as
+  `meetsEngulfStartRatio`), the predator's `giantSpecies`, through `isCellEaterSpecies` over the fixed
+  `GIANT_ROLE_BY_SPECIES`, so the giant grazer and drifter engulf no cell, ecology/giants.md §3.5.6, and the predator's
+  `stage` against the swallow switch `SWALLOW_FROM_STAGE` (game-design/early-life.md §15.5.1: a giant hunter swallows by
+  its species at any stage, a player or plain wild cell from the switch's stage on), and it has no balance input beyond
+  `balance.absorption`) and the phase formulas of `shared/simulation/engulf-pace.ts` (`engulfPhaseOf` for the chip's
   sealed state, `engulfProgressDelta`, the held and predator speed factors, `spitOutChancePerTick`); the
   hold verdict `resolveEngulfHold` (ratio and spit-out) is called by the server alone. The engulf step is
   the only consumer of the `engulf` random stream and draws from it only for a wrapped or sealed prey
@@ -82,6 +85,18 @@ prediction reuses them unchanged.
   kernel's `steerCommand(cell)` so the throttle arithmetic has one home. Every release emits
   `cell_released { cellId, predatorCellId, reason }` (`types/effects.ts`, reasons in ecology/absorption.md §6.1) beside
   `cell_absorbed`; a sealed prey is carried (`CellRecord.carriedOffsetX/Y`) after its predator has moved.
+- **The latch's state** (game-design/early-life.md §15.4, §15.11, ticket #907): a player cell's held list is
+  `CellRecord.latchedBacteria` (architecture/entity-model.md §2), each entry the mote's own record kept from the
+  catch plus its bearing and catch tick; the serializer projects it onto `CellView.latchedBacteria`. What a player
+  cell's touch does to a bacterium is the shared pure `bacteriumContactOutcome(stage, heldCount, balance)`
+  (`shared/simulation/bacterium-contact.ts`: `swallow` from `SWALLOW_FROM_STAGE`, else `latch` from
+  `LATCH_FROM_STAGE` below `LATCH_MAX_HELD`, else `pass`), which the eating step and the bots' mote filter will read
+  once the latch ticket (#909) wires it; until then nothing calls it and the eating step swallows every bacterium by
+  its own rule. At the shipping switch (`protocell`) it always answers `swallow`, so the list stays empty. The latch runs in step 4 in
+  the eating step's order and draws from no stream; a released bacterium re-enters with its kept record and draws
+  nothing from `moteMotion` (the latch ticket builds the catch, the bond, the shake and the swallow invariant of
+  early-life.md §15.4.2 on this state). The state hash walks the held lists last, and only when a cell holds one
+  (determinism/ordering-and-state-hash.md §5), so a world without one hashes as before the lists existed.
 - **Giant cells** (ecology/giants.md §3.5, ticket #825 onward): a giant is a wild `CellRecord` whose `giantSpecies`
   is set; the field is in `CELL_HASHED_FIELDS` (null on every other cell, so it moves every state hash by a null)
   and the `cell_absorbed` effect carries the prey's as `preyGiantSpecies`. `debug_set_balance` refuses a patched

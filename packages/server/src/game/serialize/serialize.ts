@@ -5,6 +5,7 @@
 // since the last one and none of the members each viewer is sent apart (`viewer-snapshot-keys.ts`, #399).
 
 import {
+  SNAPSHOT_BEARING_DECIMALS,
   SNAPSHOT_MASS_DECIMALS,
   SNAPSHOT_POSITION_DECIMALS,
   SNAPSHOT_RADIUS_DECIMALS,
@@ -17,6 +18,7 @@ import {
   type FoodMoteView,
   type GameEffect,
   type GameSnapshot,
+  type LatchedBacteriumView,
   type LeaderboardRow,
   type MotePositionView,
   type OwnProgressView,
@@ -25,7 +27,13 @@ import {
   type PlayerRosterView,
   type TraitOfferView,
 } from '@evolution/shared';
-import type { CellRecord, DnaFragmentRecord, FoodMoteRecord, PlayerRecord } from '../world/entities.js';
+import type {
+  CellRecord,
+  DnaFragmentRecord,
+  FoodMoteRecord,
+  LatchedBacteriumRecord,
+  PlayerRecord,
+} from '../world/entities.js';
 import { findPlayer } from '../world/lookups.js';
 import { drainBroadcastWindow } from '../world/broadcast-window.js';
 import type { WorldState } from '../world/world-state.js';
@@ -40,6 +48,19 @@ import type { BroadcastSnapshot } from './viewer-snapshot-keys.js';
  */
 function reportedVelocity(cell: CellRecord, kernelVelocity: number, heldDisplacement: number): number {
   return cell.engulfedByCellId === null ? kernelVelocity : kernelVelocity + heldDisplacement / TICK_INTERVAL_S;
+}
+
+/**
+ * A held bacterium as the wire carries it (docs/game-design/early-life.md §15.11): the kept mote's id and variant, its
+ * bearing and its catch tick; its kept mass, DNA and tag stay on the server.
+ */
+function toLatchedBacteriumView(entry: LatchedBacteriumRecord, precision: SnapshotPrecision): LatchedBacteriumView {
+  return {
+    moteId: entry.mote.id,
+    variant: entry.mote.bacteriumVariant,
+    bearingRadians: snapshotValue(entry.bearingRadians, SNAPSHOT_BEARING_DECIMALS, precision),
+    caughtAtTick: entry.caughtAtTick,
+  };
 }
 
 export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE_SNAPSHOT_VALUES): CellView {
@@ -75,6 +96,7 @@ export function toCellView(cell: CellRecord, precision: SnapshotPrecision = WIRE
     sprintCooldownRemainingTicks: cell.sprintCooldownRemainingTicks,
     isStarving: cell.isStarving,
     giantSpecies: cell.giantSpecies,
+    latchedBacteria: cell.latchedBacteria.map((entry) => toLatchedBacteriumView(entry, precision)),
   };
 }
 

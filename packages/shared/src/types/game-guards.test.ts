@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BACTERIUM_VARIANT, DNA_TAG, FOOD_KIND, GIANT_SPECIES, GIANT_SPECIES_ORDER } from './game.js';
-import { isBacteriumVariant, isDnaTag, isFoodKind, isGiantSpecies } from './game-guards.js';
+import { BACTERIUM_VARIANT, CELL_STAGE, DNA_TAG, FOOD_KIND, GIANT_SPECIES, GIANT_SPECIES_ORDER } from './game.js';
+import { isBacteriumVariant, isCellStage, isDnaTag, isFoodKind, isGiantSpecies } from './game-guards.js';
 
 const STRANGERS: readonly unknown[] = ['spicy', '', 'Algae', 0, null, undefined, {}, ['algae']];
 
@@ -29,5 +29,12 @@ describe('game guards', () => {
     expect(isGiantSpecies('amoeba')).toBe(false);
     expect([...GIANT_SPECIES_ORDER].sort()).toEqual(Object.values(GIANT_SPECIES).sort());
     expect(GIANT_SPECIES_ORDER).toEqual([GIANT_SPECIES.amoeba, GIANT_SPECIES.paramecium, GIANT_SPECIES.diatom]);
+  });
+
+  it('isCellStage accepts every stage and nothing else: no form name, no state', () => {
+    for (const stage of Object.values(CELL_STAGE)) expect(isCellStage(stage), stage).toBe(true);
+    for (const stranger of STRANGERS) expect(isCellStage(stranger), String(stranger)).toBe(false);
+    expect(isCellStage('amoeba')).toBe(false);
+    expect(isCellStage('Eukaryote')).toBe(false);
   });
 });

@@ -151,6 +151,24 @@ export interface CellView {
   isStarving: boolean;
   /** The giant's species (docs/ecology/giants.md §3.5.15); null for a player cell and a plain wild cell. */
   giantSpecies: GiantSpecies | null;
+  /**
+   * The bacteria this cell holds on its rim (docs/game-design/early-life.md §15.4, §15.11), in catch order, at most
+   * `LATCH_MAX_HELD`; empty for every cell that does not latch. Every field is stable while held, so the list changes
+   * only on a latch, a bond or a shake.
+   */
+  latchedBacteria: LatchedBacteriumView[];
+}
+
+/**
+ * One held bacterium as the wire carries it (docs/game-design/early-life.md §15.11): keyed by the mote's own id, at its
+ * bearing from the cell's centre at the catch. The client derives the bond's progress from `caughtAtTick`, its render
+ * tick and the live `LATCH_BOND_SECONDS`; no per-tick progress is sent.
+ */
+export interface LatchedBacteriumView {
+  moteId: EntityId;
+  variant: BacteriumVariant;
+  bearingRadians: number;
+  caughtAtTick: number;
 }
 
 export interface MotePositionView {

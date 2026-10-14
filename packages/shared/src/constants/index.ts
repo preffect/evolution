@@ -19,6 +19,7 @@ export * from './wild-cells.js';
 export * from './giants.js';
 export * from './absorption.js';
 export * from './absorption-derived.js';
+export * from './early-life.js';
 export * from './progression.js';
 export * from './traits.js';
 export * from './interest.js';

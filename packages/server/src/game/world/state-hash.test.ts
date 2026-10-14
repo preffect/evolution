@@ -9,12 +9,15 @@ import {
   MASS_WINDOW_AMOUNT,
   StateHashError,
   createTestGameInput,
+  playerId,
 } from '@evolution/shared';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
-import { createTestWorld } from '../../testing/world-builders.js';
+import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
+import type { PlayerIdentity } from '../session/players.js';
 import { createGiantSeatRecord } from '../wild/giant-seats.js';
 import { createWildSeatRecord } from '../wild/wild-seats.js';
 import { recordMetabolism, recordWindowAmount, sealMassWindow } from './mass-flow-ledger.js';
+import type { BacteriumMoteRecord, LatchedBacteriumRecord } from './entities.js';
 import type { WorldState } from './world-state.js';
 import {
   CELL_HASHED_FIELDS,
@@ -23,25 +26,62 @@ import {
   FOOD_MOTE_HASHED_FIELDS,
   GEL_PATCH_HASHED_FIELDS,
   GIANT_SEAT_HASHED_FIELDS,
+  LATCHED_BACTERIUM_FIELDS,
   PLAYER_HASHED_FIELDS,
   SPAWNER_HASHED_FIELDS,
+  TRAILING_CELL_HASHED_FIELDS,
   WILD_SEAT_HASHED_FIELDS,
   WORLD_SCALAR_HASHED_FIELDS,
   computeStateHash,
 } from './state-hash.js';
 
+const SECOND_PLAYER: PlayerIdentity = { playerId: playerId('p2'), playerName: 'Bea', avatarIndex: 1 };
+/** Where on the rim the held bacterium sits; any bearing does. */
+const HELD_BEARING_RADIANS = 1;
+const FIRST_CELL = 0;
+const SECOND_CELL = 1;
+
 function keysOf(fields: readonly unknown[]): string[] {
   return fields.map((field) => (typeof field === 'string' ? field : (field as { key: string }).key)).sort();
 }
 
-function populatedWorld(): WorldState {
-  const world = createTestWorld();
+function populatedWorld(players: readonly PlayerIdentity[] = [TEST_PLAYER]): WorldState {
+  const world = createTestWorld({ players });
   spawnFoodMote(world, { kind: FOOD_KIND.bacterium, variant: 'aerobic', at: { x: 100, y: 0 } });
   spawnDnaFragment(world, { at: { x: 0, y: 100 }, tag: 'photic', driftTurn: 0.25 });
   return world;
 }
 
+/**
+ * `populatedWorld` with a second player and its mote taken out of the dish, held by the cell at `holderIndex` as a
+ * latch holds it (docs/game-design/early-life.md §15.4.1), or by none: worlds that differ only in their held lists.
+ */
+function worldHoldingTheMote(holderIndex: number | null): WorldState {
+  const world = populatedWorld([TEST_PLAYER, SECOND_PLAYER]);
+  const mote = world.food.shift() as BacteriumMoteRecord;
+  if (holderIndex !== null) {
+    world.cells[holderIndex]!.latchedBacteria.push({
+      mote,
+      bearingRadians: HELD_BEARING_RADIANS,
+      caughtAtTick: world.tick,
+    });
+  }
+  return world;
+}
+
+/**
+ * `computeStateHash(populatedWorld())` recorded on main (4fe77f46) before ticket #907 added the held lists. It must not
+ * move while no cell holds a bacterium: the held lists are walked last and only when one is non-empty
+ * (`hashLatchedBacteriaOfCells`), so recordings exported before them keep their `finalHash`. A deliberate change to the
+ * walk or to the test world re-records it, and says so here.
+ */
+const RECORDED_POPULATED_WORLD_HASH = 'bf921363406e995f';
+
 describe('computeStateHash', () => {
+  it('hashes a world whose cells hold nothing exactly as main did before the held lists existed (#907)', () => {
+    expect(computeStateHash(populatedWorld())).toBe(RECORDED_POPULATED_WORLD_HASH);
+  });
+
   it('hashes two worlds built the same way equal, and 16 hex characters long', () => {
     const hash = computeStateHash(populatedWorld());
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
@@ -94,6 +134,28 @@ describe('computeStateHash', () => {
     expect(computeStateHash(changed)).not.toBe(base);
   });
 
+  it('changes when a cell holds the mote that nobody holds in an otherwise equal world', () => {
+    expect(computeStateHash(worldHoldingTheMote(FIRST_CELL))).not.toBe(computeStateHash(worldHoldingTheMote(null)));
+  });
+
+  it('changes with which cell holds the mote, the cells in the same order', () => {
+    expect(computeStateHash(worldHoldingTheMote(SECOND_CELL))).not.toBe(
+      computeStateHash(worldHoldingTheMote(FIRST_CELL)),
+    );
+  });
+
+  it.each<[string, (entry: LatchedBacteriumRecord) => void]>([
+    ['its bearing', (entry) => (entry.bearingRadians += 1)],
+    ['its catch tick', (entry) => (entry.caughtAtTick += 1)],
+    ['its kept mass', (entry) => (entry.mote.mass += 1)],
+    ['its kept heading', (entry) => (entry.mote.headingRadians += 1)],
+  ])('changes when a held bacterium changes %s (early-life.md §15.11)', (_label, mutate) => {
+    const base = computeStateHash(worldHoldingTheMote(FIRST_CELL));
+    const changed = worldHoldingTheMote(FIRST_CELL);
+    mutate(changed.cells[FIRST_CELL]!.latchedBacteria[0]!);
+    expect(computeStateHash(changed)).not.toBe(base);
+  });
+
   it('ignores the derived data', () => {
     const base = computeStateHash(populatedWorld());
     const world = populatedWorld();
@@ -135,11 +197,13 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
     expect(keysOf(WORLD_SCALAR_HASHED_FIELDS)).toEqual(expected);
   });
 
-  it('cells', () => {
+  it('cells: with the cell, or in the trailing section', () => {
+    const trailing: readonly string[] = TRAILING_CELL_HASHED_FIELDS;
     const expected = Object.keys(world.cells[0]!).filter(
-      (key) => !(DERIVED_FIELDS.cell as readonly string[]).includes(key),
+      (key) => !(DERIVED_FIELDS.cell as readonly string[]).includes(key) && !trailing.includes(key),
     );
     expect(keysOf(CELL_HASHED_FIELDS)).toEqual(expected.sort());
+    expect(keysOf(CELL_HASHED_FIELDS).filter((key) => trailing.includes(key))).toEqual([]);
   });
 
   it('players', () => {
@@ -147,6 +211,11 @@ describe('HASHED_FIELDS pin every non-derived record field', () => {
       (key) => !(DERIVED_FIELDS.player as readonly string[]).includes(key),
     );
     expect(keysOf(PLAYER_HASHED_FIELDS)).toEqual(expected.sort());
+  });
+
+  it('held bacteria: every field of an entry, so a field the latch adds later is hashed or fails here', () => {
+    const entry = worldHoldingTheMote(FIRST_CELL).cells[FIRST_CELL]!.latchedBacteria[0]!;
+    expect(keysOf(LATCHED_BACTERIUM_FIELDS)).toEqual(Object.keys(entry).sort());
   });
 
   it('motes, fragments, gel patches and spawners', () => {

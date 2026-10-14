@@ -1,6 +1,7 @@
 // The state hash of a world (docs/determinism/ordering-and-state-hash.md §5): the canonical walk over `HASHED_FIELDS`
 // through the shared hasher. Every non-derived record field is listed (the test pins it); the
-// derived ones are excluded and named here so a debug-only field can never move the hash:
+// derived ones are excluded and named here so a debug-only field can never move the hash (the held lists are walked
+// last, `TRAILING_CELL_HASHED_FIELDS`):
 // `leaderboard` (a function of the players), `effects` and `massFlow` (transient), `balance` and `config`
 // (replay inputs), `CellRecord.modifiers` (folded at step 1), `CellRecord.heldDisplacementX/Y` (transient: cleared at
 // step 6 and read only by the serializer, #774), `PlayerRecord.score` (step 10),
@@ -31,6 +32,7 @@ import type {
   EngulfReleaseRecord,
   FoodMoteRecord,
   GiantSeatRecord,
+  LatchedBacteriumRecord,
   PlayerRecord,
   SeatMindRecord,
   SpawnerState,
@@ -77,6 +79,42 @@ function hashLastRelease(hasher: StateHasher, release: EngulfReleaseRecord | nul
   }
 }
 
+export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [
+  'id',
+  'kind',
+  'bacteriumVariant',
+  'x',
+  'y',
+  'mass',
+  'dna',
+  'tag',
+  'headingRadians',
+  'expiresAtTick',
+];
+
+export const LATCHED_BACTERIUM_FIELDS: readonly HashedField<LatchedBacteriumRecord>[] = [
+  { key: 'mote', hash: (hasher, mote) => hashFields(hasher, mote, FOOD_MOTE_HASHED_FIELDS) },
+  'bearingRadians',
+  'caughtAtTick',
+];
+
+/** Cell fields walked after the rest of the world, not with their cell: the held lists (early-life.md §15.11). */
+export const TRAILING_CELL_HASHED_FIELDS = ['latchedBacteria'] as const;
+
+/**
+ * Every cell's held list, in cell order, as the walk's last section, and only when some cell holds a bacterium. A world
+ * in which none does (every world while the swallow switch is at `protocell`) feeds nothing, so it hashes byte for byte
+ * as it did before the lists existed (#907). Being last keeps that unambiguous: the section is there or the walk ends.
+ */
+function hashLatchedBacteriaOfCells(hasher: StateHasher, cells: readonly CellRecord[]): void {
+  if (cells.every((cell) => cell.latchedBacteria.length === 0)) return;
+  hashArray(hasher, cells, (cellHasher, cell) =>
+    hashArray(cellHasher, cell.latchedBacteria, (entryHasher, entry) =>
+      hashFields(entryHasher, entry, LATCHED_BACTERIUM_FIELDS),
+    ),
+  );
+}
+
 export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   'id',
   'kind',
@@ -110,19 +148,6 @@ export const CELL_HASHED_FIELDS: readonly HashedField<CellRecord>[] = [
   { key: 'armRegrabRefractories', hash: hashSpitOutRefractories },
   { key: 'steerCommand', hash: hashSteerCommand },
   { key: 'lastRelease', hash: hashLastRelease },
-];
-
-export const FOOD_MOTE_HASHED_FIELDS: readonly HashedField<FoodMoteRecord>[] = [
-  'id',
-  'kind',
-  'bacteriumVariant',
-  'x',
-  'y',
-  'mass',
-  'dna',
-  'tag',
-  'headingRadians',
-  'expiresAtTick',
 ];
 
 export const DNA_FRAGMENT_HASHED_FIELDS: readonly HashedField<DnaFragmentRecord>[] = [
@@ -269,5 +294,6 @@ export function computeStateHash(world: WorldState): StateHash {
   hashFields(hasher, world.spawners.dnaFragments, SPAWNER_HASHED_FIELDS);
   hashRandomStreams(hasher, world.random, SERVER_RANDOM_STREAM_LABELS);
   hasher.hashNumber(world.nextEntityNumber);
+  hashLatchedBacteriaOfCells(hasher, world.cells);
   return hasher.digest();
 }

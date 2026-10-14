@@ -39,7 +39,27 @@ export interface EngulfReleaseRecord {
   predatorCellId: EntityId;
 }
 
-export interface CellRecord extends CellView {
+/** A bacterium mote's record: the only food a latch takes, so its variant is always set. */
+export type BacteriumMoteRecord = FoodMoteRecord & { bacteriumVariant: BacteriumVariant };
+
+/**
+ * One bacterium a player cell holds on its rim (docs/game-design/early-life.md §15.4.1): the mote's own record, kept
+ * untouched from the catch (its id, mass, DNA, tag and heading), so a bond eats it through `eatFoodMote` and a shake
+ * puts it back into the world at its rim point under a fresh id, its mass, DNA, tag and heading kept (§15.4.2); plus its bearing from the cell's centre at the catch and the catch's tick.
+ * `serialize.ts` projects it onto the wire's `LatchedBacteriumView`.
+ */
+export interface LatchedBacteriumRecord {
+  mote: BacteriumMoteRecord;
+  bearingRadians: number;
+  caughtAtTick: number;
+}
+
+/** The view's fields the record holds in a richer form: `latchedBacteria` keeps each held mote's whole record. */
+type CellViewFieldsKeptRicher = 'latchedBacteria';
+
+export interface CellRecord extends Omit<CellView, CellViewFieldsKeptRicher> {
+  /** The held list (early-life.md §15.4), in catch order; empty for every cell that does not latch. In the state hash. */
+  latchedBacteria: LatchedBacteriumRecord[];
   /**
    * The latest applied input, latched until replaced. `null` until the player's first input (a spawn,
    * a respawn, a fixture placement): no target, throttle 0 (docs/ecology/mass-and-movement.md §5.2).

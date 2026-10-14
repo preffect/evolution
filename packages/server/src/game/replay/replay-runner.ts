@@ -1,5 +1,5 @@
 // Runs a recording back (docs/determinism/replay-tests-and-traps.md §6): a fresh world from the recorded seed, config,
-// balance and roster, then tick by tick the events the recording stamped for that tick in log
+// balance (any leaf it lacks at its shipping default, `recorded-balance.ts`) and roster, then tick by tick the events the recording stamped for that tick in log
 // order (joins, leaves and debug patches as the room applied them, then the inputs), each fed
 // exactly the way the module fed it, and the same step, then the events stamped for the tick
 // after the last one (what was pending when the recording was exported: they are already in
@@ -16,6 +16,7 @@ import { SimulationInvariantError } from '../world/simulation-invariant-error.js
 import { computeStateHash } from '../world/state-hash.js';
 import { createInputRejectionCounters, type InputRejectionCounters, type WorldState } from '../world/world-state.js';
 import { indexByTick } from './index-by-tick.js';
+import { recordedBalanceWithShippingDefaults } from './recorded-balance.js';
 import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayEvent } from './replay-format.js';
 
 export interface ReplayResult {
@@ -89,7 +90,7 @@ export function replay(recording: Replay): ReplayResult {
   const world = createWorld({
     seed: recording.seed,
     config: recording.config,
-    balance: structuredClone(recording.balance),
+    balance: recordedBalanceWithShippingDefaults(recording.balance),
     players: recording.roster,
     startTick: recording.startTick,
     nextEntityNumber: recording.nextEntityNumber,

@@ -26,6 +26,7 @@ const EXPECTED_DOMAINS = [
   'wildCells',
   'giants',
   'absorption',
+  'earlyLife',
   'progression',
   'traits',
 ];

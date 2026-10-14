@@ -34,6 +34,11 @@ export const SNAPSHOT_MASS_RATE_DECIMALS = 2;
 export const SNAPSHOT_SHARE_DECIMALS = 3;
 /** A leaderboard score is written whole: the panel only ever shows it rounded, so the rounding is invisible. */
 export const SNAPSHOT_SCORE_DECIMALS = 0;
+/**
+ * `LatchedBacteriumView.bearingRadians` (docs/game-design/early-life.md §15.11): 0.01 rad puts a held rod at most 0.5 wu
+ * along the rim of a 100 wu cell from where the server holds it, and it only places a drawing.
+ */
+export const SNAPSHOT_BEARING_DECIMALS = 2;
 
 /**
  * Ticks between two `game_snapshot` broadcasts (docs/architecture/entity-model.md §1): the one home of the

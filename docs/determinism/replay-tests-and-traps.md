@@ -32,6 +32,15 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   reads or writes before step 1, so the log records that slot as step 1 read it, right before the step. An
   export appends the still-pending inputs to its copy and never writes the log, so an export between ticks
   leaves nothing for the step to replace, and recording a tick costs the same however old the room is (#181).
+- **A balance leaf added after a recording** (ticket #907): `replay()` builds its world from the recorded balance
+  with every leaf the recording does not carry filled at its shipping default (`replay/recorded-balance.ts`), never
+  from a missing value, so no rule reads an absent leaf. A recording from before #907 has no
+  `absorption.SWALLOW_FROM_STAGE` and no `earlyLife`; it ran under what those defaults ship (`protocell`: everything
+  swallows, nothing latches), so it replays to its `finalHash`. The shape did not change, so `REPLAY_FORMAT_VERSION`
+  stays 2. `replay/fixtures/recorded-before-907.replay.json`, exported on main before #907 (a protocell engulf
+  included), pins it in `recorded-balance.test.ts`: it goes red the day a filled default stops meaning what such a
+  recording ran under. The early-life flip (ticket #916) moves `SWALLOW_FROM_STAGE` to `eukaryote` and so must fill
+  that leaf with `protocell` for such recordings, or move the version.
 - **One replay = one round.** The auto-rematch and `debug_set_seed` end the current recording
   and start a new one from the new seed, marked by `startedBy`; a replay never spans a reseed. The
   rematch round closes at the rematch tick with the rebuilt world's hash (the reset happens inside

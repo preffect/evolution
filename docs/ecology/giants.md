@@ -511,7 +511,8 @@ speed multiplier above 1 (which would break `interestMaxCellSpeedFor`'s bound, w
 balance test and the refusal both call; its valid-ladder part is `ladderProblem` (`shared/simulation/ladder-check.ts`),
 the wild builds' rule too, so a build owning two traits of one exclusion group (two body plans, two membranes) breaks
 it as well. `GIANT_SPECIES_IN_DISH` and `GIANT_BUILDS_BY_SPECIES` are arrays, so
-structure a patch cannot name (`debug_set_balance` writes number leaves only, as for `WILD_CELL_BUILDS`): a test or
+structure a patch cannot name (`debug_set_balance` writes number leaves and a few declared id leaves, never a table, as
+for `WILD_CELL_BUILDS`): a test or
 fixture balance sets the species list, read at world creation (§3.5.9), and the giants-on slice set it in
 `DEFAULT_BALANCE`; a seeded-world unit test about something else runs on `NO_GIANTS_BALANCE`
 (`server/src/testing/world-builders.ts`), which empties it (`balanceSeatingGiants([])`, the one builder of a seating).
