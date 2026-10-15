@@ -7,8 +7,8 @@ import type { BalanceConfig } from '../constants/balance.js';
 import { RADIANS_PER_FULL_TURN } from '../constants/units.js';
 import { ticksToSeconds } from '../time/units.js';
 import type { Vec2 } from '../types/common.js';
-import type { LightPatchOrbitView, PoolThreadView } from '../types/pool.js';
-import { pointOnCircle } from './vector-math.js';
+import type { LightPatchOrbitView, PoolFilmView, PoolThreadView } from '../types/pool.js';
+import { distanceBetween, pointOnCircle } from './vector-math.js';
 
 /**
  * The light patch's centre on `tick`, a whole world tick on the server or the client's fractional render tick: `orbit`'s
@@ -49,4 +49,13 @@ export function poolBankInnerRadius(balance: {
 /** On the bank, the band `POOL_BANK_WIDTH` wide inside the wall (its inner edge included). */
 export function isOnPoolBank(point: Vec2, balance: Parameters<typeof poolBankInnerRadius>[0]): boolean {
   return Math.hypot(point.x, point.y) >= poolBankInnerRadius(balance);
+}
+
+/** Over a bacteria film: within `POOL_FILM_RADIUS` of a film's centre, its rim included. */
+export function isOverPoolFilm(
+  point: Vec2,
+  films: readonly PoolFilmView[],
+  balance: { pool: Pick<BalanceConfig['pool'], 'POOL_FILM_RADIUS'> },
+): boolean {
+  return films.some((film) => distanceBetween(point, film) <= balance.pool.POOL_FILM_RADIUS);
 }
