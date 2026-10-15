@@ -3,8 +3,8 @@
 // (results at 25:00 and a new game from the dish) on one 91 200-tick run, and PH5 (a 600 s round never reaches the pool).
 // The pool's food (ticket #870): its swarms and fragments lie clear of the landing, and the dish's vent and gel do not
 // follow the players in.
-// PH3's landmark waits on ticket #872; PH17 is the move's wire (ticket #868's
-// camera and wire part). Run with `./validate.sh integration`.
+// PH3's landmark waits on ticket #872; PH17, the move's wire and cameras, is `lobby/era-move-wire.integration.test.ts`.
+// Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
   CELL_STAGE,

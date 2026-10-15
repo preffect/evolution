@@ -8,11 +8,8 @@
 // frame still resolves to its last view; that start is accrued to the `effects` stage.
 
 import {
-  DISH_CENTRE_TARGET,
   MILLISECONDS_PER_SECOND,
   RENDER_STAGE,
-  parkCamera,
-  stepCamera,
   type CameraState,
   type CameraTarget,
   type CellView,
@@ -43,10 +40,10 @@ import { OWN_CELL_CHROME, OwnCellIndicatorsLayer } from './effects/own-cell-indi
 import { relationLabelSceneFor } from './effects/relation-label-placements';
 import { OwnCellRingTracker, ownCellRingSourceOf } from './effects/own-cell-ring';
 import { FoodLayer } from './food/food-layer';
-import { HALF } from './geometry';
+import { FrameCamera } from './frame-camera';
 import { applyCameraTransform, applyDrawnBand, createSceneLayers, type SceneLayers } from './layers';
 import { cellCrossingsOf, outputsBeforeAnyFrame, type RenderInputs, type RenderOutputs } from './render-io';
-import { followTarget, ownCellOf } from './render-target';
+import { ownCellOf } from './render-target';
 import type { RenderTextures } from './render-textures';
 import type { IndicatorTextures } from './textures/indicator-textures';
 
@@ -61,10 +58,7 @@ export class GameRenderer {
   private readonly clips = new CellClipTracker();
   private readonly ownCellRing = new OwnCellRingTracker();
   private readonly vignette: Sprite;
-  private camera: CameraState | null = null;
-  private lastTimeSeconds: number | null = null;
-  /** A fixed px-per-wu the bench route (slice D) asks for; `null` follows the mass-driven zoom. */
-  private fixedZoom: number | null = null;
+  private readonly camera = new FrameCamera();
   /** The last frame's outputs, answered again for a frame skipped because the viewport has no height. */
   private lastOutputs: RenderOutputs | null = null;
 
@@ -126,40 +120,22 @@ export class GameRenderer {
 
   /** Parks the camera on a target (a fixture or a spawn) without smoothing. */
   parkOn(target: CameraTarget): void {
-    this.camera = this.withFixedZoom(parkCamera(target));
+    this.camera.parkOn(target, this.viewport.height);
   }
 
   /** Holds the camera at `zoom` px per wu; `null` releases it. */
   setFixedZoom(zoom: number | null): void {
-    this.fixedZoom = zoom;
-  }
-
-  private withFixedZoom(camera: CameraState): CameraState {
-    if (this.fixedZoom === null) return camera;
-    return { ...camera, viewHalfHeightWu: (this.viewport.height * HALF) / this.fixedZoom };
+    this.camera.setFixedZoom(zoom);
   }
 
   /** The world point under a screen point, through the current camera. */
   screenToWorld(x: number, y: number): WorldPoint {
-    return screenToWorld(this.cameraOrParked(), this.viewport, x, y);
+    return screenToWorld(this.camera.current(), this.viewport, x, y);
   }
 
   /** The same point as a world-space offset from the middle of the view (`camera.ts`). */
   screenOffsetToWorld(x: number, y: number): WorldPoint {
-    return screenOffsetToWorld(this.cameraOrParked(), this.viewport, x, y);
-  }
-
-  /** The live camera, or one parked on the dish centre before the first frame. */
-  private cameraOrParked(): CameraState {
-    return this.camera ?? parkCamera(DISH_CENTRE_TARGET);
-  }
-
-  private stepCamera(frame: RenderFrame, ownPlayerId: string | null): CameraState {
-    const target = followTarget(frame, ownPlayerId);
-    const deltaSeconds = this.lastTimeSeconds === null ? 0 : Math.max(0, frame.timeSeconds - this.lastTimeSeconds);
-    this.lastTimeSeconds = frame.timeSeconds;
-    if (this.camera === null) return this.withFixedZoom(parkCamera(target ?? DISH_CENTRE_TARGET));
-    return this.withFixedZoom(stepCamera(this.camera, target, deltaSeconds));
+    return screenOffsetToWorld(this.camera.current(), this.viewport, x, y);
   }
 
   /** This frame's view of a cell, or the one it was last drawn with (a prey on its payout frame). */
@@ -172,8 +148,7 @@ export class GameRenderer {
     frame: RenderFrame,
     ownPlayerId: string | null,
   ): { camera: CameraState; zoom: number; extent: CameraExtent } {
-    const camera = this.stepCamera(frame, ownPlayerId);
-    this.camera = camera;
+    const camera = this.camera.step(frame, ownPlayerId, this.viewport.height);
     applyCameraTransform(this.layers.world, camera, this.viewport);
     return { camera, zoom: zoomFor(camera, this.viewport), extent: cameraExtent(camera, this.viewport) };
   }
@@ -198,7 +173,7 @@ export class GameRenderer {
    */
   render(frame: RenderFrame, ownPlayerId: string | null, inputs: RenderInputs, submit: () => void): RenderOutputs {
     if (!hasViewportHeight(this.viewport)) {
-      return this.lastOutputs ?? outputsBeforeAnyFrame(cameraExtent(this.cameraOrParked(), this.viewport));
+      return this.lastOutputs ?? outputsBeforeAnyFrame(cameraExtent(this.camera.current(), this.viewport));
     }
     this.lastOutputs = this.renderStages(frame, ownPlayerId, inputs, submit);
     return this.lastOutputs;

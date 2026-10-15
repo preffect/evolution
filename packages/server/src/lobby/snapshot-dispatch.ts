@@ -11,12 +11,12 @@ import {
   type PlayerId,
   type ServerMessage,
 } from '@evolution/shared';
-import type { FullGameState, RoomGameModule } from '../game/game-module.js';
+import type { FullGameState, RoomBroadcastSnapshot, RoomGameModule } from '../game/game-module.js';
 import type { Connection } from '../ws/connection.js';
 import { sendMessage } from '../ws/connection.js';
-import type { PerformanceTracker, SnapshotBroadcast } from './performance-tracker.js';
+import { NOTHING_BROADCAST, type PerformanceTracker, type SnapshotBroadcast } from './performance-tracker.js';
 import { SNAPSHOT_DELIVERY, type SnapshotBacklog } from './snapshot-backlog.js';
-import { sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
+import { broadcastForViewer, sendSnapshotToViewers, snapshotForViewer } from './viewer-snapshots.js';
 
 /** The part of a room the dispatch reads: its roster, its connections, its flow control and telemetry. */
 export interface SnapshotDispatchRoom {
@@ -81,11 +81,16 @@ export class SnapshotDispatch {
    */
   gameStateMessageFor(playerId: PlayerId, state: FullGameState = this.game.serializeFullState()): ServerMessage {
     const { snapshot, balance } = state;
+    return this.gameStateMessage(playerId, { snapshot: snapshotForViewer(this.game, snapshot, playerId), balance });
+  }
+
+  /** A `game_state` around a snapshot already as `playerId` sees it. */
+  private gameStateMessage(playerId: PlayerId, { snapshot, balance }: FullGameState): ServerMessage {
     return {
       type: SERVER_MESSAGE_TYPE.gameState,
       gameId: this.room.gameId,
       playerId,
-      snapshot: snapshotForViewer(this.game, snapshot, playerId),
+      snapshot,
       balance,
       config: this.room.sessionConfig,
       playerIds: this.room.allPlayerIds as PlayerId[],
@@ -102,6 +107,7 @@ export class SnapshotDispatch {
    */
   private broadcast(): SnapshotBroadcast {
     const snapshot = this.game.serializeRoomState();
+    if (this.game.isViewRestartBroadcast?.() === true) return this.broadcastViewRestart(snapshot);
     const isRoomPaused = this.room.isPaused();
     const deltaTargets: Connection[] = [];
     for (const connection of this.room.playerConnections.values()) {
@@ -111,6 +117,30 @@ export class SnapshotDispatch {
     }
     const snapshotBytes = sendSnapshotToViewers(this.game, deltaTargets, snapshot);
     return { snapshotBytes, broadcastClients: deltaTargets.length };
+  }
+
+  /**
+   * The broadcast that holds a change no delta carries (the Evolution pool's move, docs/architecture/wire-contract.md §4
+   * "The move"): every connection the flow control would send anything is sent it as a `game_state`, its window's
+   * effects included, and counted as a resync, so the one-resync-in-flight hold covers it. A connection it holds is
+   * sent nothing and owed a resync, which reaches it with the changed world once it catches up.
+   */
+  private broadcastViewRestart(snapshot: RoomBroadcastSnapshot): SnapshotBroadcast {
+    const { snapshotBacklog, performanceTracker } = this.room;
+    const balance = this.game.liveBalance?.() ?? this.game.serializeFullState().balance;
+    for (const connection of this.room.playerConnections.values()) {
+      const playerId = connection.playerId as PlayerId;
+      const delivery = snapshotBacklog.nextFor(connection, snapshot.tick, this.room.isPaused());
+      if (delivery === SNAPSHOT_DELIVERY.skipped) {
+        snapshotBacklog.oweResync(playerId);
+        continue;
+      }
+      // A delivery the backlog decided was a resync is already counted as one.
+      if (delivery === SNAPSHOT_DELIVERY.delta) snapshotBacklog.recordResyncSent(playerId, snapshot.tick);
+      const state = { snapshot: broadcastForViewer(this.game, snapshot, playerId), balance };
+      performanceTracker.recordResyncBytes(sendMessage(connection, this.gameStateMessage(playerId, state)));
+    }
+    return NOTHING_BROADCAST;
   }
 
   /** Every resync is counted as it is sent, in the bandwidth of the tick it was sent on or the next (#276). */

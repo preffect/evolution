@@ -5,7 +5,7 @@
 // from `config.seed` (docs/determinism/random-streams.md §3): the factory never receives a `RandomSource`.
 
 import { DEFAULT_BALANCE, type GameInput, type GameSnapshot, type PlayerId } from '@evolution/shared';
-import type { GameModule, GameModuleFactory, RoomInitOptions, ViewerStateSerializer } from './game-module.js';
+import type { GameModule, GameModuleFactory, RoomInitOptions } from './game-module.js';
 import { createEvolutionBotRoster, driveBots } from './bots/evolution-bots.js';
 import {
   createEvolutionDebugHandle,
@@ -14,6 +14,7 @@ import {
 } from './debug/evolution-debug-handle.js';
 import { runRecordedStep } from './replay/recorded-step.js';
 import { ReplayRecorder } from './replay/replay-recorder.js';
+import { MoveBroadcasts } from './serialize/move-broadcasts.js';
 import { serializeBroadcastSnapshot, serializeFullSnapshot } from './serialize/serialize.js';
 import type { ViewerSnapshotKey } from './serialize/viewer-snapshot-keys.js';
 import { EvolutionViewerState } from './serialize/viewer-state.js';
@@ -28,8 +29,11 @@ export interface EvolutionModule extends GameModule<GameInput, GameSnapshot, Vie
   /** The room's one world; reset in place on a rematch, so the reference is stable. */
   readonly world: WorldState;
   readonly rejections: InputRejectionCounters;
-  /** The members no other client is sent: its own progress and input sequence, and the food and fragments it can see. */
-  readonly viewerState: ViewerStateSerializer<GameSnapshot, ViewerSnapshotKey>;
+  /**
+   * The members no other client is sent: its own progress and input sequence, and the food and fragments it can see,
+   * over each viewer's camera.
+   */
+  readonly viewerState: EvolutionViewerState;
   getDebugHandle(): EvolutionDebugHandle;
 }
 
@@ -79,7 +83,8 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
   });
   const recorder = new ReplayRecorder(world);
   const bots = createEvolutionBotRoster(world);
-  const viewerState = new EvolutionViewerState(world);
+  const moveBroadcasts = new MoveBroadcasts(world);
+  const viewerState = new EvolutionViewerState(world, moveBroadcasts);
   const membership = createRecordedMembership(world, recorder, rejections, viewerState);
   const debugHandle = createEvolutionDebugHandle({ world, recorder, rejections, bots, membership });
 
@@ -96,8 +101,16 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
       runRecordedStep(world, recorder, rejections);
     },
     // No viewer member: each viewer's own are built from the world by `viewerState` (#399).
-    serializeRoomState: () => serializeBroadcastSnapshot(world),
+    serializeRoomState: () => {
+      const broadcast = serializeBroadcastSnapshot(world);
+      moveBroadcasts.noteBroadcast();
+      return broadcast;
+    },
     serializeFullState: () => ({ snapshot: serializeFullSnapshot(world), balance: world.balance }),
+    // The pool's move (docs/architecture/wire-contract.md §4 "The move").
+    isViewRestartNext: () => moveBroadcasts.isMoveNext(),
+    isViewRestartBroadcast: () => moveBroadcasts.isMoveBroadcast(),
+    liveBalance: () => world.balance,
     viewerState,
     getDebugHandle: () => debugHandle,
   };

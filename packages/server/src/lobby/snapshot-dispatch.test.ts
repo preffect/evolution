@@ -3,6 +3,7 @@
 // `snapshot-backlog.test.ts`; the room's side of the cadence is `game-room-cadence.test.ts`.
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_BACKLOG_LIMIT_BYTES,
   TICK_HZ,
@@ -33,7 +34,8 @@ function dispatchFixture() {
     performanceTracker: new PerformanceTracker(),
     isPaused: () => isPaused,
   };
-  const dispatch = new SnapshotDispatch(createTickingGameModule(), room);
+  const game = createTickingGameModule();
+  const dispatch = new SnapshotDispatch(game, room);
   const bytesSent = () =>
     Object.values(sent)
       .flat()
@@ -50,7 +52,11 @@ function dispatchFixture() {
   const setPaused = (isNowPaused: boolean) => {
     isPaused = isNowPaused;
   };
-  return { dispatch, room, sent, connections, bytesSent, recordSilentTick, setPaused };
+  /** Makes the next broadcasts hold a change no delta carries, or not (the Evolution pool's move). */
+  const setViewRestart = (isRestart: boolean) => {
+    game.isViewRestartBroadcast = () => isRestart;
+  };
+  return { dispatch, room, game, sent, connections, bytesSent, recordSilentTick, setPaused, setViewRestart };
 }
 
 describe('SnapshotDispatch', () => {
@@ -107,5 +113,77 @@ describe('SnapshotDispatch', () => {
       playerIds: [...PLAYER_IDS, 'p3'],
       config: room.sessionConfig,
     });
+  });
+});
+
+describe('SnapshotDispatch: the broadcast that holds a view restart (wire-contract.md §4 "The move")', () => {
+  const typesSentTo = (sent: SentLog, playerId: string) =>
+    (sent[playerId] as { type: string }[]).map((message) => message.type);
+
+  it('sends it to every connection as a game_state carrying the broadcast, counted as a resync', () => {
+    const { dispatch, room, sent, recordSilentTick, setViewRestart } = dispatchFixture();
+    setViewRestart(true);
+    expect(dispatch.broadcastOnTick()).toEqual({ snapshotBytes: 0, broadcastClients: 0 });
+    for (const playerId of PLAYER_IDS) {
+      expect(sent[playerId]).toMatchObject([{ type: SERVER_MESSAGE_TYPE.gameState, playerId, snapshot: { tick: 1 } }]);
+    }
+    expect(room.snapshotBacklog.resyncCount()).toBe(PLAYER_IDS.length);
+    recordSilentTick();
+    const bytes = PLAYER_IDS.reduce((sum, playerId) => sum + JSON.stringify(sent[playerId]![0]).length, 0);
+    expect(room.performanceTracker.worstTick()?.resyncBytes).toBe(bytes);
+  });
+
+  it('sends nothing to a connection its in-flight resync holds and owes it one; an ordinary broadcast owes none', () => {
+    for (const isRestart of [true, false]) {
+      const { dispatch, room, sent, setViewRestart } = dispatchFixture();
+      room.snapshotBacklog.recordAcknowledgedTick('p1', 0);
+      room.snapshotBacklog.recordResyncSent('p1', 1);
+      setViewRestart(isRestart);
+      dispatch.broadcastOnTick();
+      expect(sent['p1']).toEqual([]);
+      setViewRestart(false);
+      dispatch.acknowledge('p1', 1);
+      dispatch.broadcastOnTick();
+      const expected = isRestart ? SERVER_MESSAGE_TYPE.gameState : SERVER_MESSAGE_TYPE.gameSnapshot;
+      expect(typesSentTo(sent, 'p1')).toEqual([expected]);
+    }
+  });
+
+  it('sends a paused room’s held connection nothing after the move until its owed resync', () => {
+    const { dispatch, room, sent, setViewRestart, setPaused } = dispatchFixture();
+    room.snapshotBacklog.recordAcknowledgedTick('p1', 0);
+    room.snapshotBacklog.recordResyncSent('p1', 1);
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    setViewRestart(false);
+    setPaused(true);
+    dispatch.broadcastOffTick();
+    expect(sent['p1']).toEqual([]);
+    dispatch.acknowledge('p1', 1);
+    expect(typesSentTo(sent, 'p1')).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+  });
+
+  it('sends a connection owed a resync that caught up at the move one game_state, counted once', () => {
+    const { dispatch, room, sent, connections, setViewRestart } = dispatchFixture();
+    setBufferedAmount(connections[0]!, SATURATED_BYTES);
+    dispatch.broadcastOnTick();
+    setBufferedAmount(connections[0]!, 0);
+    expect(room.snapshotBacklog.owedCount()).toBe(1);
+    const resyncsBefore = room.snapshotBacklog.resyncCount();
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    expect(typesSentTo(sent, 'p1')).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+    expect(room.snapshotBacklog.resyncCount()).toBe(resyncsBefore + PLAYER_IDS.length);
+    expect(room.snapshotBacklog.owedCount()).toBe(0);
+  });
+
+  it('carries the module’s live balance, read without serialising the world', () => {
+    const { dispatch, game, sent, setViewRestart } = dispatchFixture();
+    const liveBalance = structuredClone(DEFAULT_BALANCE);
+    game.liveBalance = () => liveBalance;
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    expect(sent['p1']).toMatchObject([{ type: SERVER_MESSAGE_TYPE.gameState, balance: liveBalance }]);
+    expect(game.serializeFullState).not.toHaveBeenCalled();
   });
 });

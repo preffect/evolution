@@ -8,6 +8,7 @@ import { FOOD_KIND, SNAPSHOT_EVERY_TICKS, playerId, type FoodDelta, type PlayerI
 import { createTestWorld } from '../../testing/world-builders.js';
 import { spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { WorldState } from '../world/world-state.js';
+import { MoveBroadcasts } from './move-broadcasts.js';
 import { serializeBroadcastSnapshot, toMotePositionView } from './serialize.js';
 import { EvolutionViewerState } from './viewer-state.js';
 
@@ -70,7 +71,7 @@ const sorted = (store: ClientStore): ClientStore => new Map([...store].sort());
 /** The world, the viewer state and the clients' stores the run drives. */
 class ClientModel {
   readonly world: WorldState = createTestWorld({ players: MODEL_PLAYERS });
-  readonly viewerState = new EvolutionViewerState(this.world);
+  readonly viewerState = new EvolutionViewerState(this.world, new MoveBroadcasts(this.world));
   /** Alternate viewers sit near and far, so a slot two viewers shared would show: they see different motes. */
   readonly farViewers = new Set(
     MODEL_PLAYERS.filter((_player, index) => index % 2 === 1).map((player) => player.playerId),

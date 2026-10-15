@@ -43,6 +43,23 @@ export interface GameModule<
    * `game_state`. Optional: without it every connection receives the snapshot as is, serialised once.
    */
   readonly viewerState?: ViewerState<Snapshot, ViewerKey>;
+  /**
+   * Optional: the next `reduceGameState` makes a change no delta can carry (the Evolution pool's move,
+   * docs/architecture/wire-contract.md §4 "The move"). The room then closes a broadcast before running it, so the
+   * change's window starts with it and nothing before it is lost. Without it no broadcast is ever closed early.
+   */
+  isViewRestartNext?(): boolean;
+  /**
+   * Optional: the broadcast `serializeRoomState` just answered holds that change. The room sends it, effects and all,
+   * to every connection as a `game_state` through the resync path, and owes one to a connection it holds. Without it
+   * every broadcast is a delta.
+   */
+  isViewRestartBroadcast?(): boolean;
+  /**
+   * Optional: the balance the module simulates with now, read without serialising the world: what that restart's
+   * `game_state` carries. Without it the room reads `serializeFullState().balance`.
+   */
+  liveBalance?(): BalanceConfig;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */

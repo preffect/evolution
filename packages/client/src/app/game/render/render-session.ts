@@ -147,6 +147,8 @@ export class RenderSession extends FrameLoopSession {
         balance: message.balance,
         roundDurationSeconds: message.config.roundDurationSeconds,
       });
+      // As a delta's: the pool's move arrives as a `game_state` carrying its `era_moved` (wire-contract.md §4 "The move").
+      this.audio.observe(message.snapshot);
       this.ensureRenderer(message.snapshot).catch((error: unknown) => this.recordStartupError(error));
     } else if (message.type === SERVER_MESSAGE_TYPE.gameSnapshot) {
       if (timer.accrue(RENDER_STAGE.net, () => this.store.applySnapshot(message.snapshot))) {
