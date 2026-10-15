@@ -44,9 +44,18 @@ export function eraWarningStartedAtTick(
   return eraStartedAtTick(era, roundStartTick, balance) - secondsToTicks(balance.eras.ERA_MOVE_WARNING_SECONDS);
 }
 
+/**
+ * True when `era` is in the balance's `ERAS_IN_PLAY` (phases.md §14.2.4), whatever the round's length: the one test
+ * the clock and every reader of a later era's content (the encyclopedia's era gate, architecture/encyclopedia.md
+ * §12.4) share.
+ */
+export function isEraInPlay(era: GameEra, balance: { eras: Pick<BalanceConfig['eras'], 'ERAS_IN_PLAY'> }): boolean {
+  return balance.eras.ERAS_IN_PLAY.includes(era);
+}
+
 /** True when `era` opens in a round of `roundDurationSeconds`: it is in play and it starts before the round's end. */
 export function isEraReachable(era: GameEra, roundDurationSeconds: number, balance: EraClockBalance): boolean {
-  return balance.eras.ERAS_IN_PLAY.includes(era) && eraStartTicks(era, balance) < secondsToTicks(roundDurationSeconds);
+  return isEraInPlay(era, balance) && eraStartTicks(era, balance) < secondsToTicks(roundDurationSeconds);
 }
 
 /**

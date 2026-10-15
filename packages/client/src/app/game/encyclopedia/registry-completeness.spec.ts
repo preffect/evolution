@@ -37,7 +37,8 @@ import {
 } from './model/categories';
 import { ENTRY_BY_ENTITY_KIND } from './model/entity-kinds';
 import { ENTRY_BY_EFFECT, ENTRY_BY_WORLD_STANDING } from './model/entry-anchors';
-import { ENTRY_SUBJECT, splitEntryId, type EntrySubject } from './model/entry-id';
+import { isEntryInPlay } from './model/entry-eras';
+import { ENTRY_SUBJECT, entryIdOf, splitEntryId, type EntrySubject } from './model/entry-id';
 import { CATEGORY_GROUPS, ENTRY_GROUP, ENTRY_GROUP_LABEL } from './model/groups';
 import { RESERVED_EXCLUSION_GROUP, RESERVED_FROM_ENCYCLOPEDIA } from './model/reserved';
 import { WORLD_TOPIC } from './model/world-topics';
@@ -82,7 +83,10 @@ describe('the encyclopedia registry', () => {
 
   it('holds one entry per cell kind, food kind, bacterium variant, zone, world topic and concept', () => {
     expect(idsOf(ENTRY_SUBJECT.cellKind)).toEqual(Object.values(CELL_KIND));
-    expect(idsOf(ENTRY_SUBJECT.food)).toEqual(Object.values(FOOD_KIND));
+    // A later era's food waits behind the era gate (`entry-eras.spec.ts` pins it there, both ways).
+    expect(idsOf(ENTRY_SUBJECT.food)).toEqual(
+      Object.values(FOOD_KIND).filter((kind) => isEntryInPlay(entryIdOf(ENTRY_SUBJECT.food, kind), DEFAULT_BALANCE)),
+    );
     expect(idsOf(ENTRY_SUBJECT.bacterium)).toEqual([...DEFAULT_BALANCE.ecology.BACTERIUM_VARIANTS]);
     expect(idsOf(ENTRY_SUBJECT.zone)).toEqual(Object.values(ZONE_ID));
     expect(idsOf(ENTRY_SUBJECT.world)).toEqual(Object.values(WORLD_TOPIC));

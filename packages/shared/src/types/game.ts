@@ -21,8 +21,13 @@ export type RoundEndCondition = ValueOf<typeof ROUND_END_CONDITION>;
 export const ROUND_PHASE = { playing: 'playing', results: 'results' } as const;
 export type RoundPhase = ValueOf<typeof ROUND_PHASE>;
 
-/** docs/ecology/food-and-spawn.md §1. */
-export const FOOD_KIND = { algae: 'algae', bacterium: 'bacterium', detritus: 'detritus' } as const;
+/** docs/ecology/food-and-spawn.md §1; `green_speck` is the rock pool's main food (docs/game-design/phases.md §14.5.2). */
+export const FOOD_KIND = {
+  algae: 'algae',
+  bacterium: 'bacterium',
+  detritus: 'detritus',
+  greenSpeck: 'green_speck',
+} as const;
 export type FoodKind = ValueOf<typeof FOOD_KIND>;
 
 /** The endosymbiosis hook (docs/ecology/food-and-spawn.md §1); `BACTERIUM_VARIANTS` (constants/ecology.ts) fixes the walk order. */
@@ -112,6 +117,16 @@ export const GAME_ERA = { dish: 'dish', pool: 'pool', colonies: 'colonies' } as 
 export type GameEra = ValueOf<typeof GAME_ERA>;
 /** The order the eras open in: `ERAS_IN_PLAY` is a prefix of it and `ERA_START_SECONDS` rises along it. */
 export const GAME_ERA_ORDER: readonly GameEra[] = [GAME_ERA.dish, GAME_ERA.pool, GAME_ERA.colonies];
+/**
+ * The era each food kind belongs to (phases.md §14.5.2): the world it lives in, so content about a later era's kind
+ * (the encyclopedia's era gate) waits until that era is in play. Total over `FOOD_KIND`, so a new kind names its era.
+ */
+export const FOOD_KIND_ERA: Readonly<Record<FoodKind, GameEra>> = {
+  [FOOD_KIND.algae]: GAME_ERA.dish,
+  [FOOD_KIND.bacterium]: GAME_ERA.dish,
+  [FOOD_KIND.detritus]: GAME_ERA.dish,
+  [FOOD_KIND.greenSpeck]: GAME_ERA.pool,
+};
 
 /** The debug tools' entity filter vocabulary and the id prefixes (docs/architecture/entity-model.md §2). */
 export const ENTITY_KIND = { cell: 'cell', foodMote: 'food_mote', dnaFragment: 'dna_fragment' } as const;

@@ -1,7 +1,8 @@
 // The entry definitions, joined from content and the balance's structure (docs/architecture/encyclopedia.md §12.2):
 // catalog order inside each subject, subjects in `ENTRY_SUBJECT` order. Titles of traits are catalog names, tier
-// sections one per row of `TRAIT_TIERS` (structure, never patched), previews built from ids. It reads no number;
-// `registry.ts` calls it once with `DEFAULT_BALANCE`.
+// sections one per row of `TRAIT_TIERS` (structure, never patched), previews built from ids, a later era's pages only
+// while that era is in play (`model/entry-eras.ts`). It reads no number; `registry.ts` calls it once with
+// `DEFAULT_BALANCE`.
 
 import {
   CELL_KIND,
@@ -40,6 +41,7 @@ import { CONCEPT } from './model/concepts';
 import { HUD_TOPIC } from './model/hud-topics';
 import type { EntryDefinition, SectionDefinition, WrittenEntryContent } from './model/entry';
 import { ENTRY_SUBJECT, entryIdOf, type CodeIdBySubject, type EntrySubject } from './model/entry-id';
+import { isEntryInPlay } from './model/entry-eras';
 import { WORLD_TOPIC } from './model/world-topics';
 
 export const TIER_SECTION_KEY_PREFIX = 'tier_';
@@ -165,7 +167,12 @@ function dnaFragmentEntry(balance: BalanceConfig): EntryDefinition {
   };
 }
 
+/** Every entry of `balance`'s eras in play (`isEntryInPlay`): a later era's page waits until its era is played. */
 export function buildEntryDefinitions(balance: BalanceConfig): readonly EntryDefinition[] {
+  return everyEntryDefinition(balance).filter((definition) => isEntryInPlay(definition.id, balance));
+}
+
+function everyEntryDefinition(balance: BalanceConfig): readonly EntryDefinition[] {
   return [
     ...writtenEntries(ENTRY_SUBJECT.cellKind, Object.values(CELL_KIND), CELL_KIND_ENTRY_CONTENT),
     ...giantEntries(balance),

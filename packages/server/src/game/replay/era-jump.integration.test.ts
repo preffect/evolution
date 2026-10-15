@@ -1,23 +1,30 @@
 // docs/game-design/phases.md §14.15 PH19 (§14.2.4): `debug_set_era` at tick 600 moves `roundStartTick` back so tick
 // 601 is the era's first, never the tick counter; the step runs every crossed move in era order (a jump to the
 // colonies runs the pool's move first, on the same tick); the jump is recorded, so `debug_export_replay` reproduces
-// the final state hash across the move; the hash covers the pool's state; and no jump goes back. The cameras across the
-// move are ticket #868's wire part, the leftover specks ticket #939's. Run with `./validate.sh integration`.
+// the final state hash across the move; the hash covers the pool's state; and no jump goes back. B also pins the
+// leftovers (one green speck per wild cell and giant, §14.4.2 step 4). The cameras across the move are ticket #868's
+// wire part. Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  EFFECT_KIND,
+  ENTITY_KIND,
+  FOOD_KIND,
   GAME_ERA,
   createTestCopepodLane,
   createTestSurge,
   distanceBetween,
   playerId,
   secondsToTicks,
+  type EntityId,
+  type GameEffect,
   type GameEra,
 } from '@evolution/shared';
 import { ERA_PLAYER, eraMovesIn, startEraRoom, type EraRoom } from '../../testing/era-room.js';
 import { COLONIES_ON_ROUND_SECONDS } from '../../testing/world-builders.js';
 import { DebugRequestError } from '../debug/debug-request-error.js';
 import { computeStateHash } from '../world/state-hash.js';
+import { isPlayerCell, type FoodMoteRecord } from '../world/entities.js';
 import { findCellOfPlayer } from '../world/lookups.js';
 import type { Replay } from './replay-format.js';
 import { replay } from './replay-runner.js';
@@ -45,17 +52,45 @@ const GRACE_PAIR = {
   prey: { mass: pool.POOL_ARRIVAL_MASS, position: { x: 5, y: 0 } },
 };
 
-/** A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick, run to 1 200. */
+/** The mass `cellId` gained by eating among one tick's `effects`: a leftover speck it landed on (§14.4.2 step 4). */
+function massEatenBy(cellId: EntityId, effects: readonly GameEffect[]): number {
+  return effects
+    .flatMap((effect) => (effect.kind === EFFECT_KIND.eat && effect.cellId === cellId ? [effect.massGained] : []))
+    .reduce((total, massGained) => total + massGained, 0);
+}
+
+/** What step 4 left on the move tick: the dish's wild cells and giants on 600, the specks lying and the motes eaten on 601. */
+interface Leftovers {
+  readonly cellsLeft: number;
+  readonly specksLying: readonly FoodMoteRecord[];
+  readonly motesEaten: number;
+}
+
+function motesEatenIn(effects: readonly GameEffect[]): number {
+  return effects.filter((effect) => effect.kind === EFFECT_KIND.eat && effect.eatenKind === ENTITY_KIND.foodMote)
+    .length;
+}
+
+/**
+ * A fresh PH19 room jumped to `era` at tick 600, its player's cell as it stood on the move tick with the mass it ate
+ * there and what step 4 left, run to 1 200.
+ */
 async function jumpAndRun(era: GameEra) {
   const room = startEraRoom({ roundDurationSeconds: COLONIES_ON_ROUND_SECONDS });
   await room.stepTo(JUMP_TICK);
+  const cellsLeft = room.world.cells.filter((each) => !isPlayerCell(each)).length;
   const jump = room.handle.setEra(era);
-  let landing: { x: number; y: number; mass: number } | undefined;
-  await room.stepTo(END_TICK, (world) => {
+  let landing: { x: number; y: number; mass: number; massEaten: number } | undefined;
+  let leftovers: Leftovers | undefined;
+  await room.stepTo(END_TICK, (world, effects) => {
+    if (world.tick !== MOVE_TICK) return;
     const cell = findCellOfPlayer(world, ERA_PLAYER);
-    if (world.tick === MOVE_TICK && cell !== undefined) landing = { x: cell.x, y: cell.y, mass: cell.mass };
+    if (cell !== undefined)
+      landing = { x: cell.x, y: cell.y, mass: cell.mass, massEaten: massEatenBy(cell.id, effects) };
+    const specksLying = world.food.filter((mote) => mote.kind === FOOD_KIND.greenSpeck).map((mote) => ({ ...mote }));
+    leftovers = { cellsLeft, specksLying, motesEaten: motesEatenIn(effects) };
   });
-  return { room, jump, landing };
+  return { room, jump, landing, leftovers };
 }
 
 /**
@@ -97,15 +132,24 @@ describe('phases.md §14.15 PH19: debug_set_era', () => {
   });
 
   it('B: a jump to the colonies runs the pool’s move first, then the colonies’, on 601, and replays', async () => {
-    const { room, landing } = await jumpAndRun(GAME_ERA.colonies);
+    const { room, landing, leftovers } = await jumpAndRun(GAME_ERA.colonies);
     expect(eraMovesIn(room.effects)).toEqual([
       [MOVE_TICK, GAME_ERA.pool],
       [MOVE_TICK, GAME_ERA.colonies],
     ]);
     expect(room.world.eraMovedInto).toBe(GAME_ERA.colonies);
     expect(distanceBetween(landing!, { x: 0, y: 0 })).toBeLessThanOrEqual(FOOTPRINT_RADIUS_WU);
-    expect(landing!.mass).toBeLessThan(pool.POOL_ARRIVAL_MASS);
-    expect(landing!.mass).toBeGreaterThan(pool.POOL_ARRIVAL_MASS - 1);
+    // The move tick's own metabolism runs in the pool: the arrival mass, less a little decay, plus any speck eaten.
+    const massBeforeEating = landing!.mass - landing!.massEaten;
+    expect(massBeforeEating).toBeLessThan(pool.POOL_ARRIVAL_MASS);
+    expect(massBeforeEating).toBeGreaterThan(pool.POOL_ARRIVAL_MASS - 1);
+    // The leftovers placed: one speck per wild cell and giant, lying in the footprint at the leftover mass or eaten.
+    expect(leftovers!.cellsLeft).toBeGreaterThan(0);
+    expect(leftovers!.specksLying.length + leftovers!.motesEaten).toBe(leftovers!.cellsLeft);
+    for (const speck of leftovers!.specksLying) {
+      expect(speck.mass).toBe(eras.ERA_LEFTOVER_SPECK_MASS);
+      expect(distanceBetween(speck, { x: 0, y: 0 })).toBeLessThanOrEqual(FOOTPRINT_RADIUS_WU);
+    }
     expect(room.world.moveGraceEndsAtTick).not.toBeNull();
     expectReplayReproduces(room);
     expect(() => room.handle.setEra(GAME_ERA.dish)).toThrow(DebugRequestError);
