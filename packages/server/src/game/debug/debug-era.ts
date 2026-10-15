@@ -8,6 +8,7 @@ import {
   ROUND_PHASE,
   eraStartTicks,
   isEraAfter,
+  isEraInPlay,
   isEraReachable,
   type EraClockBalance,
   type GameEra,
@@ -44,7 +45,7 @@ function refuseEraJump(world: WorldState, era: GameEra): void {
   if (world.roundPhase === ROUND_PHASE.results) {
     throw new DebugRequestError('The round is over: the next round starts in the dish');
   }
-  if (!eras.ERAS_IN_PLAY.includes(era)) {
+  if (!isEraInPlay(era, world.balance)) {
     throw new DebugRequestError(
       `"${era}" is not in play (ERAS_IN_PLAY is ${JSON.stringify(eras.ERAS_IN_PLAY)}): patch eras.ERAS_IN_PLAY first`,
     );

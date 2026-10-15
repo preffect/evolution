@@ -512,9 +512,14 @@ its era is in play:
 
 ```ts
 // encyclopedia/model/entry-eras.ts
-export const ENTRY_ERA: ReadonlyMap<EntryId, GameEra>; // 'food:green_speck' → pool; a page not listed is the dish's
+export const ENTRY_ERA: ReadonlyMap<EntryId, GameEra>; // one row per food kind, from shared FOOD_KIND_ERA; other subjects are the dish's
 export function isEntryInPlay(entryId: EntryId, balance: Pick<BalanceConfig, 'eras'>): boolean; // shared `isEraInPlay`
 ```
+
+A subject whose kinds live in more than one era reads each kind's era from a table in shared code that is total over
+its code set (`FOOD_KIND_ERA` in `types/game.ts`: the dish's kinds `dish`, `green_speck` `pool`), so a new kind cannot
+be added without an era and no forgotten row can leak a page. A later era's subject (the pool's creatures) adds its
+own table the same way.
 
 `buildEntryDefinitions(balance)` keeps an entry only when `isEntryInPlay(entry.id, balance)`, and the registry builds
 from `DEFAULT_BALANCE` (§12.2), so the gate reads the **shipped** `ERAS_IN_PLAY`: a room's `debug_set_balance` that

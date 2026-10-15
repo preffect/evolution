@@ -1,10 +1,19 @@
 // docs/ecology/food-and-spawn.md §1: what a mote of each kind is worth.
 import { describe, expect, it } from 'vitest';
-import { BACTERIUM_VARIANT, DEFAULT_BALANCE, DNA_TAG, FOOD_KIND, secondsToTicks } from '@evolution/shared';
+import {
+  BACTERIUM_VARIANT,
+  DEFAULT_BALANCE,
+  DNA_TAG,
+  FOOD_KIND,
+  secondsToTicks,
+  type BalanceConfig,
+} from '@evolution/shared';
 import { createTestWorld } from '../../testing/world-builders.js';
 import { foodKindStats, spawnDnaFragment, spawnFoodMote } from './spawn-mote.js';
 
 const { ecology, pool } = DEFAULT_BALANCE;
+/** An alga's DNA patched off the shipped 0. */
+const PATCHED_ALGAE_DNA = 2;
 
 describe('foodKindStats', () => {
   it('reads mass, DNA and the tag point by kind (and variant) from the balance', () => {
@@ -26,10 +35,13 @@ describe('foodKindStats', () => {
   });
 
   it('gives a green speck the pool’s speck mass with an alga’s DNA and tag (phases.md §14.5.2)', () => {
+    // The shipped alga gives no DNA, so a patched one is what tells "an alga's DNA" from none.
+    const algaeWithDna: BalanceConfig = structuredClone(DEFAULT_BALANCE);
+    algaeWithDna.ecology.ALGAE_DNA = PATCHED_ALGAE_DNA;
     expect(pool.POOL_GREEN_SPECK_MASS).not.toBe(ecology.ALGAE_MASS);
-    expect(foodKindStats(FOOD_KIND.greenSpeck, null, DEFAULT_BALANCE)).toEqual({
+    expect(foodKindStats(FOOD_KIND.greenSpeck, null, algaeWithDna)).toEqual({
       mass: pool.POOL_GREEN_SPECK_MASS,
-      dna: ecology.ALGAE_DNA,
+      dna: PATCHED_ALGAE_DNA,
       tag: ecology.ALGAE_TAG,
     });
   });

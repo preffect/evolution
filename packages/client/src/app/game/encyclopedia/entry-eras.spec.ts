@@ -3,7 +3,7 @@
 // in the balance's `ERAS_IN_PLAY`, so the shipped encyclopedia (the dish alone) shows no pool page, tile or deep link,
 // and a pool-on balance shows the page with its numbers read from the pool's domain.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_BALANCE, FOOD_KIND, GAME_ERA, GAME_ERA_ORDER, withErasInPlay } from '@evolution/shared';
+import { DEFAULT_BALANCE, FOOD_KIND, GAME_ERA, GAME_ERA_ORDER, isEraInPlay, withErasInPlay } from '@evolution/shared';
 import { unbroken } from '../../../testing/unbroken-quantity';
 import { buildEntryDefinitions } from './build-entries';
 import { ENCYCLOPEDIA_CATEGORY } from './model/categories';
@@ -54,11 +54,20 @@ describe('the era gate', () => {
     expect(resolved.headline?.text).toBe(unbroken(`${POOL_ON.pool.POOL_GREEN_SPECK_MASS} mass`));
   });
 
-  it('keeps every dish page whatever the eras in play, and gates only the pages it lists', () => {
+  it('keeps every dish page whatever the eras in play, and gates only the pages of a later era', () => {
     expect(isEntryInPlay(ALGAE, DEFAULT_BALANCE)).toBe(true);
     const everyEra = idsOf(buildEntryDefinitions(withErasInPlay(GAME_ERA_ORDER)));
-    expect(everyEra.filter((entryId) => !ENCYCLOPEDIA_ENTRIES.some((entry) => entry.id === entryId))).toEqual([
-      ...ENTRY_ERA.keys(),
-    ]);
+    const laterEraPages = [...ENTRY_ERA]
+      .filter(([, era]) => !isEraInPlay(era, DEFAULT_BALANCE))
+      .map(([entryId]) => entryId);
+    expect(laterEraPages).toEqual([GREEN_SPECK]);
+    expect(everyEra.filter((entryId) => !ENCYCLOPEDIA_ENTRIES.some((entry) => entry.id === entryId))).toEqual(
+      laterEraPages,
+    );
+  });
+
+  it('gives every food page its kind’s era, so no food kind reaches the encyclopedia ungated', () => {
+    expect([...ENTRY_ERA.keys()]).toEqual(Object.values(FOOD_KIND).map((kind) => entryIdOf(ENTRY_SUBJECT.food, kind)));
+    expect(ENTRY_ERA.get(GREEN_SPECK)).toBe(GAME_ERA.pool);
   });
 });
