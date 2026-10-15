@@ -4,7 +4,6 @@
 // from the new seed over the running world. Run with `./validate.sh integration`.
 import { describe, expect, it } from 'vitest';
 import {
-  CELL_STAGE,
   DEFAULT_BALANCE,
   ENTITY_KIND,
   GAME_ERA,
@@ -35,7 +34,9 @@ const BOB = playerId('bob');
 const CID = playerId('cid');
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
 const DISH_RADIUS_LEAF = 'DISH_RADIUS';
-const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const SWALLOW_GATE_LEAF = 'SWALLOW_GATE_TRAITS';
+/** Where the run moves the switch back off (EL22: on and back off mid-way). */
+const SWITCH_OFF_TICK = 100;
 const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 /** A round that reaches the pool (phases.md §14.2.3), and the tick the run jumps to it after turning it on. */
 const POOL_ON_ROUND_SECONDS = 1020;
@@ -95,17 +96,20 @@ describe('replaying what a room recorded', () => {
     expect(replay(recording).hash).toBe(recording.finalHash);
   });
 
-  it('reproduces a run whose swallow switch moved mid-way, through a JSON round trip (early-life.md §15.10)', () => {
+  it('reproduces a run whose swallow switch moved on and off mid-way, through a JSON round trip (early-life.md §15.10)', () => {
     const { handle, step, stop } = roomUnderTest();
     for (let tick = 1; tick <= TICKS_BEFORE_RESEED; tick += 1) {
-      if (tick === SWITCH_TICK) handle.patchBalance({ absorption: { [SWALLOW_LEAF]: CELL_STAGE.eukaryote } });
+      if (tick === SWITCH_TICK) handle.patchBalance({ absorption: { [SWALLOW_GATE_LEAF]: ['cytoskeleton'] } });
+      if (tick === SWITCH_OFF_TICK) handle.patchBalance({ absorption: { [SWALLOW_GATE_LEAF]: [] } });
       step(tick);
     }
     const recording = JSON.parse(JSON.stringify(handle.exportReplay())) as Replay;
     stop();
-    expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toContain(SWITCH_TICK);
+    expect(eventsOf(recording, REPLAY_EVENT_KIND.debugPatch).map((event) => event.tick)).toEqual(
+      expect.arrayContaining([SWITCH_TICK, SWITCH_OFF_TICK]),
+    );
     const replayed = replay(recording);
-    expect(replayed.world.balance.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
+    expect(replayed.world.balance.absorption.SWALLOW_GATE_TRAITS).toEqual([]);
     expect(replayed.hash).toBe(recording.finalHash);
   });
 

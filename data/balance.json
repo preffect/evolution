@@ -234,7 +234,7 @@
     "ENGULF_SWALLOWED_TOXIN_MULTIPLIER": 8,
     "ENGULF_TAG_SHARE": 0.5,
     "ENGULF_WRAP_SECONDS": 0.4,
-    "SWALLOW_FROM_STAGE": "protocell"
+    "SWALLOW_GATE_TRAITS": []
   },
   "earlyLife": {
     "LATCH_BOND_SECONDS": 6,

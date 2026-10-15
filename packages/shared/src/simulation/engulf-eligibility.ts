@@ -1,7 +1,7 @@
 // The one home of the engulf rules (docs/ecology/absorption.md §6.1): the mass ratio, the one predator-side test of
-// the giant cells (docs/ecology/giants.md §3.5.6) that only the hunter eats cells, and the swallow switch
-// (docs/game-design/early-life.md §15.5.1) that a player or plain wild cell swallows only from `SWALLOW_FROM_STAGE`
-// on. Every caller that asks who can engulf
+// the giant cells (docs/ecology/giants.md §3.5.6) and the pool's creatures that only the hunters eat cells, and the
+// swallow switch (docs/game-design/early-life.md §15.5.1) that a player or plain wild cell swallows only by its traits
+// (`canSwallowByTraits`, swallow-gate.ts). Every caller that asks who can engulf
 // whom asks `canEngulf` (the server's contact and engulf steps, the wild cells' flee, hunt and closer-rival rules, the
 // bots, the HUD's danger chip and relations, the renderer's warning ring, the client's own-cell danger), so they can
 // never disagree; only the server calls `canContinueEngulf`. Contact is the server's alone: these predicates warn about
@@ -10,15 +10,26 @@
 import type { BalanceConfig } from '../constants/balance.js';
 import { GIANT_ROLE_BY_SPECIES } from '../constants/giants.js';
 import { ENGULF_RELEASE_REASON, type EngulfReleaseReason } from '../types/effects.js';
-import { GIANT_ROLE, type CellView, type GiantSpecies } from '../types/game.js';
+import { GIANT_ROLE, type CellView, type OwnedTrait } from '../types/game.js';
+import { POOL_CREATURE_EATS_CELLS, type PoolCreatureView } from '../types/pool.js';
 import { ENGULF_PHASE, type EngulfPhase } from './engulf-pace.js';
-import { hasReachedStage } from './stage-of.js';
+import { canSwallowByTraits } from './swallow-gate.js';
+
+/** What `eatsCells` and `hasSpecies` read of a cell: its giant species and its pool creature's species. */
+export interface CellSpeciesView {
+  readonly giantSpecies: CellView['giantSpecies'];
+  readonly poolCreature: Pick<PoolCreatureView, 'species'> | null;
+}
 
 /**
- * What `canEngulf` reads of a predator: its mass, its species (which decides whether it eats cells at all, and lets a
- * giant swallow at any stage) and its stage (which decides for a player or a plain wild cell).
+ * What `canEngulf` reads of a predator: its mass, its species (a giant's or a pool creature's, which decides whether it
+ * eats cells at all and lets it swallow whatever it owns) and its owned traits (which decide for a player or a plain wild
+ * cell). Read-only, so a `CellView`, a server record and a bot's view all satisfy it as they are.
  */
-export type EngulfPredator = Pick<CellView, 'mass' | 'giantSpecies' | 'stage'>;
+export interface EngulfPredator extends CellSpeciesView {
+  readonly mass: number;
+  readonly traits: readonly OwnedTrait[];
+}
 /** What the hold reads of a predator: its mass alone, since an engulf only ever started under `canEngulf`. */
 export type EngulfHoldPredator = Pick<CellView, 'mass'>;
 /** What the predicates read of a prey: its mass and the folded Cell Wall bonus carried on the view. */
@@ -26,7 +37,7 @@ export type EngulfPrey = Pick<CellView, 'mass' | 'membraneRatioBonus'>;
 /** The two ratios and the swallow switch, taken from `balance.absorption`. */
 export type EngulfRatioBalance = Pick<
   BalanceConfig['absorption'],
-  'ENGULF_MASS_RATIO' | 'ENGULF_RELEASE_RATIO' | 'SWALLOW_FROM_STAGE'
+  'ENGULF_MASS_RATIO' | 'ENGULF_RELEASE_RATIO' | 'SWALLOW_GATE_TRAITS'
 >;
 
 /** The least mass that meets `baseRatio` against `prey`: its mass × (`baseRatio` + its folded Cell Wall bonus). */
@@ -39,24 +50,33 @@ function meetsRatio(predator: EngulfHoldPredator, prey: EngulfPrey, baseRatio: n
   return predator.mass >= requiredPredatorMass(prey, baseRatio);
 }
 
-/**
- * Whether a cell of this species eats cells (docs/ecology/giants.md §3.5.6): every player and plain wild cell (`null`)
- * and the giant hunter; the grazer and the drifter engulf no cell. Reads the fixed roles, never the balance.
- */
-export function isCellEaterSpecies(species: GiantSpecies | null): boolean {
-  return species === null || GIANT_ROLE_BY_SPECIES[species] === GIANT_ROLE.hunter;
+/** Whether a cell has a species that decides for it (early-life.md §15.5.1): a giant, or a pool creature. */
+export function hasSpecies(cell: CellSpeciesView): boolean {
+  return cell.giantSpecies !== null || cell.poolCreature !== null;
 }
 
 /**
- * Whether a cell of this species and stage may swallow at all (docs/game-design/early-life.md §15.5.1): it eats cells,
- * and either its species decides (a giant hunter swallows at any stage) or its stage has reached `SWALLOW_FROM_STAGE`.
+ * Whether a cell eats cells at all (docs/ecology/giants.md §3.5.6, docs/game-design/early-life.md §15.5.1): a giant by
+ * its role (the hunter only; the grazer and the drifter engulf no cell), a pool creature by its species (the Didinium
+ * and the rotifer; never the nematode), and every other cell, a player or a plain wild cell. Reads fixed species facts,
+ * never the balance.
+ */
+export function eatsCells(cell: CellSpeciesView): boolean {
+  if (cell.giantSpecies !== null) return GIANT_ROLE_BY_SPECIES[cell.giantSpecies] === GIANT_ROLE.hunter;
+  if (cell.poolCreature !== null) return POOL_CREATURE_EATS_CELLS[cell.poolCreature.species];
+  return true;
+}
+
+/**
+ * Whether a cell may swallow at all (docs/game-design/early-life.md §15.5.1): it eats cells, and either its species
+ * decides (a giant hunter or an eating creature swallows whatever it owns) or it may swallow by its traits.
  */
 function isSwallowingPredator(
-  predator: Pick<EngulfPredator, 'giantSpecies' | 'stage'>,
-  balance: Pick<EngulfRatioBalance, 'SWALLOW_FROM_STAGE'>,
+  predator: Omit<EngulfPredator, 'mass'>,
+  balance: Pick<EngulfRatioBalance, 'SWALLOW_GATE_TRAITS'>,
 ): boolean {
-  if (!isCellEaterSpecies(predator.giantSpecies)) return false;
-  return predator.giantSpecies !== null || hasReachedStage(predator.stage, balance.SWALLOW_FROM_STAGE);
+  if (!eatsCells(predator)) return false;
+  return hasSpecies(predator) || canSwallowByTraits(predator.traits, balance);
 }
 
 /**
@@ -72,7 +92,7 @@ export function meetsEngulfStartRatio(
 }
 
 /**
- * `canStart`: the predator may swallow (its species, or its stage against the swallow switch) and meets the start
+ * `canStart`: the predator may swallow (its species, or its traits against the swallow switch) and meets the start
  * ratio. The giant hunter's hunt window gates its chase, never this (docs/ecology/giants.md §3.5.6).
  */
 export function canEngulf(predator: EngulfPredator, prey: EngulfPrey, balance: EngulfRatioBalance): boolean {

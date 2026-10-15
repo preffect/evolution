@@ -5,8 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '@evolution/shared';
 import { BALANCE_PATH_SEPARATOR, NON_NUMBER_BALANCE_LEAVES } from './balance-leaf-kinds.js';
 
-/** Values no declared kind may take: a number, nothing, a record, an empty id, an empty list, a list of numbers. */
-const NO_KIND_ACCEPTS: readonly unknown[] = [3, null, undefined, {}, '', [], [3]];
+/**
+ * Values no declared kind may take: a number, nothing, a record, an empty id, a list of numbers. The empty list is the
+ * trait-id list's "no gate" and the era list's refusal, so each kind's own guard test covers it.
+ */
+const NO_KIND_ACCEPTS: readonly unknown[] = [3, null, undefined, {}, '', [3]];
 
 function defaultAt(dottedPath: string): unknown {
   let cursor: unknown = DEFAULT_BALANCE;
@@ -15,10 +18,11 @@ function defaultAt(dottedPath: string): unknown {
 }
 
 describe('the declared non-number balance leaves', () => {
-  it('declares at least the stage-id leaves of the swallow switch and the latch, and the eras in play', () => {
+  it('declares at least the swallow switch, the latch stage and the eras in play, and no longer the stage switch', () => {
     expect([...NON_NUMBER_BALANCE_LEAVES.keys()]).toEqual(
-      expect.arrayContaining(['absorption.SWALLOW_FROM_STAGE', 'earlyLife.LATCH_FROM_STAGE', 'eras.ERAS_IN_PLAY']),
+      expect.arrayContaining(['absorption.SWALLOW_GATE_TRAITS', 'earlyLife.LATCH_FROM_STAGE', 'eras.ERAS_IN_PLAY']),
     );
+    expect(NON_NUMBER_BALANCE_LEAVES.has('absorption.SWALLOW_FROM_STAGE')).toBe(false);
   });
 
   it.each([...NON_NUMBER_BALANCE_LEAVES])('%s ships a default its own kind accepts', (path, kind) => {

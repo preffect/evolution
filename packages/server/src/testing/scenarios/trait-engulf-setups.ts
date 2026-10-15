@@ -5,7 +5,6 @@
 // Not a test file: the trait scenario and integration files import it.
 
 import {
-  CELL_STAGE,
   DEFAULT_BALANCE,
   ENGULF_PHASE,
   TICK_INTERVAL_S,
@@ -13,17 +12,21 @@ import {
   canEngulf,
   engulfPhaseOf,
   engulfProgressDelta,
+  withEveryCellSwallowing,
   type CellModifiers,
 } from '@evolution/shared';
 import { engulfMassYieldOf } from '../../game/simulation/engulf-payout.js';
 
-const { growth, ecology, absorption } = DEFAULT_BALANCE;
+/** The rows are about the engulf, not who may swallow: every cell swallows (early-life.md §15.8.5). */
+const { growth, ecology, absorption } = withEveryCellSwallowing();
 /** An idle held pair: the prey never steers away. */
 const NO_AWAY_EFFORT = 0;
 /** The trait rows' predators are player cells, never a giant. */
 const PLAIN_PREDATOR_SPECIES = null;
-/** The trait rows' predators are protocells, as the rows' builds are. */
-const PLAIN_PREDATOR_STAGE = CELL_STAGE.protocell;
+/** The trait rows' predators are no pool creature. */
+const PLAIN_PREDATOR_CREATURE = null;
+/** What the model's predator owns as the swallow switch reads it: nothing, since every cell swallows. */
+const PLAIN_PREDATOR_TRAITS = [] as const;
 
 /** The prey a dose is read against (#154): its start-of-span mass, decaying in the broth, and its fraction. */
 export interface PreyDose {
@@ -118,7 +121,8 @@ export function modelHeldPair(input: HeldPairModelInput): HeldPairOutcome {
     const predatorView = {
       mass: state.predatorMass,
       giantSpecies: PLAIN_PREDATOR_SPECIES,
-      stage: PLAIN_PREDATOR_STAGE,
+      poolCreature: PLAIN_PREDATOR_CREATURE,
+      traits: PLAIN_PREDATOR_TRAITS,
     };
     const preyView = { mass: state.preyMass, membraneRatioBonus: input.prey.membraneRatioBonus };
     if (state.progress === null) {

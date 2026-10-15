@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TRAIT_CATALOG } from '../constants/traits.js';
 import {
   BACTERIUM_VARIANT,
   CELL_STAGE,
@@ -17,7 +18,9 @@ import {
   isFoodKind,
   isGameEra,
   isGiantSpecies,
+  isDistinctTraitIdList,
   isPoolCreatureSpecies,
+  isTraitId,
 } from './game-guards.js';
 import { POOL_CREATURE_SPECIES } from './pool.js';
 
@@ -91,5 +94,30 @@ describe('game guards', () => {
     ['a record', { 0: GAME_ERA.dish }],
   ])('isErasInPlayList refuses %s', (_label, value) => {
     expect(isErasInPlayList(value)).toBe(false);
+  });
+
+  it('isTraitId accepts every catalog id and nothing else: no stage, no form name', () => {
+    for (const trait of TRAIT_CATALOG) expect(isTraitId(trait.id), trait.id).toBe(true);
+    for (const stranger of STRANGERS) expect(isTraitId(stranger), String(stranger)).toBe(false);
+    expect(isTraitId('amoeba')).toBe(false);
+    expect(isTraitId(CELL_STAGE.eukaryote)).toBe(false);
+  });
+
+  it('isDistinctTraitIdList accepts the empty list and any list of distinct catalog ids (early-life.md §15.10)', () => {
+    expect(isDistinctTraitIdList([])).toBe(true);
+    expect(isDistinctTraitIdList(['cytoskeleton'])).toBe(true);
+    expect(isDistinctTraitIdList(TRAIT_CATALOG.map((trait) => trait.id))).toBe(true);
+  });
+
+  it.each<[string, unknown]>([
+    ['an id that is not a trait (EL23)', ['amoeba']],
+    ['a catalog id beside one that is not a trait', ['cytoskeleton', 'amoeba']],
+    ['an id twice (EL23)', ['cytoskeleton', 'cytoskeleton']],
+    ['an id that is not a list (EL23)', 'cytoskeleton'],
+    ['a stage id', [CELL_STAGE.eukaryote]],
+    ['a list of numbers', [0, 1]],
+    ['a record', { 0: 'cytoskeleton' }],
+  ])('isDistinctTraitIdList refuses %s', (_label, value) => {
+    expect(isDistinctTraitIdList(value)).toBe(false);
   });
 });

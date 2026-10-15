@@ -108,7 +108,7 @@ const EARLY_LIFE_TABLE = {
   documentName: 'game-design/early-life.md',
   heading: '#### 15.12.1 Early-life constants table',
   ownRow: 'LATCH_BOND_SECONDS',
-  laterTableRow: 'SWALLOW_FROM_STAGE',
+  laterTableRow: 'SWALLOW_GATE_TRAITS',
 };
 
 /** A backticked family glob such as `MITOSIS_*`: the row names every export that starts with its prefix. */

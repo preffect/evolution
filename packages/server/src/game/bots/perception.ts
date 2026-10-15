@@ -8,7 +8,14 @@
 // `playerId: null` on the view) its cell's entity id (`game/wild/wild-perception.ts`), so the
 // strategy shape is the same on both sides.
 
-import { distanceBetween, type CellStage, type GiantSpecies, type PlayerId } from '@evolution/shared';
+import {
+  distanceBetween,
+  type CellSpeciesView,
+  type CellStage,
+  type GiantSpecies,
+  type OwnedTrait,
+  type PlayerId,
+} from '@evolution/shared';
 
 /** The fields of a cell a strategy reads; a subset of the wire `CellView`, so a view satisfies it as is. */
 export interface BotCellView {
@@ -23,7 +30,17 @@ export interface BotCellView {
   readonly membraneRatioBonus: number;
   /** The giant's species the shared predicate reads on the predator side; null for every other cell. */
   readonly giantSpecies: GiantSpecies | null;
-  /** The stage the shared predicate reads against the swallow switch (docs/game-design/early-life.md §15.5.1). */
+  /**
+   * The pool creature's species the shared predicate reads on the predator side, so a Didinium or a rotifer counts as a
+   * threat (docs/game-design/early-life.md §15.5.1); null for every other cell.
+   */
+  readonly poolCreature: CellSpeciesView['poolCreature'];
+  /** The owned traits the shared predicate reads against the swallow switch (docs/game-design/early-life.md §15.5.1). */
+  readonly traits: readonly OwnedTrait[];
+  /**
+   * The stage `bacteriumContactOutcome` reads for the latch (docs/game-design/early-life.md §15.5.1, §15.8.3): the bots'
+   * mote filter reads it once ticket #909 wires the latch.
+   */
   readonly stage: CellStage;
 }
 
@@ -43,7 +60,7 @@ export interface BotMoteView {
 }
 
 /** The predicate's predator side, as `canEngulf` declares it. */
-export type EngulfPredatorView = Pick<BotCellView, 'mass' | 'giantSpecies' | 'stage'>;
+export type EngulfPredatorView = Pick<BotCellView, 'mass' | 'giantSpecies' | 'poolCreature' | 'traits'>;
 /** The predicate's prey side, as `canEngulf` declares it. */
 export type EngulfPreyView = Pick<BotCellView, 'mass' | 'membraneRatioBonus'>;
 

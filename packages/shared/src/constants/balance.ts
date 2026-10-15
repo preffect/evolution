@@ -36,8 +36,8 @@ import * as worldClock from './world-clock.js';
  * holds other numbers, so the config type widens every number leaf to `number`. Ids, tables and
  * arrays keep their literal types: they are structure, not tunables. A patchable non-number leaf (one that
  * `debug_set_balance` declares a kind for) is declared with its widened type, never its literal: an id with its id type
- * (`SWALLOW_FROM_STAGE: CellStage`), a list with its element type (`ERAS_IN_PLAY: readonly GameEra[]`), so a patched
- * value never lies to the type.
+ * (`LATCH_FROM_STAGE: CellStage`), a list with its element type (`ERAS_IN_PLAY: readonly GameEra[]`,
+ * `SWALLOW_GATE_TRAITS: readonly TraitId[]`), so a patched value never lies to the type.
  */
 type WidenNumberLeaves<Value> = Value extends number
   ? number
