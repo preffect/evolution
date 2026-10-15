@@ -1,11 +1,21 @@
 // docs/architecture/server-simulation.md §3 ("Which moves a step runs: one rule"), docs/game-design/phases.md §14.2.4,
 // §14.4.1: each step runs every move the era clock crossed, in era order, each with its `era_moved`; the next era's
 // `era_warning` fires on its warning tick only, and only in a round that reaches it; nothing fires with the eras off.
+// The world is in the new era while its move runs, so the pool's fragments are tagged by the pool's zones (§14.5.2).
 import { describe, expect, it } from 'vitest';
-import { EFFECT_KIND, GAME_ERA, GAME_ERA_ORDER, type GameEffect } from '@evolution/shared';
+import {
+  DEFAULT_BALANCE,
+  EFFECT_KIND,
+  GAME_ERA,
+  GAME_ERA_ORDER,
+  ZONE_ID,
+  zoneAt,
+  type GameEffect,
+} from '@evolution/shared';
 import { createTestStepContext, createTestWorldInEras } from '../../testing/world-builders.js';
 import type { WorldState } from '../world/world-state.js';
 import { erasToMoveInto, runEraMoves } from './era-moves.js';
+import { worldZoneMap } from './zones.js';
 
 /** The pool's warning and move ticks, and the colonies', in a round started at 0 (phases.md §14.2.1, §14.4.1). */
 const POOL_WARNING_TICK = 35_400;
@@ -54,6 +64,18 @@ describe('runEraMoves with every era in play, a 1 500 s round', () => {
     ]);
     expect(world.eraMovedInto).toBe(GAME_ERA.pool);
     expect(eraEffectsAt(world, POOL_FIRST_TICK + 1)).toEqual([]);
+  });
+
+  it('runs the pool’s move in the pool: each fragment it lays is tagged by the pool’s zone, never the dish’s', () => {
+    const world = createTestWorldInEras();
+    eraEffectsAt(world, POOL_FIRST_TICK);
+    const zones = worldZoneMap(world);
+    const tables = DEFAULT_BALANCE.ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE;
+    const zonesOfFragments = world.dnaFragments.map((fragment) => zoneAt(fragment, zones, DEFAULT_BALANCE));
+    expect(zonesOfFragments).toContain(ZONE_ID.openBroth);
+    for (const [index, fragment] of world.dnaFragments.entries()) {
+      expect(Object.keys(tables[zonesOfFragments[index]!])).toContain(fragment.tag);
+    }
   });
 
   it('then warns of the colonies and opens them in place, with no grace of their own', () => {

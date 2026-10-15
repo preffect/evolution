@@ -146,13 +146,16 @@ roundDurationSeconds, balance)` (`shared/simulation/era-clock.ts`, beside `world
   rebuilds the world); a `debug_set_seed` keeps it, since it rebuilds only the streams of a world that keeps running,
   and resetting it would run a move again. It is a record of which moves have run, not the era. Each playing step, after
   step 2, runs the move into every era after `eraMovedInto` up to `roundEraAt(world, world.tick)`, in `GAME_ERA_ORDER`,
-  each with its `era_moved` effect, setting `eraMovedInto` to each era as its move runs (`simulation/era-moves.ts`); on
+  each with its `era_moved` effect, setting `eraMovedInto` to each era as its move starts, so the move builds the era in its own zones (`simulation/era-moves.ts`); on
   the next reachable era's warning tick (`eraWarningStartedAtTick`) it pushes `era_warning`. The pool's move is
   `simulation/pool-move.ts` (game-design/phases.md §14.4.2, steps 1–8; step 9 is the serializer's): it ends every
   engulf with no transfer, every sprint and every held list; takes the dish's wild cells, giants, motes and fragments
-  out with their seats and stops the dish's spawners (the pool's own food, wild seats and creatures are tickets #870,
-  #871 and #872); lands each player cell at its dish point over `ERA_SCALE_STEP` at `POOL_ARRIVAL_MASS`, its velocity,
-  target and pin scaled with it; and stores the grace (`WorldState.moveGraceEndsAtTick`, `simulation/move-grace.ts`),
+  out with their seats and stops the dish's spawners; lands each player cell at its dish point over `ERA_SCALE_STEP` at `POOL_ARRIVAL_MASS`, its velocity,
+  target and pin scaled with it; fills the pool (`fillThePool`, after the landing so nothing lands inside an arrived
+  cell, ticket #870): the dish's gel patches end with its vent, the layout is drawn if the round's start did not
+  draw it, `POOL_SWARM_COUNT` green speck swarms (`simulation/pool-swarms.ts`, from the `pool` stream) and the
+  fragments are placed outside `ERA_LANDING_CLEAR_RADIUS`, and the fragment spawner runs again (the wild seats and the
+  creatures are tickets #871 and #872); and stores the grace (`WorldState.moveGraceEndsAtTick`, `simulation/move-grace.ts`),
   which `canStartEngulf` and a seat's hunt filter read. The colonies' move opens in place and changes nothing yet
   (§14.4.5; ticket #891 adds the wild colonies). The one rule covers every way the clock's era can get ahead of the world:
   the clock reaching a start; a `debug_set_era` jump (architecture/debug-mcp.md §8), so a jump from the dish to
