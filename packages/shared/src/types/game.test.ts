@@ -10,6 +10,7 @@ import {
   DNA_TAG,
   ENTITY_KIND,
   FOOD_KIND,
+  FOOD_KIND_ERA,
   GAME_ERA,
   GAME_MODE,
   GIANT_ROLE,
@@ -48,6 +49,17 @@ const ID_TABLES: [string, Record<string, string>][] = [
   ['TRAIT_CATEGORY', TRAIT_CATEGORY],
   ['TRAIT_RARITY', TRAIT_RARITY],
 ];
+
+describe('FOOD_KIND_ERA', () => {
+  it('keeps the dish’s food in the dish and puts the green speck in the pool', () => {
+    expect(FOOD_KIND_ERA).toEqual({
+      [FOOD_KIND.algae]: GAME_ERA.dish,
+      [FOOD_KIND.bacterium]: GAME_ERA.dish,
+      [FOOD_KIND.detritus]: GAME_ERA.dish,
+      [FOOD_KIND.greenSpeck]: GAME_ERA.pool,
+    });
+  });
+});
 
 describe('id tables', () => {
   it.each(ID_TABLES)('%s has camelCase keys and unique snake_case values', (_name, table) => {

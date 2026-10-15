@@ -37,7 +37,7 @@ the trait definition shape
 export type GameMode = 'free_for_all' | 'colony'; // 'colony' reserved for build 2
 export type RoundEndCondition = 'timer'; // dominant-organism / DNA-target reserved
 export type RoundPhase = 'playing' | 'results';
-export type FoodKind = 'algae' | 'bacterium' | 'detritus';
+export type FoodKind = 'algae' | 'bacterium' | 'detritus' | 'green_speck'; // green_speck: the rock pool's food (game-design/phases.md §14.5.2); FOOD_KIND_ERA names each kind's era
 export type BacteriumVariant = 'plain' | 'aerobic' | 'photosynthetic'; // the endosymbiosis hook
 export type DnaTag = 'motile' | 'photic' | 'predatory' | 'armored' | 'toxic' | 'sensory' | 'metabolic';
 export type ZoneId = 'sunlit_shallows' | 'warm_vent' | 'viscous_gel' | 'open_broth';

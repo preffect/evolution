@@ -80,8 +80,9 @@ const HALO_REACH_RADII: Readonly<Record<MoteSpriteKey, number>> = {
   [MOTE_SPRITE.bacteriumPhotosynthetic]: BACTERIUM_BAKE.haloReach,
 };
 
+/** A green speck wears the algae sprite until the pool's own art draws it (ticket #875). */
 export function moteSpriteKey(mote: Pick<FoodMoteView, 'kind' | 'bacteriumVariant'>): MoteSpriteKey {
-  if (mote.kind === FOOD_KIND.algae) return MOTE_SPRITE.algae;
+  if (mote.kind === FOOD_KIND.algae || mote.kind === FOOD_KIND.greenSpeck) return MOTE_SPRITE.algae;
   if (mote.kind === FOOD_KIND.detritus) return MOTE_SPRITE.detritus;
   if (mote.bacteriumVariant === BACTERIUM_VARIANT.aerobic) return MOTE_SPRITE.bacteriumAerobic;
   if (mote.bacteriumVariant === BACTERIUM_VARIANT.photosynthetic) return MOTE_SPRITE.bacteriumPhotosynthetic;

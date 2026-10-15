@@ -79,8 +79,9 @@ export const STAGE_GATE_TRAITS: Record<CellStage, readonly TraitId[]> = {
 
 **Decided, not built yet (ticket #865, [`early-life.md`](./early-life.md) §15).** The early game becomes true to
 life: the protocell and the archaeon (today's `prokaryote`) absorb specks and cannot swallow; the archaeon's arms latch
-bacteria, and aerobic ones held to the bond earn the mitochondrion; swallowing cells unlocks at `eukaryote`; the
-chloroplast becomes a `eukaryote` trait and `endosymbiosis`'s only gate is the mitochondrion. This section describes the
+bacteria, and aerobic ones held to the bond earn the mitochondrion; swallowing cells unlocks with the inner skeleton,
+the Cytoskeleton Lattice, which an archaeon can take at any level-up from level 3 (decision ticket #919, ticket #947);
+the chloroplast becomes a `eukaryote` trait and `endosymbiosis`'s only gate is the mitochondrion. This section describes the
 game as it plays until those tickets land.
 
 Rules (home of the pure functions: `packages/server/src/game/progression/ladder.ts`):

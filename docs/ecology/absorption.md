@@ -16,6 +16,9 @@ this section is the process those effects plug into.
 > `canEngulf` has a predator test: its stage has reached `SWALLOW_FROM_STAGE` unless its species decides (the giant
 > hunter swallows at any stage). The switch ships at `protocell`, so today every cell passes it; at `eukaryote` (the
 > flip, ticket #916) no protocell or archaeon, player or wild, starts an engulf. The process below is unchanged.
+> **Decided next (ticket #947, early-life.md §15.5.1, §15.10):** the test reads the predator's owned traits, not its
+> stage: a cell swallows when it owns a trait of `SWALLOW_GATE_TRAITS` (the Cytoskeleton Lattice at the flip; empty, the
+> shipping value, means every cell swallows), which replaces `SWALLOW_FROM_STAGE`.
 
 **Eligibility (mass only, one home).**
 

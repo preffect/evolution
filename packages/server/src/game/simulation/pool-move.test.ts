@@ -1,7 +1,7 @@
 // docs/game-design/phases.md §14.4.2, steps 1, 3, 4, 5 and 8 of the pool's move (the others belong to tickets #869,
 // #870, #872 and the serializer): what cannot cross ends with nothing paid, the dish's wild cells, giants, motes and
-// spawners leave, each player lands at its mapped point at the arrival mass with its velocity and target scaled, and
-// the grace starts on the move's tick.
+// spawners leave (each cell a green speck at its mapped point), each player lands at its mapped point at the arrival
+// mass with its velocity and target scaled, and the grace starts on the move's tick.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
@@ -90,10 +90,36 @@ describe('runPoolMove', () => {
     expect(world.cells.map((cell) => cell.playerId)).toEqual([world.players[0]!.playerId]);
     expect(world.wildSeats).toEqual([]);
     expect(world.giantSeats).toEqual([]);
-    expect(world.food).toEqual([]);
+    expect(world.food.map((mote) => mote.kind)).toEqual([FOOD_KIND.greenSpeck, FOOD_KIND.greenSpeck]);
     expect(world.dnaFragments).toEqual([]);
     expect(world.spawners.food.isEnabled).toBe(false);
     expect(world.spawners.dnaFragments.isEnabled).toBe(false);
+  });
+
+  it('step 4: each wild cell and giant leaves one green speck of ERA_LEFTOVER_SPECK_MASS at its mapped point', () => {
+    const world = createTestWorld();
+    seatTestWildCell(world, { at: WILD_AT });
+    seatTestGiantCell(world, { species: GIANT_SPECIES.amoeba, at: GIANT_AT, bornMass: PH1_MASS });
+    runPoolMove(world, createTestStepContext(world));
+    expect(eras.ERA_LEFTOVER_SPECK_MASS).not.toBe(pool.POOL_GREEN_SPECK_MASS);
+    expect(world.food).toMatchObject([
+      {
+        kind: FOOD_KIND.greenSpeck,
+        mass: eras.ERA_LEFTOVER_SPECK_MASS,
+        ...mapDishPointToPool(WILD_AT, DEFAULT_BALANCE),
+      },
+      {
+        kind: FOOD_KIND.greenSpeck,
+        mass: eras.ERA_LEFTOVER_SPECK_MASS,
+        ...mapDishPointToPool(GIANT_AT, DEFAULT_BALANCE),
+      },
+    ]);
+  });
+
+  it('step 4: a dish with no wild cell or giant leaves no speck', () => {
+    const world = createTestWorld();
+    runPoolMove(world, createTestStepContext(world));
+    expect(world.food).toEqual([]);
   });
 
   it('step 4: a player spectating a wild cell no longer follows it once it has left', () => {
