@@ -14,6 +14,7 @@ import {
   sprintDurationTicks,
   stepMovementKernel,
   zoneAt,
+  zoneMapAt,
   type BalanceConfig,
   type CellView,
   type GameInput,
@@ -22,6 +23,7 @@ import {
   type MovementModifiers,
   type MovementPose,
   type Vec2,
+  type ZoneMap,
 } from '@evolution/shared';
 
 /** What one replay starts from: the snapshot, the own cell in it, and the live balance. */
@@ -83,18 +85,20 @@ interface ReplayContext {
   readonly modifiers: MovementModifiers & { readonly sprintCooldownSecondsDelta: number };
   readonly cooldownTicks: number;
   readonly engulfFactor: number;
+  /** The snapshot's zones: the dish's gel patches, none in the pool (only the gel moves a cell's cap). */
+  readonly zones: ZoneMap;
 }
 
 /** One server tick for the own cell: step 1's input, step 3's move, then the sprint clocks age. */
 function replayTick(state: ReplayState, input: GameInput | undefined, context: ReplayContext): void {
-  const { ownCell, balance, snapshot } = context.base;
+  const { ownCell, balance } = context.base;
   applyInput(state, input, context.cooldownTicks, balance);
   const movement: MovementCellState = {
     mass: ownCell.mass,
     radiusWu: ownCell.radius,
     sprintRemainingTicks: state.sprintRemainingTicks,
     modifiers: context.modifiers,
-    isInGel: zoneAt(state.pose, snapshot.gelPatches, balance) === ZONE_ID.viscousGel,
+    isInGel: zoneAt(state.pose, context.zones, balance) === ZONE_ID.viscousGel,
     engulfFactor: context.engulfFactor,
   };
   state.pose = stepMovementKernel(state.pose, movementStepFor(movement, state.target ?? state.pose, balance));
@@ -109,6 +113,7 @@ function replayContextOf(base: PredictionBase): ReplayContext {
     modifiers,
     cooldownTicks: sprintCooldownTicksFor(modifiers.sprintCooldownSecondsDelta, base.balance),
     engulfFactor: predatorFactorOf(base),
+    zones: zoneMapAt(base.snapshot, base.snapshot.tick, base.balance),
   };
 }
 

@@ -14,6 +14,7 @@ import {
   hashFields,
   hashNullable,
   hashRandomStreams,
+  hashScalarArray,
   type CopepodLaneView,
   type HashedField,
   type LightPatchOrbitView,
@@ -22,8 +23,9 @@ import {
   type PoolThreadView,
   type StateHasher,
   type SurgeView,
+  type ValueHasher,
 } from '@evolution/shared';
-import type { PoolCreatureSeatRecord } from './entities.js';
+import type { PoolSwarmRecord } from './entities.js';
 import { POOL_CREATURE_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import type { WorldState } from './world-state.js';
 
@@ -56,13 +58,24 @@ export const COPEPOD_LANE_HASHED_FIELDS: readonly HashedField<CopepodLaneView>[]
   'startedAtTick',
 ];
 
-/** The seats in seat order, or null's marker for a world without creatures. */
-function hashPoolCreatureSeats(hasher: StateHasher, seats: readonly PoolCreatureSeatRecord[] | null): void {
-  if (seats === null) {
-    hasher.hashNull();
-    return;
-  }
-  hashArray(hasher, seats, (seatHasher, seat) => hashFields(seatHasher, seat, POOL_CREATURE_SEAT_HASHED_FIELDS));
+export const POOL_SWARM_HASHED_FIELDS: readonly HashedField<PoolSwarmRecord>[] = [
+  'centreX',
+  'centreY',
+  { key: 'memberIds', hash: hashScalarArray },
+];
+
+/**
+ * A list the world holds only once the move has run, in its order, or null's marker for a world without it: the
+ * creatures' seats (seat order) and the swarms (swarm order).
+ */
+function nullableListHasher<Item>(fields: readonly HashedField<Item>[]): ValueHasher<readonly Item[] | null> {
+  return (hasher, items) => {
+    if (items === null) {
+      hasher.hashNull();
+      return;
+    }
+    hashArray(hasher, items, (itemHasher, item) => hashFields(itemHasher, item, fields));
+  };
 }
 
 /**
@@ -73,8 +86,9 @@ export const POOL_STATE_HASHED_FIELDS = [
   { key: 'poolLayout', hash: (hasher, layout) => hashNullable(hasher, layout, POOL_LAYOUT_HASHED_FIELDS) },
   { key: 'surge', hash: (hasher, surge) => hashNullable(hasher, surge, SURGE_HASHED_FIELDS) },
   { key: 'copepodLane', hash: (hasher, lane) => hashNullable(hasher, lane, COPEPOD_LANE_HASHED_FIELDS) },
-  { key: 'poolCreatureSeats', hash: hashPoolCreatureSeats },
+  { key: 'poolCreatureSeats', hash: nullableListHasher(POOL_CREATURE_SEAT_HASHED_FIELDS) },
   'moveGraceEndsAtTick',
+  { key: 'poolSwarms', hash: nullableListHasher(POOL_SWARM_HASHED_FIELDS) },
 ] as const satisfies readonly HashedField<WorldState>[];
 
 /** The world field a `POOL_STATE_HASHED_FIELDS` entry walks: a scalar's own name, a nested field's `key`. */

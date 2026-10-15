@@ -15,6 +15,8 @@ export const POOL_GREEN_SPECK_MASS = 3;
 export const POOL_SWARM_SIZE = 12;
 /** Swarms the field holds; a swarm respawns at a random point when eaten down to a quarter. */
 export const POOL_SWARM_COUNT = 10;
+/** A swarm's specks lie within this distance of its centre (wu). */
+export const POOL_SWARM_RADIUS = 150;
 /** A swarm drifts toward the light patch at this speed (wu/s). */
 export const POOL_SWARM_SPEED = 30;
 /** The light patch, the pool's `sunlit_shallows` zone, is a disc of this radius (wu). */

@@ -70,7 +70,7 @@ const CONSTANTS_TABLE_SOURCES = [
   {
     documentName: 'game-design/phases.md',
     heading: '#### 14.14.1 Stage 1 constants table',
-    expectedNames: 59,
+    expectedNames: 60,
     domainModules: { eras, erasDerived, pool, poolCreatures },
   },
 ] as const;

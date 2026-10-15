@@ -1,6 +1,7 @@
 // Zones (docs/ecology/food-and-spawn.md §2): geometry fixed by the dish radius, gel patches placed from the
 // `zones` stream at world creation; gel patches never overlap the vent or the shallows by construction. Which zone
-// a point is in (`zoneAt`) and its decay multiplier are shared (`@evolution/shared` `simulation/zones.ts`, #383).
+// a point is in (`zoneAt`) and its decay multiplier are shared (`@evolution/shared` `simulation/zones.ts`, #383); the
+// world's zones on its tick (`worldZoneMap`) follow the era it has moved into (docs/game-design/phases.md §14.5.2).
 
 import {
   GEL_PATCH_PLACEMENT_MAX_ATTEMPTS,
@@ -8,13 +9,24 @@ import {
   distanceBetween,
   shallowsInnerRadius,
   uniformPointInAnnulus,
+  zoneMapAt,
   type BalanceConfig,
   type GelPatchView,
   type RandomSource,
   type SpawnZoneId,
   type Vec2,
+  type ZoneMap,
 } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
+import type { WorldState } from '../world/world-state.js';
+
+/** The world's zones on its own tick: the dish's, or, once it has moved into the pool, the light patch's. */
+export function worldZoneMap(
+  world: Pick<WorldState, 'eraMovedInto' | 'gelPatches' | 'poolLayout' | 'tick' | 'balance'>,
+): ZoneMap {
+  const source = { era: world.eraMovedInto, gelPatches: world.gelPatches, poolLayout: world.poolLayout };
+  return zoneMapAt(source, world.tick, world.balance);
+}
 
 /** The radial band of a spawn zone: the shallows annulus, the vent disc or the broth between them. */
 export interface RadialBand {

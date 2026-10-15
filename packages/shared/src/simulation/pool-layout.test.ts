@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { secondsToTicks } from '../time/units.js';
 import type { LightPatchOrbitView } from '../types/pool.js';
-import { lightPatchCentreAt, poolThreadEnds } from './pool-layout.js';
+import {
+  isOnPoolBank,
+  isOverPoolFilm,
+  lightPatchCentreAt,
+  poolBankInnerRadius,
+  poolThreadEnds,
+} from './pool-layout.js';
 
 /** An orbit drawn at a rematch on tick 1 200, starting due east. */
 const ORBIT: LightPatchOrbitView = { orbitRadius: 1_500, startAngleRadians: 0, startTick: 1_200 };
@@ -67,5 +73,38 @@ describe('poolThreadEnds', () => {
     const [start, end] = poolThreadEnds({ x: 0, y: 0, angleRadians: 0 }, longer);
     expect(end.x - start.x).toBeCloseTo(2 * THREAD_LENGTH, CLOSE_DIGITS);
     expect(start.y).toBeCloseTo(0, CLOSE_DIGITS);
+  });
+});
+
+describe('the bank', () => {
+  const bankInner = DEFAULT_BALANCE.world.DISH_RADIUS - DEFAULT_BALANCE.pool.POOL_BANK_WIDTH;
+
+  it('is the band POOL_BANK_WIDTH wide inside the wall, its inner edge included', () => {
+    expect(poolBankInnerRadius(DEFAULT_BALANCE)).toBe(bankInner);
+    expect(isOnPoolBank({ x: 0, y: bankInner }, DEFAULT_BALANCE)).toBe(true);
+    expect(isOnPoolBank({ x: 0, y: bankInner - 0.01 }, DEFAULT_BALANCE)).toBe(false);
+  });
+
+  it('reads the live width', () => {
+    const wider = structuredClone(DEFAULT_BALANCE);
+    wider.pool.POOL_BANK_WIDTH *= 2;
+    expect(isOnPoolBank({ x: -(bankInner - 1), y: 0 }, wider)).toBe(true);
+  });
+});
+
+describe('isOverPoolFilm', () => {
+  const films = [{ x: -1200, y: 400 }];
+  const filmRadius = DEFAULT_BALANCE.pool.POOL_FILM_RADIUS;
+
+  it('is true within POOL_FILM_RADIUS of a film’s centre, its rim included, and false past it', () => {
+    expect(isOverPoolFilm({ x: -1200 + filmRadius, y: 400 }, films, DEFAULT_BALANCE)).toBe(true);
+    expect(isOverPoolFilm({ x: -1200 + filmRadius + 0.01, y: 400 }, films, DEFAULT_BALANCE)).toBe(false);
+    expect(isOverPoolFilm({ x: -1200, y: 400 }, [], DEFAULT_BALANCE)).toBe(false);
+  });
+
+  it('reads the live radius', () => {
+    const wider = structuredClone(DEFAULT_BALANCE);
+    wider.pool.POOL_FILM_RADIUS *= 2;
+    expect(isOverPoolFilm({ x: -1200 + filmRadius + 1, y: 400 }, films, wider)).toBe(true);
   });
 });

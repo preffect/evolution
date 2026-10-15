@@ -2,7 +2,8 @@
 // radii at the start of the step, so the pair terms are order-independent. Base decay on the
 // surplus above the starting mass (zone × trait multipliers), the toxin drains of overlapping or
 // in-aura cells plus what an engulfed prey's spikes and swallowed toxin cost its predator
-// (`engulf-drain.ts`), then photosynthesis inside the shallows. What each player cell was applied, by cause, goes to
+// (`engulf-drain.ts`), then photosynthesis inside the shallows (the pool's light patch from its move) and a player cell's
+// graze over a pool film (`film-grazing.ts`). What each player cell was applied, by cause, goes to
 // `world.massFlow` (`metabolism-flow.ts`, #383). A wild cell takes every drain and the light like any cell, free or
 // engulfing, but no base decay: step 1's settle takes that from its growth, and the settle turns what this step did
 // into a wound to recover (docs/ecology/wild-cells.md §3.3.1); its floor is `massFloorOf`'s.
@@ -24,7 +25,9 @@ import { beginMetabolismRecords, recordMetabolism } from '../world/mass-flow-led
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { gainMass, loseMassToFloor } from './cell-mass.js';
 import { engulfDrainOf } from './engulf-drain.js';
+import { grazeFilm } from './film-grazing.js';
 import { massFlowRecordOf, type MetabolismDemand } from './metabolism-flow.js';
+import { worldZoneMap } from './zones.js';
 
 /** Step 5 takes no base decay from a wild cell: step 1's settle takes it from the growth (docs/ecology/wild-cells.md §3.3.1). */
 const WILD_BASE_DECAY_PER_SECOND = 0;
@@ -43,7 +46,7 @@ export function metabolismInputOf(cell: CellRecord, world: WorldState, balance: 
     cell,
     massAtStart: cell.mass,
     reach: { id: cell.id, x: cell.x, y: cell.y, radius: cell.radius, modifiers: cell.modifiers },
-    zone: zoneAt(cell, world.gelPatches, balance),
+    zone: zoneAt(cell, worldZoneMap(world), balance),
   };
 }
 
@@ -122,7 +125,7 @@ interface MetabolismDrains {
 }
 
 /**
- * Decay and drains floor first, then the light. A player cell's applied amounts, by cause, are recorded beside the
+ * Decay and drains floor first, then the light, then, for a player cell in the pool, a film's graze. A player cell's applied amounts, by cause, are recorded beside the
  * effects (#383); the mass arithmetic is the formula's and never reads the record. A wild cell has no record.
  */
 function metaboliseCell(
@@ -145,8 +148,10 @@ function metaboliseCell(
   if (!isPlayerCell(cell)) {
     return;
   }
+  const massAfterLight = cell.mass;
+  grazeFilm(cell, world, balance);
   const demand = metabolismDemandOf(input, drains, balance);
-  const measure = { demand, massAtStart, massAfterFloor, massAfterGain: cell.mass, zone: input.zone };
+  const measure = { demand, massAtStart, massAfterFloor, massAfterLight, massAfterGraze: cell.mass, zone: input.zone };
   const record = massFlowRecordOf({ ...measure, decayMultiplier: cell.modifiers.decayMultiplier });
   recordMetabolism(world.massFlow, cell.playerId, record);
 }

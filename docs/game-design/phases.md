@@ -792,6 +792,7 @@ arena keeps `DISH_RADIUS` (§14.5.2); there is no pool radius.
 | `POOL_GREEN_SPECK_MASS`           | 3                                        | mass              | `pool.ts`           | tuning  | §14.5.2                                                      |
 | `POOL_SWARM_SIZE`                 | 12                                       | specks            | `pool.ts`           | tuning  | §14.5.2                                                      |
 | `POOL_SWARM_COUNT`                | 10                                       | swarms            | `pool.ts`           | tuning  | §14.5.2                                                      |
+| `POOL_SWARM_RADIUS`               | 150                                      | wu                | `pool.ts`           | tuning  | §14.5.2                                                      |
 | `POOL_SWARM_SPEED`                | 30                                       | wu/s              | `pool.ts`           | tuning  | §14.5.2                                                      |
 | `POOL_LIGHT_PATCH_RADIUS`         | 900                                      | wu                | `pool.ts`           | tuning  | §14.5.2                                                      |
 | `POOL_LIGHT_PATCH_PERIOD_SECONDS` | 240                                      | s                 | `pool.ts`           | tuning  | §14.5.2                                                      |

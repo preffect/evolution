@@ -261,7 +261,8 @@ export interface MassFlowView {
 **Applied, at the floor and the cap.** `loseMassToFloor` clips decay and every drain together at
 `CELL_STARTING_MASS`, so a rate is never the formula's value but what was taken: `loss = massAtStart −
 massAfterFloor` is split across the requested losses (toxin, swallowed, decay, vent) in proportion to their formula
-values, and `light = massAfterGain − massAfterFloor` is measured after the cap. So the causes always add up to the
+values, and `light = massAfterLight − massAfterFloor` is measured after the cap, as is a rock pool film's `graze =
+massAfterGraze − massAfterLight` (game-design/phases.md §14.5.2; its tag reads `Graze`, rimmed as a gain). So the causes always add up to the
 mass actually lost or gained: `Δmass = Σ ratesPerSecond × TICK_INTERVAL_S + Σ own massGained + predatorMassGained −
 sprintSpent + noDraftBonusGained` on every tick (#383's conservation scenario). A mass-20.3 cell touching Toxin Vacuole I shows the 0.3 it
 lost, not the 0.6 the formula asks for. Light that overflows the cap becomes DNA (#179) and shows only in the DNA

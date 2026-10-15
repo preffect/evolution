@@ -1,6 +1,8 @@
 // The two spawners (docs/ecology/food-and-spawn.md §3): fractional accumulators, kind → zone → point, bacteria
 // as clusters truncated to the room under the cap, and the initial fill that never skips. Every
-// draw comes from the `spawner` stream except a fragment's drift direction (`moteMotion`).
+// draw comes from the `spawner` stream except a fragment's drift direction (`moteMotion`). In the rock pool only the
+// fragment spawner runs, at the dish's rates (docs/game-design/phases.md §14.5.2, tuning), its points uniform over the
+// pool; the pool's food is its swarms (`pool-swarms.ts`).
 
 import {
   BACTERIUM_VARIANTS,
@@ -8,6 +10,7 @@ import {
   DNA_TAGS,
   ENTITY_KIND,
   FOOD_KIND,
+  GAME_ERA,
   INITIAL_FILL_POINT_MAX_ATTEMPTS,
   RANDOM_STREAM,
   SPAWN_ACCUMULATOR_TOLERANCE,
@@ -28,9 +31,10 @@ import { SimulationInvariantError } from '../world/simulation-invariant-error.js
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { spawnDnaFragment, spawnFoodMote } from './spawn-mote.js';
 import { pickWeighted } from './pick-weighted.js';
-import { drawPointAround, drawPointInZone } from './spawn-point.js';
+import { drawPointAround, drawPointInPool, drawPointInZone } from './spawn-point.js';
 import { fragmentSpawnerRates, foodSpawnerRates, spawnEventKindWeights, type SpawnerRates } from './spawn-rates.js';
 import { worldReferenceAt } from './round-clock.js';
+import { worldZoneMap } from './zones.js';
 
 /** The zones a kind is drawn in, in one fixed order, with their weights (docs/ecology/food-and-spawn.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];
@@ -45,7 +49,7 @@ export function drawSpawnZone(kind: SpawnedKind, random: RandomSource, balance: 
 }
 
 function drawTag(point: Vec2, world: WorldState, random: RandomSource): DnaTag {
-  const table = world.balance.ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE[zoneAt(point, world.gelPatches, world.balance)];
+  const table = world.balance.ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE[zoneAt(point, worldZoneMap(world), world.balance)];
   return pickWeighted(random, DNA_TAGS, (tag) => table[tag] ?? 0);
 }
 
@@ -63,7 +67,7 @@ interface FoodEventLimits extends ClusterLimits {
 /** A whole cluster of one variant around `centre`, truncated to the room; returns the members spawned. */
 function spawnBacteriumCluster(world: WorldState, random: RandomSource, centre: Vec2, limits: FoodEventLimits): number {
   const { ecology } = world.balance;
-  const zone = zoneAt(centre, world.gelPatches, world.balance);
+  const zone = zoneAt(centre, worldZoneMap(world), world.balance);
   const variantWeights = bacteriumVariantWeightsForZone(zone, limits.worldStage, ecology);
   const variant = pickWeighted(random, BACTERIUM_VARIANTS, (name) => variantWeights[name]);
   const members = Math.min(ecology.BACTERIUM_CLUSTER_SIZE, limits.room);
@@ -94,17 +98,38 @@ export function spawnFoodEvent(world: WorldState, random: RandomSource, limits: 
   return 1;
 }
 
-/** One fragment: zone, point, the zone's tag, then a drift direction from `moteMotion`. */
-export function spawnFragmentEvent(world: WorldState, context: StepContext, maxAttempts: number): number {
-  const random = context.streams[RANDOM_STREAM.spawner];
-  const zone = drawSpawnZone(ENTITY_KIND.dnaFragment, random, world.balance);
-  const point = drawPointInZone(world, zone, random, maxAttempts);
+/** A fragment at `point` when one was found: the zone's tag, then a drift direction from `moteMotion`. */
+function placeFragment(world: WorldState, context: StepContext, point: Vec2 | null): number {
   if (point === null) {
     return 0;
   }
-  const tag = drawTag(point, world, random);
+  const tag = drawTag(point, world, context.streams[RANDOM_STREAM.spawner]);
   spawnDnaFragment(world, { at: point, tag, driftTurn: context.streams[RANDOM_STREAM.moteMotion].nextFloat() });
   return 1;
+}
+
+/** One fragment in the pool: a point beyond `innerRadius`, then as in the dish. */
+function spawnPoolFragmentEvent(
+  world: WorldState,
+  context: StepContext,
+  maxAttempts: number,
+  innerRadius: number,
+): number {
+  const point = drawPointInPool(world, innerRadius, context.streams[RANDOM_STREAM.spawner], maxAttempts);
+  return placeFragment(world, context, point);
+}
+
+/** The pool's fragments may appear anywhere in it after the move. */
+const POOL_FRAGMENT_INNER_RADIUS = 0;
+
+/** One fragment: zone, point, the zone's tag, then a drift direction from `moteMotion`; in the pool, no zone draw. */
+export function spawnFragmentEvent(world: WorldState, context: StepContext, maxAttempts: number): number {
+  if (world.eraMovedInto !== GAME_ERA.dish) {
+    return spawnPoolFragmentEvent(world, context, maxAttempts, POOL_FRAGMENT_INNER_RADIUS);
+  }
+  const random = context.streams[RANDOM_STREAM.spawner];
+  const zone = drawSpawnZone(ENTITY_KIND.dnaFragment, random, world.balance);
+  return placeFragment(world, context, drawPointInZone(world, zone, random, maxAttempts));
 }
 
 type SpawnEvent = (room: number) => number;
@@ -122,7 +147,6 @@ function runSpawner(spawner: SpawnerState, rates: SpawnerRates, population: () =
   }
 }
 
-/** Step 8: both spawners for one tick; the kind row is the current world stage's (docs/ecology/food-and-spawn.md §3.2). */
 /**
  * Every mote and fragment gone and both spawners off: what the pool's move does to the dish's food
  * (docs/game-design/phases.md §14.4.2 step 4) and what a placed scenario row starts from (docs/ecology/acceptance.md §8).
@@ -134,6 +158,7 @@ export function clearFoodAndStopSpawners(world: WorldState): void {
   world.spawners.dnaFragments.isEnabled = false;
 }
 
+/** Step 8: both spawners for one tick; the kind row is the current world stage's (docs/ecology/food-and-spawn.md §3.2). */
 export function runSpawners(world: WorldState, context: StepContext): void {
   const maxAttempts = context.balance.ecology.SPAWN_POINT_MAX_ATTEMPTS;
   const { worldStage } = worldReferenceAt(world, world.tick);
@@ -190,6 +215,25 @@ export function runInitialFill(world: WorldState, context: StepContext): void {
     count: Math.floor(ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * fragments.cap),
     population: () => world.dnaFragments.length,
     spawn: () => spawnFragmentEvent(world, context, maxAttempts),
+    spawner: world.spawners.dnaFragments,
+    maxAttempts,
+  });
+}
+
+/**
+ * The pool's fragments at its move (docs/game-design/phases.md §14.4.2 step 2): the fragment spawner runs again, and
+ * the fill tops it up to `DNA_FRAGMENT_INITIAL_FILL_FRACTION` of its cap, every fragment beyond `innerRadius` (the
+ * landing, step 7).
+ */
+export function fillPoolFragments(world: WorldState, context: StepContext, innerRadius: number): void {
+  const maxAttempts = INITIAL_FILL_POINT_MAX_ATTEMPTS;
+  world.spawners.dnaFragments.isEnabled = true;
+  fill({
+    count: Math.floor(
+      context.balance.ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * fragmentSpawnerRates(world, context.balance).cap,
+    ),
+    population: () => world.dnaFragments.length,
+    spawn: () => spawnPoolFragmentEvent(world, context, maxAttempts, innerRadius),
     spawner: world.spawners.dnaFragments,
     maxAttempts,
   });

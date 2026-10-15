@@ -6,7 +6,15 @@
 // The framing bands are `preview-framing.spec.ts` and the loop is `preview-loop.spec.ts`; both walk the same
 // `SUBJECT_SPECS` this file does, so a family added here is covered there too.
 
-import { CELL_KIND, CELL_STAGE, DEFAULT_BALANCE, TICK_INTERVAL_S, zoneAt, type ZoneId } from '@evolution/shared';
+import {
+  CELL_KIND,
+  CELL_STAGE,
+  DEFAULT_BALANCE,
+  TICK_INTERVAL_S,
+  dishZoneMap,
+  zoneAt,
+  type ZoneId,
+} from '@evolution/shared';
 import { describe, expect, it } from 'vitest';
 import { BENCH_STAGE_TRAITS } from '../bench/bench-traits';
 import { PREVIEW_GEL_PATCHES, PREVIEW_SWIM_LAP_SECONDS } from '../constants';
@@ -46,7 +54,7 @@ describe('the zone scenes', () => {
   it('park inside the zone they are about, by the simulation’s own rule', () => {
     for (const zone of ZONE_IDS) {
       const target = previewSceneFor({ scene: PREVIEW_SCENE.zone, zone }).framing(BALANCE).target;
-      expect(zoneAt(target, PREVIEW_GEL_PATCHES, BALANCE), zone).toBe<ZoneId>(zone);
+      expect(zoneAt(target, dishZoneMap(PREVIEW_GEL_PATCHES), BALANCE), zone).toBe<ZoneId>(zone);
     }
   });
 });

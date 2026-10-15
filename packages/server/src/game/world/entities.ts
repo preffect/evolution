@@ -166,6 +166,18 @@ export interface PoolCreatureSeatRecord extends SeatMindRecord {
   isLandmark: boolean;
 }
 
+/**
+ * A swarm of green specks in the rock pool (docs/game-design/phases.md §14.5.2): its centre drifts toward the light
+ * patch and its specks drift with it (`simulation/pool-swarms.ts`). `memberIds` are its specks still lying, in spawn
+ * order; a speck eaten leaves the list, and a swarm eaten down to a quarter respawns elsewhere, its last specks left
+ * lying where they are.
+ */
+export interface PoolSwarmRecord {
+  centreX: number;
+  centreY: number;
+  memberIds: EntityId[];
+}
+
 export interface TraitOffer extends TraitOfferView {
   /** `null` while queued behind another offer; `cards` and `cardWeights` are empty until shown. */
   shownAtTick: number | null;
