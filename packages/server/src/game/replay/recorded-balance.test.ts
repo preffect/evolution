@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE, REPLAY_FORMAT_VERSION, type BalanceConfig } from '@evolution/shared';
 import { recordedBalanceWithShippingDefaults } from './recorded-balance.js';
+import { STAGE_SWITCH_LEAF } from './recorded-swallow-switch.js';
 import type { Replay } from './replay-format.js';
 import { replay } from './replay-runner.js';
 
@@ -18,7 +19,6 @@ const RECORDED_ABSORPTIONS = 1;
 /** A recorded number that differs from its default, so "the recording wins" is observable. */
 const RECORDED_DISH_RADIUS = 1234;
 /** The swallow switches (#907's, then #948's), named through constants because a balance is keyed by names. */
-const STAGE_SWITCH_LEAF = 'SWALLOW_FROM_STAGE';
 const TRAIT_SWITCH_LEAF = 'SWALLOW_GATE_TRAITS';
 
 function recordingBefore907(): Replay {

@@ -111,6 +111,7 @@ describe('game guards', () => {
 
   it.each<[string, unknown]>([
     ['an id that is not a trait (EL23)', ['amoeba']],
+    ['a catalog id beside one that is not a trait', ['cytoskeleton', 'amoeba']],
     ['an id twice (EL23)', ['cytoskeleton', 'cytoskeleton']],
     ['an id that is not a list (EL23)', 'cytoskeleton'],
     ['a stage id', [CELL_STAGE.eukaryote]],

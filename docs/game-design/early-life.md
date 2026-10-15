@@ -212,8 +212,8 @@ shape either way; the ladder does not. Answer B (a new Actin Skeleton that the L
                      any other cell: true
   ```
 
-  `eatsCells` is today's `isCellEaterSpecies` widened to the creature species (`CellView.poolCreature.species`, ticket
-  #935; the copepod has no cell and eats by its own sweep). **The nematode must be in it as a non-eater**, like the
+  `eatsCells` reads a giant's role and a creature's species (`CellView.poolCreature.species`, ticket #935; the copepod
+  has no cell and eats by its own sweep). **The nematode must be in it as a non-eater**, like the
   grazer and the drifter: it is a cell whose `giantSpecies` is null, so without it the nematode would read as a plain
   cell and, with the switch empty, pass `canEngulf`. So a creature built with no ladder still swallows or never does by
   its species, and the giant amoeba swallows because it is a hunter, not because of its build.
@@ -724,14 +724,14 @@ and §10 and debug-mcp.md §8 by the contract ticket.
   §15.12.1 heading. The ledger found only `## N. Constants table` sections (`constantsTableRows`), so ticket
   #907 widened the parser to take a section by its heading at any level; phases §14.14.1 (ticket #867) reuses it.
 - **Non-number balance leaves:** the patch and replay widening of §15.10, built in ticket #907.
-- **The predicate:** `EngulfPredator` reads `traits` in place of `stage` (`Pick<CellView, 'mass' | 'giantSpecies' |
-'poolCreature' | 'traits'>`); `canEngulf` is §15.5.1's formula (the species decides for a giant or a creature, the owned traits for a
+- **The predicate:** `EngulfPredator` reads `traits` in place of `stage` (`mass`, `giantSpecies`, `poolCreature` and
+  `traits`, read-only so a `CellView`, a server record and a bot's view all satisfy it); `canEngulf` is §15.5.1's formula (the species decides for a giant or a creature, the owned traits for a
   player or a plain wild cell); `EngulfRatioBalance` carries `SWALLOW_GATE_TRAITS` in place of `SWALLOW_FROM_STAGE`.
   `canSwallowByTraits(traits, balance)` and `ownsSwallowGateTrait(traits, balance)` are exported beside it, each read
   by the rules §15.5.1's table names. `isCellEaterSpecies` becomes `eatsCells`, reading `giantSpecies` and
   `poolCreature` (the nematode a non-eater). The bots' `BotCellView` gains `traits` and `poolCreature` (so a bot's `flee` and threat reads count a Didinium or a rotifer as dangerous).
   The mass half is exported as `meetsEngulfStartRatio`. `bacteriumContactOutcome(cell, heldCount, balance)`, `cell`
-  being `Pick<CellView, 'stage' | 'traits'>`, in `shared/simulation/` beside them.
+  being a `BacteriumContactCell` (its `stage` and `traits`), in `shared/simulation/` beside them.
 - **State:** a player cell's held list, server-side, in the state hash: each entry the mote's own record (id, mass,
   DNA, tag, heading) plus `bearingRadians` and `caughtAtTick`.
 - **Wire:** `CellView.latchedBacteria: readonly { moteId, variant, bearingRadians, caughtAtTick }[]`, every field stable

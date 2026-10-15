@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, STAGE_ORDER, type BalanceConfig } from '@evolution/shared';
 import {
   ReplayStageSwitchError,
+  STAGE_SWITCH_LEAF,
   recordedBalanceUnderTraitSwitch,
   recordedEventsUnderTraitSwitch,
 } from './recorded-swallow-switch.js';
@@ -22,8 +23,9 @@ const RECORDED_STAGE_SWITCH_PATCH = new URL('./fixtures/recorded-stage-switch-pa
 const RECORDED_FINAL_HASH = '44cbc5984ecd6514';
 const RECORDED_ABSORPTIONS = 1;
 const SWITCH_PATCH_TICK = 1;
-/** The swallow switches (#907's, then #948's), named through constants because a balance is keyed by names. */
-const STAGE_SWITCH_LEAF = 'SWALLOW_FROM_STAGE';
+/** A second stage switch patch, after the recorded one and before the last tick. */
+const LATER_SWITCH_PATCH_TICK = 100;
+/** The trait switch, named through a constant because a balance is keyed by names; the stage switch's is exported. */
 const TRAIT_SWITCH_LEAF = 'SWALLOW_GATE_TRAITS';
 /** Every stage but `protocell`: the stage switch at any of them ran a game the trait switch cannot replay. */
 const UNREPLAYABLE_STAGES = STAGE_ORDER.filter((stage) => stage !== CELL_STAGE.protocell);
@@ -145,5 +147,23 @@ describe('a recording with a recorded set_balance patch of the stage switch', ()
     const recording = read(RECORDED_STAGE_SWITCH_PATCH);
     const neverApplied = recording.finalTick + 2;
     expect(() => replay(patchRecordingUnderStage(CELL_STAGE.eukaryote, neverApplied))).toThrow(ReplayStageSwitchError);
+  });
+
+  it('maps every stage switch patch, not the first alone: a later eukaryote patch refuses it, naming its tick', () => {
+    const recording = read(RECORDED_STAGE_SWITCH_PATCH);
+    const laterPatch = { ...switchPatchOf(recording), tick: LATER_SWITCH_PATCH_TICK };
+    const laterEukaryote: ReplayDebugPatchEvent = {
+      ...laterPatch,
+      patch: {
+        kind: DEBUG_PATCH_KIND.setBalance,
+        patch: { absorption: { [STAGE_SWITCH_LEAF]: CELL_STAGE.eukaryote } },
+      },
+    };
+    const twoPatches = { ...recording, events: [...recording.events, laterEukaryote] };
+    expect(() => replay(twoPatches)).toThrow(
+      new ReplayStageSwitchError(
+        `recorded under the stage switch at "eukaryote" (a set_balance patch at tick ${LATER_SWITCH_PATCH_TICK}), which the trait switch cannot replay`,
+      ),
+    );
   });
 });

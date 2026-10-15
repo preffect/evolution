@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_STAGE, DEFAULT_BALANCE, DISH_RADIUS, GAME_ERA, GAME_ERA_ORDER, type GameEra } from '@evolution/shared';
 import { applyBalancePatch } from './balance-patch.js';
+import { STAGE_SWITCH_LEAF } from '../replay/recorded-swallow-switch.js';
 import { DebugRequestError } from './debug-request-error.js';
 import type { BalancePatch } from './simulation-debug-handle.js';
 
@@ -13,8 +14,6 @@ const STARTING_STAGE_LEAF = 'STARTING_STAGE';
 const DNA_TAGS_LEAF = 'DNA_TAGS';
 /** The declared trait-id list leaf, the swallow switch (early-life.md §15.10). */
 const SWALLOW_GATE_LEAF = 'SWALLOW_GATE_TRAITS';
-/** Ticket #907's stage switch, which #948 replaced: no leaf of the balance any more. */
-const STAGE_SWITCH_LEAF = 'SWALLOW_FROM_STAGE';
 /** The declared era-list leaf (phases.md §14.2.4). */
 const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 const TIER_TABLES_LEAF = 'TRAIT_TIERS';
@@ -215,6 +214,7 @@ describe('applyBalancePatch on the trait-id list leaf (docs/game-design/early-li
 
   it.each<[string, unknown]>([
     ['an id that is not a trait', ['amoeba']],
+    ['a catalog id beside one that is not a trait', ['cytoskeleton', 'amoeba']],
     ['an id twice', ['cytoskeleton', 'cytoskeleton']],
     ['an id that is not a list', 'cytoskeleton'],
     ['a stage id', [CELL_STAGE.eukaryote]],

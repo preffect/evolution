@@ -14,8 +14,8 @@ import { DEBUG_PATCH_KIND, REPLAY_EVENT_KIND, type ReplayEvent } from './replay-
 const SWITCH_DOMAIN: keyof BalanceConfig = 'absorption';
 /** The trait switch, typed so a renamed leaf fails to compile here. */
 const TRAIT_SWITCH_LEAF: keyof BalanceConfig['absorption'] = 'SWALLOW_GATE_TRAITS';
-/** Ticket #907's leaf, which no balance type names any more. */
-const STAGE_SWITCH_LEAF = 'SWALLOW_FROM_STAGE';
+/** Ticket #907's leaf, which no balance type names any more; a test that builds an old recording names it by this. */
+export const STAGE_SWITCH_LEAF = 'SWALLOW_FROM_STAGE';
 /** The one stage the trait switch can replay: it let every cell swallow. */
 const EVERY_CELL_SWALLOWS_STAGE = CELL_STAGE.protocell;
 /** The trait switch that plays the same game: no gate. */
