@@ -1,11 +1,23 @@
-// docs/ecology/food-and-spawn.md §3 and docs/ecology/acceptance.md §8 E2/E3 on the spawners alone (no eating, the cell idle).
+// docs/ecology/food-and-spawn.md §3 and docs/ecology/acceptance.md §8 E2/E3 on the spawners alone (no eating, the cell idle);
+// docs/game-design/phases.md §14.5.2: in the rock pool a fragment's point is uniform over the pool, its tag the pool's zone's.
 import { describe, expect, it } from 'vitest';
-import { CELL_STAGE, createSeededRandom, DEFAULT_BALANCE, FOOD_KIND, RANDOM_STREAM, TICK_HZ } from '@evolution/shared';
-import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
+import {
+  CELL_STAGE,
+  createSeededRandom,
+  createTestPoolLayout,
+  DEFAULT_BALANCE,
+  distanceBetween,
+  FOOD_KIND,
+  GAME_ERA,
+  RANDOM_STREAM,
+  TICK_HZ,
+  ZONE_ID,
+} from '@evolution/shared';
+import { createTestStepContext, createTestWorld, createTestWorldInEras } from '../../testing/world-builders.js';
 import { storeStreams } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
 import { worldReferenceAt } from './round-clock.js';
-import { drawSpawnZone, runInitialFill, runSpawners, spawnFoodEvent } from './spawner.js';
+import { drawSpawnZone, runInitialFill, runSpawners, spawnFoodEvent, spawnFragmentEvent } from './spawner.js';
 import { foodSpawnerRates, fragmentSpawnerRates } from './spawn-rates.js';
 
 const { ecology } = DEFAULT_BALANCE;
@@ -188,5 +200,32 @@ describe('runInitialFill', () => {
       Math.floor(ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * fragmentSpawnerRates(world, DEFAULT_BALANCE).cap),
     );
     expect(context.streams[RANDOM_STREAM.spawner].getState().position).toBeGreaterThan(0);
+  });
+});
+
+describe('spawnFragmentEvent in the rock pool', () => {
+  const poolFragmentSamples = 400;
+  /** The test layout's patch lies 1 500 wu due east on tick 0. */
+  const patchCentre = { x: 1500, y: 0 };
+  const tagsOf = (zone: keyof typeof ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE) =>
+    Object.keys(ecology.DNA_FRAGMENT_TAG_TABLE_BY_ZONE[zone]);
+
+  it('lays fragments over the whole pool, the dish’s vent included, each tagged by the light patch or open water', () => {
+    const world = createTestWorldInEras();
+    world.eraMovedInto = GAME_ERA.pool;
+    world.poolLayout = createTestPoolLayout();
+    world.tick = 0;
+    const context = createTestStepContext(world);
+    for (let sample = 0; sample < poolFragmentSamples; sample += 1) {
+      spawnFragmentEvent(world, context, ecology.SPAWN_POINT_MAX_ATTEMPTS);
+    }
+    const isLit = (point: { x: number; y: number }) =>
+      distanceBetween(point, patchCentre) <= DEFAULT_BALANCE.pool.POOL_LIGHT_PATCH_RADIUS;
+    const lit = world.dnaFragments.filter(isLit);
+    const dark = world.dnaFragments.filter((fragment) => !isLit(fragment));
+    expect(lit.length).toBeGreaterThan(0);
+    expect(dark.some((fragment) => Math.hypot(fragment.x, fragment.y) <= ecology.VENT_RADIUS)).toBe(true);
+    expect(lit.every((fragment) => tagsOf(ZONE_ID.sunlitShallows).includes(fragment.tag))).toBe(true);
+    expect(dark.every((fragment) => tagsOf(ZONE_ID.openBroth).includes(fragment.tag))).toBe(true);
   });
 });
