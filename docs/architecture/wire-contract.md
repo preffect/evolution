@@ -142,7 +142,8 @@ every tick
   - **A viewer the flow control holds** (a resync already in flight, §4 "One resync per recovery") is sent nothing at
     the move and is owed a resync (`SnapshotBacklog.oweResync`), since a later delta would carry pool coordinates into
     a store and a food delta still in the dish's; it reaches the pool through that resync once it catches up, which
-    carries no effects, so it never sees that `era_moved`. The client's move cues (the layer swap, the fade, the caption, the camera's remap) therefore key on the
+    carries no effects, so it never sees that `era_moved`. A paused room sends it no step's delta while it is owed
+    one (`deliveryWhileHeld`); the resync goes out on its ack (`isResyncDue`). The client's move cues (the layer swap, the fade, the caption, the camera's remap) therefore key on the
     snapshot's `era` leaving the dish, never on the `era_moved` effect; the effect drives only the moment's sound and
     toast.
   - The colonies' move (§14.4.5) maps nothing and goes out as an ordinary delta; a step that runs both (a
@@ -172,9 +173,11 @@ every tick
     the streams: like `gelPatches`, the drawn layout stays.
 - **The cameras across the move.** Both sides remap with the shared `remapCameraAcrossMove(state, eras.ERA_SCALE_STEP)`
   (`camera/era-move-camera.ts`: x, y and the view's half-height divided by the step) when the era they frame leaves
-  the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` at its step has left the dish
-  and had not at its previous step, remapping **every** state of its history so no dish-coordinate rectangle stays in
-  the cull union; the client's when the snapshot it draws has (client.md §5). Neither re-parks. Then each side
+  the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` has left the dish since it last
+  read it, at a broadcast's step or at a `game_state`'s cull (a viewer the move's broadcast skipped reaches the pool
+  through its owed resync, which no step precedes), remapping **every** state of every history so no
+  dish-coordinate rectangle stays in the cull union; the client's on the first frame whose newest snapshot (the frame's `latest`, not the one at its
+  render tick) has, after a frame whose newest had not (client.md §5). Neither re-parks. Then each side
   passes `moveCameraZoomSecondsAt(tick, roundStartTick, era, balance)` as `stepCamera`'s zoom constant:
   `ERA_MOVE_CAMERA_ZOOM_SECONDS` for `ERA_MOVE_CAMERA_EASE_SECONDS` from the pool's move tick, `CAMERA_ZOOM_SECONDS`
   otherwise (one ease, not two). The move tick is derived (`eraStartedAtTick` of the pool), never sent. It is exact

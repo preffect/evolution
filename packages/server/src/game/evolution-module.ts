@@ -110,6 +110,7 @@ export function createEvolutionModule(options: RoomInitOptions): EvolutionModule
     // The pool's move (docs/architecture/wire-contract.md §4 "The move").
     isViewRestartNext: () => moveBroadcasts.isMoveNext(),
     isViewRestartBroadcast: () => moveBroadcasts.isMoveBroadcast(),
+    liveBalance: () => world.balance,
     viewerState,
     getDebugHandle: () => debugHandle,
   };

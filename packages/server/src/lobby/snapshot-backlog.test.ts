@@ -261,4 +261,15 @@ describe('SnapshotBacklog', () => {
     expect(backlog.nextFor(connection, FIRST_TICK + 1)).toBe(SNAPSHOT_DELIVERY.delta);
     expect(backlog.resyncCount()).toBe(1);
   });
+
+  it('holds a paused room’s connection owed a resync during its resync hold: no delta of a world it cannot take', () => {
+    for (const isOwed of [true, false]) {
+      const { backlog, connection, playerId } = oneConnection();
+      backlog.recordAcknowledgedTick(playerId, FIRST_TICK - 1);
+      backlog.recordResyncSent(playerId, FIRST_TICK);
+      if (isOwed) backlog.oweResync(playerId);
+      const expected = isOwed ? SNAPSHOT_DELIVERY.skipped : SNAPSHOT_DELIVERY.delta;
+      expect(backlog.nextFor(connection, FIRST_TICK + 1, true)).toBe(expected);
+    }
+  });
 });

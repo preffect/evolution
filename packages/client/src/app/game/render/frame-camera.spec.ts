@@ -11,6 +11,7 @@ import {
   remapCameraAcrossMove,
   secondsToTicks,
   stepCamera,
+  type CameraState,
   type CameraTarget,
   type GameEra,
 } from '@evolution/shared';
@@ -23,9 +24,17 @@ const VIEWPORT_HEIGHT_PX = 600;
 const MOVE_TICK = eraStartedAtTick(GAME_ERA.pool, 0, DEFAULT_BALANCE);
 const FRAME_TICKS = 3;
 
-/** The render clock's step into the frame at `tick`, computed as the camera computes it from the frames' times. */
-function frameSecondsTo(tick: number): number {
-  return tick * TICK_INTERVAL_S - (tick - FRAME_TICKS) * TICK_INTERVAL_S;
+const FRAME_SECONDS = FRAME_TICKS * TICK_INTERVAL_S;
+/**
+ * The camera reads a frame's step as the difference of two frame times, which can differ from `FRAME_SECONDS` in the
+ * last bits; a camera is compared to this many digits.
+ */
+const CAMERA_DIGITS = 9;
+
+function expectCameraCloseTo(actual: CameraState, expected: CameraState): void {
+  expect(actual.x).toBeCloseTo(expected.x, CAMERA_DIGITS);
+  expect(actual.y).toBeCloseTo(expected.y, CAMERA_DIGITS);
+  expect(actual.viewHalfHeightWu).toBeCloseTo(expected.viewHalfHeightWu, CAMERA_DIGITS);
 }
 /** PH1's cell before the move (mass 500) and after it (the arrival mass), as phases.md §14.4.4 sizes them. */
 const DISH_CELL: CameraTarget = { x: 1200, y: -600, radius: 89 };
@@ -53,12 +62,12 @@ describe('FrameCamera across the pool’s move (wire-contract.md §4 "The camera
     const remapped = remapCameraAcrossMove(parked, eras.ERA_SCALE_STEP);
     const moved = step(camera, MOVE_TICK, GAME_ERA.pool, POOL_CELL);
     const zoomSeconds = eras.ERA_MOVE_CAMERA_ZOOM_SECONDS;
-    expect(moved).toEqual(stepCamera(remapped, POOL_CELL, frameSecondsTo(MOVE_TICK), zoomSeconds));
+    expectCameraCloseTo(moved, stepCamera(remapped, POOL_CELL, FRAME_SECONDS, zoomSeconds));
     // Not re-parked: the view starts from the dish's view in pool units, not on the arriving cell's.
     expect(moved.viewHalfHeightWu).toBeLessThan(parkCamera(POOL_CELL).viewHalfHeightWu);
     // Once only: the next pool frame steps from there.
     const next = step(camera, MOVE_TICK + FRAME_TICKS, GAME_ERA.pool, POOL_CELL);
-    expect(next).toEqual(stepCamera(moved, POOL_CELL, frameSecondsTo(MOVE_TICK + FRAME_TICKS), zoomSeconds));
+    expectCameraCloseTo(next, stepCamera(moved, POOL_CELL, FRAME_SECONDS, zoomSeconds));
   });
 
   it('eases with the move’s constant for ERA_MOVE_CAMERA_EASE_SECONDS from the move tick, then with the camera’s', () => {
@@ -69,9 +78,9 @@ describe('FrameCamera across the pool’s move (wire-contract.md §4 "The camera
     const lastEaseTick = easeEndTick - FRAME_TICKS;
     const lastEased = step(camera, lastEaseTick, GAME_ERA.pool, POOL_CELL);
     const after = step(camera, easeEndTick, GAME_ERA.pool, POOL_CELL);
-    const seconds = frameSecondsTo(easeEndTick);
-    expect(after).toEqual(stepCamera(lastEased, POOL_CELL, seconds, CAMERA_ZOOM_SECONDS));
-    expect(after).not.toEqual(stepCamera(lastEased, POOL_CELL, seconds, eras.ERA_MOVE_CAMERA_ZOOM_SECONDS));
+    expectCameraCloseTo(after, stepCamera(lastEased, POOL_CELL, FRAME_SECONDS, CAMERA_ZOOM_SECONDS));
+    const eased = stepCamera(lastEased, POOL_CELL, FRAME_SECONDS, eras.ERA_MOVE_CAMERA_ZOOM_SECONDS);
+    expect(after.viewHalfHeightWu).not.toBeCloseTo(eased.viewHalfHeightWu, CAMERA_DIGITS);
   });
 
   it('never remaps a camera that first framed the pool (a late join) or the colonies’ move', () => {
@@ -80,15 +89,14 @@ describe('FrameCamera across the pool’s move (wire-contract.md §4 "The camera
     const inPool = step(camera, MOVE_TICK + FRAME_TICKS, GAME_ERA.pool, POOL_CELL);
     const coloniesTick = MOVE_TICK + 2 * FRAME_TICKS;
     const colonies = step(camera, coloniesTick, GAME_ERA.colonies, POOL_CELL);
-    const seconds = frameSecondsTo(coloniesTick);
-    expect(colonies).toEqual(stepCamera(inPool, POOL_CELL, seconds, eras.ERA_MOVE_CAMERA_ZOOM_SECONDS));
+    expectCameraCloseTo(colonies, stepCamera(inPool, POOL_CELL, FRAME_SECONDS, eras.ERA_MOVE_CAMERA_ZOOM_SECONDS));
   });
 
   it('steps with the camera’s own zoom constant while the round stays in the dish', () => {
     const camera = new FrameCamera();
     const parked = step(camera, 0, GAME_ERA.dish, DISH_CELL);
     const stepped = step(camera, FRAME_TICKS, GAME_ERA.dish, POOL_CELL);
-    expect(stepped).toEqual(stepCamera(parked, POOL_CELL, frameSecondsTo(FRAME_TICKS), CAMERA_ZOOM_SECONDS));
+    expectCameraCloseTo(stepped, stepCamera(parked, POOL_CELL, FRAME_SECONDS, CAMERA_ZOOM_SECONDS));
   });
 
   it('keeps a fixed zoom through the remap', () => {

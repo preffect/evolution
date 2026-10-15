@@ -3,6 +3,7 @@
 // `snapshot-backlog.test.ts`; the room's side of the cadence is `game-room-cadence.test.ts`.
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_BALANCE,
   SERVER_MESSAGE_TYPE,
   SNAPSHOT_BACKLOG_LIMIT_BYTES,
   TICK_HZ,
@@ -55,7 +56,7 @@ function dispatchFixture() {
   const setViewRestart = (isRestart: boolean) => {
     game.isViewRestartBroadcast = () => isRestart;
   };
-  return { dispatch, room, sent, connections, bytesSent, recordSilentTick, setPaused, setViewRestart };
+  return { dispatch, room, game, sent, connections, bytesSent, recordSilentTick, setPaused, setViewRestart };
 }
 
 describe('SnapshotDispatch', () => {
@@ -146,5 +147,43 @@ describe('SnapshotDispatch: the broadcast that holds a view restart (wire-contra
       const expected = isRestart ? SERVER_MESSAGE_TYPE.gameState : SERVER_MESSAGE_TYPE.gameSnapshot;
       expect(typesSentTo(sent, 'p1')).toEqual([expected]);
     }
+  });
+
+  it('sends a paused room’s held connection nothing after the move until its owed resync', () => {
+    const { dispatch, room, sent, setViewRestart, setPaused } = dispatchFixture();
+    room.snapshotBacklog.recordAcknowledgedTick('p1', 0);
+    room.snapshotBacklog.recordResyncSent('p1', 1);
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    setViewRestart(false);
+    setPaused(true);
+    dispatch.broadcastOffTick();
+    expect(sent['p1']).toEqual([]);
+    dispatch.acknowledge('p1', 1);
+    expect(typesSentTo(sent, 'p1')).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+  });
+
+  it('sends a connection owed a resync that caught up at the move one game_state, counted once', () => {
+    const { dispatch, room, sent, connections, setViewRestart } = dispatchFixture();
+    setBufferedAmount(connections[0]!, SATURATED_BYTES);
+    dispatch.broadcastOnTick();
+    setBufferedAmount(connections[0]!, 0);
+    expect(room.snapshotBacklog.owedCount()).toBe(1);
+    const resyncsBefore = room.snapshotBacklog.resyncCount();
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    expect(typesSentTo(sent, 'p1')).toEqual([SERVER_MESSAGE_TYPE.gameState]);
+    expect(room.snapshotBacklog.resyncCount()).toBe(resyncsBefore + PLAYER_IDS.length);
+    expect(room.snapshotBacklog.owedCount()).toBe(0);
+  });
+
+  it('carries the module’s live balance, read without serialising the world', () => {
+    const { dispatch, game, sent, setViewRestart } = dispatchFixture();
+    const liveBalance = structuredClone(DEFAULT_BALANCE);
+    game.liveBalance = () => liveBalance;
+    setViewRestart(true);
+    dispatch.broadcastOnTick();
+    expect(sent['p1']).toMatchObject([{ type: SERVER_MESSAGE_TYPE.gameState, balance: liveBalance }]);
+    expect(game.serializeFullState).not.toHaveBeenCalled();
   });
 });

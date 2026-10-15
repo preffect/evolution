@@ -127,7 +127,7 @@ export class SnapshotDispatch {
    */
   private broadcastViewRestart(snapshot: RoomBroadcastSnapshot): SnapshotBroadcast {
     const { snapshotBacklog, performanceTracker } = this.room;
-    const { balance } = this.game.serializeFullState();
+    const balance = this.game.liveBalance?.() ?? this.game.serializeFullState().balance;
     for (const connection of this.room.playerConnections.values()) {
       const playerId = connection.playerId as PlayerId;
       const delivery = snapshotBacklog.nextFor(connection, snapshot.tick, this.room.isPaused());

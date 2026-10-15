@@ -55,11 +55,10 @@ export class ViewerCameras {
 
   /**
    * One broadcast: every player's camera steps toward its target over the ticks since its last step, with the move's
-   * zoom ease while it runs. On the first step after the world left the dish, every history is remapped first.
+   * zoom ease while it runs. After the world left the dish, every history is remapped first (`followEra`).
    */
   step(world: WorldState): void {
-    const hasLeftTheDish = this.framedEra === GAME_ERA.dish && world.eraMovedInto !== GAME_ERA.dish;
-    this.framedEra = world.eraMovedInto;
+    this.followEra(world);
     const zoomSeconds = moveCameraZoomSecondsAt(world.tick, world.roundStartTick, world.eraMovedInto, world.balance);
     for (const { playerId } of world.players) {
       const history = this.histories.get(playerId);
@@ -67,7 +66,6 @@ export class ViewerCameras {
         this.park(world, playerId);
         continue;
       }
-      if (hasLeftTheDish) remapHistory(history, world.balance.eras.ERA_SCALE_STEP);
       const deltaSeconds = (world.tick - history.tick) * TICK_INTERVAL_S;
       history.newest = stepCamera(history.newest, followTargetOf(world, playerId), deltaSeconds, zoomSeconds);
       history.tick = world.tick;
@@ -81,6 +79,7 @@ export class ViewerCameras {
    * the client's first frame does.
    */
   areaOf(world: WorldState, playerId: PlayerId, marginWu: number): InterestArea {
+    this.followEra(world);
     const history = this.histories.get(playerId) ?? this.park(world, playerId);
     return interestAreaOf(history.states, marginWu);
   }
@@ -97,6 +96,17 @@ export class ViewerCameras {
 
   forget(playerId: PlayerId): void {
     this.histories.delete(playerId);
+  }
+
+  /**
+   * Every history in pool units once the world has left the dish, whichever reads it first: a broadcast's step, or a
+   * `game_state` for a viewer the move's broadcast skipped, which no step reached (wire-contract.md §4 "The move").
+   */
+  private followEra(world: WorldState): void {
+    const hasLeftTheDish = this.framedEra === GAME_ERA.dish && world.eraMovedInto !== GAME_ERA.dish;
+    this.framedEra = world.eraMovedInto;
+    if (!hasLeftTheDish) return;
+    for (const history of this.histories.values()) remapHistory(history, world.balance.eras.ERA_SCALE_STEP);
   }
 
   private park(world: WorldState, playerId: PlayerId): CameraHistory {

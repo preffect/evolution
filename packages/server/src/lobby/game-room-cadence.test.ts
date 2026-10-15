@@ -155,8 +155,11 @@ describe('game-room: the broadcast cadence (docs/architecture/entity-model.md §
 });
 
 describe('game-room: a broadcast closes before a view restart (wire-contract.md §4 "The move")', () => {
-  /** Steps two intervals with the module saying a restart comes after tick `restartAfterTick` (none when null). */
-  function stepAroundRestart(restartAfterTick: number | null) {
+  /**
+   * Steps two intervals with the module saying a restart comes after tick `restartAfterTick` (none when null), in one
+   * burst, or in two split at `splitAtTick` (a debug step ending off the cadence).
+   */
+  function stepAroundRestart(restartAfterTick: number | null, splitAtTick: number | null = null) {
     const sent: SentLog = {};
     const gameModule = createDrainingGameModule();
     const steppedTicks = () => vi.mocked(gameModule.reduceGameState).mock.calls.length;
@@ -164,7 +167,9 @@ describe('game-room: a broadcast closes before a view restart (wire-contract.md 
     const room = new GameRoom(gameModule, roomOptions(), createManualRoomTiming());
     room.addPlayer(createTestConnection({ playerId: ROOM_PLAYER_ID, sent }));
     room.start();
-    room.step(INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS);
+    const totalTicks = INTERVALS_TO_SAMPLE_BYTES * SNAPSHOT_EVERY_TICKS;
+    if (splitAtTick !== null) room.step(splitAtTick);
+    room.step(totalTicks - (splitAtTick ?? 0));
     return { ticks: broadcastTicks(sent, ROOM_PLAYER_ID), moments: broadcastMoments(sent, ROOM_PLAYER_ID) };
   }
   const allTicks = Array.from(
@@ -183,6 +188,12 @@ describe('game-room: a broadcast closes before a view restart (wire-contract.md 
   it('sends nothing extra when the window is already closed, nor without a restart', () => {
     expect(stepAroundRestart(SNAPSHOT_EVERY_TICKS).ticks).toEqual([SNAPSHOT_EVERY_TICKS, lastTick]);
     expect(stepAroundRestart(null).ticks).toEqual([SNAPSHOT_EVERY_TICKS, lastTick]);
+  });
+
+  it('sends nothing extra when a debug step closed the window off the cadence on the tick before the restart', () => {
+    const { ticks, moments } = stepAroundRestart(restartAfterTick, restartAfterTick);
+    expect(ticks).toEqual([SNAPSHOT_EVERY_TICKS, restartAfterTick, lastTick]);
+    expect(moments).toEqual(allTicks);
   });
 });
 

@@ -55,6 +55,11 @@ export interface GameModule<
    * every broadcast is a delta.
    */
   isViewRestartBroadcast?(): boolean;
+  /**
+   * Optional: the balance the module simulates with now, read without serialising the world: what that restart's
+   * `game_state` carries. Without it the room reads `serializeFullState().balance`.
+   */
+  liveBalance?(): BalanceConfig;
   /** A player joined mid-game. */
   addPlayer(playerId: PlayerId, avatarIndex: number, playerName: string): void;
   /** A player left. Drop their entity so it stops appearing in snapshots. */
