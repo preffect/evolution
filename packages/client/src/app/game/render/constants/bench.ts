@@ -133,11 +133,15 @@ export const RENDER_BENCH_ORBIT_RADIUS_WU = { min: 40, max: 900 } as const;
 export const RENDER_BENCH_ORBIT_SECONDS = { min: 20, max: 90 } as const;
 /** Cell masses, log-uniform, from a fresh protocell to a late-round giant. */
 export const RENDER_BENCH_MASS = { min: 20, max: 2000 } as const;
-/** Algae : bacterium : detritus shares of the bench dish (the eukaryote-era mix, ecology/food-and-spawn.md §3). */
+/**
+ * Algae : bacterium : detritus shares of the bench dish (the eukaryote-era mix, ecology/food-and-spawn.md §3); the
+ * bench is the dish, so the pool's green speck has none.
+ */
 export const RENDER_BENCH_MOTE_KIND_SHARES: Readonly<Record<FoodKind, number>> = {
   [FOOD_KIND.algae]: 0.6,
   [FOOD_KIND.bacterium]: 0.3,
   [FOOD_KIND.detritus]: 0.1,
+  [FOOD_KIND.greenSpeck]: 0,
 };
 /** Motes and fragments are scattered inside this radius (wu) of the dish centre. */
 export const RENDER_BENCH_MOTE_SPREAD_WU = 1000;
