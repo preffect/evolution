@@ -1,11 +1,14 @@
-// docs/game-design/phases.md §14.4.2, steps 1, 3, 4, 5 and 8 of the pool's move (the others belong to tickets #869,
-// #870, #872 and the serializer): what cannot cross ends with nothing paid, the dish's wild cells, giants, motes and
-// spawners leave (each cell a green speck at its mapped point), each player lands at its mapped point at the arrival
-// mass with its velocity and target scaled, and the grace starts on the move's tick.
+// docs/game-design/phases.md §14.4.2, steps 1 to 5, 7 and 8 of the pool's move (the others belong to tickets #869,
+// #872 and the serializer): what cannot cross ends with nothing paid, the pool's food is placed clear of the landing
+// and the dish's gel ends, the dish's wild cells, giants, motes and spawners leave (each cell a green speck at its
+// mapped point), each player lands at its mapped point at the arrival mass with its velocity and target scaled, and the
+// grace starts on the move's tick.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
   DNA_TAG,
+  createTestPoolLayout,
+  distanceBetween,
   EFFECT_KIND,
   ENGULF_RELEASE_REASON,
   FOOD_KIND,
@@ -15,7 +18,7 @@ import {
 import { createEngulfFixture } from '../../testing/engulf-builders.js';
 import { seatTestGiantCell, seatTestWildCell } from '../../testing/wild-builders.js';
 import { createTestStepContext, createTestWorld } from '../../testing/world-builders.js';
-import type { BacteriumMoteRecord, CellRecord } from '../world/entities.js';
+import type { BacteriumMoteRecord, CellRecord, FoodMoteRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
 import { beginEngulf } from './engulf-state.js';
@@ -39,6 +42,12 @@ const GIANT_AT = { x: 900, y: 900 };
 const MOTE_AT = { x: 100, y: 100 };
 const DRIFT_TURN = 0.25;
 const HELD_BEARING_RADIANS = 1;
+
+/** The motes no swarm holds: what step 4 left (a swarm's specks are step 2's). */
+function leftoversIn(world: WorldState): FoodMoteRecord[] {
+  const inSwarms = new Set((world.poolSwarms ?? []).flatMap((swarm) => swarm.memberIds));
+  return world.food.filter((mote) => !inSwarms.has(mote.id));
+}
 
 function placePh1Cell(cell: CellRecord): void {
   cell.x = PH1_DISH_POINT.x;
@@ -78,22 +87,22 @@ describe('runPoolMove', () => {
     expect(predator.latchedBacteria).toEqual([]);
   });
 
-  it('step 4: the dish’s wild cells, giants, motes and fragments leave, their seats empty, the spawners stop', () => {
+  it('step 4: the dish’s wild cells, giants, motes and fragments leave, their seats empty, its food spawner stops', () => {
     const world = createTestWorld();
     seatTestWildCell(world, { at: WILD_AT });
     seatTestGiantCell(world, { species: GIANT_SPECIES.amoeba, at: GIANT_AT, bornMass: PH1_MASS });
-    spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: MOTE_AT });
-    spawnDnaFragment(world, { at: MOTE_AT, tag: DNA_TAG.motile, driftTurn: DRIFT_TURN });
+    const dishMote = spawnFoodMote(world, { kind: FOOD_KIND.algae, variant: null, at: MOTE_AT });
+    const dishFragment = spawnDnaFragment(world, { at: MOTE_AT, tag: DNA_TAG.motile, driftTurn: DRIFT_TURN });
     world.spawners.food.isEnabled = true;
     world.spawners.dnaFragments.isEnabled = true;
     runPoolMove(world, createTestStepContext(world));
     expect(world.cells.map((cell) => cell.playerId)).toEqual([world.players[0]!.playerId]);
     expect(world.wildSeats).toEqual([]);
     expect(world.giantSeats).toEqual([]);
-    expect(world.food.map((mote) => mote.kind)).toEqual([FOOD_KIND.greenSpeck, FOOD_KIND.greenSpeck]);
-    expect(world.dnaFragments).toEqual([]);
+    expect(leftoversIn(world).map((mote) => mote.kind)).toEqual([FOOD_KIND.greenSpeck, FOOD_KIND.greenSpeck]);
+    expect(world.food.map((mote) => mote.id)).not.toContain(dishMote.id);
+    expect(world.dnaFragments.map((fragment) => fragment.id)).not.toContain(dishFragment.id);
     expect(world.spawners.food.isEnabled).toBe(false);
-    expect(world.spawners.dnaFragments.isEnabled).toBe(false);
   });
 
   it('step 4: each wild cell and giant leaves one green speck of ERA_LEFTOVER_SPECK_MASS at its mapped point', () => {
@@ -102,7 +111,7 @@ describe('runPoolMove', () => {
     seatTestGiantCell(world, { species: GIANT_SPECIES.amoeba, at: GIANT_AT, bornMass: PH1_MASS });
     runPoolMove(world, createTestStepContext(world));
     expect(eras.ERA_LEFTOVER_SPECK_MASS).not.toBe(pool.POOL_GREEN_SPECK_MASS);
-    expect(world.food).toMatchObject([
+    expect(leftoversIn(world)).toMatchObject([
       {
         kind: FOOD_KIND.greenSpeck,
         mass: eras.ERA_LEFTOVER_SPECK_MASS,
@@ -119,7 +128,7 @@ describe('runPoolMove', () => {
   it('step 4: a dish with no wild cell or giant leaves no speck', () => {
     const world = createTestWorld();
     runPoolMove(world, createTestStepContext(world));
-    expect(world.food).toEqual([]);
+    expect(leftoversIn(world)).toEqual([]);
   });
 
   it('step 4: a player spectating a wild cell no longer follows it once it has left', () => {
@@ -161,6 +170,63 @@ describe('runPoolMove', () => {
     cell.targetY = null;
     runPoolMove(world, createTestStepContext(world));
     expect([cell.targetX, cell.targetY, cell.pinnedX, cell.pinnedY]).toEqual([null, null, null, null]);
+  });
+
+  it('step 2: POOL_SWARM_COUNT swarms of POOL_SWARM_SIZE green specks, each within POOL_SWARM_RADIUS of its centre', () => {
+    const world = createTestWorld();
+    runPoolMove(world, createTestStepContext(world));
+    const swarms = world.poolSwarms!;
+    expect(swarms).toHaveLength(pool.POOL_SWARM_COUNT);
+    const specks = new Map(world.food.map((mote) => [mote.id, mote]));
+    for (const swarm of swarms) {
+      expect(swarm.memberIds).toHaveLength(pool.POOL_SWARM_SIZE);
+      for (const id of swarm.memberIds) {
+        const speck = specks.get(id)!;
+        expect(speck.kind).toBe(FOOD_KIND.greenSpeck);
+        expect(distanceBetween(speck, { x: swarm.centreX, y: swarm.centreY })).toBeLessThanOrEqual(
+          pool.POOL_SWARM_RADIUS,
+        );
+      }
+    }
+  });
+
+  it('steps 2 and 7: no speck of a swarm and no fragment lies within ERA_LANDING_CLEAR_RADIUS', () => {
+    const world = createTestWorld();
+    runPoolMove(world, createTestStepContext(world));
+    const placed = [...world.food.filter((mote) => !leftoversIn(world).includes(mote)), ...world.dnaFragments];
+    expect(placed.length).toBeGreaterThan(pool.POOL_SWARM_COUNT * pool.POOL_SWARM_SIZE);
+    for (const item of placed) {
+      expect(Math.hypot(item.x, item.y)).toBeGreaterThanOrEqual(eras.ERA_LANDING_CLEAR_RADIUS);
+    }
+  });
+
+  it('step 2: the fragment spawner runs again, filled to DNA_FRAGMENT_INITIAL_FILL_FRACTION of its cap', () => {
+    const world = createTestWorld();
+    runPoolMove(world, createTestStepContext(world));
+    const { ecology } = DEFAULT_BALANCE;
+    const cap = ecology.DNA_FRAGMENT_CAP_BASE + ecology.DNA_FRAGMENT_CAP_PER_PLAYER * world.players.length;
+    expect(world.spawners.dnaFragments.isEnabled).toBe(true);
+    expect(world.dnaFragments).toHaveLength(Math.floor(ecology.DNA_FRAGMENT_INITIAL_FILL_FRACTION * cap));
+  });
+
+  it('step 2: the dish’s gel patches do not follow the players into the pool', () => {
+    const world = createTestWorld();
+    expect(world.gelPatches).not.toEqual([]);
+    runPoolMove(world, createTestStepContext(world));
+    expect(world.gelPatches).toEqual([]);
+  });
+
+  it('step 2: draws the layout when the round’s start drew none, its orbit from the round’s start, and keeps one it drew', () => {
+    const undrawn = createTestWorld();
+    undrawn.tick = MOVE_TICK;
+    runPoolMove(undrawn, createTestStepContext(undrawn));
+    expect(undrawn.poolLayout!.lightPatchOrbit.startTick).toBe(undrawn.roundStartTick);
+    expect(undrawn.roundStartTick).not.toBe(MOVE_TICK);
+    const drawn = createTestWorld();
+    const layout = createTestPoolLayout();
+    drawn.poolLayout = layout;
+    runPoolMove(drawn, createTestStepContext(drawn));
+    expect(drawn.poolLayout).toBe(layout);
   });
 
   it('step 8: the grace starts on the move’s tick, stored on the world', () => {

@@ -37,3 +37,11 @@ export function poolThreadEnds(
     { x: thread.x + halfLength.x, y: thread.y + halfLength.y },
   ];
 }
+
+/** The bank's inner edge (phases.md §14.5.2): `DISH_RADIUS − POOL_BANK_WIDTH` from the pool's centre. */
+export function poolBankInnerRadius(balance: {
+  world: Pick<BalanceConfig['world'], 'DISH_RADIUS'>;
+  pool: Pick<BalanceConfig['pool'], 'POOL_BANK_WIDTH'>;
+}): number {
+  return balance.world.DISH_RADIUS - balance.pool.POOL_BANK_WIDTH;
+}

@@ -1,8 +1,13 @@
-// docs/ecology/mass-and-movement.md §4, §4.1 (E5), §5.4 and docs/traits/constants-and-acceptance.md §6 (T5, T7).
+// docs/ecology/mass-and-movement.md §4, §4.1 (E5), §5.4 and docs/traits/constants-and-acceptance.md §6 (T5, T7);
+// docs/game-design/phases.md §14.5.2: in the pool the dish's vent is gone and the light patch is the one sunlit zone.
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_BALANCE,
+  GAME_ERA,
+  MASS_RATE_CAUSE,
   TICK_INTERVAL_S,
+  ZONE_ID,
+  createTestPoolLayout,
   TRAIT_TIERS,
   isReachedByToxin,
   playerId,
@@ -246,4 +251,43 @@ describe('toxin reach', () => {
       expect(isReachedByToxin(targetAt(rimToRimGap + REACH_EDGE_MARGIN_WU), toxic)).toBe(false);
     },
   );
+});
+
+describe('metabolise in the pool', () => {
+  /** The test layout's patch is due east on tick 0: a point inside it and the pool's centre, outside it. */
+  const litPoint = { x: 1500, y: 0 };
+  const poolCentre = { x: 0, y: 0 };
+
+  function inThePool(placed: ReturnType<typeof placedCell>): ReturnType<typeof placedCell> {
+    placed.world.eraMovedInto = GAME_ERA.pool;
+    placed.world.poolLayout = createTestPoolLayout();
+    placed.world.gelPatches = [];
+    placed.world.tick = 0;
+    return placed;
+  }
+
+  it('the dish’s vent is gone: a cell at the centre decays at the broth rate, and reports no vent', () => {
+    const { world, cell, player } = inThePool(placedCell(1020, poolCentre));
+    metaboliseFor(world, 60);
+    expect(cell.mass).toBeCloseTo(decayed(1020, 60), 2);
+    const record = world.massFlow.metabolismByPlayer[player.playerId]!;
+    expect(record.zone).toBe(ZONE_ID.openBroth);
+    expect(Math.abs(record.ratesPerSecond[MASS_RATE_CAUSE.vent])).toBe(0);
+  });
+
+  it('the paired dish case: the same cell at the dish’s centre decays 1.5 times as fast', () => {
+    const { world, cell } = placedCell(1020, poolCentre);
+    metaboliseFor(world, 60);
+    expect(cell.mass).toBeCloseTo(decayed(1020, 60, ecology.VENT_DECAY_MULTIPLIER), 2);
+  });
+
+  it('a chloroplast cell gains light inside the patch and none outside it, the dish’s shallows included', () => {
+    const lit = inThePool(placedCell(growth.CELL_STARTING_MASS, litPoint, 'chloroplast'));
+    metaboliseFor(lit.world, 1);
+    expect(lit.cell.mass).toBeGreaterThan(growth.CELL_STARTING_MASS);
+    const dishShallows = shallowsPoint(worldBalance.DISH_RADIUS, ecology.SHALLOWS_WIDTH);
+    const dark = inThePool(placedCell(growth.CELL_STARTING_MASS, dishShallows, 'chloroplast'));
+    metaboliseFor(dark.world, 1);
+    expect(dark.cell.mass).toBe(growth.CELL_STARTING_MASS);
+  });
 });

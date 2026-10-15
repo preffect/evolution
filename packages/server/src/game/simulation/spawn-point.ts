@@ -3,6 +3,7 @@
 
 import {
   distanceBetween,
+  uniformPointInAnnulus,
   uniformPointInDiscAround,
   type BalanceConfig,
   type RandomSource,
@@ -46,6 +47,22 @@ export function drawPointInZone(
 ): Vec2 | null {
   return drawSpawnablePoint(world, maxAttempts, () =>
     pointInZone(zone, world.balance, random.nextFloat(), random.nextFloat()),
+  );
+}
+
+/**
+ * A spawnable point uniform over the rock pool from `innerRadius` out to the food boundary (docs/game-design/phases.md
+ * §14.5.2): the pool has no spawn zones, its sunlit one moving with the light patch.
+ */
+export function drawPointInPool(
+  world: SpawnPointWorld,
+  innerRadius: number,
+  random: RandomSource,
+  maxAttempts: number,
+): Vec2 | null {
+  const outerRadius = foodBoundaryRadius(world.balance);
+  return drawSpawnablePoint(world, maxAttempts, () =>
+    uniformPointInAnnulus(innerRadius, outerRadius, random.nextFloat(), random.nextFloat()),
   );
 }
 

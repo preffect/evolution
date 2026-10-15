@@ -1,5 +1,6 @@
 // Builds a round's world (docs/architecture/entity-model.md §2, docs/determinism/random-streams.md §3): forks the server
-// streams from the round seed, places the gel patches, spawns every roster member by safe
+// streams from the round seed, places the gel patches, draws the rock pool's layout when the pool is in play
+// (docs/game-design/phases.md §14.4.6), spawns every roster member by safe
 // placement (join order), seats the giants (docs/ecology/giants.md §3.5.9) and then the wild cells
 // (docs/ecology/wild-cells.md §3.3), so the wild placement keeps clear of the giants, then runs the initial fill so no
 // mote lands inside any cell. Both the room's first round and every rematch come through here; a rematch passes
@@ -8,6 +9,7 @@
 import { GAME_ERA, RANDOM_STREAM, ROUND_PHASE, type BalanceConfig, type GameSessionConfig } from '@evolution/shared';
 import { createPlayerRecord, spawnCellForPlayer, type PlayerIdentity } from '../session/players.js';
 import { updateLeaderboard } from '../session/leaderboard.js';
+import { drawPoolLayoutIfMissing, isPoolLayoutDue } from '../simulation/pool-layout-draw.js';
 import { placeGelPatches } from '../simulation/zones.js';
 import { runInitialFill } from '../simulation/spawner.js';
 import { roundTimeLeftMsAt } from '../simulation/round-clock.js';
@@ -55,6 +57,7 @@ function createEmptyWorld(options: CreateWorldOptions): WorldState {
     surge: null,
     copepodLane: null,
     poolCreatureSeats: null,
+    poolSwarms: null,
     moveGraceEndsAtTick: null,
     cells: [],
     food: [],
@@ -79,6 +82,7 @@ export function createWorld(options: CreateWorldOptions): WorldState {
   const world = createEmptyWorld(options);
   const streams = resumeStreams(world);
   world.gelPatches = placeGelPatches(streams[RANDOM_STREAM.zones], options.balance);
+  if (isPoolLayoutDue(world)) drawPoolLayoutIfMissing(world, streams[RANDOM_STREAM.pool]);
   for (const identity of options.players) {
     const player = createPlayerRecord(identity, world.players.length);
     world.players.push(player);

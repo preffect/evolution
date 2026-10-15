@@ -3,25 +3,29 @@
 // after step 2 and before step 3, so the move tick's own movement, eating and metabolism already run in the pool.
 //
 //   1 end what cannot cross        every engulf ends with no transfer, every sprint ends, every held list empties
-//   2 fill the pool                its food (ticket #870), wild seats (ticket #871) and creatures (ticket #872)
+//   2 fill the pool                its food (`fillThePool`, after step 5 so nothing lands inside an arrived cell): the
+//                                  dish's vent and gel end, the swarms and the fragments are placed clear of the
+//                                  landing; wild seats (ticket #871) and creatures (ticket #872)
 //   3 the footprint                a dish point p becomes pool point p / ERA_SCALE_STEP (`mapDishPointToPool`)
 //   4 the leftovers                the dish's wild cells, giants, motes and fragments leave, each cell a green speck;
 //                                  its spawners stop
 //   5 the players                  each cell to its mapped point at POOL_ARRIVAL_MASS, its velocity scaled down
 //   6 the no-form gift             ticket #869
-//   7 the landing                  the landmark and the clear zone: tickets #870 and #872
+//   7 the landing                  the clear zone for the pool's food (`fillThePool`); the landmark is ticket #872
 //   8 the grace                    `move-grace.ts`
 //   9 the camera and the wire      serialisation state, never the step's (wire-contract.md §4 "The move")
 
-import { FOOD_KIND, type BalanceConfig, type Vec2 } from '@evolution/shared';
+import { FOOD_KIND, RANDOM_STREAM, type BalanceConfig, type Vec2 } from '@evolution/shared';
 import { withdrawCell } from '../session/death.js';
 import { isPlayerCell, type CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { setCellMass } from './cell-mass.js';
 import { abortAllEngulfs } from './engulf-state.js';
 import { startMoveGrace } from './move-grace.js';
+import { drawPoolLayoutIfMissing } from './pool-layout-draw.js';
+import { placePoolSwarms } from './pool-swarms.js';
 import { spawnFoodMote } from './spawn-mote.js';
-import { clearFoodAndStopSpawners } from './spawner.js';
+import { clearFoodAndStopSpawners, fillPoolFragments } from './spawner.js';
 
 /** A sprint ended by the move: none left to run (its cooldown runs on as after any sprint). */
 const NO_SPRINT_TICKS = 0;
@@ -45,7 +49,7 @@ function endWhatCannotCross(world: WorldState): void {
 
 /**
  * Step 4: every cell that is not a player's (the wild cells and the giants) leaves with its seat, and the dish's motes
- * and fragments vanish; the dish's spawners stop, since the pool's food is its own (ticket #870). Each wild cell and
+ * and fragments vanish; the dish's spawners stop, since the pool's food is its own (`fillThePool`). Each wild cell and
  * giant leaves one green speck at its mapped point, placed after the dish's motes are gone.
  */
 function clearTheDish(world: WorldState, balance: BalanceConfig): void {
@@ -91,6 +95,20 @@ function landPlayerCell(cell: CellRecord, balance: BalanceConfig): void {
   setCellMass(cell, balance.pool.POOL_ARRIVAL_MASS, balance);
 }
 
+/**
+ * Step 2, the pool's food (phases.md §14.5.2), once the players have landed: the dish's gel patches end with its vent
+ * (the pool's zones are the light patch's, `worldZoneMap`), the layout is drawn if the round's start did not draw it,
+ * then the swarms and the fragments are placed outside `ERA_LANDING_CLEAR_RADIUS` (step 7) and the fragment spawner
+ * runs again. The leftovers lie inside the footprint, so the clear zone holds only them.
+ */
+function fillThePool(world: WorldState, context: StepContext): void {
+  const poolStream = context.streams[RANDOM_STREAM.pool];
+  world.gelPatches = [];
+  drawPoolLayoutIfMissing(world, poolStream);
+  placePoolSwarms(world, poolStream);
+  fillPoolFragments(world, context, context.balance.eras.ERA_LANDING_CLEAR_RADIUS);
+}
+
 /** The pool's move, steps 1 to 8 (step 9 is the serializer's), on the tick the era clock reaches the pool. */
 export function runPoolMove(world: WorldState, context: StepContext): void {
   const { balance } = context;
@@ -99,5 +117,6 @@ export function runPoolMove(world: WorldState, context: StepContext): void {
   for (const cell of world.cells) {
     landPlayerCell(cell, balance);
   }
+  fillThePool(world, context);
   startMoveGrace(world, balance);
 }

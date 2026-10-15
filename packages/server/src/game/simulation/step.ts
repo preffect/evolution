@@ -4,7 +4,7 @@
 //
 //   1 inputs (+ the wild settle, the giant settle and the seats' decisions)      2 round (+ the era moves)
 //   3 movement (+ separation, pins)   4 eating   5 metabolism
-//   6 engulf      7 progression      8 spawners + mote motion
+//   6 engulf      7 progression      8 spawners + mote motion (+ the pool's swarms)
 //   9 respawn (players, then wild seats, then giant seats)     10 leaderboard
 
 import { ROUND_PHASE, type BalanceConfig } from '@evolution/shared';
@@ -27,6 +27,7 @@ import { applyInputs } from './inputs.js';
 import { metabolise } from './metabolism.js';
 import { moveMotes } from './mote-motion.js';
 import { moveCells } from './movement.js';
+import { runPoolSwarms } from './pool-swarms.js';
 import { advanceRound, ROUND_STEP_OUTCOME, type RoundStepOutcome } from './round.js';
 import { runSpawners } from './spawner.js';
 
@@ -56,6 +57,7 @@ export function stepWorld(world: WorldState, context: StepContext): RoundStepOut
   runProgression(world, context);
   runSpawners(world, context);
   moveMotes(world, context);
+  runPoolSwarms(world, context); // after the mote motion, so a swarm's specks keep its shape (phases.md §14.5.2)
   runRespawns(world, context);
   runWildRespawns(world, context);
   runGiantRespawns(world, context);

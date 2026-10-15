@@ -26,6 +26,7 @@ import type { CellRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { separateOverlappingCells, type StartCentres } from './contact.js';
 import { engulfedPreyOf, engulfingPredatorOf, isCarried, settleCarriedOffset } from './engulf-state.js';
+import { worldZoneMap } from './zones.js';
 
 /** `SPRINT_SPEED_MULTIPLIER + sprintSpeedMultiplierBonus` while a sprint runs, 1 otherwise. */
 export function sprintSpeedFactor(cell: CellRecord, balance: BalanceConfig): number {
@@ -33,7 +34,7 @@ export function sprintSpeedFactor(cell: CellRecord, balance: BalanceConfig): num
 }
 
 function isInGel(cell: CellRecord, world: WorldState, balance: BalanceConfig): boolean {
-  return zoneAt(cell, world.gelPatches, balance) === ZONE_ID.viscousGel;
+  return zoneAt(cell, worldZoneMap(world), balance) === ZONE_ID.viscousGel;
 }
 
 /** The gel factor inside a gel patch (with the amoeba floor), 1 elsewhere. */

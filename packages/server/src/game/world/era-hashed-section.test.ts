@@ -20,11 +20,13 @@ import {
   POOL_FILM_HASHED_FIELDS,
   POOL_LAYOUT_HASHED_FIELDS,
   POOL_STATE_HASHED_FIELDS,
+  POOL_SWARM_HASHED_FIELDS,
   POOL_THREAD_HASHED_FIELDS,
   SURGE_HASHED_FIELDS,
   TRAILING_WORLD_HASHED_FIELDS,
   hasEraState,
 } from './era-hashed-section.js';
+import type { PoolSwarmRecord } from './entities.js';
 import { POOL_CREATURE_SEAT_HASHED_FIELDS } from './seat-hashed-fields.js';
 import { computeStateHash } from './state-hash.js';
 import { withStream } from './streams.js';
@@ -34,6 +36,11 @@ type TrailingWorldField = (typeof TRAILING_WORLD_HASHED_FIELDS)[number];
 
 /** A grace set by a move on tick 36 000: 8 s on (phases.md §14.4.2 step 8). */
 const MOVE_GRACE_END_TICK = 36_480;
+
+/** A swarm of two specks (phases.md §14.5.2), its centre east of the pool's. */
+function createTestSwarm(): PoolSwarmRecord {
+  return { centreX: 1200, centreY: -300, memberIds: [entityId('m-1'), entityId('m-2')] };
+}
 
 /** How a test gives a world one field of the section, and then changes it to another value. */
 interface EraFieldCase {
@@ -67,6 +74,10 @@ const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, EraFieldCase>> = {
     give: (world) => (world.moveGraceEndsAtTick = MOVE_GRACE_END_TICK),
     vary: (world) => (world.moveGraceEndsAtTick! += 1),
   },
+  poolSwarms: {
+    give: (world) => (world.poolSwarms = [createTestSwarm()]),
+    vary: (world) => (world.poolSwarms![0]!.centreX += 1),
+  },
 };
 
 /**
@@ -74,10 +85,11 @@ const ERA_STATE_BY_FIELD: Readonly<Record<TrailingWorldField, EraFieldCase>> = {
  * decides every pool-era replay's `finalHash`). A deliberate change to the walk or to the test world re-records it, and
  * says so here. Ticket #932 recorded `cd86432a9b38f62e`; ticket #935 appended the creatures' seats, each a seat with a
  * mind, to the walk (an open section now ends with their list or null's marker), so it re-recorded it
- * (`e071445019643754`); ticket #868 appended the move's grace tick and re-recorded it again. No world outside the pool
- * opens the section, so no pinned dish hash or recorded replay moved.
+ * (`e071445019643754`); ticket #868 appended the move's grace tick and re-recorded it again (`42d85d8ad5b746d6`); ticket
+ * #870 appended the green speck swarms and re-recorded it once more. No world outside the pool opens the section, so no
+ * pinned dish hash or recorded replay moved.
  */
-const RECORDED_EVERY_ERA_FIELD_HASH = '42d85d8ad5b746d6';
+const RECORDED_EVERY_ERA_FIELD_HASH = 'a2c17f40cc93d59c';
 
 function drawFrom(world: WorldState, label: ServerRandomStreamLabel): void {
   withStream(world, label, (random) => random.nextFloat());
@@ -161,6 +173,10 @@ describe('the eras’ section of computeStateHash', () => {
     ['a seat’s mind', (world) => (world.poolCreatureSeats![0]!.huntPreyId = entityId('c-3'))],
     ['a second seat', (world) => world.poolCreatureSeats!.push(createTestPoolCreatureSeat())],
     ['the seats emptied, which is not their absence', (world) => (world.poolCreatureSeats = [])],
+    ['a swarm’s centre moving north', (world) => (world.poolSwarms![0]!.centreY += 1)],
+    ['a swarm’s speck eaten', (world) => world.poolSwarms![0]!.memberIds.pop()],
+    ['a speck of another swarm', (world) => (world.poolSwarms![0]!.memberIds[0] = entityId('m-9'))],
+    ['the swarms emptied, which is not their absence', (world) => (world.poolSwarms = [])],
   ])('covers %s once open', (_label, mutate) => {
     const changed = worldWithEveryEraField();
     mutate(changed);
@@ -182,6 +198,10 @@ describe('the eras’ hashed fields pin every field of their views', () => {
     expect(hashedFieldKeys(LIGHT_PATCH_ORBIT_HASHED_FIELDS)).toEqual(Object.keys(layout.lightPatchOrbit).sort());
   });
 
+  it('a swarm', () => {
+    expect(hashedFieldKeys(POOL_SWARM_HASHED_FIELDS)).toEqual(Object.keys(createTestSwarm()).sort());
+  });
+
   it('a pool creature’s seat', () => {
     expect(hashedFieldKeys(POOL_CREATURE_SEAT_HASHED_FIELDS)).toEqual(Object.keys(createTestPoolCreatureSeat()).sort());
   });
@@ -199,6 +219,7 @@ describe('the eras’ hashed fields pin every field of their views', () => {
       'copepodLane',
       'poolCreatureSeats',
       'moveGraceEndsAtTick',
+      'poolSwarms',
     ]);
     expect(hashedFieldKeys(POOL_STATE_HASHED_FIELDS)).toEqual(
       TRAILING_WORLD_HASHED_FIELDS.filter((field) => field !== 'eraMovedInto').sort(),

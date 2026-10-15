@@ -24,6 +24,7 @@ import {
   stepCamera,
   stepMovementKernel,
   zoneAt,
+  zoneMapAt,
   type CameraState,
   type CellView,
   type GameSnapshot,
@@ -75,7 +76,7 @@ function predictOneIdleTick(snapshot: GameSnapshot) {
     radiusWu: cell.radius,
     sprintRemainingTicks: cell.sprintRemainingTicks,
     modifiers: foldModifiers(cell.traits, balance.traits.TRAIT_TIERS),
-    isInGel: zoneAt(pose, snapshot.gelPatches, balance) === ZONE_ID.viscousGel,
+    isInGel: zoneAt(pose, zoneMapAt(snapshot, snapshot.tick, balance), balance) === ZONE_ID.viscousGel,
     engulfFactor: 1,
   };
   return stepMovementKernel(pose, movementStepFor(movement, pose, balance));

@@ -9,7 +9,6 @@ import {
   DEFAULT_BALANCE,
   EFFECT_KIND,
   ENTITY_KIND,
-  FOOD_KIND,
   GAME_ERA,
   createTestCopepodLane,
   createTestSurge,
@@ -61,7 +60,10 @@ function massEatenBy(cellId: EntityId, effects: readonly GameEffect[]): number {
     .reduce((total, massGained) => total + massGained, 0);
 }
 
-/** What step 4 left on the move tick: the dish's wild cells and giants on 600, the specks lying and the motes eaten on 601. */
+/**
+ * What step 4 left on the move tick: the dish's wild cells and giants on 600, the specks no swarm holds lying and the
+ * motes eaten on 601 (a swarm's specks lie outside the landing, so the player eats only leftovers on that tick).
+ */
 interface Leftovers {
   readonly cellsLeft: number;
   readonly specksLying: readonly FoodMoteRecord[];
@@ -99,7 +101,8 @@ async function jumpAndRun(era: GameEra) {
     const cell = findCellOfPlayer(world, ERA_PLAYER);
     if (cell !== undefined)
       landing = { x: cell.x, y: cell.y, mass: cell.mass, massEaten: massEatenBy(cell.id, effects) };
-    const specksLying = world.food.filter((mote) => mote.kind === FOOD_KIND.greenSpeck).map((mote) => ({ ...mote }));
+    const inSwarms = new Set(world.poolSwarms!.flatMap((swarm) => swarm.memberIds));
+    const specksLying = world.food.filter((mote) => !inSwarms.has(mote.id)).map((mote) => ({ ...mote }));
     leftovers = { cellsLeft, specksLying, motesEaten: motesEatenIn(effects) };
     movedCameras = viewedCameras(room);
   });

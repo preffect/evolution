@@ -24,6 +24,7 @@ import type {
   GiantSeatRecord,
   PlayerRecord,
   PoolCreatureSeatRecord,
+  PoolSwarmRecord,
   SpawnerState,
   WildSeatRecord,
 } from './entities.js';
@@ -65,6 +66,11 @@ export interface WorldState {
    * world that has none, so a world without creatures hashes as before them (the eras' section's gate).
    */
   poolCreatureSeats: PoolCreatureSeatRecord[] | null;
+  /**
+   * The green speck swarms in swarm order (phases.md §14.5.2): placed by the pool's move (ticket #870), null in every
+   * world the move has not run in, so a dish world hashes as before them.
+   */
+  poolSwarms: PoolSwarmRecord[] | null;
   /**
    * The first tick the pool's move grace no longer covers (phases.md §14.4.2 step 8): set by the move itself to its
    * tick plus `ERA_MOVE_GRACE_SECONDS`, never derived from the clock (wire-contract.md §4 "The cameras across the

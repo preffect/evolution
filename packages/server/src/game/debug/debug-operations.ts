@@ -12,6 +12,7 @@ import {
   isBacteriumVariant,
   isDnaTag,
   isFoodKind,
+  RANDOM_STREAM,
   type BalanceConfig,
   type DnaTag,
   type OwnedTrait,
@@ -29,13 +30,14 @@ import { toOwnedTraits, UnknownTraitError } from '../progression/owned-traits.js
 import { EXACT_SNAPSHOT_VALUES } from '../serialize/quantize.js';
 import { toDnaFragmentView, toFoodMoteView, toPlayerProgressView } from '../serialize/serialize.js';
 import { setCellMass } from '../simulation/cell-mass.js';
+import { drawPoolLayoutIfMissing, isPoolLayoutDue } from '../simulation/pool-layout-draw.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { CellRecord, PlayerRecord } from '../world/entities.js';
 import { findCellOfPlayer, findPlayer } from '../world/lookups.js';
 import { refreshAnyCellFromItsTraits } from '../wild/giant-build.js';
 import { isPastTopTraitTier, topWildTier } from '../wild/wild-build.js';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { forkServerStreams } from '../world/streams.js';
+import { forkServerStreams, withStream } from '../world/streams.js';
 import type { WorldState } from '../world/world-state.js';
 import { DEBUG_PATCH_KIND, type DebugPatch } from '../replay/replay-format.js';
 
@@ -197,7 +199,8 @@ function refuseUnlivableBalance(patched: BalanceConfig): void {
 /**
  * Number leaves and the declared non-number leaves, validated as a whole (balance-patch.ts) and refused when the cells
  * cannot live on the result (`refuseUnlivableBalance`) or it would take the round back to an earlier era
- * (`refuseEraRewind`); the world carries the new copy. A tier patch refolds every cell from the traits it
+ * (`refuseEraRewind`); the world carries the new copy. A patch that puts the pool in play draws its layout then, as the
+ * round's start would have (docs/game-design/phases.md §14.4.6). A tier patch refolds every cell from the traits it
  * already owns, since the fold runs only when traits change (#715).
  */
 export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unknown {
@@ -205,6 +208,7 @@ export function setBalanceForDebug(world: WorldState, patch: BalancePatch): unkn
   refuseUnlivableBalance(patched);
   refuseEraRewind(world, patched);
   world.balance = patched;
+  if (isPoolLayoutDue(world)) withStream(world, RANDOM_STREAM.pool, (random) => drawPoolLayoutIfMissing(world, random));
   if (didChangeTraitTiers) {
     for (const cell of world.cells) refreshAnyCellFromItsTraits(cell, world.balance);
   }

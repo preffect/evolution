@@ -59,6 +59,15 @@ stream at world creation and are part of the snapshot so clients draw them.
 A point belongs to the first zone in the order above that contains it (gel patches never overlap the
 vent or the shallows because of `GEL_PATCH_MIN_SPACING` and the placement bounds).
 
+**In the rock pool** (game-design/phases.md §14.5.2, ticket #870) the table above is the dish's. From the pool's move
+the zones are the pool's: the light patch (a disc of `POOL_LIGHT_PATCH_RADIUS` whose centre circles the pool,
+`lightPatchCentreAt`) is `sunlit_shallows`, everything else `open_broth`; the dish's shallows annulus, vent and gel
+patches do not follow the players in (the move empties `gelPatches`). So the shared `zoneAt(point, zones, balance)`
+reads a `ZoneMap` built for one tick by `zoneMapAt({ era, gelPatches, poolLayout }, tick, balance)`: the server's world
+and the client's snapshot both carry those three, and the HUD's zone pill, the metabolism, the movement and the
+fragments' tag table all read the same map. Only the fragment spawner runs in the pool, at the dish's rates (tuning),
+its points uniform over the pool; the pool's food is its green speck swarms.
+
 ## 3. Spawn model
 
 Two independent spawners, each a fractional accumulator: every tick `accumulator += ratePerSecond ×

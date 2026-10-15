@@ -41,8 +41,8 @@ describe('the stage 1 constants table (phases.md §14.14.1)', () => {
   const rows = numericRows();
 
   it('reads every numeric row of the table', () => {
-    // 59 rows less the two structured ones: a parser that stopped seeing rows would pass the cases below vacuously.
-    expect(rows).toHaveLength(57);
+    // 60 rows less the two structured ones: a parser that stopped seeing rows would pass the cases below vacuously.
+    expect(rows).toHaveLength(58);
   });
 
   it.each(rows)('%s ships at the table’s %s', (name, tableDefault) => {

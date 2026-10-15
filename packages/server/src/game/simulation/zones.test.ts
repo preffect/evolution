@@ -1,14 +1,19 @@
-// docs/ecology/food-and-spawn.md §2: zone geometry and gel placement (the precedence is shared's `zones.test.ts`).
+// docs/ecology/food-and-spawn.md §2: zone geometry and gel placement (the precedence is shared's `zones.test.ts`);
+// docs/game-design/phases.md §14.5.2: the world's zones follow the era it has moved into.
 import { describe, expect, it } from 'vitest';
 import {
   createSeededRandom,
+  createTestPoolLayout,
   DEFAULT_BALANCE,
+  GAME_ERA,
+  lightPatchCentreAt,
   ZONE_ID,
   shallowsInnerRadius,
   type BalanceConfig,
 } from '@evolution/shared';
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
-import { clampedToFoodBoundary, placeGelPatches, pointInZone, zoneBand } from './zones.js';
+import { createTestWorldInEras } from '../../testing/world-builders.js';
+import { clampedToFoodBoundary, placeGelPatches, pointInZone, worldZoneMap, zoneBand } from './zones.js';
 
 const balance = DEFAULT_BALANCE;
 const { ecology, world } = balance;
@@ -73,5 +78,25 @@ describe('placeGelPatches', () => {
     const impossible: BalanceConfig = structuredClone(balance);
     impossible.ecology.GEL_PATCH_MIN_SPACING = world.DISH_RADIUS * 10;
     expect(() => placeGelPatches(createSeededRandom(SEED), impossible)).toThrow(SimulationInvariantError);
+  });
+});
+
+describe('worldZoneMap', () => {
+  const moveTick = 36_000;
+
+  it('is the dish’s, its gel patches and no light patch, until the world has moved into the pool', () => {
+    const world = createTestWorldInEras();
+    expect(world.poolLayout).not.toBeNull();
+    expect(worldZoneMap(world)).toEqual({ gelPatches: world.gelPatches, lightPatchCentre: null });
+  });
+
+  it('from the move, puts the light patch where the layout’s orbit has it on the world’s tick', () => {
+    const world = createTestWorldInEras();
+    world.eraMovedInto = GAME_ERA.pool;
+    world.poolLayout = createTestPoolLayout();
+    world.tick = moveTick;
+    expect(worldZoneMap(world).lightPatchCentre).toEqual(
+      lightPatchCentreAt(world.poolLayout.lightPatchOrbit, moveTick, balance),
+    );
   });
 });

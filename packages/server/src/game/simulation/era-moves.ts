@@ -59,8 +59,8 @@ function emitEraWarning(world: WorldState, context: StepContext): void {
 /** After step 2 of a playing tick: every crossed move in era order, each with its `era_moved`, then the next warning. */
 export function runEraMoves(world: WorldState, context: StepContext): void {
   for (const era of erasToMoveInto(world.eraMovedInto, roundEraAt(world, world.tick))) {
+    world.eraMovedInto = era; // first, so the move builds the new era in its own zones (`worldZoneMap`)
     ERA_MOVES[era](world, context);
-    world.eraMovedInto = era;
     context.effects.push({ kind: EFFECT_KIND.eraMoved, tick: world.tick, era });
   }
   emitEraWarning(world, context);

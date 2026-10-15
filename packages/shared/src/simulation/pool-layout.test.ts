@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { secondsToTicks } from '../time/units.js';
 import type { LightPatchOrbitView } from '../types/pool.js';
-import { lightPatchCentreAt, poolThreadEnds } from './pool-layout.js';
+import { lightPatchCentreAt, poolBankInnerRadius, poolThreadEnds } from './pool-layout.js';
 
 /** An orbit drawn at a rematch on tick 1 200, starting due east. */
 const ORBIT: LightPatchOrbitView = { orbitRadius: 1_500, startAngleRadians: 0, startTick: 1_200 };
@@ -67,5 +67,18 @@ describe('poolThreadEnds', () => {
     const [start, end] = poolThreadEnds({ x: 0, y: 0, angleRadians: 0 }, longer);
     expect(end.x - start.x).toBeCloseTo(2 * THREAD_LENGTH, CLOSE_DIGITS);
     expect(start.y).toBeCloseTo(0, CLOSE_DIGITS);
+  });
+});
+
+describe('poolBankInnerRadius', () => {
+  it('is the dish radius less the bank’s live width', () => {
+    expect(poolBankInnerRadius(DEFAULT_BALANCE)).toBe(
+      DEFAULT_BALANCE.world.DISH_RADIUS - DEFAULT_BALANCE.pool.POOL_BANK_WIDTH,
+    );
+    const wider = structuredClone(DEFAULT_BALANCE);
+    wider.pool.POOL_BANK_WIDTH *= 2;
+    expect(poolBankInnerRadius(wider)).toBe(
+      DEFAULT_BALANCE.world.DISH_RADIUS - 2 * DEFAULT_BALANCE.pool.POOL_BANK_WIDTH,
+    );
   });
 });
