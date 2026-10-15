@@ -66,11 +66,13 @@ records at full precision (`EXACT_SNAPSHOT_VALUES`, #341).
 the declared non-number leaves, validated as a whole before anything is written. A non-number leaf is declared once in
 `game/debug/balance-leaf-kinds.ts` (`NON_NUMBER_BALANCE_LEAVES`: its dotted path and its kind, each kind with its
 validator); any other value that is not a finite number, or one its kind refuses, is refused naming the leaf and what
-it takes. The kinds today: the stage id (a member of `STAGE_ORDER`), declared for `absorption.SWALLOW_FROM_STAGE` and
-`earlyLife.LATCH_FROM_STAGE` (game-design/early-life.md §15.10), so `{"absorption":{"SWALLOW_FROM_STAGE":"eukaryote"}}`
-moves the swallow switch in a running room (cell engulf at once: no protocell or archaeon starts one; bacteria are
-still eaten whole and nothing latches until the latch ticket, #909, wires the latch) and `"amoeba"` or `3` is refused (ticket #907);
-and the era list (a non-empty prefix of `GAME_ERA_ORDER`, `dish, pool, colonies`: `isErasInPlayList`), declared for
+it takes. The kinds today: the stage id (a member of `STAGE_ORDER`), declared for `earlyLife.LATCH_FROM_STAGE`
+(game-design/early-life.md §15.10), so `"amoeba"` or `3` is refused (ticket #907); the trait-id list (distinct catalog
+ids, the empty list allowed: `isDistinctTraitIdList`), declared for `absorption.SWALLOW_GATE_TRAITS` (ticket #948), so
+`{"absorption":{"SWALLOW_GATE_TRAITS":["cytoskeleton"]}}` moves the swallow switch in a running room (cell engulf at
+once: no cell without the Cytoskeleton Lattice starts one; bacteria are still eaten whole and nothing latches until the
+latch ticket, #909, wires the latch), `[]` turns it off, and `["amoeba"]`, `["cytoskeleton","cytoskeleton"]` or
+`"cytoskeleton"` is refused (EL23); and the era list (a non-empty prefix of `GAME_ERA_ORDER`, `dish, pool, colonies`: `isErasInPlayList`), declared for
 `eras.ERAS_IN_PLAY` (game-design/phases.md §14.2.4, ticket #867), so `{"eras":{"ERAS_IN_PLAY":["dish","pool"]}}` turns
 the pool on in a running room and `["dish","colonies"]`, `["pool"]`, `[]`, `"dish"` or `[1]` is refused. A list is
 written as a copy, so the balance never aliases the patch it came in. The tool's schema takes numbers, strings and lists of strings as leaves and leaves the check to

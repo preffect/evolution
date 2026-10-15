@@ -34,13 +34,21 @@ export const replay: (recording: Replay) => { world: WorldState; hash: StateHash
   leaves nothing for the step to replace, and recording a tick costs the same however old the room is (#181).
 - **A balance leaf added after a recording** (ticket #907): `replay()` builds its world from the recorded balance
   with every leaf the recording does not carry filled at its shipping default (`replay/recorded-balance.ts`), never
-  from a missing value, so no rule reads an absent leaf. A recording from before #907 has no
-  `absorption.SWALLOW_FROM_STAGE` and no `earlyLife`; it ran under what those defaults ship (`protocell`: everything
-  swallows, nothing latches), so it replays to its `finalHash`. The shape did not change, so `REPLAY_FORMAT_VERSION`
-  stays 2. `replay/fixtures/recorded-before-907.replay.json`, exported on main before #907 (a protocell engulf
-  included), pins it in `recorded-balance.test.ts`: it goes red the day a filled default stops meaning what such a
-  recording ran under. The early-life flip (ticket #916) moves `SWALLOW_FROM_STAGE` to `eukaryote` and so must fill
-  that leaf with `protocell` for such recordings, or move the version.
+  from a missing value, so no rule reads an absent leaf. A recording from before #907 has no swallow switch and no
+  `earlyLife`; it ran under what those defaults ship (`SWALLOW_GATE_TRAITS` `[]`: everything swallows, nothing
+  latches), so it replays to its `finalHash`. The shape did not change, so `REPLAY_FORMAT_VERSION` stays 2.
+  `replay/fixtures/recorded-before-907.replay.json`, exported on main before #907 (a protocell engulf included), pins
+  it in `recorded-balance.test.ts`: it goes red the day a filled default stops meaning what such a recording ran
+  under. The early-life flip (ticket #916) moves `SWALLOW_GATE_TRAITS` to `['cytoskeleton']` and so must fill that
+  leaf with `[]` for such recordings, or move the version.
+- **A balance leaf replaced after a recording** (ticket #948, game-design/early-life.md §15.10): between #907 and #948
+  the swallow switch was the stage id `absorption.SWALLOW_FROM_STAGE`. `replay/recorded-swallow-switch.ts` maps it
+  before the replay starts, in the recorded balance (before the fill) and in every recorded `set_balance` patch:
+  `protocell` becomes `SWALLOW_GATE_TRAITS` `[]` (the same game) and the stale leaf is dropped; any other stage refuses
+  the recording by name (`ReplayStageSwitchError`), so an old patch never reaches `applyBalancePatch`, which would
+  abort the replay mid-way on the undeclared leaf. Two recordings exported on main between #907 and #948 pin it in
+  `recorded-swallow-switch.test.ts`: `recorded-between-907-and-948.replay.json` (the switch in the balance) and
+  `recorded-stage-switch-patch.replay.json` (a recorded patch of it on tick 1, before the engulf).
   The same fill covers the eras (ticket #867): a recording from before them has no `eras`, `pool` or `poolCreatures`
   domain and replays under their defaults, `ERAS_IN_PLAY` = `['dish']`, which is the game it ran (the same fixture
   pins it). An "on" slice that lengthens the shipping list must fill `['dish']` for such recordings, or move the version.

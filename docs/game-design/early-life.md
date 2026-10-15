@@ -219,10 +219,10 @@ shape either way; the ladder does not. Answer B (a new Actin Skeleton that the L
   its species, and the giant amoeba swallows because it is a hunter, not because of its build.
   `SWALLOW_GATE_TRAITS` lives in the **`absorption` balance domain**, beside the ratios, in place of ticket #907's
   `SWALLOW_FROM_STAGE` (§15.10), so `EngulfRatioBalance` keeps one switch leaf. The predicate reads `traits` where it
-  read `stage`: almost every caller passes a `CellView` or a record with its owned traits. The exception is the bots:
-  their `BotCellView` (`bots/perception.ts`) has `stage` and no `traits`, so ticket #948 adds `traits` to it (and to
-  `testing/bot-builders.ts`), keeping `stage` for `bacteriumContactOutcome`; it also rewrites the `debug_set_balance`
-  tool description's example (`mcp/handlers/balance.ts`), which names `SWALLOW_FROM_STAGE`. The mass half stays
+  read `stage`: every caller passes a `CellView` or a record with its owned traits, and the bots' `BotCellView`
+  (`bots/perception.ts`, built by `testing/bot-builders.ts`) carries `traits` and `poolCreature` beside the `stage`
+  that `bacteriumContactOutcome` reads; the `debug_set_balance` tool description's example (`mcp/handlers/balance.ts`)
+  names the trait list. The mass half stays
   exported as `meetsEngulfStartRatio`, which the HUD's "can't swallow yet" beat reads (§15.9.1). With the switch on no
   cell without the Lattice, player or wild, ever starts an engulf, whatever its stage. Every caller (the server's
   contact and engulf steps, the wild cells' flee, hunt, hunt sprint and closer-rival rules, the bots, the HUD's danger
@@ -516,8 +516,8 @@ ARCHAEON`). The wild-cells test and §3.3.2 drop the equality and keep `ladderPr
 - **Engulf-process tests** (about 118 files: 87 server and shared test files, 12 `src/testing` helpers and about 19
   client specs; most build plain protocell predators): they test the process, not who may swallow, so before the flip
   each states that every cell swallows (a balance with `SWALLOW_GATE_TRAITS` empty, through one helper in
-  `packages/shared/src/testing/` for server and client tests alike: ticket #907's `withSwallowFromProtocell`, renamed
-  `withEveryCellSwallowing` by the contract ticket of §15.10), and no expected value moves.
+  `packages/shared/src/testing/` for server and client tests alike: `withEveryCellSwallowing`, ticket #907's
+  `withSwallowFromProtocell` renamed by ticket #948), and no expected value moves.
   Four tickets do it: #910 (shared and the server simulation units), #923 (the wild, bots, session, world and debug
   units and `bot-builders.ts`), #924 (the gameplay setups and scenarios) and #925 (the client specs and the preview
   scenes). The preview scenes are production code: `render/preview/scenes/escape-scene.ts` stages protocell predators,
@@ -546,8 +546,8 @@ Each bullet names the phases ticket it changes; the tickets carry the change.
 - **The shared non-number balance leaves (tickets #907 and #867).** `debug_set_balance` and the replay's
   `debug_patch` took number leaves only before ticket #907. `SWALLOW_FROM_STAGE` (a stage id) and phases' `ERAS_IN_PLAY` (a list of
   era ids) need the same widening, so it is built once, in ticket #907, which ships first (§15.10); ticket #867 depends
-  on it and adds only `ERAS_IN_PLAY`'s validator (a prefix of dish, pool, colonies). The contract ticket of §15.10
-  declares one more kind on it, the trait-id list of `SWALLOW_GATE_TRAITS`. Ticket #907 also widens the
+  on it and adds only `ERAS_IN_PLAY`'s validator (a prefix of dish, pool, colonies). Ticket #948 declared one more kind
+  on it, the trait-id list of `SWALLOW_GATE_TRAITS`. Ticket #907 also widens the
   ledger's parser to find a constants table under a `####` heading, which §14.14.1 needs too.
 - **The move (ticket #868; §14.4.2 step 1).** Step 1 empties every held list with no payout, no credit and no `eat`
   (the held bacteria go with the dish's motes, §15.4.2); step 6's gift comes after, so no partner is paid at the move
@@ -655,8 +655,9 @@ story's turning point); their effect lines are the card's, as every popup's are.
 
 Main deploys to the human's game on every merge, so the change ships behind one balance leaf, as the giants and the
 eras did. Ticket #907 built it as a stage, **`SWALLOW_FROM_STAGE`** (`absorption` domain, shipping `protocell`).
-Decision ticket #919 moves the gate from a stage to a trait, so the **contract ticket #948** replaces that leaf
-with **`SWALLOW_GATE_TRAITS`** (`absorption` domain, a list of trait ids, read by §15.5.1's two checks):
+Decision ticket #919 moved the gate from a stage to a trait, so the **contract ticket #948** replaced that leaf
+with **`SWALLOW_GATE_TRAITS`** (`absorption` domain, a list of trait ids, read by §15.5.1's two checks,
+`shared/simulation/swallow-gate.ts`):
 
 - **Shipping value `[]`**: no gate, every cell swallows from the start and no cell latches (a swallow outranks a
   latch), which is today's game exactly, as `protocell` was.
@@ -671,22 +672,23 @@ with **`SWALLOW_GATE_TRAITS`** (`absorption` domain, a list of trait ids, read b
 Ticket #907 widened both, once, for every non-number leaf (`game/debug/balance-leaf-kinds.ts`, architecture/debug-mcp.md §8): a patch may set a leaf of a declared kind, each kind with its
 validator, and anything else is refused as today. It declares the stage-id kind (`LATCH_FROM_STAGE`, and
 `SWALLOW_FROM_STAGE` until ticket #948); phases ticket #867 declares the era-list kind for `ERAS_IN_PLAY`.
-Ticket #948 declares a **trait-id list** kind for `SWALLOW_GATE_TRAITS`: every entry a catalog trait id, no id
-twice, the empty list allowed; anything else refused. The replay records and replays such a patch, so a game whose
+Ticket #948 declared a **trait-id list** kind for `SWALLOW_GATE_TRAITS` (`isDistinctTraitIdList`): every entry a
+catalog trait id, no id twice, the empty list allowed; anything else refused. The replay records and replays such a patch, so a game whose
 switch moved mid-way reproduces its state hash.
 
-**Old recordings** (`server/src/game/replay/`, ticket #948; the rule of determinism/replay-tests-and-traps.md §6: a
+**Old recordings** (`server/src/game/replay/recorded-swallow-switch.ts`, ticket #948; the rule of determinism/replay-tests-and-traps.md §6: a
 recording replays to its `finalHash` or is refused by name, never silently under other rules):
 
-| Recording                                                                             | What the replay does                                                                                                                                                                                                                                                      |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| made before ticket #907: neither leaf                                                 | fills `SWALLOW_GATE_TRAITS` `[]` (and `earlyLife`), as today's fill does; the pinned `recorded-before-907.replay.json` stays green                                                                                                                                        |
-| made between tickets #907 and #948: its balance carries `SWALLOW_FROM_STAGE`          | `protocell` maps to `SWALLOW_GATE_TRAITS` `[]` (the same game) and the stale leaf is dropped before the fill; **any other stage is refused by name** ("recorded under the stage switch at `<stage>`, which the trait switch cannot replay")                               |
-| any recording whose `debug_patch` `set_balance` names `absorption.SWALLOW_FROM_STAGE` | the same mapping on the patch: `protocell` becomes `SWALLOW_GATE_TRAITS` `[]`; any other stage refuses the recording by name before the replay starts. The patch is never handed to `applyBalancePatch` as is, which would abort the replay mid-way on an undeclared leaf |
-| made after ticket #948                                                                | replays as recorded                                                                                                                                                                                                                                                       |
+| Recording                                                                             | What the replay does                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| made before ticket #907: neither leaf                                                 | fills `SWALLOW_GATE_TRAITS` `[]` (and `earlyLife`), as today's fill does; the pinned `recorded-before-907.replay.json` stays green                                                                                                                                                  |
+| made between tickets #907 and #948: its balance carries `SWALLOW_FROM_STAGE`          | `protocell` maps to `SWALLOW_GATE_TRAITS` `[]` (the same game) and the stale leaf is dropped before the fill; **any other stage is refused by name** (`ReplayStageSwitchError`: "recorded under the stage switch at `<stage>` (its balance), which the trait switch cannot replay") |
+| any recording whose `debug_patch` `set_balance` names `absorption.SWALLOW_FROM_STAGE` | the same mapping on the patch: `protocell` becomes `SWALLOW_GATE_TRAITS` `[]`; any other stage refuses the recording by name before the replay starts. The patch is never handed to `applyBalancePatch` as is, which would abort the replay mid-way on an undeclared leaf           |
+| made after ticket #948                                                                | replays as recorded                                                                                                                                                                                                                                                                 |
 
-Ticket #948 pins one recording made between #907 and #948 (a fixture beside `recorded-before-907.replay.json`) and
-one with a recorded `SWALLOW_FROM_STAGE` patch. **The fill stays `[]` after the flip**: `recordedBalanceWithShippingDefaults`
+Two recordings exported on main between #907 and #948 pin it, beside `recorded-before-907.replay.json`:
+`recorded-between-907-and-948.replay.json` (the switch in the balance) and `recorded-stage-switch-patch.replay.json`
+(a recorded `SWALLOW_FROM_STAGE` patch). **The fill stays `[]` after the flip**: `recordedBalanceWithShippingDefaults`
 fills from `DEFAULT_BALANCE`, which the flip (ticket #916) moves to `['cytoskeleton']`, but a recording without the leaf
 ran under "every cell swallows". So the fill for this leaf is pinned to `[]` (the `recorded-balance.ts` header already
 demands it of the flip), or the flip moves `REPLAY_FORMAT_VERSION` instead; ticket #916 does one of the two, and the
@@ -698,7 +700,7 @@ The order (the epic's roadmap):
    card, the unlock toast's rule, the builds, the orbit's counter rule, and the copy of §15.6 that is true with the
    switch off): it needs no switch and changes only who is offered the chloroplast when. And the contract, **ticket
    #907** (merged), with the switch off; phases ticket #867 builds on its non-number leaves.
-2. **The trait gate, ticket #948,** with the switch off (`[]`): the leaf, its kind, the predicate and
+2. **The trait gate, ticket #948** (built), with the switch off (`[]`): the leaf, its kind, the predicate and
    `bacteriumContactOutcome` reading traits, the renamed test helper. It goes before the tickets of step 3 that read
    the switch (#909, #911, #912, #913) and before the test-fixture parts use the helper.
 3. **Behind the switch, in parallel:** the latch (#909), the four test-fixture parts (#910, #923, #924, #925), bots and
