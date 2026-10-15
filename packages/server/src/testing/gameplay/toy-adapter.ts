@@ -117,6 +117,8 @@ function toyCellView(playerId: string, cell: ToyCell): BotCellView {
     radius: TOY_RADIUS_WU,
     membraneRatioBonus: TOY_MEMBRANE_RATIO_BONUS,
     giantSpecies: null,
+    poolCreature: null,
+    traits: [],
     stage: STARTING_STAGE,
   };
 }

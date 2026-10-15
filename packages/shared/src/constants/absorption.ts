@@ -1,16 +1,16 @@
 // Absorption and engulf (docs/ecology/absorption.md §6, docs/ecology/constants.md §7). The ratio rules have one home:
 // simulation/engulf-eligibility.ts; the numbers live here.
 
-import { CELL_STAGE, type CellStage } from '../types/game.js';
+import type { TraitId } from '../types/game.js';
 
 /**
- * The swallow switch (docs/game-design/early-life.md §15.5.1, §15.10): a player or a plain wild cell starts an engulf, and
- * eats a bacterium whole, only from this stage on; below it a bacterium is latched or passed over (§15.4). A giant
- * hunter swallows by its species at any stage. `protocell` is today's game exactly (every cell swallows from the
- * start, none latches); the "early life on" slice sets `eukaryote`. Typed `CellStage`, not its literal, because a
- * `debug_set_balance` patch may move it to any stage of `STAGE_ORDER`.
+ * The swallow switch (docs/game-design/early-life.md §15.5.1, §15.10): a player or a plain wild cell starts an engulf,
+ * and eats a bacterium whole, only once it owns one of these traits (at any tier); without one a bacterium is latched or
+ * passed over (§15.4). A giant or a pool creature swallows by its species. Empty is no gate, today's game exactly (every
+ * cell swallows from the start, none latches); the flip (ticket #916) sets `['cytoskeleton']`. Typed `readonly
+ * TraitId[]`, not its literal, because a `debug_set_balance` patch may set any list of catalog ids.
  */
-export const SWALLOW_FROM_STAGE: CellStage = CELL_STAGE.protocell;
+export const SWALLOW_GATE_TRAITS: readonly TraitId[] = [];
 
 /** predator.mass ≥ prey.mass × (this + prey.membraneRatioBonus) starts an engulf. */
 export const ENGULF_MASS_RATIO = 1.25;

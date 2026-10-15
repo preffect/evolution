@@ -117,12 +117,13 @@ that live their own lives (#517, #544) replace `WILD_CELL_MASS_SPREAD`, `WORLD_O
 `derived` rows are computed from the phase seconds whenever they are read and are not balance leaves (their named
 defaults live in `absorption-derived.ts`): patch a phase second, not them (#367, architecture/constants-files-tests.md
 §9). The swallow switch (#907, [`game-design/early-life.md`](../game-design/early-life.md) §15.5, §15.10) adds
-`SWALLOW_FROM_STAGE`, a stage-id leaf that `debug_set_balance` patches by its declared kind
-(architecture/debug-mcp.md §8), so the pin is 130.
+`SWALLOW_FROM_STAGE`, a stage-id leaf, so the pin is 130; the trait gate (#948) replaces it with
+`SWALLOW_GATE_TRAITS`, a trait-id list leaf that `debug_set_balance` patches by its declared kind
+(architecture/debug-mcp.md §8), so the pin stays 130.
 
 | Constant                                                                                         | Value            | Unit                                                                                                                                                      |
 | ------------------------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SWALLOW_FROM_STAGE`                                                                             | `'protocell'`    | stage id (a player or plain wild cell engulfs, and eats a bacterium whole, from this stage on; `'eukaryote'` at the early-life flip, decided)             |
+| `SWALLOW_GATE_TRAITS`                                                                            | `[]`             | trait ids (a player or plain wild cell engulfs, and eats a bacterium whole, once it owns one; empty is no gate; `['cytoskeleton']` at the flip, decided)  |
 | `ENGULF_MASS_RATIO`                                                                              | 1.25             | ×                                                                                                                                                         |
 | `ENGULF_RELEASE_RATIO`                                                                           | 1.10             | ×                                                                                                                                                         |
 | `ENGULF_PROGRESS_EPSILON`                                                                        | 1e-6             | progress                                                                                                                                                  |
