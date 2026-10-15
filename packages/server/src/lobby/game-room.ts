@@ -48,6 +48,8 @@ export class GameRoom {
   private isLoopPaused = false;
   private isLoopStarted = false;
   private tickCount = 0;
+  /** A tick was stepped since the last broadcast: its effects wait to be drained. */
+  private hasUnsentTicks = false;
 
   constructor(game: RoomGameModule, options: RoomInitOptions, timing: RoomTiming) {
     this.game = game;
@@ -100,7 +102,7 @@ export class GameRoom {
     this.isLoopPaused = true;
     for (let count = 0; count < ticks; count += 1) this.runTick();
     // A stepped room always ends on a fresh frame, whatever the cadence (docs/architecture/debug-mcp.md §8).
-    if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.snapshotDispatch.broadcastOffTick();
+    if (this.tickCount % SNAPSHOT_EVERY_TICKS !== 0) this.broadcastOffTick();
   }
 
   /**
@@ -108,7 +110,7 @@ export class GameRoom {
    * paused room shows the patched world instead of the frame from before it (docs/architecture/debug-mcp.md §8).
    */
   republishSnapshot(): void {
-    this.snapshotDispatch.broadcastOffTick();
+    this.broadcastOffTick();
   }
 
   /** Unfreezes the loop. The wall time that passed while paused is discarded, never caught up. */
@@ -246,12 +248,23 @@ export class GameRoom {
     for (let count = 0; count < dueTicks; count += 1) this.runTick();
   }
 
-  /** The tick time spans the step and the broadcast; `broadcastMs` is the broadcast's share of it (#340). */
+  private broadcastOffTick(): void {
+    this.hasUnsentTicks = false;
+    this.snapshotDispatch.broadcastOffTick();
+  }
+
+  /**
+   * The tick time spans the step and the broadcast; `broadcastMs` is the broadcast's share of it (#340). Before a step
+   * that makes a change no delta carries, the ticks not yet sent go out first, whatever the cadence
+   * (docs/architecture/wire-contract.md §4 "The move"), so the broadcast that holds the change starts with it.
+   */
   private runTick(): void {
     const tickStartMs = this.timing.clock.nowMilliseconds();
+    if (this.hasUnsentTicks && this.game.isViewRestartNext?.() === true) this.broadcastOffTick();
     this.game.reduceGameState();
     this.tickCount += 1;
     const isBroadcastTick = this.tickCount % SNAPSHOT_EVERY_TICKS === 0;
+    this.hasUnsentTicks = !isBroadcastTick;
     const broadcastStartMs = this.timing.clock.nowMilliseconds();
     const sent = isBroadcastTick ? this.snapshotDispatch.broadcastOnTick() : NOTHING_BROADCAST;
     const readings = { tickStartMs, broadcastStartMs, tickEndMs: this.timing.clock.nowMilliseconds() };

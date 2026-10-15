@@ -1,12 +1,14 @@
 // What each viewer alone is sent of a snapshot (docs/architecture/wire-contract.md §4.1, §4.2 lever 1): its own
 // progress, its own applied input sequence, and the food and DNA fragments inside its interest area. The food is a
 // delta per viewer: a mote entering the area is `spawned` for that viewer, one leaving it is in `removedIds`, and one
-// inside it that moved is in `moved`. A `game_state` restarts that delta from the motes it carries. Every member is
+// inside it that moved is in `moved`. A `game_state` restarts that delta from the motes it carries, and so does the
+// broadcast that holds the pool's move, which the room sends as one (wire-contract.md §4 "The move"). Every member is
 // read from the world: the broadcast builds none of them (#399), and the full snapshot keeps every mote and fragment
 // for no viewer (a debug read, a scenario).
 
 import {
   interestMarginFor,
+  type CameraState,
   type DnaFragmentView,
   type FoodDelta,
   type GameSnapshot,
@@ -17,6 +19,7 @@ import { findPlayer } from '../world/lookups.js';
 import type { WorldState } from '../world/world-state.js';
 import { FoodDeltaTracker, MoteMotion, type MoteEntry, type PositionedFood } from './food-delta-tracker.js';
 import { isInInterestArea, type InterestArea } from './interest-area.js';
+import type { MoveBroadcasts } from './move-broadcasts.js';
 import { MASS_WINDOW, ownProgressOf, toDnaFragmentView } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
 import { ViewerMemberJson } from './viewer-member-json.js';
@@ -37,6 +40,8 @@ interface WorldReading {
 /** The broadcast the reading was taken for. */
 interface ObservedBroadcast extends WorldReading {
   readonly broadcast: BroadcastSnapshot;
+  /** It holds the pool's move: each viewer's food delta restarts, as for a `game_state`. */
+  readonly isMoveBroadcast: boolean;
 }
 
 function foodInArea(food: readonly MoteEntry[], area: InterestArea): MoteEntry[] {
@@ -61,11 +66,16 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
   private readonly json = new ViewerMemberJson();
   private observed: ObservedBroadcast | null = null;
 
-  constructor(private readonly world: WorldState) {}
+  constructor(
+    private readonly world: WorldState,
+    private readonly moves: MoveBroadcasts,
+  ) {}
 
+  /** The move's broadcast restarts every viewer's food delta: the room sends it as a `game_state`, with its window. */
   serialize(viewerPlayerId: PlayerId, broadcast: BroadcastSnapshot): ViewerSnapshotMembers {
     const reading = this.observe(broadcast);
-    const tracker = this.foodDeltas.get(viewerPlayerId) ?? this.restartFoodDelta(viewerPlayerId);
+    const knownTracker = reading.isMoveBroadcast ? undefined : this.foodDeltas.get(viewerPlayerId);
+    const tracker = knownTracker ?? this.restartFoodDelta(viewerPlayerId);
     return this.membersFor(viewerPlayerId, tracker, reading);
   }
 
@@ -84,6 +94,11 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
     return this.json.memberJson(key, value);
   }
 
+  /** Every state `viewerPlayerId`'s interest area unions, oldest first (a test reads the cameras across the move). */
+  cameraHistoryOf(viewerPlayerId: PlayerId): readonly CameraState[] {
+    return this.cameras.historyOf(viewerPlayerId);
+  }
+
   /** A player left the room: its camera and its delta go with it. */
   forget(viewerPlayerId: PlayerId): void {
     this.cameras.forget(viewerPlayerId);
@@ -98,10 +113,10 @@ export class EvolutionViewerState implements ViewerStateSerializer<GameSnapshot,
    * A second broadcast of one tick (a paused room republishing a debug change) re-reads the world but steps no camera
    * twice, and a broadcast no viewer was sent is stepped over on the next one, so no caller has to announce either.
    */
-  private observe(broadcast: BroadcastSnapshot): WorldReading {
+  private observe(broadcast: BroadcastSnapshot): ObservedBroadcast {
     if (this.observed?.broadcast === broadcast) return this.observed;
     if (this.observed?.broadcast.tick !== broadcast.tick) this.cameras.step(this.world);
-    this.observed = { broadcast, ...this.readWorld() };
+    this.observed = { broadcast, isMoveBroadcast: this.moves.isMoveBroadcast(), ...this.readWorld() };
     return this.observed;
   }
 

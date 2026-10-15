@@ -115,10 +115,12 @@ export class SnapshotBacklog {
    * resync is queued behind older deltas, anything more only deepens that queue, and the acks it waits behind would
    * read as "behind" and arm a second full state; the next broadcast after the ack covers the gap. A paused room makes
    * no next broadcast, so a `debug_step_room` taken during the hold is sent as its delta, queued after the resync:
-   * steps of any size still leave the client current (#300), and nothing is re-armed.
+   * steps of any size still leave the client current (#300), and nothing is re-armed. A client owed a resync (the
+   * move held it, `oweResync`) is skipped even then: no delta can carry it that world, and the paused room settles
+   * the resync on its ack (`isResyncDue`).
    */
   private deliveryWhileHeld(playerId: string, broadcastTick: number, isRoomPaused: boolean): SnapshotDelivery {
-    if (!isRoomPaused) return SNAPSHOT_DELIVERY.skipped;
+    if (!isRoomPaused || this.owedResync.has(playerId)) return SNAPSHOT_DELIVERY.skipped;
     this.lastSentTick.set(playerId, broadcastTick);
     this.recordDeltaSent(playerId, broadcastTick);
     return SNAPSHOT_DELIVERY.delta;
@@ -131,6 +133,14 @@ export class SnapshotBacklog {
   isResyncDue(connection: Connection): boolean {
     const { playerId } = connection;
     return this.owedResync.has(playerId) && !this.isBehind(playerId) && !this.isHoldingBytes(connection);
+  }
+
+  /**
+   * Owes `playerId` a `game_state`: a broadcast it was held from carried a change no delta can bring it later (the
+   * Evolution pool's move, docs/architecture/wire-contract.md §4 "The move"). It is sent once the client catches up.
+   */
+  oweResync(playerId: string): void {
+    this.owedResync.add(playerId);
   }
 
   /** The `game_state` a due resync was settled with has been sent at `tick`, as the broadcast would record it. */

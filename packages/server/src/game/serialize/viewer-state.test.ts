@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_BALANCE,
   FOOD_KIND,
+  GAME_ERA,
   SNAPSHOT_EVERY_TICKS,
   interestMarginFor,
   playerId,
@@ -10,6 +11,7 @@ import {
 import { TEST_PLAYER, createTestWorld } from '../../testing/world-builders.js';
 import { spawnDnaFragment, spawnFoodMote } from '../simulation/spawn-mote.js';
 import type { WorldState } from '../world/world-state.js';
+import { MoveBroadcasts } from './move-broadcasts.js';
 import { serializeBroadcastSnapshot } from './serialize.js';
 import { ViewerCameras } from './viewer-cameras.js';
 import { VIEWER_SNAPSHOT_KEYS, type BroadcastSnapshot } from './viewer-snapshot-keys.js';
@@ -25,6 +27,9 @@ const PAST_THE_MARGIN_WU = 20;
 const SPEED_RAISE = 3;
 /** The other player's applied input sequence, apart from the own player's. */
 const OTHER_SEQUENCE = 7;
+/** A cell far out in the dish (the review's 3 000 wu), and a mote just beside where the move puts it. */
+const DISH_FAR_X = 3000;
+const NEAR_POOL_OFFSET_WU = 10;
 
 /** A world with the own cell parked at the centre and one viewer state over it. */
 function centredWorld(players = [TEST_PLAYER]) {
@@ -32,7 +37,7 @@ function centredWorld(players = [TEST_PLAYER]) {
   const own = world.cells.find((cell) => cell.playerId === TEST_PLAYER.playerId)!;
   own.x = 0;
   own.y = 0;
-  return { world, own, viewerState: new EvolutionViewerState(world) };
+  return { world, own, viewerState: new EvolutionViewerState(world, new MoveBroadcasts(world)) };
 }
 
 /** What the room does once per broadcast: the world moves on, then the shared snapshot is built. */
@@ -78,6 +83,46 @@ describe('EvolutionViewerState', () => {
     expect(Object.keys(shared)).not.toContain('dnaFragments');
     const { dnaFragments } = viewerState.serialize(TEST_PLAYER.playerId, shared);
     expect(dnaFragments.map((fragment) => fragment.id)).toEqual([nearFragment.id]);
+  });
+
+  it('restarts every viewer’s food delta on the broadcast that holds the pool’s move, and only on it', () => {
+    const world = createTestWorld({ players: [TEST_PLAYER, OTHER_PLAYER] });
+    const moves = new MoveBroadcasts(world);
+    const viewerState = new EvolutionViewerState(world, moves);
+    for (const cell of world.cells) {
+      cell.x = 0;
+      cell.y = 0;
+    }
+    const held = algaeAt(world, NEAR);
+    const viewers = [TEST_PLAYER.playerId, OTHER_PLAYER.playerId];
+    const serializeBroadcast = () => {
+      const shared = broadcast(world);
+      moves.noteBroadcast();
+      return viewers.map((viewer) => viewerState.serialize(viewer, shared).food.spawned.map((mote) => mote.id));
+    };
+    expect(serializeBroadcast()).toEqual([[held.id], [held.id]]);
+    expect(serializeBroadcast()).toEqual([[], []]);
+    world.eraMovedInto = GAME_ERA.pool;
+    expect(serializeBroadcast()).toEqual([[held.id], [held.id]]);
+    expect(serializeBroadcast()).toEqual([[], []]);
+  });
+
+  it('culls a viewer the move skipped around its remapped camera when its owed resync goes out', () => {
+    const world = createTestWorld();
+    const moves = new MoveBroadcasts(world);
+    const viewerState = new EvolutionViewerState(world, moves);
+    const own = world.cells[0]!;
+    own.x = DISH_FAR_X;
+    own.y = 0;
+    viewerState.serialize(TEST_PLAYER.playerId, broadcast(world));
+    moves.noteBroadcast();
+    world.eraMovedInto = GAME_ERA.pool;
+    own.x = DISH_FAR_X / DEFAULT_BALANCE.eras.ERA_SCALE_STEP;
+    broadcast(world);
+    moves.noteBroadcast();
+    const mote = algaeAt(world, { x: own.x + NEAR_POOL_OFFSET_WU, y: 0 });
+    const { food } = viewerState.serializeFull(TEST_PLAYER.playerId);
+    expect(food.spawned.map((spawned) => spawned.id)).toEqual([mote.id]);
   });
 
   it('spawns a mote entering the area, removes one leaving it and moves one inside it', () => {
