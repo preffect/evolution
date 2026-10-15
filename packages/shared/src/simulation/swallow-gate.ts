@@ -11,16 +11,15 @@ import type { OwnedTrait } from '../types/game.js';
 /** The switch the two checks read, taken from `balance.absorption`. */
 export type SwallowGateBalance = Pick<BalanceConfig['absorption'], 'SWALLOW_GATE_TRAITS'>;
 
-function ownsAnyGateTrait(traits: readonly OwnedTrait[], balance: SwallowGateBalance): boolean {
+/**
+ * Whether a cell owns the gate while there is one: it owns a listed trait at any tier. An empty list lists none, so no
+ * cell owns the gate while the switch is off.
+ */
+export function ownsSwallowGateTrait(traits: readonly OwnedTrait[], balance: SwallowGateBalance): boolean {
   return traits.some((owned) => balance.SWALLOW_GATE_TRAITS.includes(owned.traitId));
 }
 
 /** Whether a cell may swallow by its traits: the list is empty (no gate), or it owns a listed trait at any tier. */
 export function canSwallowByTraits(traits: readonly OwnedTrait[], balance: SwallowGateBalance): boolean {
-  return balance.SWALLOW_GATE_TRAITS.length === 0 || ownsAnyGateTrait(traits, balance);
-}
-
-/** Whether a cell owns the gate while there is one: the list is not empty and it owns a listed trait at any tier. */
-export function ownsSwallowGateTrait(traits: readonly OwnedTrait[], balance: SwallowGateBalance): boolean {
-  return balance.SWALLOW_GATE_TRAITS.length > 0 && ownsAnyGateTrait(traits, balance);
+  return balance.SWALLOW_GATE_TRAITS.length === 0 || ownsSwallowGateTrait(traits, balance);
 }
