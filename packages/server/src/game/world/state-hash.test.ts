@@ -266,7 +266,7 @@ describe('the mass-flow ledger (#383)', () => {
     recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.sprintSpent, 1);
     recordWindowAmount(world.massFlow, player.playerId, MASS_WINDOW_AMOUNT.noDraftBonusGained, 1);
     recordMetabolism(world.massFlow, player.playerId, {
-      ratesPerSecond: { toxin: -1, swallowed: 0, decay: -0.5, vent: 0, light: 0, graze: 0 },
+      ratesPerSecond: { toxin: -1, swallowed: 0, decay: -0.5, vent: 0, light: 0 },
       decayTraitShare: 0,
       zone: 'open_broth',
     });

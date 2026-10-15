@@ -67,7 +67,6 @@ export const RATE_CAUSE_LABEL: Readonly<Record<MassRateCause, string>> = {
   [MASS_RATE_CAUSE.decay]: 'Decay',
   [MASS_RATE_CAUSE.vent]: 'Vent',
   [MASS_RATE_CAUSE.light]: 'Light',
-  [MASS_RATE_CAUSE.graze]: 'Graze',
 };
 
 /** The rim role each cause's cue carries; the panel's rows (docs/ui/overlays.md §3.7) mark themselves from it too. */
@@ -77,7 +76,6 @@ export const RATE_CAUSE_RIM: Readonly<Record<MassRateCause, CueRim>> = {
   [MASS_RATE_CAUSE.decay]: CUE_RIM.none,
   [MASS_RATE_CAUSE.vent]: CUE_RIM.warmVent,
   [MASS_RATE_CAUSE.light]: CUE_RIM.sunlitShallows,
-  [MASS_RATE_CAUSE.graze]: CUE_RIM.gain,
 };
 
 /** `9.4` from 9.36, `12` from 12.4: one decimal under ten, whole from ten up, trailing zeros dropped. */

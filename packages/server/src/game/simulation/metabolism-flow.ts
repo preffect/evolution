@@ -1,8 +1,8 @@
 // What a metabolism tick applied, by cause (docs/ui/hud.md §3.1.5 "Applied, at the floor and the cap", #383).
 // `loseMassToFloor` clips decay and every drain together, so a rate is never the formula's value but what was
 // taken: the loss `massAtStart − massAfterFloor` is split across the requested losses in proportion to their
-// formula values, the light is `massAfterLight − massAfterFloor` and a film's graze `massAfterGraze − massAfterLight`,
-// each after the cap. The causes therefore always add up to the mass that moved.
+// formula values, and the light is `massAfterGain − massAfterFloor`, after the cap. The causes therefore always add
+// up to the mass that moved.
 
 import { MASS_RATE_CAUSE, TICK_INTERVAL_S, type MassRateCause, type ZoneId } from '@evolution/shared';
 import type { MassFlowRecord } from '../world/mass-flow-ledger.js';
@@ -25,8 +25,7 @@ export interface MetabolismMeasure {
   readonly demand: MetabolismDemand;
   readonly massAtStart: number;
   readonly massAfterFloor: number;
-  readonly massAfterLight: number;
-  readonly massAfterGraze: number;
+  readonly massAfterGain: number;
   readonly zone: ZoneId;
   readonly decayMultiplier: number;
 }
@@ -38,7 +37,7 @@ function appliedLossShare(measure: MetabolismMeasure): number {
   return requestedPerTick > 0 ? (measure.massAtStart - measure.massAfterFloor) / requestedPerTick : NO_LOSS_SHARE;
 }
 
-/** Mass/s applied per cause: losses negative, the light and the graze positive. */
+/** Mass/s applied per cause: losses negative, the light positive. */
 export function appliedRatesPerSecond(measure: MetabolismMeasure): Record<MassRateCause, number> {
   const share = appliedLossShare(measure);
   const { demand } = measure;
@@ -47,8 +46,7 @@ export function appliedRatesPerSecond(measure: MetabolismMeasure): Record<MassRa
     [MASS_RATE_CAUSE.swallowed]: -demand.swallowed * share,
     [MASS_RATE_CAUSE.decay]: -demand.decay * share,
     [MASS_RATE_CAUSE.vent]: -demand.vent * share,
-    [MASS_RATE_CAUSE.light]: (measure.massAfterLight - measure.massAfterFloor) / TICK_INTERVAL_S,
-    [MASS_RATE_CAUSE.graze]: (measure.massAfterGraze - measure.massAfterLight) / TICK_INTERVAL_S,
+    [MASS_RATE_CAUSE.light]: (measure.massAfterGain - measure.massAfterFloor) / TICK_INTERVAL_S,
   };
 }
 

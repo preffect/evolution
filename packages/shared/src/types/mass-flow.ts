@@ -18,8 +18,6 @@ export const MASS_RATE_CAUSE = {
   vent: 'vent',
   /** Photosynthesis as applied, after the cap. */
   light: 'light',
-  /** Grazing a bacteria film in the rock pool as applied, after the cap (docs/game-design/phases.md §14.5.2). */
-  graze: 'graze',
 } as const;
 export type MassRateCause = ValueOf<typeof MASS_RATE_CAUSE>;
 export const MASS_RATE_CAUSES: readonly MassRateCause[] = Object.values(MASS_RATE_CAUSE);

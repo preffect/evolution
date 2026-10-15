@@ -107,7 +107,6 @@ const CAUSE_QUALIFIER: Readonly<Record<MassRateCause, (input: AffectingCausesInp
   [MASS_RATE_CAUSE.decay]: decayQualifier,
   [MASS_RATE_CAUSE.vent]: ventQualifier,
   [MASS_RATE_CAUSE.light]: () => null,
-  [MASS_RATE_CAUSE.graze]: () => null,
 };
 
 /** `Decay · Mitochondrion ×0.85`, or plain `Light` where the cause has nothing to add. */

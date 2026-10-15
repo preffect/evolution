@@ -194,7 +194,7 @@ export interface PlayerProgressView extends PlayerRosterView {
   respawnInTicks: number;
 }
 // packages/shared/src/types/mass-flow.ts (#383): why the own cell's mass moves (ui/hud.md §3.1.5, architecture/wire-contract.md §4)
-export type MassRateCause = 'toxin' | 'swallowed' | 'decay' | 'vent' | 'light' | 'graze'; // MASS_RATE_CAUSE; declaration order is the tag tie-break
+export type MassRateCause = 'toxin' | 'swallowed' | 'decay' | 'vent' | 'light'; // MASS_RATE_CAUSE; declaration order is the tag tie-break
 export interface MassFlowView {
   ratesPerSecond: Partial<Record<MassRateCause, number>>; // what metabolism applied this tick, post-floor and post-cap; losses negative; zeros left out
   decayTraitShare?: number; // the folded decayMultiplier − 1; left out at 0
