@@ -96,9 +96,9 @@ latch.
 
 #### 15.4.1 Rules
 
-- **Who latches.** A cell whose stage has reached `LATCH_FROM_STAGE` (`prokaryote`) and that owns no swallow gate
-  trait (`SWALLOW_GATE_TRAITS`, the Cytoskeleton Lattice; §15.5.1): from the archaeon on, until it takes the Lattice,
-  so a eukaryote that took the nucleus first still latches. Players only; wild cells and giants never latch.
+- **Who latches.** A cell whose stage has reached `LATCH_FROM_STAGE` (`prokaryote`) and that cannot swallow yet
+  (`canSwallowByTraits` false, §15.5.1: the switch names the Lattice and the cell does not own it): from the archaeon
+  on, until it takes the Lattice, so a eukaryote that took the nucleus first still latches. Players only; wild cells and giants never latch.
 - **What it latches.** A bacterium mote whose centre lies within `radius × (1 + LATCH_REACH_RADII)` of the cell's
   centre (the arms reach a little past the body), while the cell holds fewer than `LATCH_MAX_HELD` and its sprint is
   not running. The mote leaves the world and joins the cell's **held list**: the held entry keeps the **mote's own record**
@@ -132,13 +132,13 @@ wire, the orbit and the draft for no change in play); its meaning is "taken in: 
 
 #### 15.4.2 Losing held bacteria
 
-| When                                                                       | What happens to every held bacterium                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the cell **starts a sprint** (step 1, where the sprint is set)             | shaken loose: its kept record goes back into the world as a free bacterium at its rim point with a fresh entity id and its own heading (nothing new is drawn from the `moteMotion` stream), no payout, no credit; one `latch_shaken` naming the mote ids. No latching while the sprint runs, so it cannot catch it back                                                                                                                                                                                                                                                                        |
-| the cell is **removed** (absorbed, dissolved, disconnected)                | dropped free at its rim point, as above, before the cell's detritus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| the cell **owns a swallow gate trait**                                     | **swallowed**: at the start of every eating step, any cell that owns a trait of `SWALLOW_GATE_TRAITS` (§15.5.1) eats its whole held list through `eatFoodMote` (one `eat` each, its counter credited by today's rule). A per-tick invariant, not an event: one home covers a pick (applied at step 1, so the swallow lands on the same tick), the gift at the move (a gifted amoeba brings the Lattice), `debug_set_player`, and a `debug_set_balance` that moves the switch while archaea hold bacteria. No cell with the Lattice ever holds a bacterium. Your first swallow is your partners |
-| the move to the rock pool at 10:00 (phases.md §14.4.2 step 1, ticket #868) | gone with the dish's motes: no payout, no credit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| a rematch                                                                  | gone (every cell is new)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| When                                                                       | What happens to every held bacterium                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the cell **starts a sprint** (step 1, where the sprint is set)             | shaken loose: its kept record goes back into the world as a free bacterium at its rim point with a fresh entity id and its own heading (nothing new is drawn from the `moteMotion` stream), no payout, no credit; one `latch_shaken` naming the mote ids. No latching while the sprint runs, so it cannot catch it back                                                                                                                                                                                                                                                                                                                                                   |
+| the cell is **removed** (absorbed, dissolved, disconnected)                | dropped free at its rim point, as above, before the cell's detritus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| the cell **can swallow** (`canSwallowByTraits`, §15.5.1)                   | **swallowed**: at the start of every eating step, any cell for which `canSwallowByTraits` holds eats its whole held list through `eatFoodMote` (one `eat` each, its counter credited by today's rule). A per-tick invariant, not an event: one home covers a pick (applied at step 1, so the swallow lands on the same tick), the gift at the move (a gifted amoeba brings the Lattice), `debug_set_player`, and a `debug_set_balance` that moves the switch while archaea hold bacteria (emptying the list makes every cell able to swallow, so they swallow what they hold: EL23). No cell that can swallow ever holds a bacterium. Your first swallow is your partners |
+| the move to the rock pool at 10:00 (phases.md §14.4.2 step 1, ticket #868) | gone with the dish's motes: no payout, no credit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| a rematch                                                                  | gone (every cell is new)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 So a held cluster is something to protect: the giant amoeba bearing down on you at the vent asks you to choose
 between your partners and a sprint.
@@ -164,31 +164,65 @@ between your partners and a sprint.
 Decision ticket #919: swallowing unlocks on its requirement, the inner skeleton, not on a stage or the clock (ticket
 #947 wrote it in). The inner skeleton is the **Cytoskeleton Lattice** (`cytoskeleton`), the trait that already draws
 threads from the nucleus to the membrane and that Amoeba Pseudopods already requires. Whether it stays the Lattice or
-becomes a new base trait with the Lattice as its upgrade is question 2 of §15.14; every rule below names the gate
-through the switch's list (`SWALLOW_GATE_TRAITS`), never the trait id, so either answer changes one value.
+becomes a new base trait with the Lattice as its upgrade is question 2 of §15.14 (decision ticket #952). Every rule
+below names the gate through the switch's list (`SWALLOW_GATE_TRAITS`), never the trait id, so the rules keep their
+shape either way; the ladder does not. Answer B (a new Actin Skeleton that the Lattice `requires`) also changes:
+
+- **build 0** (`cytoskeleton` is its fourth pick with no Actin Skeleton before it, so `ladderProblem` refuses it): it
+  gains the Actin Skeleton as a pick, and since the world's stage clock reads build 0 (ecology/food-and-spawn.md §3.1,
+  `world-clock.ts`), the world reaches `specialised` at **18:00 instead of 15:00** (unless the world clock gets its own
+  pick list, ticket #957);
+- **`GIANT_BUILDS_BY_SPECIES.giant_amoeba`**, which owns the Lattice, gains the Actin Skeleton (its derived level + 1);
+- **`amoeba_pseudopods`** keeps `requires: ['cytoskeleton']`, so the amoeba becomes a six-pick form (level 7) and the
+  no-form gift's requirement chain for it grows by one (phases ticket #869);
+- a catalog row, its art and its encyclopedia page, and `SWALLOW_GATE_TRAITS` at the flip names the new trait.
 
 #### 15.5.1 The rule
 
-- **Cells.** `canEngulf` (the one shared predicate, ecology/absorption.md §6.1) has a predator test. The species
-  decides for a giant (and, from the phases build, a pool creature); the traits decide for a player or a plain wild
-  cell:
+- **Two checks, one home** (`shared/simulation/`, beside `canEngulf`). The switch is read two ways, and each rule
+  reads exactly one:
 
   ```
-  canEngulf(predator, prey) = isCellEaterSpecies(predator.species)
-                              ∧ (predator.species ≠ null ∨ ownsSwallowGate(predator.traits))
+  canSwallowByTraits(traits)   = SWALLOW_GATE_TRAITS is empty                    (the switch off: every cell can swallow)
+                                 ∨ traits owns any id of SWALLOW_GATE_TRAITS, at any tier
+  ownsSwallowGateTrait(traits) = SWALLOW_GATE_TRAITS is not empty
+                                 ∧ traits owns any id of SWALLOW_GATE_TRAITS, at any tier
+  ```
+
+  | Check                  | Read by                                                                                                                                                                                                                                  |
+  | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `canSwallowByTraits`   | `canEngulf`; `bacteriumContactOutcome` (and so who latches, §15.4.1); the held-list swallow (§15.4.2); the renderer's arms (drawn while the cell has reached `LATCH_FROM_STAGE` and it is false); the "Can't swallow yet" beat (§15.9.1) |
+  | `ownsSwallowGateTrait` | the unlock moment and its ability popup (§15.5.2: the tick it first turns true); the reserved card (§15.5.4: offered while it is false and the list is not empty); the Lattice card's extra effect line (§15.9.1)                        |
+
+  With the list empty the first is true for every cell and the second false for every cell: everyone swallows, and
+  no unlock moment, popup or reserved card ever appears. The "own any listed trait" reading is `STAGE_GATE_TRAITS`'s.
+
+- **Cells.** `canEngulf` (the one shared predicate, ecology/absorption.md §6.1) has a predator test. A cell with a
+  species is decided by its species (a giant, and from the phases build a pool creature); every other cell, a player or
+  a plain wild cell, by its traits:
+
+  ```
+  canEngulf(predator, prey) = eatsCells(predator)
+                              ∧ (hasSpecies(predator) ∨ canSwallowByTraits(predator.traits))
                               ∧ meetsEngulfStartRatio(predator, prey)
 
-  ownsSwallowGate(traits)   = SWALLOW_GATE_TRAITS is empty                        (the switch off: every cell swallows)
-                              ∨ traits owns any id of SWALLOW_GATE_TRAITS, at any tier
+  hasSpecies(cell) = cell.giantSpecies ≠ null ∨ cell.poolCreature ≠ null
+  eatsCells(cell)  = a giant: its role is the hunter (GIANT_ROLE_BY_SPECIES)
+                     a pool creature cell: the Didinium or the rotifer; never the nematode
+                     any other cell: true
   ```
 
-  The same "own any listed trait" reading as `STAGE_GATE_TRAITS`, whose empty list also means "no gate". `species` is
-  `giantSpecies` today; the phases contract adds the creature species to the same test, so a creature built with no
-  ladder still swallows, and the giant amoeba swallows because it is a hunter, not because of its build.
+  `eatsCells` is today's `isCellEaterSpecies` widened to the creature species (`CellView.poolCreature.species`, ticket
+  #935; the copepod has no cell and eats by its own sweep). **The nematode must be in it as a non-eater**, like the
+  grazer and the drifter: it is a cell whose `giantSpecies` is null, so without it the nematode would read as a plain
+  cell and, with the switch empty, pass `canEngulf`. So a creature built with no ladder still swallows or never does by
+  its species, and the giant amoeba swallows because it is a hunter, not because of its build.
   `SWALLOW_GATE_TRAITS` lives in the **`absorption` balance domain**, beside the ratios, in place of ticket #907's
   `SWALLOW_FROM_STAGE` (§15.10), so `EngulfRatioBalance` keeps one switch leaf. The predicate reads `traits` where it
-  read `stage`: every caller passes a `CellView` or a record with its owned traits, so none of the fifteen or so
-  callers changes its argument (the contract ticket checks the few that build a predator by hand). The mass half stays
+  read `stage`: almost every caller passes a `CellView` or a record with its owned traits. The exception is the bots:
+  their `BotCellView` (`bots/perception.ts`) has `stage` and no `traits`, so ticket #948 adds `traits` to it (and to
+  `testing/bot-builders.ts`), keeping `stage` for `bacteriumContactOutcome`; it also rewrites the `debug_set_balance`
+  tool description's example (`mcp/handlers/balance.ts`), which names `SWALLOW_FROM_STAGE`. The mass half stays
   exported as `meetsEngulfStartRatio`, which the HUD's "can't swallow yet" beat reads (§15.9.1). With the switch on no
   cell without the Lattice, player or wild, ever starts an engulf, whatever its stage. Every caller (the server's
   contact and engulf steps, the wild cells' flee, hunt, hunt sprint and closer-rival rules, the bots, the HUD's danger
@@ -199,7 +233,7 @@ through the switch's list (`SWALLOW_GATE_TRAITS`), never the trait id, so either
 - **Bacteria.** A cell that owns the gate eats a bacterium by today's eating rule (whole, on touch) and credits its
   counter as today; without it, a bacterium is latched or passed over (§15.4). One shared pure function answers what a
   touch does, `bacteriumContactOutcome(cell, heldCount, balance)` → `'swallow' | 'latch' | 'pass'` (`cell`: its stage
-  and its traits): `swallow` when `ownsSwallowGate`, else `latch` from `LATCH_FROM_STAGE` while the cell holds fewer
+  and its traits): `swallow` when `canSwallowByTraits`, else `latch` from `LATCH_FROM_STAGE` while the cell holds fewer
   than `LATCH_MAX_HELD`, else `pass`. Read by the server's eating step and the bots' mote filter (§15.8.3).
 - **Wild cells.** A wild cell owns the first (level − 1) picks of its build (ecology/wild-cells.md §3.3.2), so it
   swallows from the world level at which its build reaches the Lattice, by the same `canEngulf`. §15.8.1 gives the
@@ -209,7 +243,7 @@ through the switch's list (`SWALLOW_GATE_TRAITS`), never the trait id, so either
 
 #### 15.5.2 The teaching moment on screen
 
-It plays on the tick the own cell first owns a trait of `SWALLOW_GATE_TRAITS` (in play: the Cytoskeleton Lattice's
+It plays on the tick `ownsSwallowGateTrait` first turns true for the own cell (in play: the Cytoskeleton Lattice's
 pick; at 10:00: the no-form gift, when the gifted form is the amoeba, whose requirement is the Lattice, phases.md
 §14.4.3), in this order, while you keep steering:
 
@@ -254,27 +288,37 @@ any level-up, before or after the mitochondrion and the nucleus.
   in their arms (Rodrigues-Oliveira et al. 2023), so an archaeon building them into a skeleton is the real starting
   point. Which came first in our ancestors, swallowing or the mitochondrion partner, is still argued: the
   "phagocytosing archaeon" idea has an archaeon swallow first and catch its mitochondrion that way (Martijn & Ettema
-  2013); the energy argument and the gene evidence say the partner came first and swallowing after it (Lane & Martin
-  2010; Burns et al. 2018; Mills 2020). The game lets you play either story, and the encyclopedia says which one most
-  scientists now favour (§15.9.4).
+  2013), and a dating of the genes that suggests the mitochondrion arrived late, in a host that was already complex,
+  supports that side (Pittis & Gabaldón 2016); the energy argument and the gene evidence on Asgard archaea lean toward
+  the partner first and swallowing after it (Lane & Martin 2010; Burns et al. 2018; Mills 2020). The game lets you play
+  either story, and the encyclopedia says that much of the evidence leans toward the partner first (§15.9.4).
 - **The hunter-first archaeon** loses its arms on the pick (its held bacteria are swallowed, §15.4.2) and earns the
   mitochondrion by **swallowing** ten aerobic bacteria, which credit the counter as any swallow does (the phagocytosing
   archaeon's story). The partner-first archaeon earns it by holding them, as before.
-- **The other placements** (question 1): after the mitochondrion (`stage: 'endosymbiosis'`, truest to today's evidence,
-  first swallow ~8:00, about 2 minutes of food web), or after the mitochondrion with a faster climb (lower level costs,
-  so level 4 comes at about 6:00; reopens decision #138's slow dawn and the phases pace model, ticket #881). Each
-  changes this section's table, §15.7, §15.8.1's build and the copy's times, nothing else.
+- **The other placements** (question 1, decision ticket #951), and what each rewrites:
+  - **A, after the mitochondrion** (`stage: 'endosymbiosis'`; first swallow ~8:00, about 2 minutes of food web): this
+    section's table and §15.7; build 1 becomes `nucleoid`, `mitochondrion`, `cytoskeleton`, `nuclear_envelope`, … so
+    its Lattice comes at level 4 (9:00), and §15.8.1, EL13 and G13 move their 6:30 engulf to 9:30; EL21 (d) and (e)
+    (an archaeon is offered no Lattice: (d) becomes the Mitochondrion's rung card and two free cards, (e) three free
+    cards), EL25 (an archaeon with the Lattice is no longer a valid build: it moves to an endosymbiosis cell) and EL26
+    (build 1 at level 4); the hunter-first path that earns the mitochondrion by swallowing goes, and with it the
+    §15.9.4 lines on the Archaeon, Mitochondrion, aerobic bacterium and Engulf pages and the "either story" line;
+    §15.9.1's beats and the times in the copy (5:40 becomes 8:00).
+  - **C, after the mitochondrion with a faster climb** (lower level costs, so level 4 comes at about 6:00): everything
+    A rewrites, plus the level costs (PROGRESSION.md §2 and its constants), the pace model's targets (core.md §3,
+    PROGRESSION.md §2, EL20, P1), the world clock's calibration (ecology/food-and-spawn.md §3.1) and the phases pace
+    model (ticket #881); it reopens decision #138's slow dawn.
 
 #### 15.5.4 The skeleton's reserved card
 
 Without a reserved card the Lattice would be one weighted draw among about six archaeon candidates, so a player who
 wants to hunt could wait levels for it. So the draft's **second reserved card** (§15.6's partner card, widened) offers
 it: after the rung card, if a candidate is an earned partner the rung card did not take, one card is drawn among those
-by weight (§15.6, unchanged); **if none is, and the cell owns no trait of a non-empty `SWALLOW_GATE_TRAITS`, the card
-is drawn among the gate traits that are candidates** (the Lattice alone). The same room rule holds: at most one rung
+by weight (§15.6, unchanged); **if none is, `SWALLOW_GATE_TRAITS` is not empty and `ownsSwallowGateTrait` is false,
+the card is drawn among the gate traits that are candidates** (the Lattice alone). The same room rule holds: at most one rung
 card and one second reserved card, each only while the draft still has room for a free card after it. The partners
 come first because their unlock toast promises them at the next level-up (§15.6); the Lattice is offered at every
-level-up with no partner waiting, until it is taken. So:
+level-up with no partner waiting, until it is taken, with no cap. So:
 
 - an archaeon at level 3 with ten aerobic bacteria: the Mitochondrion (rung), the Lattice (reserved), one free card;
   without the ten: the Lattice (reserved) and two free cards;
@@ -283,6 +327,14 @@ level-up with no partner waiting, until it is taken. So:
   and the Lattice only by a free draw, then reserved at the following level-up.
 
 With the switch off (`SWALLOW_GATE_TRAITS` empty) the second card reserves partners only, exactly §15.6. Scenario EL21.
+
+**The cost to a player who does not want to hunt, and why it is uncapped.** A player heading for the diatom or the
+euglena keeps being offered the Lattice. Before its form that costs a free card: a eukaryote's draft is a form gate
+(rung), the Lattice and one free card, for the one or two level-ups between the nucleus and the form. After the form
+there is no rung card, so the draft is the Lattice and two free cards, as many free cards as any draft with a rung
+card has today. That is intended: swallowing is the one ability that changes what the dish means for a cell, and a
+player who has not taken it should always be one pick away (in the pool era too, §15.8.7). Capping it (only up to
+`eukaryote`, or N offers) would leave a formed player who wants to hunt waiting on a free draw.
 
 ### 15.6 The chloroplast after the nucleus
 
@@ -373,9 +425,14 @@ re-read. The level-ups land where they did; what changed with decision ticket #9
 - **Early absorptions are a choice.** Before 5:40 nobody scores an absorption; after it only hunters and the
   paramecium-line wild cells do (the pace model never counted any, core.md §3); score is DNA. The death rate before
   5:40 is the giant amoeba's alone.
-- **Who decides when the cards time out.** An offer left alone picks its heaviest card (PROGRESSION.md §4): the Lattice
-  is common (weight 1.0) and the Mitochondrion uncommon (0.5), so an idle archaeon, and every bot, usually becomes a
-  hunter at level 3. Gameplay QA reports the share; it is a tuning fact, not a new rule.
+- **Who decides when the cards time out.** An offer left alone picks its heaviest card, a tie going to the lower
+  catalog index (PROGRESSION.md §4). The weight is rarity × min(4, 1 + 0.1 × the card's tag points): the Lattice
+  1.0 × (1 + 0.1 × (motile + armored)), the Mitochondrion 0.5 × (1 + 0.1 × metabolic). After the vent trip a cell has at
+  least 10 metabolic points (one per aerobic bacterium), so the Mitochondrion weighs at least 1.0, and it wins a tie
+  (it comes before the Lattice in the catalog); more aerobic bacteria tip it further, motile and armored points tip the
+  Lattice, and the free card can outweigh both. So an idle archaeon, or a bot, after the vent trip more likely takes the
+  partner first. Gameplay QA (EL20, ticket #917) measures the share that takes the Lattice at level 3; it is a tuning
+  fact, not a new rule.
 
 ### 15.8 What else it touches
 
@@ -394,6 +451,7 @@ re-read. The level-ups land where they did; what changed with decision ticket #9
   Build 1 takes the Lattice second and drops `simple_flagellum` from its end, so it stays seven picks long (the wrap to
   tier upgrades is unchanged). Build 0 is not touched, because the world's stage clock reads it (ecology/food-and-spawn.md
   §3.1); so in the dish the amoeba line does not swallow, which no one sees: no wild cell reaches its form before 15:00.
+  Ticket #957 gives the world clock its own pick list, so build 0 can then take the Lattice second like a real amoeba.
 
 - **So the dish:** before 6:00 no wild cell swallows; they graze, wander and flee only the giant amoeba and the
   hunters among the players. From 6:00 the paramecium line (eight of the 24 seats) hunts cells and players by today's
@@ -428,8 +486,8 @@ ARCHAEON`). The wild-cells test and §3.3.2 drop the equality and keep `ladderPr
   bacteria). The filter lives in the bots' perception beside `canEngulf`, so no strategy carries its own rule.
 - **`hunter`** reads `canEngulf`, so until its cell owns the Lattice it never finds prey and grazes (#376's grazing
   hunter), as it should. **`flee`** likewise flees only what can swallow it.
-- **Bots take the Lattice as a player who lets the cards time out does** (§15.7: usually at level 3, ~5:40), since a
-  bot never picks a card. No strategy gains a card rule.
+- **Bots take the Lattice as a player who lets the cards time out does** (§15.7: when it is the heaviest card, which
+  after the vent trip is usually not at level 3), since a bot never picks a card. No strategy gains a card rule.
 - **No new strategy.** A grazer latches by touching; holding to the bond needs no steering.
 - **The predation bench** (`bench:predation`, testing/bots-and-design-tables.md §8.3) will print near-zero player
   absorptions before 5:40; gameplay QA records the new baseline.
@@ -513,7 +571,10 @@ Each bullet names the phases ticket it changes; the tickets carry the change.
   diatom's and euglena's never take it.
 - **The pool's creatures (tickets #872 and #873; §14.6).** The species half of `canEngulf` (§15.5.1) covers them: the
   Didinium and the rotifer swallow by species, as the giant hunter does, whatever stage they are built with; the
-  copepod and the nematode never engulf. Ticket #867 only defines the species; #872 and #873 add them to the test.
+  copepod and the nematode never engulf. Ticket #867 only defines the species; ticket #872 adds the Didinium and the
+  rotifer to the species half as eaters, and ticket #873 adds the nematode to it **as a non-eater** (§15.5.1: as a cell
+  whose `giantSpecies` is null it would otherwise read as a plain cell and engulf while the switch is empty); the
+  copepod has no cell and stays out.
   The traits half does bite in the pool: a player or wild form without the Lattice cannot swallow there (above).
 - **New engulf tests in the phases build (tickets #868, #872, #873, #885).** The grace, the creatures' engulfs and the
   bodies' bites start engulfs; their tests state that every cell swallows through the shared helper (or use
@@ -550,7 +611,7 @@ cell with an inner skeleton engulfs" while protocells still do). So:
 | new opening beat **Eukaryote**: stage becomes `eukaryote` without a chloroplast                                                                                   | —                                                                     | `Take {10} green rods in the shallows · they become a chloroplast` (rim `ZONE_CUE`; held or swallowed, both count)                                                                                                                                       |
 | new coach beat **Can't swallow yet**: the first time the own cell, owning no gate trait, touches a bacterium it cannot latch or a cell it out-weighs by the ratio | —                                                                     | protocell and bacterium: `You can't swallow bacteria · grow a nucleoid to hold them`; a cell: `You can't swallow cells yet · the Cytoskeleton Lattice lets you`. The mass test is the shared `meetsEngulfStartRatio` (§15.5.1), never a re-derived ratio |
 | Endosymbiont unlocked toast                                                                                                                                       | `Mitochondrion unlocked · offered at your next level-up`              | unchanged                                                                                                                                                                                                                                                |
-| The Cytoskeleton Lattice's card and its tier I popup, while the switch names it and the cell owns no gate trait                                                   | its tier effect lines                                                 | its tier effect lines, then `▲ Swallow cells and bacteria whole`                                                                                                                                                                                         |
+| The Cytoskeleton Lattice's card and its tier I popup, while `ownsSwallowGateTrait` is false and the list names the Lattice                                        | its tier effect lines                                                 | its tier effect lines, then `▲ Swallow cells and bacteria whole`                                                                                                                                                                                         |
 
 #### 15.9.2 Popups (ui/overlays.md §3.8)
 
@@ -581,7 +642,7 @@ story's turning point); their effect lines are the card's, as every popup's are.
 | `stage:eukaryote`                                | A nucleus of your own, its genes safe behind a membrane. The chloroplast and the forms open here. Whether you can swallow depends on the inner skeleton, not the nucleus: real complex cells all have one.                                                                                                                                                                                                                                                                                                                                              |
 | `trait:mitochondrion`                            | Unlocked by holding aerobic bacteria with an archaeon's arms until they bond, or by swallowing them once you have the inner skeleton.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `trait:chloroplast`                              | A eukaryote's trait. Unlocked by taking in photosynthetic bacteria, held or swallowed. Real: the first chloroplast was a green bacterium a complex cell swallowed, long after the mitochondrion; a euglena's came second-hand, from a green alga it swallowed.                                                                                                                                                                                                                                                                                          |
-| `trait:cytoskeleton` (Cytoskeleton Lattice)      | Your inner skeleton: protein threads that push your skin out round a smaller cell, so you swallow cells and bacteria whole; it also makes you turn and stop sharper and harder to hold. Taking it ends your arms. Real: Asgard archaea already had actin threads in their arms; whether our ancestors swallowed before or after they gained the mitochondrion is still argued, and most scientists now think the partner came first. The game lets you choose.                                                                                          |
+| `trait:cytoskeleton` (Cytoskeleton Lattice)      | Your inner skeleton: protein threads that push your skin out round a smaller cell, so you swallow cells and bacteria whole; it also makes you turn and stop sharper and harder to hold. Taking it ends your arms. Real: Asgard archaea already had actin threads in their arms; whether our ancestors swallowed before or after they gained the mitochondrion is still argued, and much of the evidence leans toward the partner first. The game lets you choose.                                                                                       |
 | `trait:nucleoid`                                 | Owning it makes you an archaeon, with arms.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `action:eat`, titled **Absorb**                  | Touch a speck to take it in. Every cell absorbs specks, scraps and loose DNA; only a cell with an inner skeleton swallows bacteria and cells.                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `action:latch` (new)                             | An archaeon's arms hold any bacterium they touch, up to {maxHeld}; held for {bondSeconds} it shares its food and, if aerobic, counts toward the mitochondrion. A sprint shakes them loose.                                                                                                                                                                                                                                                                                                                                                              |
@@ -595,7 +656,7 @@ story's turning point); their effect lines are the card's, as every popup's are.
 Main deploys to the human's game on every merge, so the change ships behind one balance leaf, as the giants and the
 eras did. Ticket #907 built it as a stage, **`SWALLOW_FROM_STAGE`** (`absorption` domain, shipping `protocell`).
 Decision ticket #919 moves the gate from a stage to a trait, so the **contract ticket #948** replaces that leaf
-with **`SWALLOW_GATE_TRAITS`** (`absorption` domain, a list of trait ids, read as §15.5.1's `ownsSwallowGate`):
+with **`SWALLOW_GATE_TRAITS`** (`absorption` domain, a list of trait ids, read by §15.5.1's two checks):
 
 - **Shipping value `[]`**: no gate, every cell swallows from the start and no cell latches (a swallow outranks a
   latch), which is today's game exactly, as `protocell` was.
@@ -612,8 +673,24 @@ validator, and anything else is refused as today. It declares the stage-id kind 
 `SWALLOW_FROM_STAGE` until ticket #948); phases ticket #867 declares the era-list kind for `ERAS_IN_PLAY`.
 Ticket #948 declares a **trait-id list** kind for `SWALLOW_GATE_TRAITS`: every entry a catalog trait id, no id
 twice, the empty list allowed; anything else refused. The replay records and replays such a patch, so a game whose
-switch moved mid-way reproduces its state hash. A recording made before the leaf existed replays with the shipping
-`[]` filled in (`recorded-balance.ts`), which is what `SWALLOW_FROM_STAGE` `protocell` meant.
+switch moved mid-way reproduces its state hash.
+
+**Old recordings** (`server/src/game/replay/`, ticket #948; the rule of determinism/replay-tests-and-traps.md §6: a
+recording replays to its `finalHash` or is refused by name, never silently under other rules):
+
+| Recording                                                                             | What the replay does                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| made before ticket #907: neither leaf                                                 | fills `SWALLOW_GATE_TRAITS` `[]` (and `earlyLife`), as today's fill does; the pinned `recorded-before-907.replay.json` stays green                                                                                                                                        |
+| made between tickets #907 and #948: its balance carries `SWALLOW_FROM_STAGE`          | `protocell` maps to `SWALLOW_GATE_TRAITS` `[]` (the same game) and the stale leaf is dropped before the fill; **any other stage is refused by name** ("recorded under the stage switch at `<stage>`, which the trait switch cannot replay")                               |
+| any recording whose `debug_patch` `set_balance` names `absorption.SWALLOW_FROM_STAGE` | the same mapping on the patch: `protocell` becomes `SWALLOW_GATE_TRAITS` `[]`; any other stage refuses the recording by name before the replay starts. The patch is never handed to `applyBalancePatch` as is, which would abort the replay mid-way on an undeclared leaf |
+| made after ticket #948                                                                | replays as recorded                                                                                                                                                                                                                                                       |
+
+Ticket #948 pins one recording made between #907 and #948 (a fixture beside `recorded-before-907.replay.json`) and
+one with a recorded `SWALLOW_FROM_STAGE` patch. **The fill stays `[]` after the flip**: `recordedBalanceWithShippingDefaults`
+fills from `DEFAULT_BALANCE`, which the flip (ticket #916) moves to `['cytoskeleton']`, but a recording without the leaf
+ran under "every cell swallows". So the fill for this leaf is pinned to `[]` (the `recorded-balance.ts` header already
+demands it of the flip), or the flip moves `REPLAY_FORMAT_VERSION` instead; ticket #916 does one of the two, and the
+pinned fixtures prove it.
 
 The order (the epic's roadmap):
 
@@ -648,7 +725,9 @@ and §10 and debug-mcp.md §8 by the contract ticket.
 - **The predicate:** `EngulfPredator` reads `traits` in place of `stage` (`Pick<CellView, 'mass' | 'giantSpecies' |
 'traits'>`); `canEngulf` is §15.5.1's formula (the species decides for a giant or a creature, the owned traits for a
   player or a plain wild cell); `EngulfRatioBalance` carries `SWALLOW_GATE_TRAITS` in place of `SWALLOW_FROM_STAGE`.
-  `ownsSwallowGate(traits, balance)` is exported beside it (the HUD's popup, the renderer's arms and the latch read it).
+  `canSwallowByTraits(traits, balance)` and `ownsSwallowGateTrait(traits, balance)` are exported beside it, each read
+  by the rules §15.5.1's table names. `isCellEaterSpecies` becomes `eatsCells`, reading `giantSpecies` and
+  `poolCreature` (the nematode a non-eater). The bots' `BotCellView` gains `traits`.
   The mass half is exported as `meetsEngulfStartRatio`. `bacteriumContactOutcome(cell, heldCount, balance)`, `cell`
   being `Pick<CellView, 'stage' | 'traits'>`, in `shared/simulation/` beside them.
 - **State:** a player cell's held list, server-side, in the state hash: each entry the mote's own record (id, mass,
@@ -738,7 +817,7 @@ Lattice" adds `cytoskeleton` I. "The switch off" is `SWALLOW_GATE_TRAITS` `[]`.
 | EL19 | bots: a `grazer` protocell with one bacterium and one algae mote in view, the bacterium nearer                                                                                                                                                                                                                                                                                | one decision                                                                                  | —                    | it aims at the algae mote; as an archaeon with a full held list, the same; as an archaeon with room, at the bacterium                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | EL20 | gameplay QA, measured (not pinned): one active player and a greedy bot, seeds 1–10, switch on                                                                                                                                                                                                                                                                                 | —                                                                                             | 10:00                | the pace model's nucleoid ~2:50, level 3 ~5:40, level 4 ~8:00 (± 20 s, PROGRESSION.md §2); the first player swallow and the first wild swallow; the share of cells that take the Lattice at level 3 (the timeout pick included); P1's bound holds (level 2 by 6:00); the giant amoeba's kill rate before 5:40 reported                                                                                                                                                                                                                                                                                             |
 | EL21 | pure `buildDraft`, seeds 1..100: (a) a eukaryote with the Lattice and photosynthetic 10; (b) an archaeon with aerobic 10 and photosynthetic 10, the switch off; (c) the same as (a) owning `chloroplast`; (d) an archaeon with aerobic 10, no Lattice; (e) an archaeon with aerobic 0, no Lattice; (f) an endosymbiosis cell without the Lattice; (g) (d) with the switch off | —                                                                                             | —                    | (a) `chloroplast` and one form gate (`amoeba_pseudopods`) in every draft, the third card free; (b) `mitochondrion` in every draft (rung card), `chloroplast` in none (stage); (c) no card reserved for a partner; (d) `mitochondrion` and `cytoskeleton` in every draft, the third free; (e) `cytoskeleton` in every draft, two free; (f) `nuclear_envelope` and `cytoskeleton` in every draft; (g) `mitochondrion` in every draft, `cytoskeleton` only by a free draw. The unlock toast fires for (a) on the tick the cell became a candidate, and for (b)'s chloroplast only on the tick (b) becomes a eukaryote |
-| EL22 | the switch on; one archaeon latches 3 bacteria, bonds 2, sprints and sheds 1 over 1 200 ticks; a `debug_set_balance` moves the switch to `protocell` and back mid-way                                                                                                                                                                                                         | —                                                                                             | 1 200 ticks          | `debug_export_replay` re-run gives the same final state hash (`evolution-module.determinism.integration.test.ts`); the hash differs if a held entry's `caughtAtTick` is changed (it covers the held list)                                                                                                                                                                                                                                                                                                                                                                                                          |
+| EL22 | the switch on; one archaeon latches 3 bacteria, bonds 2, sprints and sheds 1 over 1 200 ticks; a `debug_set_balance` moves `SWALLOW_GATE_TRAITS` to `[]` and back to `['cytoskeleton']` mid-way                                                                                                                                                                               | —                                                                                             | 1 200 ticks          | `debug_export_replay` re-run gives the same final state hash (`evolution-module.determinism.integration.test.ts`); the hash differs if a held entry's `caughtAtTick` is changed (it covers the held list)                                                                                                                                                                                                                                                                                                                                                                                                          |
 | EL23 | the switch on; an archaeon holding 2 bacteria; `debug_set_balance` sets `SWALLOW_GATE_TRAITS` to `[]` on tick t                                                                                                                                                                                                                                                               | —                                                                                             | t + 1                | on tick t the held list is swallowed (two `eat`), it never holds a bacterium again, and it can now engulf; a patch with `['amoeba']` (not a trait id), `['cytoskeleton', 'cytoskeleton']` or `'cytoskeleton'` (not a list) is refused                                                                                                                                                                                                                                                                                                                                                                              |
 | EL24 | a eukaryote without the Lattice at mass 200, a protocell player at mass 20 at its centre, and one photosynthetic bacterium placed 1.1 own radii out                                                                                                                                                                                                                           | idle                                                                                          | latch + 360 ticks    | no engulf ever starts; the bacterium is latched on tick 0 and bonds on tick 360 with `isCredited` true and `bacteriaEatenByVariant.photosynthetic` + 1                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | EL25 | an archaeon with the Lattice (`nucleoid` I, `cytoskeleton` I), `bacteriaEatenByVariant.aerobic` 9, one aerobic bacterium at its centre                                                                                                                                                                                                                                        | idle                                                                                          | 1 tick               | the bacterium is swallowed on that tick (one `eat`, no `bacterium_latched`), the counter is 10, `latchedBacteria` is empty, and `listDraftCandidates` holds `mitochondrion`                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -751,7 +830,7 @@ green specks as algae (answer A, §15.9.4).
 
 Ticket #947's questions. The design above is written to each recommendation; the lead files them as decision tickets.
 
-1. **Where does the inner skeleton sit, and so when can a player first swallow?** **A** after the mitochondrion
+1. **Where does the inner skeleton sit, and so when can a player first swallow?** (decision ticket #951) **A** after the mitochondrion
    (`stage: 'endosymbiosis'`): truest to today's evidence (the partner first, then swallowing); the first swallow at
    ~8:00, about 2 minutes of food web. **B** at the archaeon (`stage: 'prokaryote'`): the first swallow at ~5:40, about
    4:20 of food web (43 %); a real but minority idea (an archaeon swallowed first and caught its mitochondrion that
@@ -759,17 +838,17 @@ Ticket #947's questions. The design above is written to each recommendation; the
    a faster climb (level costs lowered so level 4 comes at ~6:00): true order and early hunting, but it reopens decision
    #138's slow dawn and moves the phases pace model. **Recommend B:** the only option that gives the dish a real food
    web with no number changed, and it turns a real open question of biology into the player's choice; the encyclopedia
-   says which story most scientists favour.
-2. **Is the inner skeleton the Cytoskeleton Lattice, or a new trait?** **A** the Lattice itself is the gate (one
+   says that much of the evidence leans toward the partner first. What A or C rewrites is listed in §15.5.3.
+2. **Is the inner skeleton the Cytoskeleton Lattice, or a new trait?** (decision ticket #952) **A** the Lattice itself is the gate (one
    pick: swallow, plus its sharper turning). **B** a new common base trait, the Actin Skeleton, is the gate, and the
    Lattice becomes its denser upgrade (requires it): one more card and page, and a player who wants both spends two
-   level-ups. **Recommend A:** the Lattice already draws the skeleton's threads and already gates the amoeba's
+   level-ups; build 0, the giant amoeba's build and the world clock change with it (§15.5). **Recommend A:** the Lattice already draws the skeleton's threads and already gates the amoeba's
    pseudopods; a second trait adds a rung to every hunter's climb for no new play.
-3. **A player who reaches the pool without the skeleton:** **A** it cannot swallow there until it takes the Lattice,
+3. **A player who reaches the pool without the skeleton** (decision ticket #953): **A** it cannot swallow there until it takes the Lattice,
    which the reserved card offers at its next level-up (the rule as decided: you earn it). **B** the move's no-form gift
    adds the Lattice to everyone who lacks it (every pool player can hunt from the first second). **Recommend A:** it
    keeps one rule everywhere, and a diatom or euglena player not swallowing is true to life; the reserved card makes
-   it one level-up away for anyone who wants it.
+   it one level-up away for anyone who wants it (uncapped, §15.5.4).
 
 ### 15.15 Sources
 
@@ -791,6 +870,9 @@ Ticket #947's questions. The design above is written to each recommendation; the
   _Biochemical Society Transactions_ 41:451–457 (the phagocytosing archaeon idea: swallowing before the mitochondrion).
 - Lane N, Martin W (2010). The energetics of genome complexity. _Nature_ 467:929–934 (the energy argument: complex
   features such as swallowing after the mitochondrion).
+- Pittis AA, Gabaldón T (2016). Late acquisition of mitochondria by a host with chimaeric prokaryotic ancestry.
+  _Nature_ 531:101–104 (the mitochondrion late, in a host already complex: the side of the debate that leaves room for
+  swallowing first).
 - Mills DB (2020). The origin of phagocytosis in Earth history. _Interface Focus_ 10:20200019 (the host before the
   mitochondrion probably could not swallow; swallowing may have arisen late, more than once).
 - Natural transformation (free DNA uptake by bacteria and archaea): the encyclopedia ticket cites one review page.
