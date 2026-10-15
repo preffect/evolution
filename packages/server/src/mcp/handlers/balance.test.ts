@@ -4,7 +4,8 @@ import { registerBalanceTools } from './balance.js';
 import { createActiveRoomFixture, createDebugCapableGameModule, parseToolJson } from '../../testing/builders.js';
 
 /** Real balance paths, named through constants because a patch is keyed by constant names. */
-const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const LATCH_LEAF = 'LATCH_FROM_STAGE';
+const SWALLOW_GATE_LEAF = 'SWALLOW_GATE_TRAITS';
 const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY';
 
 function capableFixture() {
@@ -37,9 +38,18 @@ describe('debug_set_balance', () => {
     fixture.stop();
   });
 
-  it('forwards a stage-id leaf, the swallow switch, to the module that validates it', async () => {
+  it('forwards a stage-id leaf, the latch stage, to the module that validates it', async () => {
     const fixture = capableFixture();
-    const patch = { absorption: { [SWALLOW_LEAF]: 'eukaryote' } };
+    const patch = { earlyLife: { [LATCH_LEAF]: 'eukaryote' } };
+    const result = await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch });
+    expect(result.isError).not.toBe(true);
+    expect(fixture.handle.patchBalance).toHaveBeenCalledWith(patch);
+    fixture.stop();
+  });
+
+  it('forwards a trait-id list leaf, the swallow switch, to the module that validates it', async () => {
+    const fixture = capableFixture();
+    const patch = { absorption: { [SWALLOW_GATE_LEAF]: ['cytoskeleton'] } };
     const result = await fixture.call('debug_set_balance', { gameId: fixture.gameId, patch });
     expect(result.isError).not.toBe(true);
     expect(fixture.handle.patchBalance).toHaveBeenCalledWith(patch);

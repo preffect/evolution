@@ -89,6 +89,17 @@ export type PoolCreatureSpecies = ValueOf<typeof POOL_CREATURE_SPECIES>;
 /** The creatures that are cells. The copepod has no body: its pass is the snapshot's `CopepodLaneView` (§14.6.4). */
 export type PoolCreatureCellSpecies = Exclude<PoolCreatureSpecies, typeof POOL_CREATURE_SPECIES.copepod>;
 
+/**
+ * Whether a creature's cell eats cells (docs/game-design/early-life.md §15.5.1, `canEngulf`'s species half): the
+ * Didinium and the rotifer do, the nematode only knocks. What a species is, as `GIANT_ROLE_BY_SPECIES` is a giant's,
+ * never a balance leaf; keyed by every cell species, so a new creature must say whether it eats.
+ */
+export const POOL_CREATURE_EATS_CELLS: Readonly<Record<PoolCreatureCellSpecies, boolean>> = {
+  [POOL_CREATURE_SPECIES.didinium]: true,
+  [POOL_CREATURE_SPECIES.rotifer]: true,
+  [POOL_CREATURE_SPECIES.nematode]: false,
+};
+
 /** The creatures that kill without a killer cell (§14.6.4): a rotifer's swallow and the copepod's pass credit no one. */
 export type CreditlessKillerSpecies = typeof POOL_CREATURE_SPECIES.rotifer | typeof POOL_CREATURE_SPECIES.copepod;
 

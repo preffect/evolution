@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { playerId } from '@evolution/shared';
+import {
+  POOL_CREATURE_SPECIES,
+  playerId,
+  withEveryCellSwallowing,
+  withSwallowGateTraits,
+  type PoolCreatureCellSpecies,
+} from '@evolution/shared';
 import {
   TEST_PLAYER_ID,
   createTestBotCell,
@@ -24,6 +30,15 @@ function contextWith(cells: readonly ReturnType<typeof createTestBotCell>[]) {
   return createTestScriptContext({ snapshot: createTestWorldView({ cells }), cell: self });
 }
 
+/** `nearThreat` as a pool creature's cell, owning no trait: its species alone decides (early-life.md §15.5.1). */
+const creatureThreat = (species: PoolCreatureCellSpecies) => ({
+  ...nearThreat,
+  id: species,
+  poolCreature: { species },
+});
+/** The flip's switch and the switch off, so a creature's danger is read with both. */
+const SWITCHES = { on: withSwallowGateTraits(['cytoskeleton']), off: withEveryCellSwallowing() };
+
 describe('flee strategy', () => {
   it('is named flee', () => {
     expect(createFleeStrategy(perception)().name).toBe(BOT_STRATEGY_NAME.flee);
@@ -39,6 +54,27 @@ describe('flee strategy', () => {
     expect(strategy.decide(contextWith([self, farThreat]))).toBeNull();
     expect(strategy.decide(contextWith([self, harmless]))).toBeNull();
     expect(strategy.decide(contextWith([self]))).toBeNull();
+  });
+
+  it.each(Object.entries(SWITCHES))(
+    'flees a Didinium or a rotifer and never a nematode, with the switch %s (early-life.md §15.5.1)',
+    (_switch, balance) => {
+      const strategy = createFleeStrategy(createTestPerception(balance))();
+      const fleeing = { targetX: self.x - FLEE_STEP_RADII * self.radius, targetY: self.y };
+      expect(strategy.decide(contextWith([self, creatureThreat(POOL_CREATURE_SPECIES.didinium)]))).toEqual(fleeing);
+      expect(strategy.decide(contextWith([self, creatureThreat(POOL_CREATURE_SPECIES.rotifer)]))).toEqual(fleeing);
+      expect(strategy.decide(contextWith([self, creatureThreat(POOL_CREATURE_SPECIES.nematode)]))).toBeNull();
+    },
+  );
+
+  it('reads a plain cell by its traits with the switch on: without the Lattice no threat, with it a threat', () => {
+    const strategy = createFleeStrategy(createTestPerception(SWITCHES.on))();
+    const withLattice = { ...nearThreat, traits: [{ traitId: 'cytoskeleton' as const, tier: 1 as const }] };
+    expect(strategy.decide(contextWith([self, nearThreat]))).toBeNull();
+    expect(strategy.decide(contextWith([self, withLattice]))).toEqual({
+      targetX: self.x - FLEE_STEP_RADII * self.radius,
+      targetY: self.y,
+    });
   });
 
   it('flees the nearest threat when several are in range, ignoring a nearer harmless cell', () => {

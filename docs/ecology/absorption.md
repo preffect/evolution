@@ -12,13 +12,12 @@ this section is the process those effects plug into.
 
 ### 6.1 Rules
 
-> **Built behind its switch (ticket #907, [`game-design/early-life.md`](../game-design/early-life.md) §15.5).**
-> `canEngulf` has a predator test: its stage has reached `SWALLOW_FROM_STAGE` unless its species decides (the giant
-> hunter swallows at any stage). The switch ships at `protocell`, so today every cell passes it; at `eukaryote` (the
-> flip, ticket #916) no protocell or archaeon, player or wild, starts an engulf. The process below is unchanged.
-> **Decided next (ticket #947, early-life.md §15.5.1, §15.10):** the test reads the predator's owned traits, not its
-> stage: a cell swallows when it owns a trait of `SWALLOW_GATE_TRAITS` (the Cytoskeleton Lattice at the flip; empty, the
-> shipping value, means every cell swallows), which replaces `SWALLOW_FROM_STAGE`.
+> **Built behind its switch (tickets #907 and #948, [`game-design/early-life.md`](../game-design/early-life.md) §15.5.1).**
+> `canEngulf` has a predator test: a cell with a species is decided by it (`eatsCells`: the giant hunter, the Didinium
+> and the rotifer swallow whatever they own; the grazer, the drifter and the nematode never do), every other cell by its
+> owned traits (`canSwallowByTraits`: it owns a trait of `SWALLOW_GATE_TRAITS`, at any tier). The switch ships empty, so
+> today every cell passes it; at `['cytoskeleton']` (the flip, ticket #916) no cell without the Cytoskeleton Lattice,
+> player or wild, starts an engulf. The process below is unchanged.
 
 **Eligibility (mass only, one home).**
 
@@ -38,8 +37,9 @@ below). `inHold` is the kept grab (#819, below): it holds and seals an engulf th
 
 `canStart` is the pure predicate `canEngulf(predator, prey, balance.absorption)` in
 `packages/shared/src/simulation/engulf-eligibility.ts`, which takes two `CellView`s and reads only
-`predator.mass`, `predator.giantSpecies` (the giant grazer and drifter engulf no cell, [`giants.md §3.5.6`](./giants.md)),
-`predator.stage` against `SWALLOW_FROM_STAGE` (above; the mass half alone is `meetsEngulfStartRatio`),
+`predator.mass`, `predator.giantSpecies` and `predator.poolCreature` (the giant grazer and drifter and the nematode engulf
+no cell, [`giants.md §3.5.6`](./giants.md)), `predator.traits` against `SWALLOW_GATE_TRAITS` (above; the mass half alone
+is `meetsEngulfStartRatio`),
 `prey.mass`, `prey.membraneRatioBonus` (folded server-side and carried on the view,
 [`architecture/entity-model.md §2`](../architecture/entity-model.md#2-entity-model)) and `ENGULF_MASS_RATIO`. About a dozen
 callers, no copies of the rule: the server's contact and engulf steps (step 6), the wild cells' flee, hunt, hunt sprint

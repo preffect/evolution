@@ -27,6 +27,7 @@ export * from './simulation/bacterium-contact.js';
 export * from './simulation/bacterium-variant-weights.js';
 export * from './simulation/cell-modifiers.js';
 export * from './simulation/engulf-eligibility.js';
+export * from './simulation/swallow-gate.js';
 export * from './simulation/engulf-pace.js';
 export * from './simulation/entry-rule.js';
 export * from './simulation/giant-balance.js';

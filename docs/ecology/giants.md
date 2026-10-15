@@ -219,14 +219,17 @@ Two rules, kept apart:
   own. The window gates the chase, never the swallow.
 
 ```
-canEngulf(predator, prey)     = isCellEaterSpecies(predator.giantSpecies)
+canEngulf(predator, prey)     = eatsCells(predator)
+                                ∧ (hasSpecies(predator) ∨ canSwallowByTraits(predator.traits))   (game-design/early-life.md §15.5.1)
                                 ∧ predator.mass ≥ prey.mass × (ENGULF_MASS_RATIO + prey.membraneRatioBonus)
-isCellEaterSpecies(species)   = species = null ∨ GIANT_ROLE_BY_SPECIES[species] = hunter
+eatsCells(cell)               = a giant: GIANT_ROLE_BY_SPECIES[cell.giantSpecies] = hunter; a pool creature: the
+                                Didinium or the rotifer (POOL_CREATURE_EATS_CELLS); any other cell: true
 isGiantHuntTarget(seat, prey) = canEngulf(giant, prey) ∧ prey.mass ≥ GIANT_HUNT_MIN_PREY_MASS_FRACTION × giant.mass
 ```
 
-`isCellEaterSpecies` is true for every player and wild cell (`giantSpecies` null), so `canEngulf` is
-unchanged for them. It reads only `giantSpecies`, which the view carries for the renderer anyway
+`eatsCells` is true for every player and wild cell (`giantSpecies` and `poolCreature` null), whose swallow is the
+early-life trait switch's (`canSwallowByTraits`, true for every cell while `SWALLOW_GATE_TRAITS` is empty). For a giant
+it reads only `giantSpecies`, which the view carries for the renderer anyway
 (§3.5.15), and `GIANT_ROLE_BY_SPECIES`, a fixed constant rather than a balance leaf (a role is what a
 species is, and no patch changes it), so the predicate gains no balance input and no mirrored view field.
 `canContinueEngulf` is unchanged. The window lives in the giant seat's profile (`hunt.minPreyMassFraction`:

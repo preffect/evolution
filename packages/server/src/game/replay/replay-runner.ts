@@ -1,5 +1,6 @@
 // Runs a recording back (docs/determinism/replay-tests-and-traps.md §6): a fresh world from the recorded seed, config,
-// balance (any leaf it lacks at its shipping default, `recorded-balance.ts`) and roster, then tick by tick the events the recording stamped for that tick in log
+// balance (any leaf it lacks at its shipping default, `recorded-balance.ts`) and roster, then tick by tick the events
+// the recording stamped for that tick (ticket #907's stage switch mapped first, `recorded-swallow-switch.ts`) in log
 // order (joins, leaves and debug patches as the room applied them, then the inputs), each fed
 // exactly the way the module fed it, and the same step, then the events stamped for the tick
 // after the last one (what was pending when the recording was exported: they are already in
@@ -17,6 +18,7 @@ import { computeStateHash } from '../world/state-hash.js';
 import { createInputRejectionCounters, type InputRejectionCounters, type WorldState } from '../world/world-state.js';
 import { indexByTick } from './index-by-tick.js';
 import { recordedBalanceWithShippingDefaults } from './recorded-balance.js';
+import { recordedEventsUnderTraitSwitch } from './recorded-swallow-switch.js';
 import { REPLAY_EVENT_KIND, REPLAY_ORIGIN, type Replay, type ReplayEvent } from './replay-format.js';
 
 export interface ReplayResult {
@@ -85,17 +87,20 @@ function assertReplayable(recording: Replay): void {
   }
 }
 
+/** Refuses a recording no build can rebuild before a world is built, so a refusal never aborts a replay mid-way. */
 export function replay(recording: Replay): ReplayResult {
   assertReplayable(recording);
+  const balance = recordedBalanceWithShippingDefaults(recording.balance);
+  const events = recordedEventsUnderTraitSwitch(recording.events);
   const world = createWorld({
     seed: recording.seed,
     config: recording.config,
-    balance: recordedBalanceWithShippingDefaults(recording.balance),
+    balance,
     players: recording.roster,
     startTick: recording.startTick,
     nextEntityNumber: recording.nextEntityNumber,
   });
-  const log = indexByTick(recording.events);
+  const log = indexByTick(events);
   const rejections = createInputRejectionCounters();
   for (let stepTick = recording.startTick + 1; stepTick <= recording.finalTick; stepTick += 1) {
     feedStep(world, log, stepTick, rejections);

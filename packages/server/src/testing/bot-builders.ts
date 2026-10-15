@@ -10,7 +10,7 @@ import {
   createSeededRandom,
   playerId as brandPlayerId,
 } from '@evolution/shared';
-import type { ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
+import type { BalanceConfig, ClientMessage, PlayerId, ServerMessage } from '@evolution/shared';
 import type { BotIdentity } from '../game/bots/bot-identity.js';
 import type { BotSpawnRequest } from '../game/debug/simulation-debug-handle.js';
 import type { ScriptContext } from '../game/bots/bot-strategy.js';
@@ -52,6 +52,8 @@ export function createTestBotCell(overrides: Partial<PlayerBotCellView> = {}): P
     radius: 10,
     membraneRatioBonus: 0,
     giantSpecies: null,
+    poolCreature: null,
+    traits: [],
     stage: STARTING_STAGE,
     ...overrides,
   };
@@ -67,13 +69,13 @@ export function createTestWorldView(overrides: Partial<TestWorldView> = {}): Tes
   return { cells: [], motes: [], ...overrides };
 }
 
-/** A perception over `TestWorldView` whose engulf rule is the shared predicate over the default balance. */
-export function createTestPerception(): BotPerception<TestWorldView> {
+/** A perception over `TestWorldView` whose engulf rule is the shared predicate over `balance` (the default's). */
+export function createTestPerception(balance: BalanceConfig = DEFAULT_BALANCE): BotPerception<TestWorldView> {
   return {
     ownCellOf: (snapshot, playerId) => snapshot.cells.find((cell) => cell.playerId === playerId),
     cellsOf: (snapshot) => snapshot.cells,
     motesOf: (snapshot) => snapshot.motes,
-    canEngulf: (predator, prey) => canEngulf(predator, prey, DEFAULT_BALANCE.absorption),
+    canEngulf: (predator, prey) => canEngulf(predator, prey, balance.absorption),
   };
 }
 

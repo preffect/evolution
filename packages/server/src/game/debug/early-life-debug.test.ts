@@ -1,16 +1,9 @@
 // The debug surface of the early-life contract (docs/architecture/debug-mcp.md §8, docs/game-design/early-life.md
 // §15.10, §15.11): `debug_get_entities` shows a cell's held list, and `debug_set_balance` moves the swallow switch on a
-// real Evolution room while refusing a value that is no stage.
+// real Evolution room while refusing a value that is no list of distinct trait ids (EL23).
 
 import { describe, expect, it } from 'vitest';
-import {
-  CELL_STAGE,
-  DEFAULT_BALANCE,
-  ENTITY_KIND,
-  FOOD_KIND,
-  type BalanceConfig,
-  type CellView,
-} from '@evolution/shared';
+import { DEFAULT_BALANCE, ENTITY_KIND, FOOD_KIND, type BalanceConfig, type CellView } from '@evolution/shared';
 import { registerBalanceTools } from '../../mcp/handlers/balance.js';
 import { createActiveRoomFixture, parseToolJson } from '../../testing/builders.js';
 import { createTestWorld } from '../../testing/world-builders.js';
@@ -26,7 +19,7 @@ import { createEvolutionDebugHandle } from './evolution-debug-handle.js';
 /** Where on the rim the held bacterium sits, past the wire's two decimals so the exact read shows. */
 const HELD_BEARING_RADIANS = 1.2345;
 /** A real balance path, named through a constant because a patch is keyed by constant names. */
-const SWALLOW_LEAF = 'SWALLOW_FROM_STAGE';
+const SWALLOW_GATE_LEAF = 'SWALLOW_GATE_TRAITS';
 
 /** A handle over a one-player test world; nobody joins or leaves in these tests. */
 function createHandle() {
@@ -60,19 +53,24 @@ describe('debug_get_entities and the held list', () => {
 });
 
 describe('debug_set_balance and the swallow switch', () => {
-  it('moves the switch to eukaryote on the live copy and refuses "amoeba" and a number', async () => {
+  it('sets the gate to the Lattice on the live copy and back to empty, and refuses what is no trait-id list (EL23)', async () => {
     const fixture = createActiveRoomFixture({ gameFactory: evolutionModuleFactory });
     registerBalanceTools(fixture.mcp, fixture.context);
     const setSwitch = (value: unknown) =>
-      fixture.call('debug_set_balance', { gameId: fixture.gameId, patch: { absorption: { [SWALLOW_LEAF]: value } } });
-    const patched = parseToolJson(await setSwitch(CELL_STAGE.eukaryote)) as BalanceConfig;
-    expect(patched.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
-    for (const refused of ['amoeba', 3]) {
-      expect((await setSwitch(refused)).isError).toBe(true);
+      fixture.call('debug_set_balance', {
+        gameId: fixture.gameId,
+        patch: { absorption: { [SWALLOW_GATE_LEAF]: value } },
+      });
+    const patched = parseToolJson(await setSwitch(['cytoskeleton'])) as BalanceConfig;
+    expect(patched.absorption.SWALLOW_GATE_TRAITS).toEqual(['cytoskeleton']);
+    for (const refused of [['amoeba'], ['cytoskeleton', 'cytoskeleton'], 'cytoskeleton']) {
+      expect((await setSwitch(refused)).isError, JSON.stringify(refused)).toBe(true);
     }
     const live = parseToolJson(await fixture.call('debug_get_balance', { gameId: fixture.gameId })) as BalanceConfig;
-    expect(live.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.eukaryote);
-    expect(DEFAULT_BALANCE.absorption.SWALLOW_FROM_STAGE).toBe(CELL_STAGE.protocell);
+    expect(live.absorption.SWALLOW_GATE_TRAITS).toEqual(['cytoskeleton']);
+    const off = parseToolJson(await setSwitch([])) as BalanceConfig;
+    expect(off.absorption.SWALLOW_GATE_TRAITS).toEqual([]);
+    expect(DEFAULT_BALANCE.absorption.SWALLOW_GATE_TRAITS).toEqual([]);
     fixture.stop();
   });
 });
