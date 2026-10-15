@@ -216,10 +216,12 @@ describe('runPoolMove', () => {
     expect(world.gelPatches).toEqual([]);
   });
 
-  it('step 2: draws the layout when the round’s start drew none, and keeps one it drew', () => {
+  it('step 2: draws the layout when the round’s start drew none, its orbit from the round’s start, and keeps one it drew', () => {
     const undrawn = createTestWorld();
+    undrawn.tick = MOVE_TICK;
     runPoolMove(undrawn, createTestStepContext(undrawn));
-    expect(undrawn.poolLayout).not.toBeNull();
+    expect(undrawn.poolLayout!.lightPatchOrbit.startTick).toBe(undrawn.roundStartTick);
+    expect(undrawn.roundStartTick).not.toBe(MOVE_TICK);
     const drawn = createTestWorld();
     const layout = createTestPoolLayout();
     drawn.poolLayout = layout;

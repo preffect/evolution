@@ -20,6 +20,9 @@ import {
 import { SimulationInvariantError } from '../world/simulation-invariant-error.js';
 import type { WorldState } from '../world/world-state.js';
 
+/** An annulus drawn from the pool's centre out: a whole disc, with no hole (`uniformPointInAnnulus`'s inner radius). */
+export const WHOLE_DISC_INNER_RADIUS = 0;
+
 /** The world's zones on its own tick: the dish's, or, once it has moved into the pool, the light patch's. */
 export function worldZoneMap(
   world: Pick<WorldState, 'eraMovedInto' | 'gelPatches' | 'poolLayout' | 'tick' | 'balance'>,

@@ -1,4 +1,5 @@
-// docs/game-design/phases.md §14.5.2: the green speck swarms drift toward the light patch at `POOL_SWARM_SPEED`, their
+// docs/game-design/phases.md §14.5.2, §14.4.2 steps 2 and 7: the move places the swarms clear of the landing and inside
+// the food boundary; the green speck swarms drift toward the light patch at `POOL_SWARM_SPEED`, their
 // specks with them, until the swarm's centre is inside it; a swarm eaten down to a quarter respawns at a random point
 // from the `pool` stream, its last specks left lying.
 import { describe, expect, it } from 'vitest';
@@ -7,6 +8,7 @@ import {
   FOOD_KIND,
   RANDOM_STREAM,
   TICK_INTERVAL_S,
+  createSeededRandom,
   createTestPoolLayout,
   distanceBetween,
   type Vec2,
@@ -14,7 +16,7 @@ import {
 import { createTestStepContext, createTestWorld, createTestWorldInEras } from '../../testing/world-builders.js';
 import type { PoolSwarmRecord } from '../world/entities.js';
 import type { WorldState } from '../world/world-state.js';
-import { runPoolSwarms } from './pool-swarms.js';
+import { placePoolSwarms, runPoolSwarms } from './pool-swarms.js';
 import { spawnFoodMote } from './spawn-mote.js';
 import { foodBoundaryRadius } from './zones.js';
 
@@ -60,6 +62,46 @@ function eatSpecks(world: WorldState, swarm: PoolSwarmRecord, count: number): vo
 function step(world: WorldState): void {
   runPoolSwarms(world, createTestStepContext(world));
 }
+
+describe('placePoolSwarms (the move)', () => {
+  /**
+   * Enough seeds that some centres fall in the outermost 150 wu of each allowed band: over 200 centres, a band that
+   * narrow on the inner edge holds about 4 % of them, so a bound loosened by `POOL_SWARM_RADIUS` is caught.
+   */
+  const seeds = Array.from({ length: 20 }, (_unused, index) => index + 1);
+  const { eras } = DEFAULT_BALANCE;
+  const innerBound = eras.ERA_LANDING_CLEAR_RADIUS + pool.POOL_SWARM_RADIUS;
+  const outerBound = foodBoundaryRadius(DEFAULT_BALANCE) - pool.POOL_SWARM_RADIUS;
+
+  function swarmsForSeeds(): { world: WorldState; swarms: PoolSwarmRecord[] } {
+    const world = createTestWorld();
+    const swarms = seeds.flatMap((seed) => {
+      placePoolSwarms(world, createSeededRandom(seed));
+      return world.poolSwarms!;
+    });
+    return { world, swarms };
+  }
+
+  it('puts every centre at least ERA_LANDING_CLEAR_RADIUS + POOL_SWARM_RADIUS out, so no speck lands in the landing', () => {
+    const { world, swarms } = swarmsForSeeds();
+    const radii = swarms.map((swarm) => Math.hypot(swarm.centreX, swarm.centreY));
+    expect(Math.min(...radii)).toBeGreaterThanOrEqual(innerBound);
+    expect(Math.min(...radii)).toBeLessThan(innerBound + pool.POOL_SWARM_RADIUS);
+    for (const speck of world.food) {
+      expect(Math.hypot(speck.x, speck.y)).toBeGreaterThanOrEqual(eras.ERA_LANDING_CLEAR_RADIUS);
+    }
+  });
+
+  it('puts every centre at most POOL_SWARM_RADIUS inside the food boundary, so every speck lies inside it', () => {
+    const { world, swarms } = swarmsForSeeds();
+    const radii = swarms.map((swarm) => Math.hypot(swarm.centreX, swarm.centreY));
+    expect(Math.max(...radii)).toBeLessThanOrEqual(outerBound);
+    expect(Math.max(...radii)).toBeGreaterThan(outerBound - pool.POOL_SWARM_RADIUS);
+    for (const speck of world.food) {
+      expect(Math.hypot(speck.x, speck.y)).toBeLessThanOrEqual(foodBoundaryRadius(DEFAULT_BALANCE));
+    }
+  });
+});
 
 describe('runPoolSwarms: the drift', () => {
   it('moves a swarm’s centre and every speck one tick of POOL_SWARM_SPEED toward the patch', () => {

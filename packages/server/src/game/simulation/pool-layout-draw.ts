@@ -20,6 +20,7 @@ import {
   type Vec2,
 } from '@evolution/shared';
 import type { WorldState } from '../world/world-state.js';
+import { WHOLE_DISC_INNER_RADIUS } from './zones.js';
 
 /**
  * The orbit's radius is drawn between this share of its longest and its longest, so the patch always circles: an
@@ -28,12 +29,15 @@ import type { WorldState } from '../world/world-state.js';
 const LIGHT_PATCH_ORBIT_MIN_SHARE = 0.5;
 /** A thread's centre lies midway along it, so half its length must fit inside the bank. */
 const THREAD_HALF_SHARE = 0.5;
-/** A centre drawn uniform in a disc around the pool's centre: the annulus with no hole. */
-const DISC_INNER_RADIUS = 0;
 
 /** A centre uniform by area in the disc of `reach` (never negative, whatever a patched balance makes it), in whole wu. */
 function drawWholeCentre(random: RandomSource, reach: number): Vec2 {
-  const point = uniformPointInAnnulus(DISC_INNER_RADIUS, Math.max(0, reach), random.nextFloat(), random.nextFloat());
+  const point = uniformPointInAnnulus(
+    WHOLE_DISC_INNER_RADIUS,
+    Math.max(0, reach),
+    random.nextFloat(),
+    random.nextFloat(),
+  );
   return { x: Math.round(point.x), y: Math.round(point.y) };
 }
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_BALANCE } from '../constants/balance.js';
 import { secondsToTicks } from '../time/units.js';
 import type { LightPatchOrbitView } from '../types/pool.js';
-import { isOnPoolBank, lightPatchCentreAt, poolBankInnerRadius, poolThreadEnds } from './pool-layout.js';
+import { lightPatchCentreAt, poolBankInnerRadius, poolThreadEnds } from './pool-layout.js';
 
 /** An orbit drawn at a rematch on tick 1 200, starting due east. */
 const ORBIT: LightPatchOrbitView = { orbitRadius: 1_500, startAngleRadians: 0, startTick: 1_200 };
@@ -70,18 +70,15 @@ describe('poolThreadEnds', () => {
   });
 });
 
-describe('the bank', () => {
-  const bankInner = DEFAULT_BALANCE.world.DISH_RADIUS - DEFAULT_BALANCE.pool.POOL_BANK_WIDTH;
-
-  it('is the band POOL_BANK_WIDTH wide inside the wall, its inner edge included', () => {
-    expect(poolBankInnerRadius(DEFAULT_BALANCE)).toBe(bankInner);
-    expect(isOnPoolBank({ x: 0, y: bankInner }, DEFAULT_BALANCE)).toBe(true);
-    expect(isOnPoolBank({ x: 0, y: bankInner - 0.01 }, DEFAULT_BALANCE)).toBe(false);
-  });
-
-  it('reads the live width', () => {
+describe('poolBankInnerRadius', () => {
+  it('is the dish radius less the bank’s live width', () => {
+    expect(poolBankInnerRadius(DEFAULT_BALANCE)).toBe(
+      DEFAULT_BALANCE.world.DISH_RADIUS - DEFAULT_BALANCE.pool.POOL_BANK_WIDTH,
+    );
     const wider = structuredClone(DEFAULT_BALANCE);
     wider.pool.POOL_BANK_WIDTH *= 2;
-    expect(isOnPoolBank({ x: -(bankInner - 1), y: 0 }, wider)).toBe(true);
+    expect(poolBankInnerRadius(wider)).toBe(
+      DEFAULT_BALANCE.world.DISH_RADIUS - 2 * DEFAULT_BALANCE.pool.POOL_BANK_WIDTH,
+    );
   });
 });

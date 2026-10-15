@@ -169,8 +169,9 @@ every tick
     films, then threads, then the orbit, at `createWorld` when the pool is in play, or by the `debug_set_balance` that
     puts it in play (the same layout, since nothing draws from that stream before), or else by the move. Every shape
     keeps off the bank: a film's centre within `DISH_RADIUS − POOL_BANK_WIDTH − POOL_FILM_RADIUS`, a thread's within
-    that less half its length, and the orbit's radius between half and all of `DISH_RADIUS − POOL_BANK_WIDTH −
-POOL_LIGHT_PATCH_RADIUS`, so the patch always circles; its start tick is the round's start.
+    that less half its length, and the orbit's radius between half and all of
+    `DISH_RADIUS − POOL_BANK_WIDTH − POOL_LIGHT_PATCH_RADIUS`, so the patch always circles; its start tick is the
+    round's start (`roundStartTick`), whichever of the three draws it.
 - **The cameras across the move.** Both sides remap with the shared `remapCameraAcrossMove(state, eras.ERA_SCALE_STEP)`
   (`camera/era-move-camera.ts`: x, y and the view's half-height divided by the step) when the era they frame leaves
   the dish: the server's viewer camera (§4.2 lever 1) when the world's `eraMovedInto` at its step has left the dish

@@ -3,7 +3,7 @@
 // the round; `runStep` wraps it with the one resume-and-write-back of the random streams.
 //
 //   1 inputs (+ the wild settle, the giant settle and the seats' decisions)      2 round (+ the era moves)
-//   3 movement (+ separation, pins)   4 eating   5 metabolism (+ the pool's films)
+//   3 movement (+ separation, pins)   4 eating   5 metabolism
 //   6 engulf      7 progression      8 spawners + mote motion (+ the pool's swarms)
 //   9 respawn (players, then wild seats, then giant seats)     10 leaderboard
 

@@ -34,7 +34,7 @@ import { pickWeighted } from './pick-weighted.js';
 import { drawPointAround, drawPointInPool, drawPointInZone } from './spawn-point.js';
 import { fragmentSpawnerRates, foodSpawnerRates, spawnEventKindWeights, type SpawnerRates } from './spawn-rates.js';
 import { worldReferenceAt } from './round-clock.js';
-import { worldZoneMap } from './zones.js';
+import { WHOLE_DISC_INNER_RADIUS, worldZoneMap } from './zones.js';
 
 /** The zones a kind is drawn in, in one fixed order, with their weights (docs/ecology/food-and-spawn.md §3). */
 const SPAWN_ZONE_ORDER: readonly SpawnZoneId[] = [ZONE_ID.sunlitShallows, ZONE_ID.warmVent, ZONE_ID.openBroth];
@@ -119,13 +119,10 @@ function spawnPoolFragmentEvent(
   return placeFragment(world, context, point);
 }
 
-/** The pool's fragments may appear anywhere in it after the move. */
-const POOL_FRAGMENT_INNER_RADIUS = 0;
-
 /** One fragment: zone, point, the zone's tag, then a drift direction from `moteMotion`; in the pool, no zone draw. */
 export function spawnFragmentEvent(world: WorldState, context: StepContext, maxAttempts: number): number {
   if (world.eraMovedInto !== GAME_ERA.dish) {
-    return spawnPoolFragmentEvent(world, context, maxAttempts, POOL_FRAGMENT_INNER_RADIUS);
+    return spawnPoolFragmentEvent(world, context, maxAttempts, WHOLE_DISC_INNER_RADIUS);
   }
   const random = context.streams[RANDOM_STREAM.spawner];
   const zone = drawSpawnZone(ENTITY_KIND.dnaFragment, random, world.balance);

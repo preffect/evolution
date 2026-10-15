@@ -28,6 +28,8 @@ const ROUND_START_TICK = 7_200;
 /** The leaf a patch names to put the pool in play. */
 const ERAS_IN_PLAY_LEAF = 'ERAS_IN_PLAY' satisfies keyof BalanceConfig['eras'];
 const SECOND_SEED = 43;
+/** A minute into the round: a tick that is not its start. */
+const MID_ROUND_TICKS = 3600;
 
 function layoutFor(seed: number, balance = DEFAULT_BALANCE): PoolLayoutView {
   return drawPoolLayout(createSeededRandom(seed), balance, ROUND_START_TICK);
@@ -108,6 +110,14 @@ describe('the layout in a round', () => {
     const fromTheStart = createTestWorld({ balance: POOL_ON });
     expect(patched.poolLayout).not.toBeNull();
     expect(patched.poolLayout).toEqual(fromTheStart.poolLayout);
+  });
+
+  it('a patch sent mid-round starts the orbit at the round’s start, not at the patch’s tick', () => {
+    const world = createTestWorld();
+    world.tick = world.roundStartTick + MID_ROUND_TICKS;
+    setBalanceForDebug(world, { eras: { [ERAS_IN_PLAY_LEAF]: [GAME_ERA.dish, GAME_ERA.pool] } });
+    expect(world.poolLayout!.lightPatchOrbit.startTick).toBe(world.roundStartTick);
+    expect(world.tick).not.toBe(world.roundStartTick);
   });
 
   it('a patch that leaves the pool out of play draws nothing, and a second patch keeps the layout drawn', () => {

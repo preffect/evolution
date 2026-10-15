@@ -45,8 +45,3 @@ export function poolBankInnerRadius(balance: {
 }): number {
   return balance.world.DISH_RADIUS - balance.pool.POOL_BANK_WIDTH;
 }
-
-/** On the bank, the band `POOL_BANK_WIDTH` wide inside the wall (its inner edge included). */
-export function isOnPoolBank(point: Vec2, balance: Parameters<typeof poolBankInnerRadius>[0]): boolean {
-  return Math.hypot(point.x, point.y) >= poolBankInnerRadius(balance);
-}

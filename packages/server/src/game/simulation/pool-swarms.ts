@@ -22,12 +22,10 @@ import type { FoodMoteRecord, PoolSwarmRecord } from '../world/entities.js';
 import type { StepContext, WorldState } from '../world/world-state.js';
 import { spawnFoodMote } from './spawn-mote.js';
 import { drawPointAround } from './spawn-point.js';
-import { clampedToFoodBoundary, foodBoundaryRadius } from './zones.js';
+import { WHOLE_DISC_INNER_RADIUS, clampedToFoodBoundary, foodBoundaryRadius } from './zones.js';
 
 /** A swarm eaten down to this share of `POOL_SWARM_SIZE` respawns (§14.5.2: "down to a quarter"). */
 const SWARM_RESPAWN_SHARE = 0.25;
-/** A respawned swarm may appear anywhere in the pool, its centre included. */
-const ANYWHERE_INNER_RADIUS = 0;
 
 /**
  * A swarm's centre, uniform by area from `innerRadius` out to the food boundary less the swarm's radius, so every speck
@@ -71,7 +69,7 @@ function respawnEatenSwarms(world: WorldState, swarms: PoolSwarmRecord[], random
   for (const [index, swarm] of swarms.entries()) {
     swarm.memberIds = swarm.memberIds.filter((id) => lying.has(id));
     if (swarm.memberIds.length <= respawnAtOrBelow) {
-      swarms[index] = spawnSwarm(world, random, ANYWHERE_INNER_RADIUS);
+      swarms[index] = spawnSwarm(world, random, WHOLE_DISC_INNER_RADIUS);
     }
   }
 }
