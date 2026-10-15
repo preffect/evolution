@@ -133,8 +133,10 @@ A player that eats it gets the world's DNA share, no more. Eating a cell that ow
 gives a wild cell nothing, because it has no counters.
 
 > **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.6, §15.8.1).**
-> Build 1 takes `mitochondrion` in place of `chloroplast` (the chloroplast becomes a `eukaryote` trait), and wild cells
-> swallow nothing until the world reaches `eukaryote`.
+> Build 1 takes `mitochondrion` in place of `chloroplast` (the chloroplast becomes a `eukaryote` trait). Since ticket
+> #947 (§15.8.1 there) a wild cell swallows only once its build owns the Cytoskeleton Lattice: build 1 takes it second
+> (from 6:00), build 0 at level 5, build 2 never; so build 1's stage runs a rung behind the world's at levels 3, 4 and 6
+> and the stage equality below no longer holds for it.
 
 `WILD_CELL_BUILDS` (`constants/wild-cells.ts`): three lists, each a valid ladder (every entry's
 `stage` and `requires` are met by the entries before it, and no entry before it shares its exclusion group, so a build

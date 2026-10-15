@@ -63,7 +63,9 @@ thud on contact.
 > **Decided, not built yet (ticket #865, [`game-design/early-life.md`](../game-design/early-life.md) §15.4, §15.6).**
 > The Mitochondrion is earned by holding aerobic bacteria with the archaeon's arms until they bond, and the
 > Chloroplast moves to `stage: 'eukaryote'` (unlocked by swallowing photosynthetic bacteria as a eukaryote); it is
-> no longer an endosymbiosis gate. The rows below are the game as it plays today.
+> no longer an endosymbiosis gate. Ticket #947 (§15.5 there) moves the Cytoskeleton Lattice (§3.8) to
+> `stage: 'prokaryote'` and makes it the inner skeleton that lets a cell swallow. The rows below are the game as it
+> plays today.
 
 ### Rung 2 — prokaryote organelles (`stage: 'prokaryote'`)
 
